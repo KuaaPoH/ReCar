@@ -1,102 +1,21 @@
-﻿ <!-- Breadcrumb Area Start Here -->
-    <div class="breadcrumbs-area position-relative">
-        <div class="container">
-            <div class="row">
-                <div class="col-12 text-center">
-                    <div class="breadcrumb-content position-relative section-content">
-                        <h3 class="title-3">Blog Sidebar</h3>
-                        <ul>
-                            <li><a href="index.html">Home</a></li>
-                            <li>Blog</li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        </div>
+@{
+    ViewData["Title"] = "Cẩm nang";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<!-- Page Banner -->
+<div class="page-title-banner" style="background-color: #f8fafc; border-bottom: 1px solid var(--recar-border); padding: 36px 0;">
+    <div class="container" style="max-width: 1280px;">
+        <h1 class="fs-2 fw-bold m-0" style="color: var(--recar-navy);">Cẩm nang</h1>
+        <p class="text-muted small m-0 mt-2" style="font-size: 15px;">
+            Kinh nghiệm thuê xe, lái xe an toàn và gợi ý hành trình du lịch từ ReCar.
+        </p>
     </div>
-    <!-- Breadcrumb Area End Here -->
-    <!-- Blog Main Area Start Here -->
-    <div class="blog-main-area">
-        <div class="container container-default custom-area">
-            <div class="row flex-row-reverse">
-                <div class="col-lg-9 col-12 col-custom widget-mt">
-                    <!-- Shop Wrapper Start -->
-                    <div class="row">
-                       @await Component.InvokeAsync("Blog")
-                    </div>
-                    <!-- Shop Wrapper End -->
-                    <!-- Bottom Toolbar Start -->
-                    <div class="row">
-                        <div class="col-sm-12 col-custom">
-                            <div class="toolbar-bottom">
-                                <div class="pagination">
-                                    <ul>
-                                        <li class="current">1</li>
-                                        <li><a href="#">2</a></li>
-                                        <li><a href="#">3</a></li>
-                                        <li class="next"><a href="#">next</a></li>
-                                        <li><a href="#">&gt;&gt;</a></li>
-                                    </ul>
-                                </div>
-                                <p class="desc-content text-center text-sm-right mb-0">Showing 1 - 12 of 34 result</p>
-                            </div>
-                        </div>
-                    </div>
-                    <!-- Bottom Toolbar End -->
-                </div>
-                <div class="col-lg-3 col-12 col-custom">
-                    <!-- Sidebar Widget Start -->
-                    <aside class="sidebar_widget widget-mt">
-                        <div class="widget_inner">
-                            <div class="widget-list widget-mb-1">
-                                <h3 class="widget-title">Search</h3>
-                                <div class="search-box">
-                                    <div class="input-group">
-                                        <input type="text" class="form-control" placeholder="Search Our Store" aria-label="Search Our Store">
-                                        <div class="input-group-append">
-                                            <button class="btn btn-outline-secondary" type="button">
-                                                <i class="fa fa-search"></i>
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="widget-list widget-mb-1">
-                                <h3 class="widget-title">Categories</h3>
-                                <div class="sidebar-body">
-                                    <ul class="sidebar-list">
-                                        <li><a href="#">All Product</a></li>
-                                        <li><a href="#">Best Seller (5)</a></li>
-                                        <li><a href="#">Featured (4)</a></li>
-                                        <li><a href="#">New Products (6)</a></li>
-                                    </ul>
-                                </div>
-                            </div>
-                            <div class="widget-list widget-mb-3">
-                                <h3 class="widget-title">Tags</h3>
-                                <div class="sidebar-body">
-                                    <ul class="tags">
-                                        <li><a href="#">Rose</a></li>
-                                        <li><a href="#">Sunflower</a></li>
-                                        <li><a href="#">Tulip</a></li>
-                                        <li><a href="#">Lily</a></li>
-                                        <li><a href="#">Smart</a></li>
-                                        <li><a href="#">Modern</a></li>
-                                        <li><a href="#">Gift</a></li>
-                                    </ul>
-                                </div>
-                            </div>
-                            <div class="widget-list mb-0">
-                                <h3 class="widget-title">Recent Products</h3>
-                                <div class="sidebar-body">
-                                @await Component.InvokeAsync("RecentProducts")
-                                </div>
-                            </div>
-                        </div>
-                    </aside>
-                    <!-- Sidebar Widget End -->
-                </div>
-            </div>
-        </div>
+</div>
+
+<!-- Lưới danh sách bài viết -->
+<div class="container py-5" style="max-width: 1280px;">
+    <div class="row g-4">
+        @await Component.InvokeAsync("Blog")
     </div>
-    <!-- Blog Main Area End Here -->
+</div>

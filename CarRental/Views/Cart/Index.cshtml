@@ -1,157 +1,136 @@
-﻿@model IEnumerable<CarRental.ViewModels.CartItemsVM> 
-<!-- Breadcrumb Area Start Here -->
-    <div class="breadcrumbs-area position-relative">
-        <div class="container">
-            <div class="row">
-                <div class="col-12 text-center">
-                    <div class="breadcrumb-content position-relative section-content">
-                        <h3 class="title-3">Shopping Cart</h3>
-                        <ul>
-                            <li><a href="index.html">Home</a></li>
-                            <li>Shopping Cart</li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        </div>
+@model IEnumerable<CarRental.ViewModels.CartItemsVM>
+@{
+    ViewData["Title"] = "Xe đang giữ chỗ – ReCar";
+    decimal total = Model != null ? Model.Sum(p => p.PriceTotal) : 0;
+    decimal deposit = total * 0.3m;
+    decimal remaining = total - deposit;
+}
+
+<!-- Breadcrumb Area Start -->
+<div class="py-3 bg-light border-bottom mb-4">
+    <div class="container" style="max-width: 1280px;">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb m-0 small">
+                <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index" class="text-decoration-none">Trang chủ</a></li>
+                <li class="breadcrumb-item"><a asp-controller="Product" asp-action="Index" class="text-decoration-none">Thuê xe</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Danh sách xe đang chọn</li>
+            </ol>
+        </nav>
+        <h1 class="fs-4 fw-bold text-dark mt-2 mb-0">Xe đang chọn thuê</h1>
+        <p class="text-muted small m-0">Kiểm tra thông tin lịch trình và tiến hành đặt cọc giữ chỗ 30%</p>
     </div>
-    <!-- Breadcrumb Area End Here -->
-    <!-- cart main wrapper start -->
-    <div class="cart-main-wrapper mt-no-text">
-        <div class="container custom-area">
-            <div class="row">
-                <div class="col-lg-12 col-custom">
-                    <!-- Cart Table Area -->
-                    <div class="cart-table table-responsive">
-                        <table class="table table-bordered">
-                            <thead>
+</div>
+<!-- Breadcrumb Area End -->
+
+<div class="container mb-5" style="max-width: 1280px;">
+    @if (Model != null && Model.Any())
+    {
+        <div class="row g-4">
+            <!-- Cột trái: Bảng xe đã chọn -->
+            <div class="col-lg-8">
+                <div class="card p-3 border rounded-3 shadow-sm bg-white mb-3">
+                    <div class="table-responsive">
+                        <table class="table align-middle m-0">
+                            <thead class="bg-light small text-uppercase text-muted">
                                 <tr>
-                                    <th class="pro-thumbnail">Hình ảnh</th>
-                                    <th class="pro-title">Tên xe</th>
-                                    <th class="pro-price">Ngày nhận</th>
-                                    <th class="pro-price">Ngày trả</th>
-                                    <th class="pro-quantity">Quantity</th>
-                                    <th class="pro-subtotal">Total</th>
-                                    <th class="pro-remove">Remove</th>
+                                    <th scope="col" style="min-width: 120px;">Hình ảnh</th>
+                                    <th scope="col">Thông tin xe</th>
+                                    <th scope="col">Lịch trình thuê</th>
+                                    <th scope="col" class="text-end">Thành tiền</th>
+                                    <th scope="col" class="text-center">Xóa</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach (var item in Model) {
-                                <tr>
-                                    <td class="pro-thumbnail"><a href="#"><img class="img-fluid" src="@item.Image" alt="Product" /></a></td>
-                                    <td class="pro-title"><a href="#">@item.CarName </a></td>
-                                    <td class="pro-price"><span>@item.pickupDate.ToString("yyyy-MM-dd")</span></td>
-                                    <td class="pro-price"><span>@item.returnDate.ToString("yyyy-MM-dd")</span></td>
-                                    <td class="pro-quantity">
-                                        <div class="quantity">
-                                            <div class="cart-plus-minus">
-                                                <input class="cart-quantity-input cart-plus-minus-box" value="@item.Quantity" id="quantity_@item.CartId" data-cartid="@item.CartId" type="number">
-                                                <div class="dec qtybutton">-</div>
-                                                <div class="inc qtybutton">+</div>
-                                                <div class="dec qtybutton"><i class="fa fa-minus"></i></div>
-                                                <div class="inc qtybutton"><i class="fa fa-plus"></i></div>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td class="pro-subtotal"><span>$@item.PriceTotal</span></td>
-                                    <td class="pro-remove"><a asp-controller="Cart" asp-action="removeCart" asp-route-id="@item.CartId"><i class="lnr lnr-trash"></i></a></td>
-                                </tr>
+                                @foreach (var item in Model)
+                                {
+                                    int days = (item.returnDate - item.pickupDate).Days;
+                                    if (days <= 0) days = 1;
 
+                                    <tr>
+                                        <td>
+                                            <img src="@item.Image" alt="@item.CarName" class="rounded-2" style="width: 100px; height: 65px; object-fit: cover;" />
+                                        </td>
+                                        <td>
+                                            <a href="/product/@item.CartId" class="fw-bold text-dark text-decoration-none d-block">@item.CarName</a>
+                                            <span class="badge bg-secondary text-dark small mt-1">Số tự động</span>
+                                        </td>
+                                        <td class="small text-muted">
+                                            <div><i class="bi bi-calendar-event text-primary me-1"></i>Nhận: <strong>@item.pickupDate.ToString("dd/MM/yyyy")</strong></div>
+                                            <div><i class="bi bi-calendar-check text-success me-1"></i>Trả: <strong>@item.returnDate.ToString("dd/MM/yyyy")</strong></div>
+                                            <div class="text-primary fw-semibold mt-1">(@days ngày)</div>
+                                        </td>
+                                        <td class="text-end">
+                                            <div class="fw-bold text-primary fs-6">@item.PriceTotal.ToString("N0")đ</div>
+                                        </td>
+                                        <td class="text-center">
+                                            <a asp-controller="Cart" asp-action="removeCart" asp-route-id="@item.CartId" class="btn btn-sm btn-outline-danger" title="Xóa khỏi danh sách">
+                                                <i class="bi bi-trash"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
                                 }
-                               
                             </tbody>
                         </table>
                     </div>
-                    <!-- Cart Update Option -->
-                    <div class="cart-update-option d-block d-md-flex justify-content-between">
-                        <div class="apply-coupon-wrapper">
-                            <form action="#" method="post" class=" d-block d-md-flex">
-                                <input type="text" placeholder="Enter Your Coupon Code" required />
-                                <button class="btn flosun-button primary-btn rounded-0 black-btn">Apply Coupon</button>
-                            </form>
-                        </div>
-                        <div class="cart-update mt-sm-16">
-                        <button id="update-cart-btn" class="btn flosun-button primary-btn rounded-0 black-btn">Update Cart</button>
-                        </div>
-                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center">
+                    <a asp-controller="Product" asp-action="Index" class="btn btn-outline-secondary btn-sm fw-semibold">
+                        <i class="bi bi-arrow-left me-1"></i> Tiếp tục chọn xe khác
+                    </a>
                 </div>
             </div>
-            <div class="row">
-                <div class="col-lg-5 ml-auto col-custom">
-                    <!-- Cart Calculation Area -->
-                    <div class="cart-calculator-wrapper">
-                        <div class="cart-calculate-items">
-                            <h3>Cart Totals</h3>
-                            <div class="table-responsive">  
-                                <table class="table">
-                                    <tr>
-                                        <td>Sub Total</td>
-                                        <td>$@Model.Sum(p=>p.PriceTotal)</td>
-                                    </tr>
-                                    <tr>
-                                        <td>Shipping</td>
-                                        <td>$70</td>
-                                    </tr>
-                                    <tr class="total">
-                                        <td>Total</td>
-                                        <td class="total-amount">$@Model.Sum(p=>p.PriceTotal)</td>
-                                    </tr>
-                                </table>
+
+            <!-- Cột phải: Bảng thanh toán tiền cọc 30% -->
+            <div class="col-lg-4">
+                <div class="card p-4 border rounded-4 shadow-sm bg-white sticky-top" style="top: 90px;">
+                    <h5 class="fw-bold text-dark mb-3"><i class="bi bi-receipt text-primary me-1"></i> Tóm tắt chi phí</h5>
+                    
+                    <div class="d-flex justify-content-between py-2 border-bottom small">
+                        <span class="text-muted">Tổng tiền thuê dự kiến:</span>
+                        <span class="fw-bold text-dark">@total.ToString("N0")đ</span>
+                    </div>
+
+                    <div class="d-flex justify-content-between py-2 border-bottom">
+                        <span class="fw-bold text-primary">Tiền đặt cọc giữ chỗ (30%):</span>
+                        <span class="fw-bold text-primary fs-5">@deposit.ToString("N0")đ</span>
+                    </div>
+
+                    <div class="d-flex justify-content-between py-2 border-bottom small text-muted">
+                        <span>Số tiền thanh toán khi nhận xe (70%):</span>
+                        <span class="fw-semibold text-dark">@remaining.ToString("N0")đ</span>
+                    </div>
+
+                    <div class="p-3 bg-light rounded-3 my-3 small border">
+                        <div class="d-flex align-items-start gap-2 text-muted">
+                            <i class="bi bi-shield-check text-success fs-5"></i>
+                            <div>
+                                <strong>Bảo vệ đặt cọc ReCar:</strong>
+                                <p class="m-0 mt-1" style="font-size: 0.78rem;">
+                                    Tiền cọc 30% được giữ an toàn qua cổng VNPay. Được hoàn cọc 100% nếu hủy trước 24 giờ nhận xe.
+                                </p>
                             </div>
                         </div>
-                        <a asp-controller="Cart" asp-action="Checkout" class="btn flosun-button primary-btn rounded-0 black-btn w-100">Chuyển đến trang thanh toán</a>
                     </div>
+
+                    <a asp-controller="Cart" asp-action="Checkout" class="btn btn-warning w-100 py-2 fw-bold text-dark fs-6 rounded-3 shadow-sm">
+                        Tiến hành đặt cọc & thanh toán <i class="bi bi-arrow-right ms-1"></i>
+                    </a>
                 </div>
             </div>
         </div>
-    </div>
-    <!-- cart main wrapper end -->
-@section scripts {
-    <script>
-                $(document).ready(function() {
-            $("#update-cart-btn").click(function() {
-                var updatedCart = [];
-
-                // Lấy thông tin số lượng của từng sản phẩm trong giỏ hàng
-                $(".cart-quantity-input").each(function() {
-                    var cartId = $(this).data("cartid");
-                    var quantity = $(this).val(); // Số lượng mới
-
-                    updatedCart.push({
-                        CartId: cartId,
-                        Quantity: quantity
-                    });
-                });
-
-                // Gửi AJAX để cập nhật giỏ hàng
-                $.ajax({
-                    url: "/Cart/UpdateCart", // Đường dẫn action cập nhật giỏ hàng
-                    type: "POST",
-                    data: JSON.stringify(updatedCart),
-                    contentType: "application/json",
-                    success: function(response) {
-                        // Cập nhật lại giao diện sau khi cập nhật giỏ hàng
-                        Swal.fire({
-                            position: "top-end",
-                            icon: "success",
-                            title: "Giỏ hàng đã được cập nhật!",
-                            showConfirmButton: false,
-                            timer: 1500
-                        });
-
-                        // Có thể cập nhật lại tổng giá trị giỏ hàng, v.v.
-                        $("#total-price").text(response.totalPrice); // Ví dụ cập nhật lại tổng giỏ hàng
-                    },
-                    error: function() {
-                        Swal.fire({
-                            icon: "error",
-                            title: "Có lỗi xảy ra!",
-                            text: "Không thể cập nhật giỏ hàng."
-                        });
-                    }
-                });
-            });
-        });
-
-    </script>
-}
+    }
+    else
+    {
+        <div class="text-center py-5">
+            <div class="p-5 bg-white rounded-4 border shadow-sm mx-auto" style="max-width: 500px;">
+                <i class="bi bi-cart-x text-muted" style="font-size: 3.5rem;"></i>
+                <h4 class="fw-bold text-dark mt-3">Danh sách thuê xe đang trống</h4>
+                <p class="text-muted small mb-4">Bạn chưa chọn chiếc xe nào để đặt cọc giữ chỗ. Hãy khám phá ngay hàng trăm mẫu xe đang sẵn sàng!</p>
+                <a asp-controller="Product" asp-action="Index" class="btn btn-primary px-4 py-2 fw-semibold rounded-3">
+                    <i class="bi bi-search me-1"></i> Khám phá xe ngay
+                </a>
+            </div>
+        </div>
+    }
+</div>

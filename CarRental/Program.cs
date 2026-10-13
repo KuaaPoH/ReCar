@@ -1,4 +1,4 @@
-﻿using CarRental.Models;
+using CarRental.Models;
 using CarRental.Services;
 using CarRental.Middleware;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -69,9 +69,7 @@ if (app.Environment.IsDevelopment())
                 {
                     try
                     {
-                        // Sử dụng FormattableString để tránh SQL injection warning
-                        FormattableString sql = $"CREATE DATABASE IF NOT EXISTS `{databaseName}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;";
-                        tempContext.Database.ExecuteSql(sql);
+                        tempContext.Database.ExecuteSqlRaw($"CREATE DATABASE IF NOT EXISTS `{databaseName}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;");
                     }
                     catch (Exception dbEx)
                     {
@@ -247,9 +245,8 @@ static void EnsureAllTablesExist(DbRenalCarContext context, ILogger logger)
                 // Kiểm tra xem bảng có tồn tại không bằng cách thử query
                 try
                 {
-                    // Sử dụng FormattableString để tránh SQL injection warning
-                    FormattableString checkSql = $"SELECT 1 FROM `{table.Key}` LIMIT 1";
-                    context.Database.ExecuteSql(checkSql);
+                    // Dùng ExecuteSqlRaw với tên bảng nội bộ để tránh EF Core biến tên bảng thành parameter @p0
+                    context.Database.ExecuteSqlRaw($"SELECT 1 FROM `{table.Key}` LIMIT 1;");
                     // Nếu không có lỗi, bảng đã tồn tại
                 }
                 catch

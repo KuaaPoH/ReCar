@@ -1,709 +1,348 @@
-﻿@model Car
-@using CarRental.Utilities;
+@model CarRental.Models.Car
+@using CarRental.Utilities
 @{
-    // List<Car> productFeatured = ViewBag.productFeatured;
-    List<Car> productRelated = ViewBag.productRelated;
-    List<CarReview> productReviews = ViewBag.productRviews;
-}
-@section style {
-    <style>
-        /* Căn chỉnh form-group */
-        .form-group {
-            margin-bottom: 20px;
-            position: relative;
-        }
+    ViewData["Title"] = Model.CarName + " – Chi tiết thuê xe";
+    List<CarRental.Models.Car> productRelated = ViewBag.productRelated ?? new List<CarRental.Models.Car>();
+    List<CarRental.Models.CarReview> productReviews = ViewBag.productRviews ?? new List<CarRental.Models.CarReview>();
 
-        /* Điều chỉnh giao diện của ô nhập ngày */
-        input[type="date"] {
-            position: relative;
-            padding-right: 40px; /* Thêm khoảng trống để tránh biểu tượng */
-            height: 45px;
-            border-radius: 8px;
-            border: 1px solid #ccc;
-            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
-        }
+    string todayStr = DateTime.Now.ToString("yyyy-MM-dd");
+    string nextDayStr = DateTime.Now.AddDays(2).ToString("yyyy-MM-dd");
 
-            /* Điều chỉnh biểu tượng cuốn lịch */
-            input[type="date"]::-webkit-calendar-picker-indicator {
-                position: absolute;
-                right: 10px; /* Đẩy biểu tượng ra xa mép phải */
-                top: 50%; /* Căn giữa theo chiều dọc */
-                transform: translateY(-50%);
-                cursor: pointer;
-                color: #555; /* Màu của biểu tượng */
-            }
-
-            /* Thay đổi border khi hover */
-            input[type="date"]:hover {
-                border-color: #007bff;
-            }
-
-            /* Hiệu ứng khi focus */
-            input[type="date"]:focus {
-                border-color: #007bff;
-                box-shadow: 0px 0px 5px rgba(0, 123, 255, 0.5);
-                outline: none;
-            }
-
-            /* Biểu tượng lịch */
-            input[type="date"]::-webkit-calendar-picker-indicator {
-                position: absolute;
-                right: 10px;
-                top: 50%;
-                transform: translateY(-50%);
-                cursor: pointer;
-            }
-
-        /* Tùy chỉnh nhãn */
-        label {
-            font-weight: bold;
-            font-size: 14px;
-            margin-bottom: 5px;
-            display: block;
-            color: #555;
-        }
-    </style>
+    decimal finalPrice = (Model.SalePrice > 0 ? Model.SalePrice : Model.Price) ?? 0;
+    string carImg = string.IsNullOrEmpty(Model.Image) ? "/images/cars/car-sedan.jpg" : Model.Image;
 }
 
-<!-- Breadcrumb Area Start Here -->
-<div class="breadcrumbs-area position-relative">
-    <div class="container">
-        <div class="row">
-            <div class="col-12 text-center">
-                <div class="breadcrumb-content position-relative section-content">
-                    <h3 class="title-3" >Chi tiết sản phẩm</h3>
-                    <ul >
-                        <li><a href="index.html" >Trang chủ</a></li>
-                        <li >Chi tiết sản phẩm</li>
-                    </ul>
-                </div>
-            </div>
-        </div>
+<!-- Breadcrumb Area Start -->
+<div class="py-3 bg-light border-bottom mb-4">
+    <div class="container" style="max-width: 1280px;">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb m-0 small">
+                <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index" class="text-decoration-none">Trang chủ</a></li>
+                <li class="breadcrumb-item"><a asp-controller="Product" asp-action="Index" class="text-decoration-none">Thuê xe</a></li>
+                <li class="breadcrumb-item active" aria-current="page">@Model.CarName</li>
+            </ol>
+        </nav>
     </div>
 </div>
-<!-- Breadcrumb Area End Here -->
-<!-- Single Product Main Area Start -->
-<div class="single-product-main-area">
-    <div class="container container-default custom-area">
-        <div class="row">
-            <div class="col-lg-5 offset-lg-0 col-md-8 offset-md-2 col-custom">
-                <div class="product-details-img">
-                    <div class="single-product-img swiper-container gallery-top popup-gallery">
-                        <div class="swiper-wrapper">
-                            <div class="swiper-slide">
-                                <a class="w-100" href="@Model.Image">
-                                    <img class="w-100" src="@Model.Image" alt="Product">
-                                </a>
-                            </div>
-                            <div class="swiper-slide">
-                                <a class="w-100" href="@Model.Image">
-                                    <img class="w-100" src="@Model.Image" alt="Product">
-                                </a>
-                            </div>
-                            <div class="swiper-slide">
-                                <a class="w-100" href="@Model.Image">
-                                    <img class="w-100" src="@Model.Image" alt="Product">
-                                </a>
-                            </div>
-                            <div class="swiper-slide">
-                                <a class="w-100" href="@Model.Image">
-                                    <img class="w-100" src="@Model.Image" alt="Product">
-                                </a>
-                            </div>
-                            <div class="swiper-slide">
-                                <a class="w-100" href="@Model.Image">
-                                    <img class="w-100" src="@Model.Image" alt="Product">
-                                </a>
-                            </div>
-                            <div class="swiper-slide">
-                                <a class="w-100" href="@Model.Image">
-                                    <img class="w-100" src="@Model.Image" alt="Product">
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="single-product-thumb swiper-container gallery-thumbs">
-                        <div class="swiper-wrapper">
-                            <div class="swiper-slide">
-                                <img src="@Model.Image" alt="Product">
-                            </div>
-                            <div class="swiper-slide">
-                                <img src="@Model.Image" alt="Product">
-                            </div>
-                            <div class="swiper-slide">
-                                <img src="@Model.Image" alt="Product">
-                            </div>
-                            <div class="swiper-slide">
-                                <img src="@Model.Image" alt="Product">
-                            </div>
-                            <div class="swiper-slide">
-                                <img src="@Model.Image" alt="Product">
-                            </div>
-                            <div class="swiper-slide">
-                                <img src="@Model.Image" alt="Product">
-                            </div>
-                        </div>
-                        <!-- Add Arrows -->
-                        <div class="swiper-button-next swiper-button-white"><i class="lnr lnr-arrow-right"></i></div>
-                        <div class="swiper-button-prev swiper-button-white"><i class="lnr lnr-arrow-left"></i></div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-lg-7 col-custom">
-                <div class="product-summery position-relative">
-                    <div class="product-head mb-3">
-                        <h2 class="product-title">@Model.CarName</h2>
-                    </div>
-                    <div class="price-box mb-2">
-                        <span class="regular-price">@Model.SalePrice.Value.ToString("N0")đ/ngày</span>
-                        <span class="old-price"><del>@Model.Price.Value.ToString("N0")đ</del></span>
-                    </div>
-                    <div class="product-rating mb-3">
-                        <i class="fa fa-star"></i>
-                        <i class="fa fa-star"></i>
-                        <i class="fa fa-star"></i>
-                        <i class="fa fa-star-o"></i>
-                        <i class="fa fa-star-o"></i>
-                    </div>
-                    <div class="sku mb-3">
-                        <span>SKU: 12345</span>
-                    </div>
-                    <p class="desc-content mb-5">Vị trí : @Model.Descriptions</p>
-                    <form asp-action="AddToCart" asp-controller="Cart" asp-route-id="@Model.CarId">
-                        <!-- Hàng chứa quantity và ngày tháng -->
-                        <div class="row align-items-center mb-3">
-                            <!-- Quantity -->
-                            <div class="col-md-3">
-                                <div class="quantity">
-                                    <div class="cart-plus-minus">
-                                        <input class="cart-plus-minus-box" value="1" type="text" name="quantity">
-                                        <div class="dec qtybutton">-</div>
-                                        <div class="inc qtybutton">+</div>
-                                    </div>
-                                </div>
-                            </div>
+<!-- Breadcrumb Area End -->
 
-                            <!-- Ngày nhận xe -->
-                            <div class="col-md-4">
-                                <div class="form-group">
-                                    <label for="pickupDate">Ngày nhận xe:</label>
-                                    <input id="pickupDate" name="pickupDate" type="date" class="form-control" required>
-
-                                </div>
-                            </div>
-
-                            <!-- Ngày trả xe -->
-                            <div class="col-md-4">
-                                <div class="form-group">
-                                    <label for="returnDate">Ngày trả xe:</label>
-                                    <input id="returnDate" name="returnDate" type="date" class="form-control" required>
-                                 
-                                </div>
-                            </div>
-                            <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-                            <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-                            <script>
-                                $(document).ready(function () {
-                                    // Lấy ngày hiện tại
-                                    const today = new Date();
-
-                                    // Chuyển đổi ngày hiện tại thành định dạng yyyy-mm-dd
-                                    const day = String(today.getDate()).padStart(2, '0');
-                                    const month = String(today.getMonth() + 1).padStart(2, '0'); // Tháng bắt đầu từ 0
-                                    const year = today.getFullYear();
-                                    const currentDate = `${year}-${month}-${day}`;
-
-                                    // Áp dụng ngày hiện tại vào thuộc tính 'min' của các input
-                                    $('#pickupDate').attr('min', currentDate);
-                                    $('#returnDate').attr('min', currentDate);
-
-                                    // Lắng nghe sự kiện thay đổi trên trường Ngày trả xe
-                                    $('#returnDate, #pickupDate').on('input', function () {
-                                        const pickupDate = new Date($('#pickupDate').val());
-                                        const returnDate = new Date($('#returnDate').val());
-
-                                        // Lấy ngày mà không có giờ (chỉ lấy phần năm, tháng, ngày)
-                                        const pickupDateOnly = new Date(pickupDate.getFullYear(), pickupDate.getMonth(), pickupDate.getDate());
-                                        const returnDateOnly = new Date(returnDate.getFullYear(), returnDate.getMonth(), returnDate.getDate());
-
-                                        // Kiểm tra nếu ngày trả không hợp lệ
-                                        if (returnDateOnly <= pickupDateOnly) {
-                                            Swal.fire({
-                                                icon: 'error',
-                                                title: 'Lỗi',
-                                                text: 'Ngày trả xe phải lớn hơn ngày nhận xe!',
-                                                confirmButtonText: 'Đóng',
-                                                willClose: () => {
-                                                    // Xóa giá trị ngày trả nếu có lỗi
-                                                    $('#returnDate').val('');
-                                                }
-                                            });
-                                        }
-                                    });
-                                });
-                            </script>
-                        </div>
-                        @if(Model.IsActive == false) {
-                       
-                        <div class="row">
-                                <p class="desc-content" style="color:red"><i class="bi bi-exclamation-triangle-fill"></i>Xe đang bận</p>
-                        </div>
-                        }
-                     
-
-                        <!-- Hàng chứa nút Add to cart và Add to wishlist -->
-                        <div class="row">
-                            <div class="col-md-6">
-                                @{
-                                    var buttonClass = (bool)Model.IsActive
-                                    ? "ajax-add-to-cart btn product-cart button-icon flosun-button dark-btn w-100"
-                                    : "ajax-add-to-cart btn product-cart button-icon flosun-button dark-btn w-100 disabled";
-                                }
-                                <button   type="submit" asp-action="AddToCart" asp-controller="Cart" asp-route-id="@Model.CarId" type="submit" class="@buttonClass" >
-                                    Chọn thuê
-                                </button>
-                                
-                            </div>
-                            <div class="col-md-6">
-                                <a class="btn flosun-button secondary-btn secondary-border rounded-0 w-100" href="wishlist.html">
-                                    Yêu thích
-                                </a>
-                            </div>
-                        </div>
-                     
-                    </form>
-                  
-
-                    <div class="social-share mb-4 mt-3">
-                        <span>Share :</span>
-                        <a href="#"><i class="fa fa-facebook-square facebook-color"></i></a>
-                        <a href="#"><i class="fa fa-twitter-square twitter-color"></i></a>
-                        <a href="#"><i class="fa fa-linkedin-square linkedin-color"></i></a>
-                        <a href="#"><i class="fa fa-pinterest-square pinterest-color"></i></a>
-                    </div>
-                    <div class="payment">
-                        <a href="#"><img class="border" src="assets/images/payment/payment-icon.png" alt="Payment"></a>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="row mt-no-text">
-            <div class="col-lg-12 col-custom">
-                <ul class="nav nav-tabs" id="myTab" role="tablist">
-                    <li class="nav-item">
-                        <a class="nav-link active text-uppercase" id="home-tab" data-bs-toggle="tab" href="#connect-1" role="tab" aria-selected="true">Mô tả</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link text-uppercase" id="profile-tab" data-bs-toggle="tab" href="#connect-2" role="tab" aria-selected="false">Đánh giá</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link text-uppercase" id="contact-tab" data-bs-toggle="tab" href="#connect-3" role="tab" aria-selected="false">Các tiện ích</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link text-uppercase" id="review-tab" data-bs-toggle="tab" href="#connect-4" role="tab" aria-selected="false">Đặc điểm</a>
-                    </li>
-                </ul>
-                <div class="tab-content mb-text" id="myTabContent">
-                    <div class="tab-pane fade show active" id="connect-1" role="tabpanel" aria-labelledby="home-tab">
-                        <div class="desc-content">
-                            <p class="mb-3">@Html.Raw(Model.Details)</p>
-                            @* <p>Et harum quidem rerum facilis est et expedita distinctio. Nam libero tempore, cum soluta nobis est eligendi optio cumque nihil impedit quo minus id quod maxime placeat facere possimus, omnis voluptas assumenda est, omnis dolor repellendus. Temporibus autem quibusdam et aut officiis debitis aut rerum necessitatibus saepe eveniet ut et voluptates repudiandae sint et molestiae non recusandae. Itaque earum rerum hic tenetur a sapiente delectus, ut aut reiciendis voluptatibus maiores alias consequatur aut perferendis doloribus asperiores repellat.</p> *@
-                        </div>
-                    </div>
-                    <div class="tab-pane fade" id="connect-2" role="tabpanel" aria-labelledby="profile-tab">
-                        <!-- Start Single Content -->
-                        <div class="product_tab_content  border p-3">
-                            <div class="review_address_inner">
-                                <!-- Start Single Review -->
-                                @foreach (var item in productReviews)
-                                {
-
-                                    <div class="pro_review mb-5">
-                                        <div class="review_thumb">
-                                            <img alt="review images" src="~/assets/images/review/1.jpg">
-                                        </div>
-                                        <div class="review_details">
-                                            <div class="review_info mb-2">
-                                                <div class="product-rating mb-2">
-                                                    @for (int i = 0; i < 5; i++)
-                                                    {
-                                                        if (i < item.Star)
-                                                        {
-                                                            <i class="fa fa-star"></i>
-                                                        }
-                                                        else
-                                                        {
-                                                            <i class="fa fa-star-o"></i>
-                                                        }
-                                                    }
-
-                                                </div>
-                                                <h5 style="color:black">@item.Name - <span> @item.CreatedDate.Value.ToString("dd/MM/yyyy")</span></h5>
-                                            </div>
-                                            <p>@item.Detail</p>
-                                        </div>
-                                    </div>
-                                }
-
-                                <!-- End Single Review -->
-                            </div>
-                            <!-- Start RAting Area -->
-                            <div class="rating_wrap">
-                                <h5 class="rating-title-1 font-weight-bold mb-2">Add a review </h5>
-                                <p class="mb-2">Your email address will not be published. Required fields are marked *</p>
-                                <h6 class="rating-title-2 mb-2">Your Rating</h6>
-                                <div class="rating_list mb-4">
-                                    <div class="review_info">
-                                        <div class="ajax-rating product-rating mb-3 ">
-                                            <!-- Thêm data-value cho từng sao -->
-                                            <i class="fa fa-star " data-value="1"></i>
-                                            <i class="fa fa-star " data-value="2"></i>
-                                            <i class="fa fa-star" data-value="3"></i>
-                                            <i class="fa fa-star-o " data-value="4"></i>
-                                            <i class="fa fa-star-o " data-value="5"></i>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <!-- End RAting Area -->
-                            <div class="comments-area comments-reply-area">
-                                <div class="row">
-                                    <div class="col-lg-12 col-custom">
-                                        <div action="#" class="comment-form-area">
-                                            <div class="row comment-input">
-                                                <div class="col-md-6 col-custom comment-form-author mb-3">
-                                                    <label>Name <span class="required">*</span></label>
-                                                    <input type="text" id="r_name" required="required" name="Name">
-                                                </div>
-                                                <div class="col-md-6 col-custom comment-form-emai mb-3">
-                                                    <label>Email <span class="required">*</span></label>
-                                                    <input type="text" id="r_email" required="required" name="email">
-                                                </div>
-                                            </div>
-                                            <div class="comment-form-comment mb-3">
-                                                <label>Comment</label>
-                                                <textarea class="comment-notes" id="r_comment" required="required"></textarea>
-                                            </div>
-                                            <div class="comment-form-submit">
-                                                <button type="button" id="r_submit" class="btn flosun-button secondary-btn rounded-0" data-id="@Model.CarId">Submit</button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <!-- End Single Content -->
-                    </div>
-                    <div class="tab-pane fade" id="connect-3" role="tabpanel" aria-labelledby="contact-tab">
-                        <div class="shipping-policy">
-                            <h4 class="title-3 mb-4">Shipping policy for our store</h4>
-                            <p class="desc-content mb-2">Lorem ipsum dolor sit amet, consectetuer adipiscing elit, sed diam nonummy nibh euismod tincidunt ut laoreet dolore magna aliquam erat volutpat. Ut wisi enim ad minim veniam, quis nostrud exerci tation ullamcorper suscipit lobortis nisl ut aliquip ex ea commodo consequat. Duis autem vel eum iriure dolor in hendrerit in vulputate</p>
-                            <ul class="policy-list mb-2">
-                                <li>1-2 business days (Typically by end of day)</li>
-                                <li><a href="#">30 days money back guaranty</a></li>
-                                <li>24/7 live support</li>
-                                <li>odio dignissim qui blandit praesent</li>
-                                <li>luptatum zzril delenit augue duis dolore</li>
-                                <li>te feugait nulla facilisi.</li>
-                            </ul>
-                            <p class="desc-content mb-2">Nam liber tempor cum soluta nobis eleifend option congue nihil imperdiet doming id quod mazim placerat facer possim assum. Typi non habent claritatem insitam; est usus legentis in iis qui facit eorum</p>
-                            <p class="desc-content mb-2">claritatem. Investigationes demonstraverunt lectores legere me lius quod ii legunt saepius. Claritas est etiam processus dynamicus, qui sequitur mutationem consuetudium lectorum. Mirum est notare quam littera gothica, quam nunc putamus parum claram, anteposuerit litterarum formas humanitatis per</p>
-                            <p class="desc-content mb-2">seacula quarta decima et quinta decima. Eodem modo typi, qui nunc nobis videntur parum clari, fiant sollemnes in futurum.</p>
-                        </div>
-                    </div>
-                    <div class="tab-pane fade" id="connect-4" role="tabpanel" aria-labelledby="review-tab">
-                        <div class="size-tab table-responsive-lg">
-                            <h4 class="title-3 mb-4">Đăc điểm</h4>
-                            <table class="table border">
-                                <thead>
-                                    <tr>
-                                        <th> <i class="bi bi-sliders2-vertical" style="margin-right:10px"></i>Truyền động</th>
-                                        <th><i class="bi bi-person-wheelchair" style="margin-right:10px"></i>Số ghế</th>
-                                        <th><i class="bi bi-fuel-pump-fill" style="margin-right:10px"></i>Nhiên Liệu</th>
-                                        <th><i class="bi bi-fire" style="margin-right:10px"></i>Tiêu hao</th>
-                                    </tr>
-                          
-                                </thead>
-                                <tbody>
-                                    <tr>
-                                        <td>Số tự dộng</td>
-                                        <td>7 chỗ</td>
-                                        <td>Xăng</td>
-                                        <td>Số tự dộng</td>
-                                    </tr>
-                                    
-                                   
-                               
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-<!-- Single Product Main Area End -->
-<!--Product Area Start-->
-<div class="product-area mt-text-3">
-    <div class="container custom-area-2 overflow-hidden">
-        <div class="row">
-            <!--Section Title Start-->
-            <div class="col-12 col-custom">
-                <div class="section-title text-center mb-30">
-                    <span class="section-title-1">The Most Trendy</span>
-                    <h3 class="section-title-3">Related Products</h3>
-                </div>
-            </div>
-            <!--Section Title End-->
-        </div>
-        <div class="row product-row">
-            <div class="col-12 col-custom">
-                <div class="product-slider swiper-container anime-element-multi">
-                    <div class="swiper-wrapper">
-                        @foreach (var item in productRelated)
-                        {
-                            string Rurl = $"/product/{item.Alias}-{item.CarId}.html";
-                            <div class="single-item swiper-slide">
-                                <!--Single Product Start-->
-                                <div class="single-product position-relative mb-30">
-                                    <div class="product-image">
-                                        <a class="d-block" href="@Rurl">
-                                            <img src="@item.Image" alt="" class="product-image-1 w-100">
-                                            <img src="@item.Image" alt="" class="product-image-2 position-absolute w-100">
-                                        </a>
-                                        <span class="onsale">Sale!</span>
-                                        <div class="add-action d-flex flex-column position-absolute">
-                                            <a href="compare.html" title="Compare">
-                                                <i class="lnr lnr-sync" data-toggle="tooltip" data-placement="left" title="Compare"></i>
-                                            </a>
-                                            <a href="wishlist.html" title="Add To Wishlist">
-                                                <i class="lnr lnr-heart" data-toggle="tooltip" data-placement="left" title="Wishlist"></i>
-                                            </a>
-                                            <a href="#exampleModalCenter" title="Quick View" data-bs-toggle="modal" data-bs-target="#exampleModalCenter">
-                                                <i class="lnr lnr-eye" data-toggle="tooltip" data-placement="left" title="Quick View"></i>
-                                            </a>
-                                        </div>
-                                    </div>
-                                    <div class="product-content">
-                                        <div class="product-title">
-                                            <h4 class="title-2"> <a href="product-details.html">@item.CarName</a></h4>
-                                        </div>
-                                        <div class="product-rating">
-                                            <i class="fa fa-star"></i>
-                                            <i class="fa fa-star"></i>
-                                            <i class="fa fa-star"></i>
-                                            <i class="fa fa-star-o"></i>
-                                            <i class="fa fa-star-o"></i>
-                                        </div>
-                                        <div class="price-box">
-                                            <span class="regular-price ">$@item.SalePrice</span>
-                                            <span class="old-price"><del>$@item.Price</del></span>
-                                        </div>
-                                        <a href="@Url.Action("Index", "Cart")" class="btn product-cart">Add to Cart</a>
-                                    </div>
-                                </div>
-                                <!--Single Product End-->
-                                <div class="modal flosun-modal fade" id="exampleModalCenter" tabindex="-1" role="dialog" aria-hidden="true">
-                                    <div class="modal-dialog modal-dialog-centered" role="document">
-                                        <div class="modal-content">
-                                            <button type="button" class="close close-button" data-bs-dismiss="modal" aria-label="Close">
-                                                <span class="close-icon" aria-hidden="true">x</span>
-                                            </button>
-                                            <div class="modal-body">
-                                                <div class="container-fluid custom-area">
-                                                    <div class="row">
-                                                        <div class="col-md-6 col-custom">
-                                                            <div class="modal-product-img">
-                                                                <a class="w-100" href="#">
-                                                                    <img class="w-100" src="~/assets/images/product/large-size/1.jpg" alt="Product">
-                                                                </a>
-                                                            </div>
-                                                        </div>
-                                                        <div class="col-md-6 col-custom">
-                                                            <div class="modal-product">
-                                                                <div class="product-content">
-                                                                    <div class="product-title">
-                                                                        <h4 class="title">Product dummy name</h4>
-                                                                    </div>
-                                                                    <div class="price-box">
-                                                                        <span class="regular-price ">$80.00</span>
-                                                                        <span class="old-price"><del>$90.00</del></span>
-                                                                    </div>
-                                                                    <div class="product-rating">
-                                                                        <i class="fa fa-star"></i>
-                                                                        <i class="fa fa-star"></i>
-                                                                        <i class="fa fa-star"></i>
-                                                                        <i class="fa fa-star-o"></i>
-                                                                        <i class="fa fa-star-o"></i>
-                                                                        <span>1 Review</span>
-                                                                    </div>
-                                                                    <p class="desc-content">we denounce with righteous indignation and dislike men who are so beguiled and demoralized by the charms of pleasure of the moment, so blinded by desire, that they cannot foresee the pain and trouble that are bound to ensue; and equal blame bel...</p>
-                                                                    <form class="d-flex flex-column w-100" action="#">
-                                                                        <div class="form-group">
-                                                                            <select class="form-control nice-select w-100">
-                                                                                <option>S</option>
-                                                                                <option>M</option>
-                                                                                <option>L</option>
-                                                                                <option>XL</option>
-                                                                                <option>XXL</option>
-                                                                            </select>
-                                                                        </div>
-                                                                    </form>
-                                                                    <div class="quantity-with-btn">
-                                                                        <div class="quantity">
-                                                                            <div class="cart-plus-minus">
-                                                                                <input class="cart-plus-minus-box" value="0" type="text">
-                                                                                <div class="dec qtybutton">-</div>
-                                                                                <div class="inc qtybutton">+</div>
-                                                                                <div class="dec qtybutton"><i class="fa fa-minus"></i></div>
-                                                                                <div class="inc qtybutton"><i class="fa fa-plus"></i></div>
-                                                                            </div>
-                                                                        </div>
-                                                                        <div class="add-to_btn">
-                                                                            <a class="btn product-cart button-icon flosun-button dark-btn" href="@Url.Action("Index", "Cart")">Add to cart</a>
-                                                                            <a class="btn flosun-button secondary-btn rounded-0" href="wishlist.html">Add to wishlist</a>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                        }
-
-                    </div>
-                    <!-- Slider pagination -->
-                    <div class="swiper-pagination default-pagination"></div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-<!--Product Area End-->
-@section scripts {
-  
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script>
-        document.addEventListener('click', function (event) {
-            if (event.target.matches('.disabled')) {
-                event.preventDefault();
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Thông báo',
-                    text: 'Xe này hiện không khả dụng!',
-                });
-            }
-        });
-    </script>
-    <script>
-         
-            
-        //
-        $(document).ready(function () {
-           
-
-            let selectedRating = 0; // Lưu số sao được chọn
-
-            $(".ajax-rating i").on("click", function () {
-                selectedRating = $(this).data("value"); // Lấy giá trị sao
-
-                // Đổi trạng thái các sao
-                $(".ajax-rating i").each(function () {
-                    if ($(this).data("value") <= selectedRating) {
-                        $(this).removeClass("fa-star-o").addClass("fa-star");
-                    } else {
-                        $(this).removeClass("fa-star").addClass("fa-star-o");
-                    }
-                });
-
-                console.log("Selected Rating: ", selectedRating); // Log ra số sao được chọn
-            });
-            $("#r_submit").click(function() {
-                const reviewData = {
-                    name: $("#r_name").val(),
-                    email: $("#r_email").val(),
-                    detail: $("#r_comment").val(),
-                    id: $(this).data("id"),
-                    star: selectedRating
-                };
-                $.ajax({
-                    url : "/Product/Reviews",
-                    type : "POST",
-                    data : reviewData,
-                    success: function(data) {
-                            console.log(data);
-                            Swal.fire({
-                            position: "top-end",
-                            icon: "success",
-                            title: "Your work has been saved",
-                            showConfirmButton: false,
-                            timer: 1500
-                            });
-                            // Thêm bình luận mới vào danh sách hiện tại
-                            appendNewReview(reviewData);
-                            // Xóa nội dung các ô input sau khi gửi
-                            $("#r_name").val("");
-                            $("#r_email").val("");
-                            $("#r_comment").val("");
-                            $(".ajax-rating i").removeClass("fa-star").addClass("fa-star-o");
-                            selectedRating = 0; // Reset rating
-                        },
-                    error: function() {
-                            Swal.fire({
-                                icon: "error",
-                                title: "Oops...",
-                                text: "Something went wrong!",
-                                footer: '<a href="#">Why do I have this issue?</a>'
-                            });
-                    }
-                });
-            });
-
-
-                 // Hàm thêm bình luận mới vào danh sách
-        function appendNewReview(review) {
-            const newReviewHtml = `
-                <div class="pro_review mb-5">
-                    <div class="review_thumb">
-                        <img alt="review images" src="assets/images/review/default-avatar.jpg">
-                    </div>
-                    <div class="review_details">
-                        <div class="review_info mb-2">
-                            <div class="product-rating mb-2">
-                                ${generateStarsHtml(review.star)}
-                            </div>
-                            <h5>${review.name} - <span>${new Date().toLocaleDateString()}</span></h5>
-                        </div>
-                        <p>${review.detail}</p>
-                    </div>
-                </div>
-            `;
-
-            // Thêm bình luận mới vào danh sách
-            $(".review_address_inner").prepend(newReviewHtml); // Thêm vào đầu danh sách
-        }
-
-        // Hàm tạo HTML cho sao
-        function generateStarsHtml(starCount) {
-            let starsHtml = "";
-            for (let i = 1; i <= 5; i++) {
-                if (i <= starCount) {
-                    starsHtml += '<i class="fa fa-star"></i>';
-                } else {
-                    starsHtml += '<i class="fa fa-star-o"></i>';
+<div class="container mb-5" style="max-width: 1280px;">
+    <div class="row g-4">
+        <!-- Cột trái: Thông tin chi tiết xe (8 cột) -->
+        <div class="col-lg-8">
+            <!-- Ảnh xe chính -->
+            <div class="position-relative rounded-4 overflow-hidden mb-4 border shadow-sm" style="aspect-ratio: 16/10; background: #f8fafc;">
+                <img src="@carImg" alt="@Model.CarName" class="w-100 h-100 object-fit-cover" id="mainCarImage" />
+                @if (Model.IsSale)
+                {
+                    <span class="position-absolute top-0 start-0 m-3 badge bg-danger fs-6 px-3 py-2 shadow-sm">
+                        <i class="bi bi-lightning-fill"></i> Đang ưu đãi
+                    </span>
                 }
-            }
-            return starsHtml;
-        }
-        });
+            </div>
 
-         
+            <!-- Tiêu đề & Thông tin cơ bản -->
+            <div class="mb-4">
+                <span class="text-uppercase fw-bold text-muted small letter-spacing-1">@Model.CarBrand</span>
+                <h1 class="fs-2 fw-bold text-dark mt-1 mb-2">@Model.CarName</h1>
+                <div class="d-flex flex-wrap align-items-center gap-3 text-muted small">
+                    <span class="d-flex align-items-center gap-1 text-warning fw-bold">
+                        <i class="bi bi-star-fill"></i> @(Model.Rate ?? 4.8)
+                        <span class="text-muted fw-normal">(@(productReviews.Count) đánh giá)</span>
+                    </span>
+                    <span>·</span>
+                    <span class="d-flex align-items-center gap-1">
+                        <i class="bi bi-geo-alt-fill text-danger"></i> @(string.IsNullOrEmpty(Model.Descriptions) ? "Toàn quốc" : Model.Descriptions)
+                    </span>
+                    <span>·</span>
+                    <span class="badge bg-success-subtle text-success border border-success-subtle">
+                        <i class="bi bi-shield-check"></i> Đã kiểm định an toàn
+                    </span>
+                </div>
+            </div>
+
+            <!-- 4 Thông số chính dạng Card Icon -->
+            <div class="row g-3 mb-4">
+                <div class="col-6 col-md-3">
+                    <div class="p-3 bg-light rounded-3 text-center border">
+                        <i class="bi bi-people-fill text-primary fs-4"></i>
+                        <p class="small text-muted m-0 mt-1">Số chỗ ngồi</p>
+                        <p class="fw-bold text-dark m-0">@(Model.Seat ?? 5) chỗ</p>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="p-3 bg-light rounded-3 text-center border">
+                        <i class="bi bi-gear-fill text-primary fs-4"></i>
+                        <p class="small text-muted m-0 mt-1">Hộp số</p>
+                        <p class="fw-bold text-dark m-0">Số tự động</p>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="p-3 bg-light rounded-3 text-center border">
+                        <i class="bi bi-fuel-pump-fill text-primary fs-4"></i>
+                        <p class="small text-muted m-0 mt-1">Nhiên liệu</p>
+                        <p class="fw-bold text-dark m-0">@(Model.CarBrand != null && Model.CarBrand.ToLower().Contains("vinfast") ? "Điện" : "Xăng / Dầu")</p>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="p-3 bg-light rounded-3 text-center border">
+                        <i class="bi bi-calendar3 text-primary fs-4"></i>
+                        <p class="small text-muted m-0 mt-1">Năm sản xuất</p>
+                        <p class="fw-bold text-dark m-0">Đời @(Model.Model ?? 2023)</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tiện nghi trên xe -->
+            <div class="p-4 bg-white rounded-3 border mb-4 shadow-sm">
+                <h3 class="fs-5 fw-bold text-dark mb-3"><i class="bi bi-stars text-primary me-2"></i>Tiện nghi trang bị trên xe</h3>
+                <div class="row g-3 small">
+                    <div class="col-6 col-md-4 d-flex align-items-center gap-2">
+                        <i class="bi bi-check-circle-fill text-success"></i> Bản đồ định vị GPS
+                    </div>
+                    <div class="col-6 col-md-4 d-flex align-items-center gap-2">
+                        <i class="bi bi-check-circle-fill text-success"></i> Camera lùi & Cảm biến
+                    </div>
+                    <div class="col-6 col-md-4 d-flex align-items-center gap-2">
+                        <i class="bi bi-check-circle-fill text-success"></i> Kết nối Bluetooth / Apple CarPlay
+                    </div>
+                    <div class="col-6 col-md-4 d-flex align-items-center gap-2">
+                        <i class="bi bi-check-circle-fill text-success"></i> Túi khí an toàn đa điểm
+                    </div>
+                    <div class="col-6 col-md-4 d-flex align-items-center gap-2">
+                        <i class="bi bi-check-circle-fill text-success"></i> Khe cắm sạc USB / Type-C
+                    </div>
+                    <div class="col-6 col-md-4 d-flex align-items-center gap-2">
+                        <i class="bi bi-check-circle-fill text-success"></i> Lốp dự phòng & Bộ cứu hộ
+                    </div>
+                </div>
+
+                @if (!string.IsNullOrEmpty(Model.Details))
+                {
+                    <hr class="my-3 text-muted" />
+                    <h5 class="fs-6 fw-bold text-dark mb-2">Mô tả chi tiết từ chủ xe:</h5>
+                    <p class="text-secondary small m-0" style="line-height: 1.7;">@Model.Details</p>
+                }
+            </div>
+
+            <!-- Giấy tờ & Điều kiện thuê xe -->
+            <div class="p-4 bg-white rounded-3 border mb-4 shadow-sm">
+                <h3 class="fs-5 fw-bold text-dark mb-3"><i class="bi bi-card-checklist text-primary me-2"></i>Thủ tục & Giấy tờ cần chuẩn bị</h3>
+                <div class="alert alert-info d-flex align-items-start gap-2 mb-0 py-2 small">
+                    <i class="bi bi-info-circle-fill fs-5 mt-1"></i>
+                    <div>
+                        <strong>Yêu cầu bắt buộc khi nhận bàn giao xe:</strong>
+                        <ul class="mb-0 ps-3 mt-1">
+                            <li>Căn cước công dân (CCCD) gắn chip hoặc Hộ chiếu còn hạn.</li>
+                            <li>Giấy phép lái xe ô tô hạng B1/B2 trở lên (bản gốc để chủ xe đối chiếu).</li>
+                            <li>Thanh toán khoản tiền thuê 70% còn lại và hoàn tất ký Hợp đồng điện tử.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Đánh giá nhận xét của khách hàng -->
+            <div class="p-4 bg-white rounded-3 border mb-4 shadow-sm">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h3 class="fs-5 fw-bold text-dark m-0"><i class="bi bi-chat-heart text-primary me-2"></i>Đánh giá từ khách hàng</h3>
+                    <span class="badge bg-primary px-3 py-2 fw-semibold">@(productReviews.Count) Đánh giá</span>
+                </div>
+
+                @if (productReviews != null && productReviews.Any())
+                {
+                    <div class="d-flex flex-column gap-3 mb-4">
+                        @foreach (var r in productReviews)
+                        {
+                            <div class="p-3 bg-light rounded-3 border">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <span class="fw-bold text-dark small">@r.Name</span>
+                                    <div class="text-warning small">
+                                        @for (int i = 1; i <= 5; i++)
+                                        {
+                                            if (i <= (r.Star ?? 5))
+                                            {
+                                                <i class="bi bi-star-fill"></i>
+                                            }
+                                            else
+                                            {
+                                                <i class="bi bi-star"></i>
+                                            }
+                                        }
+                                    </div>
+                                </div>
+                                <p class="text-muted small m-0">@r.Detail</p>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <p class="text-muted small mb-4">Xe chưa có đánh giá nào. Hãy là người đầu tiên trải nghiệm và để lại nhận xét!</p>
+                }
+
+                <!-- Form gửi đánh giá mới -->
+                <div class="pt-3 border-top">
+                    <h5 class="fs-6 fw-bold text-dark mb-3">Gửi đánh giá trải nghiệm của bạn</h5>
+                    <form asp-controller="Product" asp-action="Reviews" method="post" class="row g-2">
+                        <input type="hidden" name="id" value="@Model.CarId" />
+                        <div class="col-md-6">
+                            <input type="text" name="name" class="form-control form-control-sm" placeholder="Họ và tên của bạn" required />
+                        </div>
+                        <div class="col-md-6">
+                            <input type="email" name="email" class="form-control form-control-sm" placeholder="Email nhận phản hồi" required />
+                        </div>
+                        <div class="col-12">
+                            <select name="star" class="form-select form-select-sm">
+                                <option value="5">⭐⭐⭐⭐⭐ Rất hài lòng (5 sao)</option>
+                                <option value="4">⭐⭐⭐⭐ Hài lòng (4 sao)</option>
+                                <option value="3">⭐⭐⭐ Bình thường (3 sao)</option>
+                                <option value="2">⭐⭐ Không hài lòng (2 sao)</option>
+                                <option value="1">⭐ Thất vọng (1 sao)</option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <textarea name="detail" rows="2" class="form-control form-control-sm" placeholder="Chia sẻ cảm nhận về tình trạng xe, độ sạch sẽ, thái độ chủ xe..." required></textarea>
+                        </div>
+                        <div class="col-12 text-end">
+                            <button type="submit" class="btn btn-sm btn-outline-primary fw-semibold px-4">Gửi nhận xét</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cột phải: Sticky Booking Widget (4 cột) -->
+        <div class="col-lg-4">
+            <div class="card p-4 border rounded-4 shadow-sm sticky-top" style="top: 90px; background: #ffffff;">
+                <!-- Giá xe -->
+                <div class="mb-3 pb-3 border-bottom">
+                    <span class="text-muted small">Giá thuê xe</span>
+                    <div class="d-flex align-items-baseline gap-2">
+                        <span class="fs-2 fw-bold text-primary">@finalPrice.ToString("N0")đ</span>
+                        <span class="text-muted fw-normal">/ ngày</span>
+                    </div>
+                    @if (Model.SalePrice > 0)
+                    {
+                        <span class="text-muted text-decoration-line-through small">@((Model.Price ?? 0).ToString("N0"))đ/ngày</span>
+                    }
+                </div>
+
+                <!-- Form Đặt xe sang Cart -->
+                <form asp-controller="Cart" asp-action="AddToCart" asp-route-id="@Model.CarId" method="post" id="detailBookingForm">
+                    <input type="hidden" name="quantity" value="1" />
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-dark"><i class="bi bi-calendar-event text-primary me-1"></i> Ngày nhận xe</label>
+                        <input type="date" class="form-control form-control-sm" id="detailPickupDate" name="pickupDate" min="@todayStr" value="@todayStr" required />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-dark"><i class="bi bi-calendar-check text-primary me-1"></i> Ngày trả xe</label>
+                        <input type="date" class="form-control form-control-sm" id="detailReturnDate" name="returnDate" min="@todayStr" value="@nextDayStr" required />
+                    </div>
+
+                    <!-- Bảng tính tự động tài chính -->
+                    <div class="p-3 bg-light rounded-3 mb-3 border small">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">Thời gian thuê:</span>
+                            <span class="fw-bold text-dark" id="rentalDaysText">2 ngày</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">Tổng tiền thuê:</span>
+                            <span class="fw-bold text-dark" id="totalPriceText">@((finalPrice * 2).ToString("N0"))đ</span>
+                        </div>
+                        <hr class="my-2" />
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="fw-bold text-primary">Tiền đặt cọc giữ chỗ (30%):</span>
+                            <span class="fw-bold text-primary fs-6" id="depositPriceText">@((finalPrice * 2 * 0.3m).ToString("N0"))đ</span>
+                        </div>
+                        <div class="d-flex justify-content-between text-muted" style="font-size: 0.78rem;">
+                            <span>Thanh toán khi nhận xe (70%):</span>
+                            <span id="remainPriceText">@((finalPrice * 2 * 0.7m).ToString("N0"))đ</span>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-warning w-100 py-2 fw-bold text-dark fs-6 rounded-3 shadow-sm mb-2">
+                        <i class="bi bi-credit-card me-1"></i> Tiến hành đặt cọc giữ xe
+                    </button>
+                    
+                    <p class="text-muted text-center m-0" style="font-size: 0.75rem;">
+                        <i class="bi bi-shield-lock-fill text-success me-1"></i> Đặt cọc 30% trực tuyến an toàn qua cổng VNPay.
+                    </p>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Xe tương tự -->
+    @if (productRelated != null && productRelated.Any())
+    {
+        <div class="mt-5 pt-4 border-top">
+            <h3 class="fs-4 fw-bold text-dark mb-4">Các mẫu xe tương tự cùng phân khúc</h3>
+            <div class="row g-4">
+                @foreach (var car in productRelated.Take(4))
+                {
+                    string carUrl = $"/product/{car.Alias}-{car.CarId}.html";
+                    <div class="col-12 col-sm-6 col-lg-3">
+                        <div class="recar-car-card h-100">
+                            <div class="recar-card-img-wrap">
+                                <a href="@carUrl">
+                                    <img src="@(string.IsNullOrEmpty(car.Image) ? "/images/cars/car-sedan.jpg" : car.Image)" alt="@car.CarName" class="recar-card-img" />
+                                </a>
+                            </div>
+                            <div class="recar-card-body">
+                                <div class="recar-card-brand">@car.CarBrand</div>
+                                <a href="@carUrl" class="recar-card-title">@car.CarName</a>
+                                <div class="recar-card-location">
+                                    <i class="bi bi-geo-alt-fill text-danger"></i> @(string.IsNullOrEmpty(car.Descriptions) ? "Toàn quốc" : car.Descriptions)
+                                </div>
+                                <div class="recar-card-footer">
+                                    <div class="recar-price-main">@(((car.SalePrice > 0 ? car.SalePrice : car.Price) ?? 0).ToString("N0"))đ</div>
+                                    <a href="@carUrl" class="btn-card-rent">Xem xe</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@section scripts {
+    <script>
+        $(document).ready(function() {
+            var unitPrice = @finalPrice;
+
+            function calculateTotals() {
+                var pickup = new Date($('#detailPickupDate').val());
+                var returnD = new Date($('#detailReturnDate').val());
+
+                if (returnD <= pickup) {
+                    returnD = new Date(pickup);
+                    returnD.setDate(returnD.getDate() + 1);
+                    var yyyy = returnD.getFullYear();
+                    var mm = String(returnD.getMonth() + 1).padStart(2, '0');
+                    var dd = String(returnD.getDate()).padStart(2, '0');
+                    $('#detailReturnDate').val(yyyy + '-' + mm + '-' + dd);
+                }
+
+                var diffTime = Math.abs(returnD - pickup);
+                var diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                if (diffDays < 1) diffDays = 1;
+
+                var total = unitPrice * diffDays;
+                var deposit = total * 0.3;
+                var remain = total - deposit;
+
+                $('#rentalDaysText').text(diffDays + ' ngày');
+                $('#totalPriceText').text(total.toLocaleString('vi-VN') + 'đ');
+                $('#depositPriceText').text(deposit.toLocaleString('vi-VN') + 'đ');
+                $('#remainPriceText').text(remain.toLocaleString('vi-VN') + 'đ');
+            }
+
+            $('#detailPickupDate, #detailReturnDate').on('change', calculateTotals);
+            calculateTotals();
+        });
     </script>
 }

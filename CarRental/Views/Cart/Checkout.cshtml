@@ -1,227 +1,288 @@
-﻿@model CarRental.ViewModels.CartVM
+@model CarRental.ViewModels.CartVM
 @{
-    ViewData["Title"] = "Checkout";
+    ViewData["Title"] = "Xác nhận & Thanh toán";
     Layout = "~/Views/Shared/_Layout.cshtml";
     List<CarRentalOrder> carRentalOrders = ViewBag.Order;
 }
 
-<!-- Breadcrumb Area Start Here -->
-<div class="breadcrumbs-area position-relative">
+<style>
+    .checkout-step-badge {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background: var(--recar-primary);
+        color: #fff;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 14px;
+        margin-right: 10px;
+    }
+    .payment-option-card {
+        border: 2px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 16px 20px;
+        margin-bottom: 14px;
+        cursor: pointer;
+        transition: all 0.25s ease;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    .payment-option-card:hover {
+        border-color: var(--recar-primary);
+        background: #f8fafc;
+    }
+    .payment-option-card.selected {
+        border-color: var(--recar-primary);
+        background: rgba(37, 99, 235, 0.04);
+        box-shadow: 0 4px 14px rgba(37, 99, 235, 0.08);
+    }
+    .payment-option-card input[type="radio"] {
+        width: 20px;
+        height: 20px;
+        accent-color: var(--recar-primary);
+    }
+    .doc-check-box {
+        background: linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%);
+        border: 1px solid #bfdbfe;
+        border-radius: 12px;
+        padding: 18px 20px;
+    }
+    .price-breakdown-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 0;
+        border-bottom: 1px dashed #e2e8f0;
+        font-size: 15px;
+    }
+    .price-breakdown-row:last-child {
+        border-bottom: none;
+    }
+</style>
+
+<!-- Hero / Breadcrumb Header -->
+<div class="recar-section bg-light py-4 border-bottom">
     <div class="container">
-        <div class="row">
-            <div class="col-12 text-center">
-                <div class="breadcrumb-content position-relative section-content">
-                    <h3 class="title-3">Thanh toán</h3>
-                    <ul>
-                        <li><a href="index.html">Trang chủ</a></li>
-                        <li>Thanh toán</li>
-                    </ul>
-                </div>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-2" style="font-size: 14px;">
+                <li class="breadcrumb-item"><a href="/" class="text-decoration-none text-muted">Trang chủ</a></li>
+                <li class="breadcrumb-item"><a href="/Cart" class="text-decoration-none text-muted">Giỏ xe</a></li>
+                <li class="breadcrumb-item active text-primary fw-bold" aria-current="page">Xác nhận & Thanh toán</li>
+            </ol>
+        </nav>
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <div>
+                <h2 class="fw-bold mb-1" style="color: var(--recar-dark);">Hoàn tất thủ tục đặt cọc xe</h2>
+                <p class="text-muted mb-0">Thanh toán tiền đặt cọc 30% để giữ chỗ xe nhanh chóng và an toàn</p>
+            </div>
+            <div>
+                <span class="badge bg-success-subtle text-success px-3 py-2 rounded-pill fs-6">
+                    <i class="bi bi-shield-check me-1"></i> Giao dịch bảo mật 100%
+                </span>
             </div>
         </div>
     </div>
 </div>
-<!-- Breadcrumb Area End Here -->
-<!-- Checkout Area Start Here -->
-<div class="checkout-area mt-no-text" style="margin-bottom:500px">
-    <div class="container custom-container">
-        <div class="row">
-            <div class="col-12 col-custom">
-                <div class="coupon-accordion" style="background-color:#FEF7F4; ">
-                    <h3>Giấy tờ cho thuê xe? <span id="showlogin">Tìm hiểu thêm</span></h3>
-                    <div id="checkout-login" class="coupon-content" style="background-color:#FEF7F4; border-left: 8px solid #f26a2b;">
-                        <div class="coupon-info">
-                            <p class="coupon-text">
-                                <i class="bi bi-exclamation-circle-fill"></i> chọn 1 trong hai hình thức
-                            </p>
-                            <p class="coupon-text">
-                                <i class="bi bi-credit-card-2-front"></i> GPLX (đối chiếu) & CCCD (đối chiếu VNeID)
-                            </p>
-                            <p class="coupon-text">
-                                <i class="bi bi-passport-fill"></i> GPLX (đối chiếu) & Passport (giữ lại)
-                            </p>
-                        </div> 
-                    </div>
-                    <h3>Bạn có mã giảm giá? <span id="showcoupon">Ấn vào đây để nhập mã giảm giá</span></h3>
-                    <div id="checkout_coupon" class="coupon-checkout-content" style="background-color:#FEF7F4; border-left: 8px solid #f26a2b;">
-                        <div class="coupon-info">
-                            <form action="#">
-                                <p class="checkout-coupon">
-                                    <input placeholder="Coupon code" type="text">
-                                    <input class="coupon-inner_btn" value="Apply Coupon" type="submit">
-                                </p>
-                            </form>
+
+<div class="recar-section py-5">
+    <div class="container">
+        <div class="row g-4">
+            <!-- Cột trái: Thông tin nhận xe & Phương thức thanh toán -->
+            <div class="col-lg-7">
+                <!-- 1. Thủ tục giấy tờ cần thiết -->
+                <div class="doc-check-box mb-4">
+                    <div class="d-flex align-items-start gap-3">
+                        <div class="fs-2 text-primary">
+                            <i class="bi bi-person-vcard"></i>
                         </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="row">
-            <div class="col-lg-6 col-12 col-custom">
-                <form id="checkoutForm" >
-                    <div class="checkbox-form">
-                        <h3>Chi tiết </h3>
-                        <div class="row">
-                            <div class="different-address">
-                                <div class="order-notes mt-3">
-                                    <div class="checkout-form-list checkout-form-list-2">
-                                        <label>Lời nhắn</label>
-                                        <textarea  id="notes" cols="30" rows="10" placeholder="Lời nhắn về thời gian, địa điểm giao xe"></textarea>
+                        <div>
+                            <h5 class="fw-bold text-dark mb-2">Quy định giấy tờ khi nhận xe</h5>
+                            <p class="text-muted small mb-2">Để đảm bảo quyền lợi và an toàn pháp lý, Quý khách cần chuẩn bị 1 trong 2 phương án đối chiếu khi nhận bàn giao xe:</p>
+                            <div class="row g-2 small">
+                                <div class="col-md-6">
+                                    <div class="p-2 bg-white rounded border">
+                                        <strong class="text-dark"><i class="bi bi-check-circle-fill text-success me-1"></i> Phương án 1 (Khuyên dùng):</strong>
+                                        <div class="text-muted mt-1">GPLX bản gốc (đối chiếu) + CCCD gắn chip (xác thực qua ứng dụng VNeID).</div>
                                     </div>
                                 </div>
-                                <div class="ship-different-title">
-                                    <div>
-                                        <input id="ship-box" type="checkbox">
-                                        <label for="ship-box">Thanh toán bằng VnPay</label>
+                                <div class="col-md-6">
+                                    <div class="p-2 bg-white rounded border">
+                                        <strong class="text-dark"><i class="bi bi-check-circle-fill text-success me-1"></i> Phương án 2 (Du khách):</strong>
+                                        <div class="text-muted mt-1">GPLX bản gốc (đối chiếu) + Hộ chiếu/Passport bản gốc (gửi lưu giữ khi nhận xe).</div>
                                     </div>
                                 </div>
                             </div>
-                          @*   <div class="col-md-6 col-custom">
-                                <div class="checkout-form-list">
-                                    <label>Lời nhắn <span class="required">*</span></label>
-                                    <textarea id="notes" placeholder="Nhập lời nhắn" ></textarea>
-                                </div>
-                            </div> *@
-                            <button type="submit" class="btn flosun-button secondary-btn black-color rounded-0 w-100 mt-4">Thanh toán</button>
-                            @* <button type="submit" name="paymentmethod" class="btn flosun-button secondary-btn black-color rounded-0 w-100" value="Thanh toán COD" /><button>
-                            <input type="submit" name="paymentmethod" class="btn flosun-button secondary-btn black-color rounded-0 w-100 mt-2" value="Thanh toán VNPay" />
-                             *@
-
-
-
                         </div>
-
                     </div>
+                </div>
+
+                <form id="checkoutForm">
+                    <!-- 2. Ghi chú & Địa điểm giao xe -->
+                    <div class="card border-0 shadow-sm rounded-4 p-4 mb-4">
+                        <h5 class="fw-bold mb-3 d-flex align-items-center">
+                            <span class="checkout-step-badge">1</span>
+                            Yêu cầu bàn giao & Lời nhắn
+                        </h5>
+                        <div class="mb-3">
+                            <label for="notes" class="form-label text-secondary fw-semibold small">Ghi chú cho chủ xe (Địa điểm giao xe, mốc giờ cụ thể, ghế trẻ em...)</label>
+                            <textarea id="notes" class="form-control rounded-3" rows="4" placeholder="Ví dụ: Giao xe tại Sảnh đến T1 Sân bay Nội Bài lúc 9h30 sáng..."></textarea>
+                        </div>
+                        <div class="form-text text-muted small">
+                            <i class="bi bi-info-circle me-1"></i> Hệ thống sẽ tự động đối chiếu Địa chỉ nhà và Giấy phép lái xe đã lưu trong Hồ sơ của bạn.
+                        </div>
+                    </div>
+
+                    <!-- 3. Phương thức thanh toán -->
+                    <div class="card border-0 shadow-sm rounded-4 p-4 mb-4">
+                        <h5 class="fw-bold mb-3 d-flex align-items-center">
+                            <span class="checkout-step-badge">2</span>
+                            Chọn phương thức thanh toán tiền cọc (30%)
+                        </h5>
+
+                        <!-- VNPAY Option -->
+                        <label class="payment-option-card selected" for="pay-vnpay">
+                            <div class="d-flex align-items-center gap-3">
+                                <input type="radio" id="pay-vnpay" name="payment_choice" value="vnpay" checked>
+                                <div>
+                                    <div class="fw-bold text-dark">Thanh toán trực tuyến qua VNPAY QR / Thẻ ATM / Visa</div>
+                                    <div class="text-muted small">Xác nhận giữ chỗ tức thì qua Cổng thanh toán quốc gia VNPay</div>
+                                </div>
+                            </div>
+                            <img src="~/assets/images/payment/1.png" alt="VNPay" style="height: 32px;" onerror="this.style.display='none'">
+                        </label>
+
+                        <!-- Chuyển khoản / Tiền mặt Option -->
+                        <label class="payment-option-card" for="pay-cod">
+                            <div class="d-flex align-items-center gap-3">
+                                <input type="radio" id="pay-cod" name="payment_choice" value="cod">
+                                <div>
+                                    <div class="fw-bold text-dark">Đặt giữ chỗ & Thanh toán khi bàn giao xe</div>
+                                    <div class="text-muted small">Chủ xe sẽ liên hệ xác minh thông tin và ký hợp đồng trực tiếp</div>
+                                </div>
+                            </div>
+                            <span class="badge bg-light text-dark border">Bàn giao xe</span>
+                        </label>
+
+                        <!-- Ẩn checkbox ship-box cũ để duy trì tương thích 100% với logic code js -->
+                        <input id="ship-box" type="checkbox" checked style="display: none;">
+                    </div>
+
+                    <!-- Nút xác nhận thanh toán -->
+                    <button type="submit" class="btn btn-primary btn-lg w-100 rounded-3 py-3 fw-bold shadow">
+                        <i class="bi bi-lock-fill me-2"></i> Xác nhận đặt xe & Thanh toán đặt cọc
+                    </button>
+                    <p class="text-center text-muted small mt-2 mb-0">
+                        Bằng việc bấm xác nhận, bạn đồng ý với <a href="/Home/Privacy" target="_blank" class="text-decoration-none">Điều khoản dịch vụ & Chính sách thuê xe</a> của ReCar.
+                    </p>
                 </form>
             </div>
-            <div class="col-lg-6 col-12 col-custom">
-                <div class="your-order">
-                    <h3>Bảng tính giá</h3>
-                    <div class="your-order-table table-responsive">
-                        <table class="table">
-                            <thead>
-                                <tr>
-                                    <th class="cart-product-name">Nội dung</th>
-                                    <th class="cart-product-total">Tổng</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                
-                                    <tr class="cart_item">
-                                        <td class="cart-product-name">
-                                            Thành tiền<strong class="product-quantity">
-                                                
-                                            </strong>
-                                        </td>
-                                        <td class="cart-product-total text-center"><span class="amount">@Model.Total đ</span></td>
-                                    </tr>
 
-                                
+            <!-- Cột phải: Bảng tính tiền & Tóm tắt đơn thuê -->
+            <div class="col-lg-5">
+                <div class="card border-0 shadow-sm rounded-4 p-4 sticky-top" style="top: 100px;">
+                    <h5 class="fw-bold mb-3 border-bottom pb-3">Chi tiết thanh toán</h5>
 
-                            </tbody>
-                            <tfoot>
-                                <tr class="cart-subtotal">
-                                    <th>Thanh toán giữ chỗ</th>
-                                    <td class="text-center"><span class="amount">@Model.Deposit đ</span></td>
-                                </tr>
-                                <tr class="order-total">
-                                    <th>Thanh toán khi nhận xe</th>
-                                    <td class="text-center"><strong><span class="amount">@Model.Payment</span></strong></td>
-                                </tr>
-                            </tfoot>
-                        </table>
-                    </div>
-                    @* <div class="payment-method">
-                        <div class="payment-accordion">
-                            <div id="accordion">
-                                <div class="card">
-                                    <div class="card-header" id="#payment-1">
-                                        <h5 class="panel-title mb-3">
-                                            <a href="#" class="" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
-                                                Direct Bank Transfer.
-                                            </a>
-                                        </h5>
-                                    </div>
-                                    <div id="collapseOne" class="collapse show" data-parent="#accordion">
-                                        <div class="card-body mb-2 mt-2">
-                                            <p>Make your payment directly into our bank account. Please use your Order ID as the payment reference. Your order won’t be shipped until the funds have cleared in our account.</p>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="card">
-                                    <div class="card-header" id="#payment-2">
-                                        <h5 class="panel-title mb-3">
-                                            <a href="#" class="collapsed" data-bs-toggle="collapse" data-bs-target="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
-                                                Cheque Payment
-                                            </a>
-                                        </h5>
-                                    </div>
-                                    <div id="collapseTwo" class="collapse" data-parent="#accordion">
-                                        <div class="card-body mb-2 mt-2">
-                                            <p>Make your payment directly into our bank account. Please use your Order ID as the payment reference. Your order won’t be shipped until the funds have cleared in our account.</p>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="card">
-                                    <div class="card-header" id="#payment-3">
-                                        <h5 class="panel-title mb-3">
-                                            <a href="#" class="collapsed" data-bs-toggle="collapse" data-bs-target="#collapseThree" aria-expanded="false" aria-controls="collapseThree">
-                                                PayPal
-                                            </a>
-                                        </h5>
-                                    </div>
-                                    <div id="collapseThree" class="collapse" data-parent="#accordion">
-                                        <div class="card-body mb-2 mt-2">
-                                            <p>Make your payment directly into our bank account. Please use your Order ID as the payment reference. Your order won’t be shipped until the funds have cleared in our account.</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="order-button-payment">
-                                <button class="btn flosun-button secondary-btn black-color rounded-0 w-100">Place Order</button>
-                            </div>
+                    <div class="mb-4">
+                        <div class="price-breakdown-row">
+                            <span class="text-muted">Tổng giá trị đơn thuê xe</span>
+                            <span class="fw-bold fs-5 text-dark">@Model.Total.ToString("N0") đ</span>
                         </div>
-                    </div> *@
+                        <div class="price-breakdown-row bg-light p-3 rounded-3 my-2 border-0">
+                            <div>
+                                <span class="fw-bold text-primary d-block">Tiền cọc giữ chỗ (30%)</span>
+                                <span class="small text-muted">Thanh toán ngay trực tuyến</span>
+                            </div>
+                            <span class="fw-bold fs-4 text-primary">@Model.Deposit.ToString("N0") đ</span>
+                        </div>
+                        <div class="price-breakdown-row">
+                            <div>
+                                <span class="fw-semibold text-dark d-block">Còn lại khi nhận xe (70%)</span>
+                                <span class="small text-muted">Thanh toán khi ký hợp đồng & nhận xe</span>
+                            </div>
+                            <span class="fw-bold fs-5 text-secondary">@Model.Payment.ToString("N0") đ</span>
+                        </div>
+                    </div>
+
+                    <!-- Cam kết dịch vụ -->
+                    <div class="bg-light p-3 rounded-3 border">
+                        <div class="fw-bold text-dark small mb-2"><i class="bi bi-shield-check text-success me-1"></i> Cam kết từ ReCar:</div>
+                        <ul class="list-unstyled mb-0 small text-muted">
+                            <li class="mb-1"><i class="bi bi-check2 text-success me-1"></i> 100% Xe đúng hình ảnh, bảo dưỡng định kỳ</li>
+                            <li class="mb-1"><i class="bi bi-check2 text-success me-1"></i> Đã bao gồm bảo hiểm thân vỏ và dân sự</li>
+                            <li class="mb-1"><i class="bi bi-check2 text-success me-1"></i> Hoàn trả 100% tiền cọc nếu hủy trước 24 giờ</li>
+                            <li><i class="bi bi-check2 text-success me-1"></i> Hỗ trợ cứu hộ đường bộ 24/7 toàn quốc</li>
+                        </ul>
+                    </div>
+
+                    <div class="mt-4 pt-3 border-top text-center">
+                        <a href="/Cart" class="text-decoration-none text-muted small">
+                            <i class="bi bi-arrow-left me-1"></i> Quay lại kiểm tra giỏ xe
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
-<!-- Checkout Area End Here -->
+
 @section scripts {
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         $(document).ready(function () {
-            $("#checkoutForm").submit(function (e) {
-                e.preventDefault(); // Ngăn chặn submit form mặc định
+            // Xử lý chuyển đổi phương thức thanh toán
+            $('input[name="payment_choice"]').on('change', function () {
+                $('.payment-option-card').removeClass('selected');
+                $(this).closest('.payment-option-card').addClass('selected');
 
-                // Lấy giá trị từ checkbox mỗi lần submit
+                if ($(this).val() === 'vnpay') {
+                    $('#ship-box').prop('checked', true);
+                } else {
+                    $('#ship-box').prop('checked', false);
+                }
+            });
+
+            // Submit form thanh toán
+            $("#checkoutForm").submit(function (e) {
+                e.preventDefault();
+
                 var paymentMethod = $("#ship-box").is(":checked") ? "Thanh toán VNPay" : "Thanh toán COD";
 
                 var formData = {
                     Notes: $("#notes").val(),
-                    paymentmethod: paymentMethod // Thêm giá trị paymentMethod vào dữ liệu gửi
+                    paymentmethod: paymentMethod
                 };
 
+                // Hiển thị loading
+                Swal.fire({
+                    title: 'Đang xử lý đơn đặt xe...',
+                    text: 'Vui lòng chờ trong giây lát',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
                 $.ajax({
-                    url: '/Cart/Checkout', // Đường dẫn đến action
+                    url: '/Cart/Checkout',
                     type: 'POST',
                     contentType: 'application/json',
                     data: JSON.stringify(formData),
                     success: function (response) {
+                        Swal.close();
                         if (response.success) {
-                            // Nếu là thanh toán VNPay thì chuyển thẳng sang trang thanh toán của VNPay
                             if (response.isVnpay) {
                                 window.location.href = response.redirectUrl;
                             } else {
-                                // Hiển thị dialog đặt xe thành công, sau đó chuyển đến trang đơn hàng
                                 Swal.fire({
                                     icon: 'success',
                                     title: 'Đặt xe thành công!',
-                                    text: 'Bạn có thể xem chi tiết trong mục Đơn hàng của bạn.',
-                                    confirmButtonText: 'Xem đơn hàng',
-                                    confirmButtonColor: '#667eea',
+                                    text: 'Đơn thuê xe của bạn đã được ghi nhận. Chủ xe sẽ liên hệ sớm nhất.',
+                                    confirmButtonText: 'Xem đơn hàng của tôi',
+                                    confirmButtonColor: '#2563eb',
                                     allowOutsideClick: false,
                                     allowEscapeKey: false
                                 }).then(() => {
@@ -229,73 +290,51 @@
                                 });
                             }
                         } else {
-                            // Kiểm tra nếu cần cập nhật địa chỉ
                             if (response.needAddress) {
-                                // Hiển thị dialog với SweetAlert2 - chỉ có 1 nút OK
                                 Swal.fire({
                                     icon: 'warning',
-                                    title: 'Chưa cập nhật địa chỉ',
+                                    title: 'Cần cập nhật địa chỉ',
                                     text: response.message,
                                     confirmButtonText: 'Cập nhật địa chỉ ngay',
-                                    confirmButtonColor: '#667eea',
+                                    confirmButtonColor: '#2563eb',
                                     allowOutsideClick: false,
                                     allowEscapeKey: false
                                 }).then((result) => {
-                                    // Khi bấm OK thì chuyển đến trang cập nhật địa chỉ
-                                    if (result.isConfirmed) {
-                                        window.location.href = response.redirectUrl;
-                                    } else {
-                                        // Nếu đóng bằng cách khác thì cũng chuyển
-                                        window.location.href = response.redirectUrl;
-                                    }
+                                    window.location.href = response.redirectUrl;
                                 });
-                            } 
-                            // Kiểm tra nếu cần cập nhật GPLX
-                            else if (response.needLicense) {
-                                // Hiển thị dialog với SweetAlert2 - chỉ có 1 nút OK
+                            } else if (response.needLicense) {
                                 Swal.fire({
                                     icon: 'warning',
-                                    title: 'Chưa cập nhật GPLX',
+                                    title: 'Cần cập nhật Giấy phép lái xe',
                                     text: response.message,
                                     confirmButtonText: 'Cập nhật GPLX ngay',
-                                    confirmButtonColor: '#667eea',
+                                    confirmButtonColor: '#2563eb',
                                     allowOutsideClick: false,
                                     allowEscapeKey: false
                                 }).then((result) => {
-                                    // Khi bấm OK thì chuyển đến trang My Account với tab GPLX
-                                    if (result.isConfirmed) {
-                                        window.location.href = response.redirectUrl;
-                                    } else {
-                                        // Nếu đóng bằng cách khác thì cũng chuyển
-                                        window.location.href = response.redirectUrl;
-                                    }
+                                    window.location.href = response.redirectUrl;
                                 });
-                            } 
-                            else {
-                                // Hiển thị thông báo lỗi thông thường
+                            } else {
                                 Swal.fire({
                                     icon: 'error',
-                                    title: 'Lỗi',
+                                    title: 'Không thể hoàn tất',
                                     text: response.message,
-                                    confirmButtonColor: '#667eea'
+                                    confirmButtonColor: '#2563eb'
                                 });
                             }
                         }
                     },
                     error: function () {
+                        Swal.close();
                         Swal.fire({
                             icon: 'error',
-                            title: 'Lỗi',
-                            text: 'Có lỗi xảy ra. Vui lòng thử lại.',
-                            confirmButtonColor: '#667eea'
+                            title: 'Lỗi kết nối',
+                            text: 'Không thể kết nối đến máy chủ. Vui lòng kiểm tra lại.',
+                            confirmButtonColor: '#2563eb'
                         });
                     }
                 });
             });
         });
     </script>
-
-
-    </script>
-
 }

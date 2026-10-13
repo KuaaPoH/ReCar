@@ -1,4 +1,4 @@
-﻿using CarRental.Extensions;
+using CarRental.Extensions;
 using CarRental.Models;
 using CarRental.Utilities;
 using Microsoft.AspNetCore.Http;
@@ -20,6 +20,65 @@ namespace CarRental.Controllers
         {
             ViewBag.TypeId = TypeId;
             return View();
+        }
+
+        [HttpGet]
+        public IActionResult FilterProducts(decimal? minPrice, decimal? maxPrice, string? brands, int? TypeId, int? seats, string? fuel, string? sort)
+        {
+            var query = _context.Cars.Include(c => c.Type).Where(c => c.IsActive);
+
+            if (minPrice.HasValue && minPrice.Value > 0)
+            {
+                query = query.Where(c => (c.SalePrice > 0 ? c.SalePrice : c.Price) >= minPrice.Value);
+            }
+
+            if (maxPrice.HasValue && maxPrice.Value > 0)
+            {
+                query = query.Where(c => (c.SalePrice > 0 ? c.SalePrice : c.Price) <= maxPrice.Value);
+            }
+
+            if (!string.IsNullOrEmpty(brands))
+            {
+                var brandList = brands.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                    .Select(b => b.Trim().ToLower())
+                    .ToList();
+                query = query.Where(c => c.CarBrand != null && brandList.Contains(c.CarBrand.ToLower()));
+            }
+
+            if (TypeId.HasValue && TypeId.Value > 0)
+            {
+                query = query.Where(c => c.TypeId == TypeId.Value);
+            }
+
+            if (seats.HasValue && seats.Value > 0)
+            {
+                query = query.Where(c => c.Seat == seats.Value);
+            }
+
+            if (!string.IsNullOrEmpty(fuel))
+            {
+                query = query.Where(c => (c.Fuel != null && c.Fuel.Contains(fuel)) || (c.Details != null && c.Details.Contains(fuel)));
+            }
+
+            if (sort == "price-asc")
+            {
+                query = query.OrderBy(c => c.SalePrice > 0 ? c.SalePrice : c.Price);
+            }
+            else if (sort == "price-desc")
+            {
+                query = query.OrderByDescending(c => c.SalePrice > 0 ? c.SalePrice : c.Price);
+            }
+            else if (sort == "rating")
+            {
+                query = query.OrderByDescending(c => c.Rate);
+            }
+            else
+            {
+                query = query.OrderBy(c => c.CarId);
+            }
+
+            var list = query.ToList();
+            return ViewComponent("Product", new { items = list });
         }
         
 

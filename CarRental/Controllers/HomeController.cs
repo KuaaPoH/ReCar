@@ -20,9 +20,10 @@ namespace CarRental.Controllers
         public IActionResult Index()
         {
             
-            ViewBag.productFeatured = _context.Cars.Where(i=>i.Rate > 3).OrderByDescending(i => i.CarId).ToList();
-            ViewBag.productDealofDay = _context.Cars.Where(i => i.IsSale == true).OrderByDescending(i=>i.CarId).ToList();
+            ViewBag.productFeatured = _context.Cars.Where(i => i.IsActive == true).OrderBy(i => i.CarId).ToList();
+            ViewBag.productDealofDay = _context.Cars.Where(i => i.IsSale == true && i.IsActive == true).OrderByDescending(i=>i.CarId).ToList();
             ViewBag.Blog = _context.Blogs.Where(i => i.IsActive == true).ToList();
+            ViewBag.CarTypes = _context.CarTypes.ToList();
             return View();
         }
 

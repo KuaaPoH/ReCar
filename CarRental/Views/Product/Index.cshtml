@@ -1,276 +1,304 @@
-﻿<!-- Breadcrumb Area Start Here -->
-<div class="breadcrumbs-area position-relative" >
-    <div class="container">
-        <div class="row">
-            <div class="col-12 text-center">
-                <div class="breadcrumb-content position-relative section-content">
-                    <h3 class="title-3">Xe</h3>
-                    <ul>
-                        <li><a href="index.html">Trang chủ</a></li>
-                        <li>Xe</li>
-                    </ul>
+@{
+    ViewData["Title"] = "Danh sách xe cho thuê | ReCar";
+}
+
+<style>
+    .page-title-banner {
+        background-color: var(--recar-secondary);
+        border-bottom: 1px solid var(--recar-border);
+        padding: 32px 0;
+    }
+    .filter-section-title {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--recar-navy);
+        margin-bottom: 12px;
+    }
+    .filter-group-divider {
+        border-bottom: 1px solid var(--recar-border);
+        padding-bottom: 20px;
+        margin-bottom: 20px;
+    }
+    .price-slider-input {
+        width: 100%;
+        accent-color: var(--recar-primary);
+        cursor: pointer;
+    }
+</style>
+
+<!-- Page Header Banner (Pixel-perfect Ảnh 5) -->
+<div class="page-title-banner">
+    <div class="container" style="max-width: 1280px;">
+        <div class="d-flex flex-wrap align-items-end justify-content-between gap-3">
+            <div>
+                <h1 class="fs-2 fw-bold m-0" style="color: var(--recar-navy);">Danh sách xe cho thuê</h1>
+                <p class="text-muted small m-0 mt-2">
+                    Tất cả khu vực · <b style="color: var(--recar-navy);" id="totalCarCount">8 xe phù hợp</b>
+                </p>
+            </div>
+            <a href="/" class="btn btn-outline-secondary btn-sm bg-white text-dark rounded-3 px-3 py-2 fw-medium text-decoration-none">
+                Sửa tiêu chí tìm kiếm
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="container py-4" style="max-width: 1280px;">
+    <div class="row g-4">
+        <!-- Sidebar Filter (Cột bộ lọc dạng Chip pills - Ảnh 5) -->
+        <div class="col-lg-3 col-md-4">
+            <aside class="pe-lg-3">
+                <!-- 1. Khoảng giá kéo từ Min đến Max (Thẩm mỹ & chuẩn xác) -->
+                <div class="filter-group-divider">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <p class="filter-section-title m-0">Khoảng giá thuê</p>
+                        <span class="badge bg-light text-primary border fw-semibold" id="priceRangeBadge" style="font-size: 11px;">500k - 5tr</span>
+                    </div>
+                    <p class="small fw-semibold mb-2" id="priceLabel" style="font-size: 12px; color: var(--recar-primary);">
+                        Từ 500.000đ đến 5.000.000đ/ngày
+                    </p>
+                    <div class="range-sliders-box p-2 rounded-3 border bg-light">
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <span class="small text-muted fw-medium" style="min-width: 32px; font-size: 11px;">Từ:</span>
+                            <input type="range" class="price-slider-input w-100" id="minPriceSlider" min="500000" max="3000000" step="50000" value="500000">
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="small text-muted fw-medium" style="min-width: 32px; font-size: 11px;">Đến:</span>
+                            <input type="range" class="price-slider-input w-100" id="maxPriceSlider" min="1000000" max="5000000" step="50000" value="5000000">
+                        </div>
+                    </div>
                 </div>
+
+                <!-- 2. Hãng xe Pill chips -->
+                <div class="filter-group-divider">
+                    <p class="filter-section-title">Hãng xe</p>
+                    <div class="d-flex flex-wrap gap-2" id="brandChipsWrap">
+                        <button type="button" class="recar-chip chip-brand" data-brand="VinFast">VinFast</button>
+                        <button type="button" class="recar-chip chip-brand" data-brand="Toyota">Toyota</button>
+                        <button type="button" class="recar-chip chip-brand" data-brand="Mazda">Mazda</button>
+                        <button type="button" class="recar-chip chip-brand" data-brand="Hyundai">Hyundai</button>
+                        <button type="button" class="recar-chip chip-brand" data-brand="Kia">Kia</button>
+                        <button type="button" class="recar-chip chip-brand" data-brand="Honda">Honda</button>
+                        <button type="button" class="recar-chip chip-brand" data-brand="Ford">Ford</button>
+                    </div>
+                </div>
+
+                <!-- 3. Dòng xe Pill chips -->
+                <div class="filter-group-divider">
+                    <p class="filter-section-title">Dòng xe</p>
+                    <div class="d-flex flex-wrap gap-2" id="typeChipsWrap">
+                        <button type="button" class="recar-chip chip-type active" data-type="">Tất cả</button>
+                        <button type="button" class="recar-chip chip-type" data-type="1">Xe mini đô thị</button>
+                        <button type="button" class="recar-chip chip-type" data-type="2">Sedan 5 chỗ</button>
+                        <button type="button" class="recar-chip chip-type" data-type="3">Crossover/SUV 7 chỗ</button>
+                        <button type="button" class="recar-chip chip-type" data-type="4">MPV đa dụng</button>
+                        <button type="button" class="recar-chip chip-type" data-type="5">Xe bán tải</button>
+                    </div>
+                </div>
+
+                <!-- 4. Số chỗ Pill chips -->
+                <div class="filter-group-divider">
+                    <p class="filter-section-title">Số chỗ</p>
+                    <div class="d-flex flex-wrap gap-2" id="seatChipsWrap">
+                        <button type="button" class="recar-chip chip-seat active" data-seat="0">Tất cả</button>
+                        <button type="button" class="recar-chip chip-seat" data-seat="5">5 chỗ</button>
+                        <button type="button" class="recar-chip chip-seat" data-seat="7">7 chỗ</button>
+                    </div>
+                </div>
+
+                <!-- 5. Nhiên liệu Pill chips -->
+                <div class="filter-group-divider">
+                    <p class="filter-section-title">Nhiên liệu</p>
+                    <div class="d-flex flex-wrap gap-2" id="fuelChipsWrap">
+                        <button type="button" class="recar-chip chip-fuel active" data-fuel="">Tất cả</button>
+                        <button type="button" class="recar-chip chip-fuel" data-fuel="Xăng">Xăng</button>
+                        <button type="button" class="recar-chip chip-fuel" data-fuel="Dầu">Dầu</button>
+                        <button type="button" class="recar-chip chip-fuel" data-fuel="Điện">Điện</button>
+                    </div>
+                </div>
+
+                <!-- Xóa bộ lọc -->
+                <div>
+                    <button type="button" id="resetFilterBtn" class="btn btn-link p-0 text-decoration-none fw-medium small" style="color: var(--recar-primary);">
+                        Xóa bộ lọc
+                    </button>
+                </div>
+            </aside>
+        </div>
+
+        <!-- Car Listing Area (Cột danh sách xe bên phải - Ảnh 5) -->
+        <div class="col-lg-9 col-md-8">
+            <!-- Dropdown sắp xếp bên phải -->
+            <div class="d-flex justify-content-end mb-4">
+                <select id="sortSelect" class="form-select form-select-sm rounded-3" style="width: auto; min-width: 140px; padding: 8px 12px; font-size: 14px; border: 1px solid var(--recar-border);">
+                    <option value="featured">Phổ biến</option>
+                    <option value="price-asc">Giá thấp đến cao</option>
+                    <option value="price-desc">Giá cao đến thấp</option>
+                    <option value="rating">Đánh giá cao</option>
+                </select>
+            </div>
+
+            <!-- Grid Xe -->
+            <div class="row g-4" id="carListContainer">
+                @await Component.InvokeAsync("Product")
             </div>
         </div>
     </div>
 </div>
-<!-- Breadcrumb Area End Here -->
-<!-- Shop Main Area Start Here -->
-<div class="shop-main-area">
-    <div class="container container-default custom-area">
-        <div class="row flex-row-reverse">
-            <div class="col-lg-9 col-12 col-custom widget-mt">
-                <!--shop toolbar start-->
-                <div class="shop_toolbar_wrapper mb-30">
-                    <div class="shop_toolbar_btn">
-                        <button data-role="grid_3" type="button" class="active btn-grid-3" title="Grid"><i class="fa fa-th"></i></button>
-                        <button data-role="grid_list" type="button" class="btn-list" title="List"><i class="fa fa-th-list"></i></button>
-                    </div>
-                    <div class="shop-select">
-                        <form class="d-flex flex-column w-100" action="#">
-                            <div class="form-group">
-                                <select class="form-control nice-select w-100">
-                                    <option selected value="1">Alphabetically, A-Z</option>
-                                    <option value="2">Sort by popularity</option>
-                                    <option value="3">Sort by newness</option>
-                                    <option value="4">Sort by price: low to high</option>
-                                    <option value="5">Sort by price: high to low</option>
-                                    <option value="6">Product Name: Z</option>
-                                </select>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-                <!--shop toolbar end-->
-                <!-- Shop Wrapper Start -->
-                <div class="row shop_wrapper grid_3">
-                    @await Component.InvokeAsync("Product", new { typeId = ViewBag.TypeId })
-                </div>
-                <!-- Shop Wrapper End -->
-                <!-- Bottom Toolbar Start -->
-                <div class="row">
-                    <div class="col-sm-12 col-custom">
-                        <div class="toolbar-bottom">
-                            <div class="pagination">
-                                <ul>
-                                    <li class="current">1</li>
-                                    <li><a href="#">2</a></li>
-                                    <li><a href="#">3</a></li>
-                                    <li class="next"><a href="#">next</a></li>
-                                    <li><a href="#">&gt;&gt;</a></li>
-                                </ul>
-                            </div>
-                            <p class="desc-content text-center text-sm-right mb-0">Showing 1 - 12 of 34 result</p>
-                        </div>
-                    </div>
-                </div>
-                <!-- Bottom Toolbar End -->
-            </div>
-            <div class="col-lg-3 col-12 col-custom">
-                <!-- Sidebar Widget Start -->
-                <aside class="sidebar_widget widget-mt">
-                    <div class="widget_inner">
-                        <div class="widget-list widget-mb-1">
-                            <h3 class="widget-title">Tìm kiếm</h3>
-                            <div class="search-box">
-                                <div class="input-group">
-                                    <input type="text" id="searchInput" class="form-control" placeholder="Search Our Store" aria-label="Search Our Store">
-                                    <div class="input-group-append">
-                                        <button class="btn btn-outline-secondary" id="searchButton" type="button">
-                                            <i class="fa fa-search"></i>
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="widget-list widget-mb-1">
-                            <h3 class="widget-title">Lọc theo giá</h3>
-                            <form id="priceFilterForm">
-                                <div id="slider-range"></div>
-                                <button  type="button" id="filterButton">Filter</button>
-                                <input  type="text" id="amount" readonly style="border:0; color:#f6931f; font-weight:bold;">
-                                
-                            </form>
-                            <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
-                            <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
 
-                            <script>
-                                $(function () {
-                                    // Thiết lập thanh trượt
-                                    $("#slider-range").slider({
-                                        range: true,
-                                        min: 0,
-                                        max: 1000000, // Giá trị tối đa (đồng)
-                                        values: [100000, 500000], // Giá trị mặc định
-                                        slide: function (event, ui) {
-                                            $("#amount").val(ui.values[0].toLocaleString() + "đ - " + ui.values[1].toLocaleString() + "đ");
-                                        }
-                                    });
-                                    $("#amount").val(
-                                        $("#slider-range").slider("values", 0).toLocaleString() + "đ - " +
-                                        $("#slider-range").slider("values", 1).toLocaleString() + "đ"
-                                    );
-
-                                    // Xử lý khi nhấn nút lọc
-                                    $("#filterButton").on("click", function () {
-                                        const minPrice = $("#slider-range").slider("values", 0);
-                                        const maxPrice = $("#slider-range").slider("values", 1);
-
-                                        // Duyệt qua tất cả các sản phẩm và lọc theo giá
-                                        $(".product-area").each(function () {
-                                            const productPrice = parseInt($(this).find(".regular-price").text().replace(/\D/g, '')); // Lấy giá trị số từ text
-                                            if (productPrice >= minPrice && productPrice <= maxPrice) {
-                                                $(this).show(); // Hiển thị sản phẩm nếu trong khoảng giá
-                                            } else {
-                                                $(this).hide(); // Ẩn sản phẩm nếu không trong khoảng giá
-                                            }
-                                        });
-                                    });
-                                });
-                            </script>
-
-                        </div>
-                        @await Component.InvokeAsync("Categories")
-                        
-                        <div class="widget-list widget-mb-2">
-                            <h3 class="widget-title">Color</h3>
-                            <div class="sidebar-body">
-                                <ul class="checkbox-container categories-list">
-                                    <li>
-                                        <div class="custom-control custom-checkbox">
-                                            <input type="checkbox" class="custom-control-input" id="customCheck12">
-                                            <label class="custom-control-label" for="customCheck12">black (20)</label>
-                                        </div>
-                                    </li>
-                                    <li>
-                                        <div class="custom-control custom-checkbox">
-                                            <input type="checkbox" class="custom-control-input" id="customCheck13">
-                                            <label class="custom-control-label" for="customCheck13">red (6)</label>
-                                        </div>
-                                    </li>
-                                    <li>
-                                        <div class="custom-control custom-checkbox">
-                                            <input type="checkbox" class="custom-control-input" id="customCheck14">
-                                            <label class="custom-control-label" for="customCheck14">blue (8)</label>
-                                        </div>
-                                    </li>
-                                    <li>
-                                        <div class="custom-control custom-checkbox">
-                                            <input type="checkbox" class="custom-control-input" id="customCheck11">
-                                            <label class="custom-control-label" for="customCheck11">green (5)</label>
-                                        </div>
-                                    </li>
-                                    <li>
-                                        <div class="custom-control custom-checkbox">
-                                            <input type="checkbox" class="custom-control-input" id="customCheck15">
-                                            <label class="custom-control-label" for="customCheck15">pink (4)</label>
-                                        </div>
-                                    </li>
-                                </ul>
-                            </div>
-                        </div>
-                        <div class="widget-list widget-mb-3">
-                            <h3 class="widget-title">Tags</h3>
-                            <div class="sidebar-body">
-                                <ul class="tags">
-                                    <li><a href="#">Rose</a></li>
-                                    <li><a href="#">Sunflower</a></li>
-                                    <li><a href="#">Tulip</a></li>
-                                    <li><a href="#">Lily</a></li>
-                                    <li><a href="#">Smart</a></li>
-                                    <li><a href="#">Modern</a></li>
-                                    <li><a href="#">Gift</a></li>
-                                </ul>
-                            </div>
-                        </div>
-                        <div class="widget-list mb-0">
-                            <h3 class="widget-title">Recent Products</h3>
-                            <div class="sidebar-body">
-                                @await Component.InvokeAsync("RecentProducts")
-                            </div>
-                        </div>
-                    </div>
-                </aside>
-                <!-- Sidebar Widget End -->
-            </div>
-        </div>
-    </div>
-</div>
-<!-- Shop Main Area End Here -->
-@* Bỏ đây mới chạy dược *@
 @section scripts {
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         $(document).ready(function () {
-             $(".ajax-add-to-cart").click(function () {
-                const productId = $(this).data("id"); // Lấy ID sản phẩm
-                const pickupDate = $("#pickupDate").val(); // Lấy ngày nhận xe
-                const returnDate = $("#returnDate").val(); // Lấy ngày trả xe
+            let minPrice = 500000;
+            let maxPrice = 5000000;
+            let selectedBrands = [];
+            let selectedType = "";
+            let selectedSeat = 0;
+            let selectedFuel = "";
+            let sortType = "featured";
 
-                // Kiểm tra giá trị ngày tháng
-                if (!pickupDate || !returnDate) {
-                    Swal.fire({
-                        icon: "warning",
-                        title: "Thông báo",
-                        text: "Vui lòng chọn ngày nhận và ngày trả xe!"
-                    });
-                    return;
-                }
-                 $.ajax({
-                       url: "/Cart/AddToCart",
-                      type: "POST",
-                      data: JSON.stringify({
-                            id: productId,
-                            quantity: 1,
-                            pickupDate: pickupDate,
-                            returnDate: returnDate,
-                            type: "ajax"
-                        }),
-                      success: function(data) {
-                          console.log(data);
-                                  Swal.fire({
-                                   position: "top-end",
-                                   icon: "success",
-                                   title: "Thêm vào giỏ hàng thành công",
-                                   showConfirmButton: false,
-                                   timer: 1500
-                                 });
-                      },
-                       error: function() {
-                                   Swal.fire({
-                                     icon: "error",
-                                     title: "Oops...",
-                                     text: "Something went wrong!",
-                                     footer: '<a href="#">Why do I have this issue?</a>'
-                                 });
-                       }
-                 });
-             });
-
-                 // Xử lý tìm kiếm khi nhấn nút
-        $("#searchButton").on("click", function () {
-            const searchText = $("#searchInput").val().toLowerCase(); // Lấy từ khóa tìm kiếm và chuyển thành chữ thường
-
-            // Duyệt qua danh sách sản phẩm
-            $(".product-area").each(function () {
-                const productName = $(this).find(".product-title a").text().toLowerCase(); // Lấy tên sản phẩm
-
-                // Kiểm tra xem tên sản phẩm có chứa từ khóa không
-                if (productName.includes(searchText)) {
-                    $(this).show(); // Hiển thị sản phẩm
-                } else {
-                    $(this).hide(); // Ẩn sản phẩm
-                }
-            });
-        });
-
-        // Xử lý tìm kiếm khi nhập từ khóa và nhấn Enter
-        $("#searchInput").on("keyup", function (e) {
-            if (e.key === "Enter") {
-                $("#searchButton").click(); // Gọi sự kiện click của nút tìm kiếm
+            // Format VND
+            function formatVND(num) {
+                return num.toLocaleString('vi-VN') + 'đ';
             }
-        });
+
+            function updatePriceUI() {
+                $('#priceLabel').text('Từ ' + formatVND(minPrice) + ' đến ' + formatVND(maxPrice) + '/ngày');
+                let minK = Math.round(minPrice / 1000) >= 1000 ? (minPrice / 1000000).toFixed(1).replace('.0','') + 'tr' : Math.round(minPrice / 1000) + 'k';
+                let maxK = (maxPrice / 1000000).toFixed(1).replace('.0','') + 'tr';
+                $('#priceRangeBadge').text(minK + ' - ' + maxK);
+            }
+
+            // Slider giá Min
+            $('#minPriceSlider').on('input', function () {
+                minPrice = parseInt($(this).val());
+                if (minPrice > maxPrice) {
+                    maxPrice = minPrice;
+                    $('#maxPriceSlider').val(maxPrice);
+                }
+                updatePriceUI();
+            });
+
+            $('#minPriceSlider').on('change', function () {
+                applyFilter();
+            });
+
+            // Slider giá Max
+            $('#maxPriceSlider').on('input', function () {
+                maxPrice = parseInt($(this).val());
+                if (maxPrice < minPrice) {
+                    minPrice = maxPrice;
+                    $('#minPriceSlider').val(minPrice);
+                }
+                updatePriceUI();
+            });
+
+            $('#maxPriceSlider').on('change', function () {
+                applyFilter();
+            });
+
+            // Chọn chip Hãng xe
+            $('.chip-brand').on('click', function () {
+                const brand = $(this).data('brand');
+                $(this).toggleClass('active');
+                if ($(this).hasClass('active')) {
+                    if (!selectedBrands.includes(brand)) selectedBrands.push(brand);
+                } else {
+                    selectedBrands = selectedBrands.filter(b => b !== brand);
+                }
+                applyFilter();
+            });
+
+            // Chọn chip Dòng xe
+            $('.chip-type').on('click', function () {
+                $('.chip-type').removeClass('active');
+                $(this).addClass('active');
+                selectedType = $(this).data('type') || "";
+                applyFilter();
+            });
+
+            // Chọn chip Số chỗ
+            $('.chip-seat').on('click', function () {
+                $('.chip-seat').removeClass('active');
+                $(this).addClass('active');
+                selectedSeat = parseInt($(this).data('seat') || 0);
+                applyFilter();
+            });
+
+            // Chọn chip Nhiên liệu
+            $('.chip-fuel').on('click', function () {
+                $('.chip-fuel').removeClass('active');
+                $(this).addClass('active');
+                selectedFuel = $(this).data('fuel') || "";
+                applyFilter();
+            });
+
+            // Sắp xếp
+            $('#sortSelect').on('change', function () {
+                sortType = $(this).val();
+                applyFilter();
+            });
+
+            // Nút reset
+            $('#resetFilterBtn').on('click', function () {
+                minPrice = 500000;
+                maxPrice = 5000000;
+                $('#minPriceSlider').val(500000);
+                $('#maxPriceSlider').val(5000000);
+                updatePriceUI();
+                selectedBrands = [];
+                $('.chip-brand').removeClass('active');
+                selectedType = "";
+                $('.chip-type').removeClass('active');
+                $('.chip-type[data-type=""]').addClass('active');
+                selectedSeat = 0;
+                $('.chip-seat').removeClass('active');
+                $('.chip-seat[data-seat="0"]').addClass('active');
+                selectedFuel = "";
+                $('.chip-fuel').removeClass('active');
+                $('.chip-fuel[data-fuel=""]').addClass('active');
+                sortType = "featured";
+                $('#sortSelect').val("featured");
+                applyFilter();
+            });
+
+            // Gửi AJAX filter
+            function applyFilter() {
+                let params = {
+                    minPrice: minPrice,
+                    maxPrice: maxPrice,
+                    brands: selectedBrands.join(','),
+                    TypeId: selectedType,
+                    seats: selectedSeat,
+                    fuel: selectedFuel,
+                    sort: sortType
+                };
+
+                $.ajax({
+                    url: '/Product/FilterProducts',
+                    type: 'GET',
+                    data: params,
+                    beforeSend: function () {
+                        $('#carListContainer').css('opacity', '0.6');
+                    },
+                    success: function (data) {
+                        $('#carListContainer').html(data);
+                        $('#carListContainer').css('opacity', '1');
+                    },
+                    error: function () {
+                        $('#carListContainer').css('opacity', '1');
+                    }
+                });
+            }
+
+            // Nhận TypeId từ query param nếu có
+            const urlParams = new URLSearchParams(window.location.search);
+            const queryTypeId = urlParams.get('TypeId');
+            if (queryTypeId) {
+                $('.chip-type').removeClass('active');
+                $(`.chip-type[data-type="${queryTypeId}"]`).addClass('active');
+                selectedType = queryTypeId;
+            }
         });
     </script>
 }

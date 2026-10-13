@@ -1,10 +1,10 @@
-﻿using CarRental.Models;
+using CarRental.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace CarRental.ViewComponents
 {
-    public class ProductViewComponent :ViewComponent
+    public class ProductViewComponent : ViewComponent
     {
         private readonly DbRenalCarContext _context;
 
@@ -13,17 +13,21 @@ namespace CarRental.ViewComponents
             _context = context;
         }
 
-        public IViewComponentResult Invoke(int? typeId)
+        public IViewComponentResult Invoke(int? typeId = null, List<Car>? items = null)
         {
-            var categories = _context.Cars.AsQueryable();
-
-            // Nếu cần lọc theo typeId (nếu có)
-            if (typeId.HasValue)
+            if (items != null)
             {
-                categories = categories.Where(c => c.TypeId == typeId.Value);
+                return View(items);
             }
 
-            return View(categories.ToList());
+            var query = _context.Cars.Where(c => c.IsActive).AsQueryable();
+
+            if (typeId.HasValue && typeId.Value > 0)
+            {
+                query = query.Where(c => c.TypeId == typeId.Value);
+            }
+
+            return View(query.ToList());
         }
     }
 }

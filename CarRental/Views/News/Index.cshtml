@@ -1,47 +1,21 @@
-﻿
-<div class="breadcrumbs-area position-relative">
-    <div class="container">
-        <div class="row">
-            <div class="col-12 text-center">
-                <div class="breadcrumb-content position-relative section-content">
-                    <h3 class="title-3">Blog Grid Fullwidth</h3>
-                    <ul>
-                        <li><a href="index.html">Home</a></li>
-                        <li>Blog</li>
-                    </ul>
-                </div>
-            </div>
-        </div>
+@{
+    ViewData["Title"] = "Tin tức";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<!-- Page Banner -->
+<div class="page-title-banner" style="background-color: #f8fafc; border-bottom: 1px solid var(--recar-border); padding: 36px 0;">
+    <div class="container" style="max-width: 1280px;">
+        <h1 class="fs-2 fw-bold m-0" style="color: var(--recar-navy);">Tin tức</h1>
+        <p class="text-muted small m-0 mt-2" style="font-size: 15px;">
+            Tin tức thị trường xe, công nghệ ô tô và các xu hướng mới nhất từ ReCar.
+        </p>
     </div>
 </div>
-<div class="blog-main-area">
-    <div class="container container-default custom-area">
-        <div class="row">
-            <div class="col-lg-12 col-12 col-custom widget-mt">
-                <!-- Shop Wrapper Start -->
-                <div class="row">
 
-                    @await Component.InvokeAsync("News")
-                </div>
-                <!-- Shop Wrapper End -->
-                <!-- Bottom Toolbar Start -->
-                <div class="row">
-                    <div class="col-sm-12 col-custom">
-                        <div class="toolbar-bottom">
-                            <div class="pagination">
-                                <ul>
-                                    <li class="current">1</li>
-                                    <li><a href="#">2</a></li>
-                                    <li><a href="#">3</a></li>
-                                    <li class="next"><a href="#">next</a></li>
-                                    <li><a href="#">&gt;&gt;</a></li>
-                                </ul>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <!-- Bottom Toolbar End -->
-            </div>
-        </div>
+<!-- Lưới danh sách tin tức -->
+<div class="container py-5" style="max-width: 1280px;">
+    <div class="row g-4">
+        @await Component.InvokeAsync("News")
     </div>
 </div>

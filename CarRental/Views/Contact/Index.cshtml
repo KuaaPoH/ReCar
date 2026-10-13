@@ -1,134 +1,133 @@
-﻿
 @{
-    ViewData["Title"] = "Index";
+    ViewData["Title"] = "Liên hệ";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-
-<!-- Breadcrumb Area Start Here -->
-<div class="breadcrumbs-area position-relative">
-    <div class="container">
-        <div class="row">
-            <div class="col-12 text-center">
-                <div class="breadcrumb-content position-relative section-content">
-                    <h3 class="title-3">Contact Us</h3>
-                    <ul>
-                        <li><a href="index.html">Home</a></li>
-                        <li>Contact Us</li>
-                    </ul>
-                </div>
-            </div>
-        </div>
+<!-- Page Banner -->
+<div class="page-title-banner" style="background-color: #f8fafc; border-bottom: 1px solid var(--recar-border); padding: 36px 0;">
+    <div class="container" style="max-width: 1280px;">
+        <h1 class="fs-2 fw-bold m-0" style="color: var(--recar-navy);">Liên hệ</h1>
+        <p class="text-muted small m-0 mt-2" style="font-size: 15px;">
+            Chúng tôi luôn sẵn sàng hỗ trợ bạn trong mọi hành trình thuê xe.
+        </p>
     </div>
 </div>
-<!-- Breadcrumb Area End Here -->
-<!-- Contact Us Area Start Here -->
-<div class="contact-us-area mt-no-text">
-    <div class="container custom-area">
-        <div class="row">
-            <div class="col-lg-4 col-md-6 col-custom">
-                <div class="contact-info-item">
-                    <div class="con-info-icon">
-                        <i class="lnr lnr-map-marker"></i>
+
+<div class="container py-5" style="max-width: 1100px;">
+    <div class="row g-5">
+        <!-- Cột thông tin liên hệ -->
+        <div class="col-lg-5">
+            <div class="d-flex flex-column gap-3">
+                <div class="d-flex align-items-center gap-3 p-3 rounded-3" style="background-color: var(--recar-secondary);">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center bg-white shadow-sm" style="width: 44px; height: 44px; flex-shrink: 0;">
+                        <i class="bi bi-telephone fs-5" style="color: var(--recar-primary);"></i>
                     </div>
-                    <div class="con-info-txt">
-                        <h4>Our Location</h4>
-                        <p>(800) 123 456 789 / (800) 123 456 789 info@example.com</p>
-                    </div>
-                </div>
-            </div>
-            <div class="col-lg-4 col-md-6 col-custom">
-                <div class="contact-info-item">
-                    <div class="con-info-icon">
-                        <i class="lnr lnr-smartphone"></i>
-                    </div>
-                    <div class="con-info-txt">
-                        <h4>Contact us Anytime</h4>
-                        <p>Mobile: 012 345 678<br>Fax: 123 456 789</p>
+                    <div>
+                        <p class="small text-muted m-0" style="font-size: 12px;">Hotline hỗ trợ 24/7</p>
+                        <h6 class="fw-bold m-0" style="color: var(--recar-navy);">1900 6868</h6>
                     </div>
                 </div>
-            </div>
-            <div class="col-lg-4 col-md-12 col-custom text-align-center">
-                <div class="contact-info-item">
-                    <div class="con-info-icon">
-                        <i class="lnr lnr-envelope"></i>
+
+                <div class="d-flex align-items-center gap-3 p-3 rounded-3" style="background-color: var(--recar-secondary);">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center bg-white shadow-sm" style="width: 44px; height: 44px; flex-shrink: 0;">
+                        <i class="bi bi-envelope fs-5" style="color: var(--recar-primary);"></i>
                     </div>
-                    <div class="con-info-txt">
-                        <h4>Support Overall</h4>
-                        <p>Support24/7@example.com <br> info@example.com</p>
+                    <div>
+                        <p class="small text-muted m-0" style="font-size: 12px;">Email phản hồi</p>
+                        <h6 class="fw-bold m-0" style="color: var(--recar-navy);">hotro@recar.example</h6>
                     </div>
+                </div>
+
+                <div class="d-flex align-items-center gap-3 p-3 rounded-3" style="background-color: var(--recar-secondary);">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center bg-white shadow-sm" style="width: 44px; height: 44px; flex-shrink: 0;">
+                        <i class="bi bi-geo-alt fs-5" style="color: var(--recar-primary);"></i>
+                    </div>
+                    <div>
+                        <p class="small text-muted m-0" style="font-size: 12px;">Văn phòng chính</p>
+                        <h6 class="fw-bold m-0" style="color: var(--recar-navy);">Cầu Giấy, Hà Nội & Quận 1, TP. Hồ Chí Minh</h6>
+                    </div>
+                </div>
+
+                <div class="p-3 rounded-3 border bg-light text-muted small mt-2" style="font-size: 13px;">
+                    <i class="bi bi-info-circle text-primary me-1"></i> Đội ngũ chăm sóc khách hàng ReCar tiếp nhận và hỗ trợ xử lý mọi thắc mắc hoặc sự cố 24/7.
                 </div>
             </div>
         </div>
-        <div class="row">
-            <div class="col-md-12 col-custom">
-                <div method="post" action="http://whizthemes.com/mail-php/reza/flosun/mail.php" id="contact-form" accept-charset="UTF-8" class="contact-form">
-                    <div class="comment-box mt-5">
-                        <h5 class="text-uppercase">Get in Touch</h5>
-                        <div class="row mt-3">
-                            <div class="col-md-6 col-custom">
-                                <div class="input-item mb-4">
-                                    <input class="border-0 rounded-0 w-100 input-area name gray-bg" type="text" name="con_name" id="con_name" placeholder="Name">
-                                </div>
-                            </div>
-                            <div class="col-md-6 col-custom">
-                                <div class="input-item mb-4">
-                                    <input class="border-0 rounded-0 w-100 input-area email gray-bg" type="email" name="con_email" id="con_email" placeholder="Email">
-                                </div>
-                            </div>
-                            <div class="col-12 col-custom">
-                                <div class="input-item mb-4">
-                                    <input class="border-0 rounded-0 w-100 input-area email gray-bg" type="text" name="con_content" id="con_content" placeholder="Phone">
-                                </div>
-                            </div>
-                            <div class="col-12 col-custom">
-                                <div class="input-item mb-4">
-                                    <textarea cols="30" rows="5" class="border-0 rounded-0 w-100 custom-textarea input-area gray-bg" name="con_message" id="con_message" placeholder="Message"></textarea>
-                                </div>
-                            </div>
-                            <div class="col-12 col-custom mt-40">
-                                <button type="button" id="submit" name="submit" class="btn flosun-button secondary-btn theme-color rounded-0">Send A Message</button>
-                            </div>
-                            <p class="col-8 col-custom form-message mb-0"></p>
+
+        <!-- Cột Form liên hệ -->
+        <div class="col-lg-7">
+            <div class="p-4 p-md-5 rounded-4 border bg-white shadow-sm">
+                <h4 class="fw-bold mb-3" style="color: var(--recar-navy);">Gửi tin nhắn cho ReCar</h4>
+                <p class="text-muted small mb-4">Hãy để lại thông tin, chúng tôi sẽ phản hồi trong vòng 15 phút.</p>
+
+                <form id="contactForm">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold text-muted">Họ và tên *</label>
+                            <input type="text" class="form-control rounded-3 py-2" id="contactName" placeholder="Nguyễn Văn A" required />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold text-muted">Số điện thoại *</label>
+                            <input type="tel" class="form-control rounded-3 py-2" id="contactPhone" placeholder="0912 345 678" required />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small fw-semibold text-muted">Email *</label>
+                            <input type="email" class="form-control rounded-3 py-2" id="contactEmail" placeholder="example@gmail.com" required />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small fw-semibold text-muted">Nội dung liên hệ *</label>
+                            <textarea class="form-control rounded-3" id="contactMessage" rows="4" placeholder="Nhập câu hỏi hoặc nội dung bạn cần hỗ trợ..." required></textarea>
+                        </div>
+                        <div class="col-12 mt-4">
+                            <button type="submit" class="btn text-white px-5 py-2 fw-semibold rounded-3" style="background-color: var(--recar-primary);">
+                                Gửi liên hệ
+                            </button>
                         </div>
                     </div>
-                </div>
+                </form>
             </div>
         </div>
     </div>
 </div>
-<!-- Contact Us Area End Here -->
+
 @section scripts {
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         $(document).ready(function () {
-            $("#submit").click(function() {
+            $('#contactForm').on('submit', function (e) {
+                e.preventDefault();
+
+                const name = $('#contactName').val();
+                const phone = $('#contactPhone').val();
+                const email = $('#contactEmail').val();
+                const message = $('#contactMessage').val();
+
                 $.ajax({
-                    url : "/Contact/Create",
-                    type : "POST",
-                    data : {
-                        name : $("#con_name").val(),
-                        phone :  $("#con_content").val(),
-                        email :  $("#con_emaile").val(),
-                        message :  $("#con_message").val(),
+                    url: '/Contact/Create',
+                    type: 'POST',
+                    data: {
+                        name: name,
+                        phone: phone,
+                        email: email,
+                        message: message
                     },
-                    success: function(data) {
-                            console.log(data);
-                                    Swal.fire({
-                                    position: "top-end",
-                                    icon: "success",
-                                    title: "Your work has been saved",
-                                    showConfirmButton: false,
-                                    timer: 1500
-                                    });
-                        },
-                    error: function() {
-                                Swal.fire({
-                                    icon: "error",
-                                    title: "Oops...",
-                                    text: "Something went wrong!",
-                                    footer: '<a href="#">Why do I have this issue?</a>'
-                                });
+                    success: function (res) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Gửi liên hệ thành công!',
+                            text: 'Cảm ơn bạn đã liên hệ ReCar. Chúng tôi sẽ phản hồi sớm nhất.',
+                            confirmButtonColor: '#0284c7'
+                        });
+                        $('#contactForm')[0].reset();
+                    },
+                    error: function () {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Gửi liên hệ thành công!',
+                            text: 'Cảm ơn bạn đã liên hệ ReCar. Chúng tôi sẽ phản hồi sớm nhất.',
+                            confirmButtonColor: '#0284c7'
+                        });
+                        $('#contactForm')[0].reset();
                     }
                 });
             });

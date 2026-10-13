@@ -21,12 +21,6 @@ namespace CarRental.Controllers
         [HttpPost]
         public async Task<IActionResult> Create( string name, string email, string phone, string message )
         {
-            //kiem tra trang thai dang nhap
-            if (!Function.IsLogin(HttpContext.Session))
-            {
-
-                return RedirectToAction("Index", "Login");
-            }
             try
             {
                 // Tạo đối tượng review mới

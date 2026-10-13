@@ -1,179 +1,79 @@
-﻿@using CarRental.Utilities
+@using CarRental.Utilities
 @model CarRental.Models.Customer
-
-@section style {
-    <style>
-        .auth-wrapper-modern {
-            min-height: 70vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .auth-card-modern {
-            background: #ffffff;
-            border-radius: 18px;
-            box-shadow: 0 18px 45px rgba(15, 23, 42, 0.12);
-            padding: 40px 36px;
-            max-width: 480px;
-            width: 100%;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .auth-card-modern::before {
-            content: "";
-            position: absolute;
-            inset: 0;
-            background:
-                radial-gradient(circle at top left, rgba(231, 36, 99, 0.16), transparent 55%),
-                radial-gradient(circle at bottom right, rgba(79, 70, 229, 0.14), transparent 55%);
-            pointer-events: none;
-        }
-
-        .auth-card-inner {
-            position: relative;
-            z-index: 1;
-        }
-
-        .auth-title {
-            font-size: 28px;
-            font-weight: 700;
-            color: #111827;
-            margin-bottom: 8px;
-        }
-
-        .auth-subtitle {
-            font-size: 14px;
-            color: #6b7280;
-        }
-
-        .auth-input-group {
-            position: relative;
-            margin-bottom: 18px;
-        }
-
-        .auth-input-group input {
-            width: 100%;
-            border-radius: 10px;
-            border: 1px solid #e5e7eb;
-            padding: 12px 16px;
-            font-size: 14px;
-            transition: all 0.2s ease;
-        }
-
-        .auth-input-group input:focus {
-            outline: none;
-            border-color: #e72463;
-            box-shadow: 0 0 0 1px rgba(231, 36, 99, 0.35);
-        }
-
-        .auth-message {
-            font-size: 13px;
-            color: #ef4444;
-            min-height: 18px;
-        }
-
-        .auth-footer-text {
-            font-size: 13px;
-            color: #6b7280;
-        }
-
-        .auth-primary-btn {
-            width: 100%;
-            border-radius: 999px;
-            font-weight: 600;
-            padding: 11px 0;
-            background: linear-gradient(135deg, #e72463, #f97316);
-            border: none;
-            box-shadow: 0 12px 24px rgba(231, 36, 99, 0.35);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .auth-primary-btn::before,
-        .auth-primary-btn::after {
-            content: none !important;
-        }
-
-        .auth-primary-btn:hover {
-            background: linear-gradient(135deg, #f78ca0, #fbd786);
-            transform: translateY(-1px);
-            box-shadow: 0 16px 32px rgba(231, 36, 99, 0.45);
-        }
-
-        .auth-primary-btn:active {
-            transform: translateY(0);
-            box-shadow: 0 8px 18px rgba(148, 27, 74, 0.4);
-        }
-
-        @@media (max-width: 576px) {
-            .auth-card-modern {
-                padding: 28px 22px;
-                border-radius: 14px;
-            }
-
-            .auth-title {
-                font-size: 24px;
-            }
-        }
-    </style>
+@{
+    ViewData["Title"] = "Đăng ký thành viên";
 }
 
-<!-- Breadcrumb Area Start Here -->
-<div class="breadcrumbs-area position-relative">
+<!-- Breadcrumb Area -->
+<div class="recar-section bg-light py-4 border-bottom">
     <div class="container">
-        <div class="row">
-            <div class="col-12 text-center">
-                <div class="breadcrumb-content position-relative section-content">
-                    <h3 class="title-3">Register</h3>
-                    <ul>
-                        <li><a asp-controller="Home" asp-action="Index">Home</a></li>
-                        <li>Register</li>
-                    </ul>
-                </div>
-            </div>
-        </div>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-2" style="font-size: 14px;">
+                <li class="breadcrumb-item"><a href="/" class="text-decoration-none text-muted">Trang chủ</a></li>
+                <li class="breadcrumb-item active text-primary fw-bold" aria-current="page">Đăng ký</li>
+            </ol>
+        </nav>
+        <h2 class="fw-bold mb-1" style="color: var(--recar-dark);">Đăng ký tài khoản ReCar</h2>
+        <p class="text-muted mb-0">Trở thành thành viên để dễ dàng đặt thuê xe ô tô tự lái và có lái trên toàn quốc</p>
     </div>
 </div>
-<!-- Breadcrumb Area End Here -->
 
-<!-- Register Area Start Here -->
-<div class="login-register-area mt-no-text" style="margin-bottom:200px">
-    <div class="container custom-area">
-        <div class="auth-wrapper-modern">
-            <div class="auth-card-modern">
-                <div class="auth-card-inner">
+<div class="recar-section py-5">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-5 col-md-7">
+                <div class="card border-0 shadow-sm rounded-4 p-4 p-md-5 bg-white">
                     <div class="text-center mb-4">
-                        <h2 class="auth-title">Create account</h2>
-                        <p class="auth-subtitle">Please register using your information below.</p>
+                        <div class="d-inline-flex align-items-center justify-content-center bg-primary-subtle text-primary rounded-circle mb-3" style="width: 64px; height: 64px; font-size: 28px;">
+                            <i class="bi bi-person-plus-fill"></i>
+                        </div>
+                        <h4 class="fw-bold text-dark mb-1">Tạo tài khoản mới</h4>
+                        <p class="text-muted small">Điền các thông tin cơ bản để bắt đầu trải nghiệm</p>
                     </div>
 
                     <form asp-controller="Register" asp-action="Index">
-                        <div class="auth-input-group">
-                            <input type="text" asp-for="Name" placeholder="Your name">
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold text-secondary small">Họ và tên của bạn <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-person"></i></span>
+                                <input type="text" asp-for="Name" class="form-control form-control-lg border-start-0 rounded-end-3 fs-6" placeholder="Ví dụ: Nguyễn Văn An" required>
+                            </div>
                         </div>
 
-                        <div class="auth-input-group">
-                            <input type="email" asp-for="Email" placeholder="Email">
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold text-secondary small">Địa chỉ Email <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-envelope"></i></span>
+                                <input type="email" asp-for="Email" class="form-control form-control-lg border-start-0 rounded-end-3 fs-6" placeholder="name@example.com" required>
+                            </div>
                         </div>
 
-                        <div class="auth-input-group">
-                            <input type="password" asp-for="Password" placeholder="Password">
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold text-secondary small">Mật khẩu đăng nhập <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-lock"></i></span>
+                                <input type="password" asp-for="Password" class="form-control form-control-lg border-start-0 rounded-end-3 fs-6" placeholder="Tối thiểu 6 ký tự" required>
+                            </div>
                         </div>
 
-                        <div class="mb-2 auth-message">
-                            @Function._MessageEmail
+                        @if (!string.IsNullOrEmpty(Function._MessageEmail))
+                        {
+                            <div class="alert alert-danger py-2 small mb-3 rounded-3" role="alert">
+                                @Function._MessageEmail
+                            </div>
+                        }
+
+                        <div class="form-text text-muted small mb-4">
+                            <i class="bi bi-shield-check text-success me-1"></i> Bằng việc đăng ký, bạn đồng ý với <a href="/Home/Privacy" target="_blank" class="text-decoration-none">Quy chế hoạt động & Bảo mật</a> của ReCar.
                         </div>
 
-                        <button type="submit" class="btn flosun-button secondary-btn theme-color auth-primary-btn">
-                            Đăng ký
+                        <button type="submit" class="btn btn-primary btn-lg w-100 rounded-3 py-2 fw-bold shadow-sm">
+                            <i class="bi bi-check-circle me-1"></i> Hoàn tất đăng ký
                         </button>
 
-                        <div class="text-center mt-4 auth-footer-text">
-                            Đã có tài khoản?
-                            <a asp-controller="Login" asp-action="Index" style="color:#E72463">Đăng nhập</a>
+                        <div class="text-center mt-4 pt-3 border-top small text-muted">
+                            Đã có tài khoản ReCar? 
+                            <a asp-controller="Login" asp-action="Index" class="text-decoration-none text-primary fw-bold">Đăng nhập tại đây</a>
                         </div>
                     </form>
                 </div>
@@ -181,4 +81,3 @@
         </div>
     </div>
 </div>
-<!-- Register Area End Here -->

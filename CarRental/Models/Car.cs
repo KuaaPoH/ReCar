@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace CarRental.Models;
@@ -40,6 +40,16 @@ public partial class Car
     public int? TypeId { get; set; }
 
     public int? OwnerId { get; set; }
+
+    public string? Transmission { get; set; }
+
+    public string? Fuel { get; set; }
+
+    public string? Location { get; set; }
+
+    public int? Trips { get; set; }
+
+    public string? Badge { get; set; }
 
     public virtual ICollection<CarReview> CarReviews { get; set; } = new List<CarReview>();
 

@@ -1,198 +1,81 @@
-﻿@model IEnumerable<CarRental.Models.Car>
-@foreach(var item in Model)
+@model IEnumerable<CarRental.Models.Car>
+
+@if (Model != null && Model.Any())
 {
-    string url = $"/product/{item.Alias}-{item.CarId}.html";
-    <div class="col-md-6 col-sm-6 col-lg-4 col-custom product-area">
-        <div class="product-item">
-            <div class="single-product position-relative mr-0 ml-0">
-                <div class="product-image">
-                    <a class="d-block" href="@url">
-                        <img src="@item.Image" alt="" class="product-image-1 w-100">
-                        <img src="@item.Image" alt="" class="product-image-2 position-absolute w-100">
-                    </a>
-                    @if(item.IsSale) {
-                        <span class="onsale">Sale!</span>
+    foreach (var item in Model)
+    {
+        string detailUrl = $"/product/{item.Alias}-{item.CarId}.html";
+        string checkoutUrl = $"/Product/Details/{item.CarId}"; // Đi vào chi tiết chọn ngày hoặc checkout
+
+        // Xác định badge từ database
+        string tag = item.Badge ?? item.Descriptions;
+        string tagClass = "recar-badge-featured";
+        if (tag == "Xe điện" || (item.Fuel != null && item.Fuel.Contains("Điện")) || (item.CarBrand != null && item.CarBrand.ToLower().Contains("vinfast")))
+        {
+            tag = "Xe điện";
+            tagClass = "recar-badge-electric";
+        }
+        else if (tag == "Ưu đãi" || item.IsSale)
+        {
+            tag = "Ưu đãi";
+            tagClass = "recar-badge-promo";
+        }
+        else if (tag == "Nổi bật")
+        {
+            tagClass = "recar-badge-featured";
+        }
+
+        // Lấy trực tiếp từ database
+        string gear = item.Transmission ?? "Tự động";
+        string fuel = item.Fuel ?? "Xăng";
+        string location = item.Location ?? "Hà Nội";
+        int reviews = item.Trips ?? 50;
+
+        decimal finalPrice = (item.SalePrice > 0 ? item.SalePrice : item.Price) ?? 0;
+
+        <div class="col-sm-6 col-lg-4 mb-4">
+            <article class="recar-car-card">
+                <div class="recar-car-media">
+                    <img src="@(string.IsNullOrEmpty(item.Image) ? "/images/cars/car-sedan.jpg" : item.Image)" alt="@item.CarName" class="recar-car-img" loading="lazy">
+                    @if (!string.IsNullOrEmpty(tag) && tag != "Tiêu chuẩn")
+                    {
+                        <span class="recar-badge-tag @tagClass">@tag</span>
                     }
-                    
-                    <div class="add-action d-flex flex-column position-absolute">
-                        <a href="compare.html" title="Compare">
-                            <i class="lnr lnr-sync" data-toggle="tooltip" data-placement="left" title="Compare"></i>
-                        </a>
-                        <a href="wishlist.html" title="Add To Wishlist">
-                            <i class="lnr lnr-heart" data-toggle="tooltip" data-placement="left" title="Wishlist"></i>
-                        </a>
-                        <a href="#exampleModalCenter-@item.CarId" title="Quick View" data-bs-toggle="modal" data-bs-target="#exampleModalCenter-@item.CarId">
-                            <i class="lnr lnr-eye" data-toggle="tooltip" data-placement="left" title="Quick View"></i>
-                        </a>
+                </div>
+                <div class="recar-car-content">
+                    <div>
+                        <p class="recar-car-brand">@(string.IsNullOrEmpty(item.CarBrand) ? "Ô TÔ" : item.CarBrand)</p>
+                        <h3 class="recar-car-name">@item.CarName</h3>
+                    </div>
+                    <div class="recar-specs-grid">
+                        <span class="recar-spec-item"><i class="bi bi-people"></i> @(item.Seat ?? 5) chỗ</span>
+                        <span class="recar-spec-item"><i class="bi bi-gear"></i> @gear</span>
+                        <span class="recar-spec-item"><i class="bi bi-fuel-pump"></i> @fuel</span>
+                    </div>
+                    <div class="recar-meta-row">
+                        <span class="recar-location-txt"><i class="bi bi-geo-alt"></i> @location</span>
+                        <span class="recar-rating-txt"><i class="bi bi-star-fill text-warning"></i> @(item.Rate?.ToString("0.0") ?? "4.8") (@reviews)</span>
+                    </div>
+                    <div class="recar-price-box">
+                        <span class="recar-price-amount">@finalPrice.ToString("N0")đ</span>
+                        <span class="recar-price-unit">/ngày</span>
+                    </div>
+                    <div class="recar-card-actions">
+                        <a href="@detailUrl" class="btn-card-outline">Xem chi tiết</a>
+                        <a href="@detailUrl" class="btn-card-primary">Thuê ngay</a>
                     </div>
                 </div>
-                <div class="product-content">
-                    <div class="product-title">
-                        <h4 class="title-2"> <a href="@url">@item.CarName</a></h4>
-                    </div>
-                    <div class="product-rating">
-                        @for(int i = 0;i<=5; i++)
-                        {
-                            if(i < item.Rate)
-                            {
-                                <i class="fa fa-star"></i>
-                            } else
-                            {
-                                <i class="fa fa-star-o"></i>
-                            }
-                        }
-                      
-                    </div>
-                    <div class="price-box">
-                        <span id="filterprice" class="regular-price ">@item.SalePrice.Value.ToString("N0")đ/ngày</span>
-                        <span class="old-price"><del>@item.Price.Value.ToString("N0")đ</del></span>
-                    </div>
-                   
-                   
-                    <button type="button" data-id="@item.CarId" class="btn product-cart ajax-add-to-cart">Add to Cart</button>
-                </div>
-                <div class="product-content-listview">
-                    <div class="product-title">
-                        <h4 class="title-2"> <a href="product-details.html">Flowers daisy pink stick</a></h4>
-                    </div>
-                    <div class="product-rating">
-                        <i class="fa fa-star"></i>
-                        <i class="fa fa-star"></i>
-                        <i class="fa fa-star"></i>
-                        <i class="fa fa-star-o"></i>
-                        <i class="fa fa-star-o"></i>
-                    </div>
-                    <div class="price-box">
-                        <span class="regular-price ">@item.SalePrice.Value.ToString("N0")đ/ngày</span>
-                        <span class="old-price"><del>@item.Price.Value.ToString("N0")đ</del></span>
-                    </div>
-                    <p class="desc-content">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Fusce posuere metus vitae arcu imperdiet, id aliquet ante scelerisque. Sed sit amet sem vitae urna fringilla tempus.</p>
-                    <div class="button-listview">
-                        <a asp-action="AddToCart" asp-controller="Cart" asp-route-id="@item.CarId" class="btn product-cart button-icon flosun-button dark-btn" data-toggle="tooltip" data-placement="top" title="Add to Cart"> <span>Add to Cart</span> </a>
-                        <a class="list-icon" href="compare.html" title="Compare">
-                            <i class="lnr lnr-sync" data-toggle="tooltip" data-placement="top" title="Compare"></i>
-                        </a>
-                        <a class="list-icon" href="wishlist.html" title="Add To Wishlist">
-                            <i class="lnr lnr-heart" data-toggle="tooltip" data-placement="top" title="Wishlist"></i>
-                        </a>
-                    </div>
-                </div>
-            </div>
+            </article>
         </div>
-    </div>
-    <!-- Modal -->
-    <div class="modal flosun-modal fade" id="exampleModalCenter-@item.CarId" tabindex="-1" role="dialog" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered" role="document">
-            <div class="modal-content">
-                <button type="button" class="close close-button" data-bs-dismiss="modal" aria-label="Close">
-                    <span class="close-icon" aria-hidden="true">x</span>
-                </button>
-                <div class="modal-body">
-                    <div class="container-fluid custom-area">
-                        <div class="row">
-                            <div class="col-md-6 col-custom">
-                                <div class="modal-product-img">
-                                    <a class="w-100" href="#">
-                                        <img class="w-100" src="~/assets/images/CarImage/@item.Image" alt="Product">
-                                    </a>
-                                </div>
-                            </div>
-                            <div class="col-md-6 col-custom">
-                                <div class="modal-product">
-                                    <div class="product-content">
-                                        <div class="product-title">
-                                            <h4 class="title">@item.CarName</h4>
-                                        </div>
-                                        <div class="price-box">
-                                            <span class="regular-price ">$@item.SalePrice</span>
-                                            <span class="old-price"><del>$@item.Price</del></span>
-                                        </div>
-                                        <div class="product-rating">
-                                            @for(int i=0;i<=5;i++)
-                                            {
-                                                if(i < item.Rate)
-                                                {
-                                                    <i class="fa fa-star"></i>
-                                                } else
-                                                {
-                                                    <i class="fa fa-star-o"></i>
-                                                }
-                                            }
-                                         
-                                            <span>1 Review</span>
-                                        </div>
-                                        <p class="desc-content">we denounce with righteous indignation and dislike men who are so beguiled and demoralized by the charms of pleasure of the moment, so blinded by desire, that they cannot foresee the pain and trouble that are bound to ensue; and equal blame bel...</p>
-                                        <form class="d-flex flex-column w-100" action="#">
-                                            <div class="form-group">
-                                                <select class="form-control nice-select w-100">
-                                                    <option>S</option>
-                                                    <option>M</option>
-                                                    <option>L</option>
-                                                    <option>XL</option>
-                                                    <option>XXL</option>
-                                                </select>
-                                            </div>
-                                        </form>
-                                        <div class="quantity-with-btn">
-                                            <div class="quantity">
-                                                <div class="cart-plus-minus">
-                                                    <input class="cart-plus-minus-box" value="0" type="text">
-                                                    <div class="dec qtybutton">-</div>
-                                                    <div class="inc qtybutton">+</div>
-                                                    <div class="dec qtybutton"><i class="fa fa-minus"></i></div>
-                                                    <div class="inc qtybutton"><i class="fa fa-plus"></i></div>
-                                                </div>
-                                            </div>
-                                            <div class="add-to_btn">
-                                                <a class="btn product-cart button-icon flosun-button dark-btn" href="@Url.Action("Index", "Cart")">Add to cart</a>
-                                                <a class="btn flosun-button secondary-btn rounded-0" href="wishlist.html">Add to wishlist</a>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+    }
+}
+else
+{
+    <div class="col-12 text-center py-5">
+        <div class="p-5 bg-light rounded-4 border text-center">
+            <i class="bi bi-search text-muted fs-1 mb-3 d-block"></i>
+            <h5 class="fw-bold text-dark">Không tìm thấy xe phù hợp</h5>
+            <p class="text-muted small mb-0">Hãy thử nới rộng khoảng giá hoặc bỏ bớt bộ lọc để xem nhiều xe hơn.</p>
         </div>
     </div>
 }
-@section scripts {
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script>
-        $(document).ready(function () {
-             $(".ajax-add-to-cart").click(function () {
-                 $.ajax({
-                       url: "/Cart/AddToCart",
-                      type: "POST",
-                      data: {
-                          id: $(this).data("id"),
-                          quantity: 1,
-                          type: "ajax"
-                      },
-                      success: function(data) {
-                          console.log(data);
-                                  Swal.fire({
-                                   position: "top-end",
-                                   icon: "success",
-                                   title: "Your work has been saved",
-                                   showConfirmButton: false,
-                                   timer: 1500
-                                 });
-                      },
-                       error: function() {
-                                   Swal.fire({
-                                     icon: "error",
-                                     title: "Oops...",
-                                     text: "Something went wrong!",
-                                     footer: '<a href="#">Why do I have this issue?</a>'
-                                 });
-                       }
-                 });
-             });
-        });
-    </script>
-}
-
-

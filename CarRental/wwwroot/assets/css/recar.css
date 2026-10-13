@@ -1,0 +1,445 @@
+/* ==========================================================================
+   RECAR DESIGN SYSTEM - PIXEL-PERFECT FROM TEMPLATE LOVABLE
+   Dành cho dự án CarRental (Đồ án tốt nghiệp ReCar)
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap');
+
+:root {
+    --recar-navy: #0f172a;
+    --recar-navy-foreground: #f8fafc;
+    --recar-primary: #0284c7;
+    --recar-primary-hover: #0369a1;
+    --recar-primary-foreground: #ffffff;
+    --recar-secondary: #f1f5f9;
+    --recar-secondary-foreground: #0f172a;
+    --recar-muted: #f1f5f9;
+    --recar-muted-foreground: #64748b;
+    --recar-border: #e2e8f0;
+    --recar-success: #16a34a;
+    --recar-warning: #ea580c;
+    --recar-font: 'Be Vietnam Pro', system-ui, -apple-system, sans-serif;
+    --recar-radius: 12px;
+}
+
+body {
+    font-family: var(--recar-font) !important;
+    background-color: #ffffff;
+    color: var(--recar-navy);
+    -webkit-font-smoothing: antialiased;
+}
+
+/* ==========================================================================
+   HEADER & NAVBAR (PIXEL-PERFECT ẢNH 1)
+   ========================================================================== */
+.recar-navbar {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--recar-border);
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+}
+
+.recar-navbar-container {
+    max-width: 1280px;
+    margin: 0 auto;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 1rem;
+}
+
+.recar-nav-pill {
+    padding: 6px 14px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #64748b;
+    text-decoration: none !important;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+.recar-nav-pill:hover {
+    color: var(--recar-navy);
+    background-color: var(--recar-secondary);
+}
+
+.recar-nav-pill.active {
+    color: var(--recar-navy);
+    background-color: var(--recar-secondary);
+    font-weight: 600;
+}
+
+/* User Pill Button */
+.user-pill-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid var(--recar-border);
+    border-radius: 9999px;
+    padding: 4px 12px 4px 4px;
+    background: #ffffff;
+    cursor: pointer;
+    text-decoration: none !important;
+    color: var(--recar-navy);
+    transition: background-color 0.2s;
+}
+
+.user-pill-btn:hover {
+    background-color: var(--recar-secondary);
+    color: var(--recar-navy);
+}
+
+.user-avatar-circle {
+    width: 32px;
+    height: 32px;
+    border-radius: 9999px;
+    background-color: var(--recar-navy);
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+/* ==========================================================================
+   HERO SEARCH FORM (PIXEL-PERFECT ẢNH 1)
+   ========================================================================== */
+.recar-search-card {
+    background: #ffffff;
+    border: 1px solid var(--recar-border);
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 20px 40px -15px rgba(15, 23, 42, 0.15);
+}
+
+.search-mode-tab {
+    border-radius: 9999px;
+    padding: 6px 18px;
+    font-size: 14px;
+    font-weight: 500;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.search-mode-tab.active {
+    background-color: var(--recar-navy);
+    color: #ffffff;
+}
+
+.search-mode-tab:not(.active) {
+    background-color: var(--recar-secondary);
+    color: var(--recar-navy);
+}
+
+.recar-field-label {
+    font-size: 12px;
+    font-weight: 500;
+    color: #64748b;
+    margin-bottom: 4px;
+    display: block;
+}
+
+.recar-field-input {
+    width: 100%;
+    border-radius: 8px;
+    border: 1px solid var(--recar-border);
+    background-color: #ffffff;
+    padding: 9px 12px;
+    font-size: 14px;
+    color: var(--recar-navy);
+    transition: border-color 0.2s;
+}
+
+.recar-field-input:focus {
+    outline: none;
+    border-color: var(--recar-primary);
+    box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.2);
+}
+
+.btn-recar-search {
+    background-color: var(--recar-primary) !important;
+    color: #ffffff !important;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 24px;
+    font-weight: 600;
+    font-size: 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: opacity 0.2s;
+    height: 42px;
+    text-decoration: none !important;
+}
+
+.btn-recar-search:hover {
+    opacity: 0.9;
+    color: #ffffff;
+}
+
+/* ==========================================================================
+   DANH MỤC DÒNG XE (PIXEL-PERFECT ẢNH 3)
+   ========================================================================== */
+.recar-cat-card {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+    border-radius: 14px;
+    border: 1px solid var(--recar-border);
+    background: #ffffff;
+    text-decoration: none !important;
+    transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+}
+
+.recar-cat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px -5px rgba(15, 23, 42, 0.1);
+}
+
+.recar-cat-img {
+    aspect-ratio: 4 / 3;
+    width: 100%;
+    object-fit: cover;
+    background-color: #f1f5f9;
+}
+
+.recar-cat-body {
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    flex-grow: 1;
+    min-height: 48px;
+}
+
+.recar-cat-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--recar-navy);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1;
+    min-width: 0;
+}
+
+.recar-cat-arrow {
+    font-size: 12px;
+    color: var(--recar-primary);
+    font-weight: 500;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+/* ==========================================================================
+   CAR CARD (PIXEL-PERFECT ẢNH 3 & ẢNH 5)
+   ========================================================================== */
+.recar-car-card {
+    overflow: hidden;
+    border-radius: 14px;
+    border: 1px solid var(--recar-border);
+    background: #ffffff;
+    transition: transform 0.25s, box-shadow 0.25s;
+    box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04);
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.recar-car-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 20px 30px -10px rgba(15, 23, 42, 0.12);
+}
+
+.recar-car-media {
+    position: relative;
+    aspect-ratio: 4 / 3;
+    overflow: hidden;
+    background-color: #f1f5f9;
+}
+
+.recar-car-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.5s ease;
+}
+
+.recar-car-card:hover .recar-car-img {
+    transform: scale(1.04);
+}
+
+.recar-badge-tag {
+    position: absolute;
+    left: 12px;
+    top: 12px;
+    border-radius: 9999px;
+    padding: 3px 12px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #ffffff;
+    letter-spacing: 0.2px;
+}
+
+.recar-badge-electric { background-color: var(--recar-success); }
+.recar-badge-featured { background-color: var(--recar-primary); }
+.recar-badge-promo { background-color: var(--recar-warning); }
+
+.recar-car-content {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+}
+
+.recar-car-brand {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #64748b;
+    margin-bottom: 2px;
+}
+
+.recar-car-name {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--recar-navy);
+    margin-bottom: 10px;
+    line-height: 1.3;
+}
+
+.recar-specs-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    font-size: 12px;
+    color: #64748b;
+    margin-bottom: 10px;
+}
+
+.recar-spec-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.recar-meta-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 12px;
+    margin-bottom: 12px;
+}
+
+.recar-location-txt {
+    color: #64748b;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+}
+
+.recar-rating-txt {
+    font-weight: 600;
+    color: var(--recar-navy);
+    display: flex;
+    align-items: center;
+    gap: 3px;
+}
+
+.recar-price-box {
+    border-top: 1px solid var(--recar-border);
+    padding-top: 12px;
+    margin-bottom: 12px;
+}
+
+.recar-price-amount {
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--recar-primary);
+}
+
+.recar-price-unit {
+    font-size: 12px;
+    color: #64748b;
+}
+
+.recar-card-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: auto;
+}
+
+.btn-card-outline {
+    border: 1px solid var(--recar-border);
+    border-radius: 8px;
+    padding: 8px;
+    text-align: center;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--recar-navy);
+    background: #ffffff;
+    text-decoration: none !important;
+    transition: background 0.2s;
+}
+
+.btn-card-outline:hover {
+    background: var(--recar-secondary);
+    color: var(--recar-navy);
+}
+
+.btn-card-primary {
+    border: none;
+    border-radius: 8px;
+    padding: 8px;
+    text-align: center;
+    font-size: 13px;
+    font-weight: 600;
+    color: #ffffff !important;
+    background: var(--recar-primary);
+    text-decoration: none !important;
+    transition: opacity 0.2s;
+}
+
+.btn-card-primary:hover {
+    opacity: 0.9;
+    color: #ffffff;
+}
+
+/* ==========================================================================
+   FILTER PILL CHIPS (PIXEL-PERFECT ẢNH 5)
+   ========================================================================== */
+.recar-chip {
+    border-radius: 9999px;
+    border: 1px solid var(--recar-border);
+    padding: 5px 14px;
+    font-size: 13px;
+    font-weight: 500;
+    background: #ffffff;
+    color: var(--recar-navy);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    text-decoration: none !important;
+    display: inline-block;
+}
+
+.recar-chip:hover {
+    background: var(--recar-secondary);
+}
+
+.recar-chip.active {
+    border-color: var(--recar-primary);
+    background: var(--recar-primary);
+    color: #ffffff !important;
+    font-weight: 600;
+}

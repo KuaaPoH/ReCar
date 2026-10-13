@@ -1,7 +1,9 @@
-﻿@model CarRental.Models.Customer
+@model CarRental.Models.Customer
 @using CarRental.Utilities
 @using CarRental.Models
 @{
+    ViewData["Title"] = "Quản lý tài khoản cá nhân";
+    Layout = "~/Views/Shared/_Layout.cshtml";
     List<CarRentalOrder> carRentalOrders = ViewBag.Order;
     Account existingCarOwnerAccount = ViewBag.ExistingCarOwnerAccount;
     var totalOrders = carRentalOrders?.Count ?? 0;
@@ -10,732 +12,544 @@
 }
 
 <style>
-    .account-dashboard {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        border-radius: 15px;
-        padding: 30px;
-        color: white;
-        margin-bottom: 30px;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    .account-sidebar-menu .nav-link {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 14px 18px;
+        color: #475569;
+        font-weight: 500;
+        border-radius: 10px;
+        margin-bottom: 6px;
+        transition: all 0.2s ease;
+        border: none;
+        background: transparent;
+        text-align: left;
+        width: 100%;
+        text-decoration: none;
     }
-    
-    .account-dashboard h2 {
-        font-size: 28px;
-        font-weight: 600;
-        margin-bottom: 10px;
+    .account-sidebar-menu .nav-link i {
+        font-size: 18px;
+        color: #64748b;
+        transition: color 0.2s ease;
     }
-    
-    .account-dashboard p {
-        opacity: 0.9;
-        font-size: 16px;
+    .account-sidebar-menu .nav-link:hover {
+        background: #f1f5f9;
+        color: var(--recar-primary);
     }
-    
-    .stats-card {
-        background: white;
-        border-radius: 12px;
-        padding: 25px;
-        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
-        height: 100%;
-        border-left: 4px solid;
+    .account-sidebar-menu .nav-link:hover i {
+        color: var(--recar-primary);
     }
-    
-    .stats-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    .account-sidebar-menu .nav-link.active {
+        background: var(--recar-primary);
+        color: #ffffff;
     }
-    
-    .stats-card.primary { border-left-color: #667eea; }
-    .stats-card.success { border-left-color: #48bb78; }
-    .stats-card.warning { border-left-color: #ed8936; }
-    .stats-card.info { border-left-color: #4299e1; }
-    
-    .stats-icon {
-        width: 60px;
-        height: 60px;
+    .account-sidebar-menu .nav-link.active i {
+        color: #ffffff;
+    }
+
+    .stat-metric-card {
+        background: #ffffff;
+        border-radius: 14px;
+        padding: 20px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        transition: transform 0.2s ease;
+    }
+    .stat-metric-card:hover {
+        transform: translateY(-3px);
+    }
+    .stat-metric-icon {
+        width: 48px;
+        height: 48px;
         border-radius: 12px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 28px;
-        margin-bottom: 15px;
+        font-size: 22px;
     }
-    
-    .stats-card.primary .stats-icon { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
-    .stats-card.success .stats-icon { background: linear-gradient(135deg, #48bb78 0%, #38a169 100%); color: white; }
-    .stats-card.warning .stats-icon { background: linear-gradient(135deg, #ed8936 0%, #dd6b20 100%); color: white; }
-    .stats-card.info .stats-icon { background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%); color: white; }
-    
-    .stats-value {
-        font-size: 32px;
-        font-weight: 700;
-        color: #2d3748;
-        margin-bottom: 5px;
-    }
-    
-    .stats-label {
-        font-size: 14px;
-        color: #718096;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-    
-    .modern-sidebar {
-        background: white;
-        border-radius: 15px;
-        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
-        overflow: hidden;
-    }
-    
-    .modern-sidebar .myaccount-tab-menu {
-        border: none;
-    }
-    
-    .modern-sidebar .myaccount-tab-menu a {
-        border: none;
-        border-bottom: 1px solid #f0f0f0;
-        padding: 18px 20px;
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        color: #4a5568;
-        font-weight: 500;
-        transition: all 0.3s ease;
-        text-transform: none;
-    }
-    
-    .modern-sidebar .myaccount-tab-menu a i {
-        width: 24px;
-        font-size: 18px;
-        color: #718096;
-    }
-    
-    .modern-sidebar .myaccount-tab-menu a:hover,
-    .modern-sidebar .myaccount-tab-menu a.active {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        border-color: transparent;
-    }
-    
-    .modern-sidebar .myaccount-tab-menu a:hover i,
-    .modern-sidebar .myaccount-tab-menu a.active i {
-        color: white;
-    }
-    
-    .modern-content {
-        background: white;
-        border-radius: 15px;
-        padding: 35px;
-        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
-    }
-    
-    .modern-content h3 {
-        font-size: 24px;
-        font-weight: 600;
-        color: #2d3748;
-        border-bottom: 2px solid #e2e8f0;
-        padding-bottom: 15px;
-        margin-bottom: 25px;
-    }
-    
-    .order-card {
-        background: white;
+
+    .order-history-card {
+        background: #ffffff;
         border: 1px solid #e2e8f0;
         border-radius: 12px;
         padding: 20px;
-        margin-bottom: 15px;
-        transition: all 0.3s ease;
+        margin-bottom: 16px;
+        transition: all 0.2s ease;
     }
-    
-    .order-card:hover {
-        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-        border-color: #667eea;
+    .order-history-card:hover {
+        border-color: var(--recar-primary);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.06);
     }
-    
-    .order-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 15px;
-        padding-bottom: 15px;
-        border-bottom: 1px solid #e2e8f0;
-    }
-    
-    .order-id {
-        font-size: 18px;
-        font-weight: 600;
-        color: #2d3748;
-    }
-    
-    .order-date {
-        color: #718096;
-        font-size: 14px;
-    }
-    
-    .status-badge {
-        display: inline-block;
-        padding: 6px 12px;
-        border-radius: 20px;
+
+    .status-badge-custom {
+        padding: 6px 14px;
+        border-radius: 999px;
         font-size: 12px;
         font-weight: 600;
-        text-transform: uppercase;
-    }
-    
-    .status-pending { background: #feebc8; color: #c05621; }
-    .status-cancelled { background: #fed7d7; color: #c53030; }
-    .status-paid { background: #c6f6d5; color: #22543d; }
-    .status-shipping { background: #bee3f8; color: #2c5282; }
-    
-    .form-modern {
-        background: #f7fafc;
-        border-radius: 12px;
-        padding: 25px;
-    }
-    
-    .form-modern .single-input-item {
-        margin-bottom: 20px;
-    }
-    
-    .form-modern label {
-        font-weight: 600;
-        color: #2d3748;
-        margin-bottom: 8px;
-        font-size: 14px;
-    }
-    
-    .form-modern input {
-        border: 2px solid #e2e8f0;
-        border-radius: 8px;
-        padding: 12px 15px;
-        transition: all 0.3s ease;
-    }
-    
-    .form-modern input:focus {
-        border-color: #667eea;
-        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-        outline: none;
-    }
-    
-    .btn-modern {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        border: none;
-        border-radius: 8px;
-        padding: 12px 30px;
-        color: white;
-        font-weight: 600;
-        transition: all 0.3s ease;
-    }
-    
-    .btn-modern:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
-        color: white;
-    }
-    
-    .license-preview {
-        border: 2px dashed #cbd5e0;
-        border-radius: 12px;
-        padding: 20px;
-        text-align: center;
-        background: #f7fafc;
-        margin-top: 15px;
-    }
-    
-    .license-preview img {
-        max-width: 100%;
-        border-radius: 8px;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-    }
-    
-    .address-card {
-        background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
-        border-radius: 12px;
-        padding: 25px;
-        border-left: 4px solid #667eea;
-    }
-    
-    .car-owner-card {
-        background: linear-gradient(135deg, #fff5f5 0%, #fed7d7 100%);
-        border-radius: 12px;
-        padding: 30px;
-        text-align: center;
-        border: 2px solid #fc8181;
-    }
-    
-    .car-owner-card.success {
-        background: linear-gradient(135deg, #f0fff4 0%, #c6f6d5 100%);
-        border-color: #48bb78;
-    }
-    
-    .empty-state {
-        text-align: center;
-        padding: 60px 20px;
-        color: #718096;
-    }
-    
-    .empty-state i {
-        font-size: 64px;
-        color: #cbd5e0;
-        margin-bottom: 20px;
-    }
-    
-    @@media (max-width: 768px) {
-        .stats-card {
-            margin-bottom: 15px;
-        }
-        .modern-content {
-            padding: 20px;
-        }
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
     }
 </style>
 
-<!-- Breadcrumb Area Start Here -->
-<div class="breadcrumbs-area position-relative">
+<!-- Header Breadcrumb -->
+<div class="recar-section bg-light py-4 border-bottom">
     <div class="container">
-        <div class="row">
-            <div class="col-12 text-center">
-                <div class="breadcrumb-content position-relative section-content">
-                    <h3 class="title-3">My Account</h3>
-                    <ul>
-                        <li><a href="/">Home</a></li>
-                        <li>My Account</li>
-                    </ul>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-2" style="font-size: 14px;">
+                <li class="breadcrumb-item"><a href="/" class="text-decoration-none text-muted">Trang chủ</a></li>
+                <li class="breadcrumb-item active text-primary fw-bold" aria-current="page">Trung tâm tài khoản</li>
+            </ol>
+        </nav>
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <div>
+                <h2 class="fw-bold mb-1" style="color: var(--recar-dark);">Tài khoản khách hàng</h2>
+                <p class="text-muted mb-0">Quản lý lịch sử thuê xe, giấy tờ pháp lý và thiết lập thông tin cá nhân</p>
+            </div>
+            <div>
+                <span class="badge bg-primary-subtle text-primary px-3 py-2 rounded-pill fs-6">
+                    <i class="bi bi-person-check-fill me-1"></i> @Function.GetUserName(Context.Session)
+                </span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="recar-section py-5">
+    <div class="container">
+        <div class="row g-4">
+            <!-- Sidebar Navigation Tabs -->
+            <div class="col-lg-3 col-md-4">
+                <div class="card border-0 shadow-sm rounded-4 p-3 bg-white sticky-top" style="top: 100px;">
+                    <div class="d-flex align-items-center gap-3 p-2 mb-3 border-bottom pb-3">
+                        <div class="rounded-circle bg-primary text-white fs-4 d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
+                            <i class="bi bi-person-fill"></i>
+                        </div>
+                        <div class="overflow-hidden">
+                            <div class="fw-bold text-dark text-truncate">@Model.Name</div>
+                            <div class="text-muted small text-truncate">@Model.Email</div>
+                        </div>
+                    </div>
+
+                    <div class="account-sidebar-menu nav flex-column" role="tablist">
+                        <a href="#dashboard" class="nav-link active" data-bs-toggle="tab">
+                            <i class="bi bi-speedometer2"></i>
+                            <span>Tổng quan tài khoản</span>
+                        </a>
+                        <a href="#orders" class="nav-link" data-bs-toggle="tab">
+                            <i class="bi bi-receipt"></i>
+                            <span>Đơn thuê của tôi</span>
+                            @if (pendingOrders > 0) {
+                                <span class="badge bg-warning text-dark ms-auto rounded-pill">@pendingOrders</span>
+                            }
+                        </a>
+                        <a href="#download" class="nav-link" data-bs-toggle="tab">
+                            <i class="bi bi-person-vcard"></i>
+                            <span>Giấy phép lái xe</span>
+                            @if (!string.IsNullOrEmpty(Model.LicenseNumber)) {
+                                <i class="bi bi-check-circle-fill text-success ms-auto fs-6"></i>
+                            }
+                        </a>
+                        <a href="#address-edit" class="nav-link" data-bs-toggle="tab">
+                            <i class="bi bi-geo-alt"></i>
+                            <span>Địa chỉ & Giao nhận</span>
+                        </a>
+                        <a href="#account-info" class="nav-link" data-bs-toggle="tab">
+                            <i class="bi bi-shield-lock"></i>
+                            <span>Bảo mật & Mật khẩu</span>
+                        </a>
+                        <a href="#car-owner-register" class="nav-link" data-bs-toggle="tab">
+                            <i class="bi bi-car-front-fill"></i>
+                            <span>Đăng ký làm Chủ xe</span>
+                        </a>
+                        <hr class="my-2">
+                        <a asp-controller="Accounts" asp-action="Logout" class="nav-link text-danger">
+                            <i class="bi bi-box-arrow-right text-danger"></i>
+                            <span>Đăng xuất</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab Content -->
+            <div class="col-lg-9 col-md-8">
+                <div class="tab-content" id="myaccountContent">
+                    <!-- 1. DASHBOARD TAB -->
+                    <div class="tab-pane fade show active" id="dashboard" role="tabpanel">
+                        <!-- Hero Banner cá nhân -->
+                        <div class="card border-0 shadow-sm rounded-4 p-4 text-white mb-4" style="background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);">
+                            <h3 class="fw-bold mb-2">Xin chào, @(string.IsNullOrEmpty(Model.FullName) ? Model.Name : Model.FullName)! 👋</h3>
+                            <p class="mb-0 opacity-90">Chào mừng bạn quay trở lại với nền tảng ReCar. Quản lý hành trình di chuyển và đơn thuê xe ô tô của bạn dễ dàng và bảo mật.</p>
+                        </div>
+
+                        <!-- 4 Thẻ thống kê chỉ số -->
+                        <div class="row g-3 mb-4">
+                            <div class="col-sm-6 col-xl-3">
+                                <div class="stat-metric-card">
+                                    <div class="d-flex align-items-center justify-content-between mb-2">
+                                        <span class="text-muted small fw-semibold">Tổng chuyến đi</span>
+                                        <div class="stat-metric-icon bg-primary-subtle text-primary">
+                                            <i class="bi bi-calendar2-check"></i>
+                                        </div>
+                                    </div>
+                                    <div class="fs-3 fw-bold text-dark">@totalOrders</div>
+                                    <div class="text-muted small mt-1">Lần thuê xe</div>
+                                </div>
+                            </div>
+
+                            <div class="col-sm-6 col-xl-3">
+                                <div class="stat-metric-card">
+                                    <div class="d-flex align-items-center justify-content-between mb-2">
+                                        <span class="text-muted small fw-semibold">Đã hoàn thành</span>
+                                        <div class="stat-metric-icon bg-success-subtle text-success">
+                                            <i class="bi bi-cash-stack"></i>
+                                        </div>
+                                    </div>
+                                    <div class="fs-4 fw-bold text-success">@totalSpent.ToString("N0") <span class="fs-6">đ</span></div>
+                                    <div class="text-muted small mt-1">Tổng tiền thanh toán</div>
+                                </div>
+                            </div>
+
+                            <div class="col-sm-6 col-xl-3">
+                                <div class="stat-metric-card">
+                                    <div class="d-flex align-items-center justify-content-between mb-2">
+                                        <span class="text-muted small fw-semibold">Đang xử lý</span>
+                                        <div class="stat-metric-icon bg-warning-subtle text-warning">
+                                            <i class="bi bi-hourglass-split"></i>
+                                        </div>
+                                    </div>
+                                    <div class="fs-3 fw-bold text-warning">@pendingOrders</div>
+                                    <div class="text-muted small mt-1">Đơn đang chờ duyệt</div>
+                                </div>
+                            </div>
+
+                            <div class="col-sm-6 col-xl-3">
+                                <div class="stat-metric-card">
+                                    <div class="d-flex align-items-center justify-content-between mb-2">
+                                        <span class="text-muted small fw-semibold">Vai trò</span>
+                                        <div class="stat-metric-icon bg-info-subtle text-info">
+                                            <i class="bi bi-shield-check"></i>
+                                        </div>
+                                    </div>
+                                    <div class="fs-5 fw-bold text-dark">@(existingCarOwnerAccount != null ? "Chủ xe" : "Khách hàng")</div>
+                                    <div class="text-muted small mt-1">Phân quyền tài khoản</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Card Tóm tắt hồ sơ -->
+                        <div class="card border-0 shadow-sm rounded-4 p-4">
+                            <h5 class="fw-bold mb-3 border-bottom pb-3">Hồ sơ thông tin đã xác thực</h5>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <div class="p-3 bg-light rounded-3">
+                                        <div class="text-muted small mb-1"><i class="bi bi-envelope me-1"></i> Địa chỉ Email</div>
+                                        <div class="fw-semibold text-dark">@Model.Email</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="p-3 bg-light rounded-3">
+                                        <div class="text-muted small mb-1"><i class="bi bi-telephone me-1"></i> Số điện thoại</div>
+                                        <div class="fw-semibold text-dark">@(string.IsNullOrEmpty(Model.PhoneNumber) ? "Chưa cập nhật" : Model.PhoneNumber)</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="p-3 bg-light rounded-3">
+                                        <div class="text-muted small mb-1"><i class="bi bi-geo-alt me-1"></i> Địa chỉ giao nhận</div>
+                                        <div class="fw-semibold text-dark">@(string.IsNullOrEmpty(Model.Address) ? "Chưa cập nhật" : Model.Address)</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="p-3 bg-light rounded-3">
+                                        <div class="text-muted small mb-1"><i class="bi bi-person-vcard me-1"></i> Giấy phép lái xe</div>
+                                        <div class="fw-semibold text-dark">
+                                            @if (!string.IsNullOrEmpty(Model.LicenseNumber)) {
+                                                <span class="text-success"><i class="bi bi-check-circle-fill me-1"></i> Đã có GPLX: @Model.LicenseNumber</span>
+                                            } else {
+                                                <span class="text-danger"><i class="bi bi-exclamation-triangle-fill me-1"></i> Chưa cập nhật GPLX</span>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 2. ORDERS TAB -->
+                    <div class="tab-pane fade" id="orders" role="tabpanel">
+                        <div class="card border-0 shadow-sm rounded-4 p-4">
+                            <div class="d-flex align-items-center justify-content-between mb-4 border-bottom pb-3">
+                                <div>
+                                    <h5 class="fw-bold mb-1"><i class="bi bi-receipt text-primary me-2"></i> Lịch sử đơn thuê xe</h5>
+                                    <p class="text-muted small mb-0">Theo dõi tiến trình xét duyệt và hợp đồng thuê xe điện tử</p>
+                                </div>
+                                <a href="/Product" class="btn btn-outline-primary btn-sm rounded-pill px-3">
+                                    <i class="bi bi-plus-circle me-1"></i> Thuê thêm xe
+                                </a>
+                            </div>
+
+                            @if (carRentalOrders != null && carRentalOrders.Any())
+                            {
+                                @foreach(var item in carRentalOrders)
+                                {
+                                    <div class="order-history-card">
+                                        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 pb-3 mb-3 border-bottom">
+                                            <div>
+                                                <div class="fw-bold text-dark fs-6">Đơn thuê xe #@item.OrderId</div>
+                                                <div class="text-muted small">
+                                                    <i class="bi bi-calendar3 me-1"></i> Ngày đặt: @(item.OrderDate?.ToString("dd/MM/yyyy") ?? "N/A")
+                                                </div>
+                                            </div>
+                                            <div>
+                                                @{
+                                                    var badgeClass = "bg-warning-subtle text-warning";
+                                                    if (item.StatusId == 2) badgeClass = "bg-danger-subtle text-danger";
+                                                    else if (item.StatusId == 3) badgeClass = "bg-success-subtle text-success";
+                                                    else if (item.StatusId == 4) badgeClass = "bg-primary-subtle text-primary";
+                                                }
+                                                <span class="status-badge-custom @badgeClass">
+                                                    <i class="bi bi-dot fs-5"></i> @(item.Status?.StatusDescription ?? "Đang xử lý")
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        <div class="row align-items-center g-3">
+                                            <div class="col-md-7">
+                                                <div class="row g-2 small text-muted">
+                                                    <div class="col-6">
+                                                        <span>Tiền cọc giữ chỗ:</span>
+                                                        <strong class="d-block text-dark">@((item.Deposit ?? 0).ToString("N0")) đ</strong>
+                                                    </div>
+                                                    <div class="col-6">
+                                                        <span>Thanh toán nhận xe:</span>
+                                                        <strong class="d-block text-primary fs-6">@((item.Payment ?? 0).ToString("N0")) đ</strong>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-5 text-md-end">
+                                                <a asp-controller="Accounts" asp-action="OrderDetails" asp-route-id="@item.OrderId" class="btn btn-primary rounded-3 px-4 py-2 fw-semibold btn-sm shadow-sm">
+                                                    <i class="bi bi-eye me-1"></i> Chi tiết & Hợp đồng
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                            }
+                            else
+                            {
+                                <div class="text-center py-5">
+                                    <div class="fs-1 text-muted opacity-50 mb-3">
+                                        <i class="bi bi-car-front"></i>
+                                    </div>
+                                    <h5 class="fw-bold text-dark">Bạn chưa có chuyến thuê xe nào</h5>
+                                    <p class="text-muted small mb-4">Hàng trăm mẫu xe đời mới sẵn sàng phục vụ cho hành trình sắp tới của bạn.</p>
+                                    <a href="/Product" class="btn btn-primary rounded-pill px-4 py-2 fw-bold">
+                                        Khám phá danh sách xe ngay
+                                    </a>
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- 3. LICENSE (GPLX) TAB -->
+                    <div class="tab-pane fade" id="download" role="tabpanel">
+                        <div class="card border-0 shadow-sm rounded-4 p-4">
+                            <h5 class="fw-bold mb-1"><i class="bi bi-person-vcard text-primary me-2"></i> Thông tin Giấy phép lái xe (GPLX)</h5>
+                            <p class="text-muted small mb-4">ReCar bắt buộc đối chiếu GPLX để đảm bảo an toàn pháp lý khi nhận bàn giao ô tô</p>
+
+                            <form id="licenseDetailsForm" asp-controller="Accounts" asp-action="licenseDetails" enctype="multipart/form-data" method="post">
+                                <input type="hidden" asp-for="CustomerId" />
+
+                                <div class="row g-3 mb-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-semibold text-secondary small">Họ và tên theo GPLX <span class="text-danger">*</span></label>
+                                        <input type="text" asp-for="FullName" class="form-control rounded-3" placeholder="Ví dụ: NGUYEN VAN A" required />
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-semibold text-secondary small">Ngày tháng năm sinh <span class="text-danger">*</span></label>
+                                        <input type="date" asp-for="DateofBirth" class="form-control rounded-3" required />
+                                    </div>
+                                </div>
+
+                                <div class="mb-4">
+                                    <label class="form-label fw-semibold text-secondary small">Số Giấy phép lái xe (12 số) <span class="text-danger">*</span></label>
+                                    <input type="tel" asp-for="LicenseNumber" class="form-control rounded-3" placeholder="Nhập dãy 12 số ở mặt trước GPLX" required />
+                                    <div class="form-text small text-muted">Dãy 12 số in trên GPLX chất liệu PET do Sở GTVT cấp</div>
+                                </div>
+
+                                <div class="p-3 bg-light rounded-3 border mb-4">
+                                    <label class="form-label fw-bold text-dark mb-2"><i class="bi bi-image me-1"></i> Tải lên ảnh chụp mặt trước GPLX</label>
+                                    <input type="file" id="imageInput" name="img" accept="image/*" class="form-control rounded-3 mb-3" />
+                                    <div id="display" class="text-center p-3 bg-white rounded border">
+                                        @if (!string.IsNullOrEmpty(Model.LicenseImage))
+                                        {
+                                            <img id="currentImage" src="~/files/license/@Model.LicenseImage" alt="Ảnh GPLX" class="img-fluid rounded-3" style="max-height: 250px;" />
+                                        }
+                                        else
+                                        {
+                                            <div id="noImageText" class="text-muted small py-3">
+                                                <i class="bi bi-card-image fs-2 d-block mb-1"></i>
+                                                Chưa có ảnh GPLX tải lên
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+
+                                <button type="submit" class="btn btn-primary rounded-3 px-5 py-2 fw-bold shadow-sm">
+                                    <i class="bi bi-check2-circle me-1"></i> Lưu thông tin Giấy phép lái xe
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- 4. ADDRESS TAB -->
+                    <div class="tab-pane fade" id="address-edit" role="tabpanel">
+                        <div class="card border-0 shadow-sm rounded-4 p-4">
+                            <h5 class="fw-bold mb-1"><i class="bi bi-geo-alt text-primary me-2"></i> Địa chỉ & Thông tin liên hệ</h5>
+                            <p class="text-muted small mb-4">Địa chỉ dùng để bàn giao nhận xe hoặc gửi hợp đồng bản giấy nếu có yêu cầu</p>
+
+                            <div class="p-4 bg-light rounded-3 border mb-4">
+                                <div class="d-flex align-items-center gap-2 mb-3">
+                                    <div class="fs-4 text-primary"><i class="bi bi-house-door-fill"></i></div>
+                                    <h6 class="fw-bold text-dark mb-0">Địa chỉ hiện tại:</h6>
+                                </div>
+                                <p class="fs-6 text-dark mb-2">
+                                    @(string.IsNullOrEmpty(Model.Address) ? "Chưa cập nhật địa chỉ nhận xe" : Model.Address)
+                                </p>
+                                <p class="text-muted small mb-0">
+                                    <i class="bi bi-telephone me-1"></i> Số điện thoại: <strong>@(string.IsNullOrEmpty(Model.PhoneNumber) ? "Chưa cập nhật" : Model.PhoneNumber)</strong>
+                                </p>
+                            </div>
+
+                            <div>
+                                <a asp-controller="Accounts" asp-action="editAdress" class="btn btn-primary rounded-3 px-4 py-2 fw-bold shadow-sm">
+                                    <i class="bi bi-pencil-square me-1"></i> Thay đổi địa chỉ & Số điện thoại
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 5. ACCOUNT SECURITY TAB -->
+                    <div class="tab-pane fade" id="account-info" role="tabpanel">
+                        <div class="card border-0 shadow-sm rounded-4 p-4">
+                            <h5 class="fw-bold mb-1"><i class="bi bi-shield-lock text-primary me-2"></i> Cập nhật thông tin & Đổi mật khẩu</h5>
+                            <p class="text-muted small mb-4">Bảo vệ tài khoản và cập nhật thông tin định danh cá nhân</p>
+
+                            <form asp-controller="Accounts" asp-action="AccountDetails" method="post">
+                                <input type="hidden" asp-for="CustomerId"/>
+
+                                <div class="row g-3 mb-4">
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-semibold text-secondary small">Tên hiển thị <span class="text-danger">*</span></label>
+                                        <input type="text" asp-for="@Model.Name" class="form-control rounded-3" placeholder="Tên hiển thị" required />
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-semibold text-secondary small">Địa chỉ Email <span class="text-danger">*</span></label>
+                                        <input type="email" asp-for="@Model.Email" class="form-control rounded-3" placeholder="Email" required />
+                                    </div>
+                                </div>
+
+                                <h6 class="fw-bold text-dark mb-3 pt-3 border-top">Thay đổi mật khẩu đăng nhập</h6>
+                                <div class="row g-3 mb-4">
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-semibold text-secondary small">Mật khẩu mới</label>
+                                        <input type="password" asp-for="@Model.Password" class="form-control rounded-3" placeholder="Để trống nếu không đổi" />
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-semibold text-secondary small">Nhập lại mật khẩu mới</label>
+                                        <input type="password" class="form-control rounded-3" placeholder="Xác nhận mật khẩu mới" />
+                                    </div>
+                                </div>
+
+                                <button type="submit" class="btn btn-primary rounded-3 px-5 py-2 fw-bold shadow-sm">
+                                    <i class="bi bi-check2-circle me-1"></i> Lưu thay đổi
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- 6. CAR OWNER REGISTER TAB -->
+                    <div class="tab-pane fade" id="car-owner-register" role="tabpanel">
+                        <div class="card border-0 shadow-sm rounded-4 p-4">
+                            <h5 class="fw-bold mb-1"><i class="bi bi-car-front-fill text-primary me-2"></i> Chương trình Đối tác Chủ xe ReCar</h5>
+                            <p class="text-muted small mb-4">Biến chiếc xe nhàn rỗi của bạn thành nguồn thu nhập thụ động hấp dẫn lên tới 25 triệu/tháng</p>
+
+                            @if (existingCarOwnerAccount != null)
+                            {
+                                <div class="p-4 bg-success-subtle rounded-4 text-center border border-success-subtle">
+                                    <div class="fs-1 text-success mb-2">
+                                        <i class="bi bi-check-circle-fill"></i>
+                                    </div>
+                                    <h5 class="fw-bold text-success mb-2">Bạn đã là Đối tác Chủ xe chính thức!</h5>
+                                    <p class="text-muted small mb-3">Tài khoản chủ xe: <strong>@existingCarOwnerAccount.Username</strong> (@existingCarOwnerAccount.Email)</p>
+                                    <a asp-controller="Accounts" asp-action="GoToCarOwner" class="btn btn-success rounded-pill px-4 py-2 fw-bold shadow-sm">
+                                        <i class="bi bi-speedometer me-1"></i> Truy cập Trung tâm Quản lý Chủ xe
+                                    </a>
+                                </div>
+                            }
+                            else
+                            {
+                                @if (string.IsNullOrEmpty(Model.LicenseNumber))
+                                {
+                                    <div class="p-4 bg-warning-subtle rounded-4 text-center border border-warning-subtle">
+                                        <div class="fs-1 text-warning mb-2">
+                                            <i class="bi bi-exclamation-triangle-fill"></i>
+                                        </div>
+                                        <h5 class="fw-bold text-dark mb-2">Cần cập nhật Giấy phép lái xe</h5>
+                                        <p class="text-muted small mb-3">Để trở thành đối tác chủ xe uy tín trên ReCar, bạn cần cập nhật thông tin GPLX và CCCD trước.</p>
+                                        <a href="#download" data-bs-toggle="tab" class="btn btn-warning rounded-pill px-4 py-2 fw-bold text-dark" onclick="activateLicenseTab()">
+                                            <i class="bi bi-arrow-right-circle me-1"></i> Cập nhật GPLX ngay
+                                        </a>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="row g-3 mb-4">
+                                        <div class="col-md-4">
+                                            <div class="p-3 bg-light rounded-3 text-center">
+                                                <i class="bi bi-cash-coin fs-2 text-primary mb-2 d-block"></i>
+                                                <h6 class="fw-bold text-dark mb-1">Thu nhập ổn định</h6>
+                                                <div class="text-muted small">Nhận tiền thuê trực tiếp theo chu kỳ thanh toán</div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="p-3 bg-light rounded-3 text-center">
+                                                <i class="bi bi-shield-check fs-2 text-success mb-2 d-block"></i>
+                                                <h6 class="fw-bold text-dark mb-1">Bảo hiểm 100%</h6>
+                                                <div class="text-muted small">Phương tiện được bảo vệ toàn diện với bảo hiểm 2 chiều</div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="p-3 bg-light rounded-3 text-center">
+                                                <i class="bi bi-sliders fs-2 text-info mb-2 d-block"></i>
+                                                <h6 class="fw-bold text-dark mb-1">Tự chủ lịch trình</h6>
+                                                <div class="text-muted small">Tùy ý bật/tắt lịch cho thuê linh hoạt theo ý muốn</div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <form asp-controller="Accounts" asp-action="RegisterCarOwner" method="post">
+                                        @Html.AntiForgeryToken()
+                                        <div class="d-flex align-items-center justify-content-between p-3 bg-primary-subtle rounded-3 mb-3">
+                                            <div>
+                                                <div class="fw-bold text-primary">Tài khoản đối tác sẽ được liên kết trực tiếp:</div>
+                                                <div class="small text-muted">@Model.Email (@Model.PhoneNumber)</div>
+                                            </div>
+                                            <button type="submit" class="btn btn-primary rounded-pill px-4 py-2 fw-bold shadow-sm">
+                                                <i class="bi bi-check2-circle me-1"></i> Đăng ký trở thành Chủ xe ngay
+                                            </button>
+                                        </div>
+                                    </form>
+                                }
+                            }
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
-<!-- Breadcrumb Area End Here -->
-
-<!-- my account wrapper start -->
-<div class="my-account-wrapper mt-no-text">
-    <div class="container container-default-2 custom-area mb-2">
-        <div class="row">
-            <div class="col-lg-12 col-custom">
-                <!-- My Account Page Start -->
-                <div class="myaccount-page-wrapper">
-                    <!-- My Account Tab Menu Start -->
-                    <div class="row">
-                        <div class="col-lg-3 col-md-4 col-custom">
-                            <div class="modern-sidebar">
-                                <div class="myaccount-tab-menu nav" role="tablist">
-                                    <a href="#dashboad" class="active" data-bs-toggle="tab">
-                                        <i class="bi bi-speedometer2"></i>
-                                        <span>Dashboard</span>
-                                    </a>
-                                    <a href="#orders" data-bs-toggle="tab">
-                                        <i class="bi bi-cart-check"></i>
-                                        <span>Đơn hàng</span>
-                                    </a>
-                                    <a href="#download" data-bs-toggle="tab">
-                                        <i class="bi bi-card-checklist"></i>
-                                        <span>Giấy phép lái xe</span>
-                                    </a>
-                                    <a href="#payment-method" data-bs-toggle="tab">
-                                        <i class="bi bi-credit-card"></i>
-                                        <span>Payment Method</span>
-                                    </a>
-                                    <a href="#address-edit" data-bs-toggle="tab">
-                                        <i class="bi bi-geo-alt"></i>
-                                        <span>Địa chỉ</span>
-                                    </a>
-                                    <a href="#account-info" data-bs-toggle="tab">
-                                        <i class="bi bi-person-circle"></i>
-                                        <span>Thông tin tài khoản</span>
-                                    </a>
-                                    <a href="#car-owner-register" data-bs-toggle="tab">
-                                        <i class="bi bi-car-front"></i>
-                                        <span>Đăng ký chủ xe</span>
-                                    </a>
-                                    <a asp-controller="Accounts" asp-action="Logout">
-                                        <i class="bi bi-box-arrow-right"></i>
-                                        <span>Logout</span>
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
-                        <!-- My Account Tab Menu End -->
-                        <!-- My Account Tab Content Start -->
-                        <div class="col-lg-9 col-md-8 col-custom">
-                            <div class="tab-content" id="myaccountContent">
-                                <!-- Dashboard Tab -->
-                                <div class="tab-pane fade show active" id="dashboad" role="tabpanel">
-                                    <div class="modern-content">
-                                        <div class="account-dashboard">
-                                            <h2>Xin chào, @Function.GetUserName(Context.Session)! 👋</h2>
-                                            <p>Chào mừng bạn đến với trang quản lý tài khoản. Từ đây bạn có thể xem đơn hàng, cập nhật thông tin và quản lý tài khoản của mình.</p>
-                                        </div>
-                                        
-                                        <div class="row">
-                                            <div class="col-lg-3 col-md-6 mb-4">
-                                                <div class="stats-card primary">
-                                                    <div class="stats-icon">
-                                                        <i class="bi bi-cart-check"></i>
-                                                    </div>
-                                                    <div class="stats-value">@totalOrders</div>
-                                                    <div class="stats-label">Tổng đơn hàng</div>
-                                                </div>
-                                            </div>
-                                            <div class="col-lg-3 col-md-6 mb-4">
-                                                <div class="stats-card success">
-                                                    <div class="stats-icon">
-                                                        <i class="bi bi-currency-dollar"></i>
-                                                    </div>
-                                                    <div class="stats-value">@totalSpent.ToString("N0")</div>
-                                                    <div class="stats-label">Đã thanh toán</div>
-                                                </div>
-                                            </div>
-                                            <div class="col-lg-3 col-md-6 mb-4">
-                                                <div class="stats-card warning">
-                                                    <div class="stats-icon">
-                                                        <i class="bi bi-clock-history"></i>
-                                                    </div>
-                                                    <div class="stats-value">@pendingOrders</div>
-                                                    <div class="stats-label">Đang chờ</div>
-                                                </div>
-                                            </div>
-                                            <div class="col-lg-3 col-md-6 mb-4">
-                                                <div class="stats-card info">
-                                                    <div class="stats-icon">
-                                                        <i class="bi bi-star-fill"></i>
-                                                    </div>
-                                                    <div class="stats-value">@(existingCarOwnerAccount != null ? "Có" : "Chưa")</div>
-                                                    <div class="stats-label">Tài khoản chủ xe</div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        
-                                        <div class="row mt-4">
-                                            <div class="col-12">
-                                                <h4 style="color: #2d3748; margin-bottom: 20px;">
-                                                    <i class="bi bi-info-circle"></i> Thông tin nhanh
-                                                </h4>
-                                                <div class="row">
-                                                    <div class="col-md-6 mb-3">
-                                                        <div class="d-flex align-items-center p-3" style="background: #f7fafc; border-radius: 8px;">
-                                                            <i class="bi bi-envelope-fill" style="font-size: 24px; color: #667eea; margin-right: 15px;"></i>
-                                                            <div>
-                                                                <div style="font-size: 12px; color: #718096; text-transform: uppercase;">Email</div>
-                                                                <div style="font-weight: 600; color: #2d3748;">@Model.Email</div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    <div class="col-md-6 mb-3">
-                                                        <div class="d-flex align-items-center p-3" style="background: #f7fafc; border-radius: 8px;">
-                                                            <i class="bi bi-telephone-fill" style="font-size: 24px; color: #667eea; margin-right: 15px;"></i>
-                                                            <div>
-                                                                <div style="font-size: 12px; color: #718096; text-transform: uppercase;">Số điện thoại</div>
-                                                                <div style="font-weight: 600; color: #2d3748;">@(string.IsNullOrEmpty(Model.PhoneNumber) ? "Chưa cập nhật" : Model.PhoneNumber)</div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <!-- Orders Tab -->
-                                <div class="tab-pane fade" id="orders" role="tabpanel">
-                                    <div class="modern-content">
-                                        <h3><i class="bi bi-cart-check"></i> Đơn hàng của bạn</h3>
-                                        @if (carRentalOrders != null && carRentalOrders.Any())
-                                        {
-                                            @foreach(var item in carRentalOrders)
-                                            {
-                                                <div class="order-card">
-                                                    <div class="order-header">
-                                                        <div>
-                                                            <div class="order-id">Đơn hàng #@item.OrderId</div>
-                                                            <div class="order-date">
-                                                                <i class="bi bi-calendar3"></i> @(item.OrderDate?.ToString("dd/MM/yyyy") ?? "N/A")
-                                                            </div>
-                                                        </div>
-                                                        <div>
-                                                            @{
-                                                                var statusClass = "status-pending";
-                                                                if (item.StatusId == 2) statusClass = "status-cancelled";
-                                                                else if (item.StatusId == 3) statusClass = "status-paid";
-                                                                else if (item.StatusId == 4) statusClass = "status-shipping";
-                                                            }
-                                                            <span class="status-badge @statusClass">@item.Status.StatusDescription</span>
-                                                        </div>
-                                                    </div>
-                                                    <div class="row align-items-center">
-                                                        <div class="col-md-6">
-                                                            <div style="color: #718096; font-size: 14px; margin-bottom: 5px;">Tổng tiền</div>
-                                                            <div style="font-size: 24px; font-weight: 700; color: #2d3748;">
-                                                                @((item.Payment ?? 0).ToString("N0")) <span style="font-size: 16px; color: #718096;">VNĐ</span>
-                                                            </div>
-                                                        </div>
-                                                        <div class="col-md-6 text-end">
-                                                            <a asp-controller="Accounts" asp-action="OrderDetails" asp-route-id="@item.OrderId" class="btn btn-modern">
-                                                                <i class="bi bi-eye"></i> Xem chi tiết
-                                                            </a>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            }
-                                        }
-                                        else
-                                        {
-                                            <div class="empty-state">
-                                                <i class="bi bi-cart-x"></i>
-                                                <h4>Chưa có đơn hàng nào</h4>
-                                                <p>Bạn chưa có đơn hàng nào. Hãy bắt đầu mua sắm ngay!</p>
-                                                <a href="/Product" class="btn btn-modern mt-3">
-                                                    <i class="bi bi-arrow-right"></i> Xem sản phẩm
-                                                </a>
-                                            </div>
-                                        }
-                                    </div>
-                                </div>
-                                
-                                <!-- License Tab -->
-                                <div class="tab-pane fade" id="download" role="tabpanel">
-                                    <div class="modern-content">
-                                        <h3><i class="bi bi-card-checklist"></i> Thông tin GPLX</h3>
-                                        <div class="form-modern">
-                                            <form id="licenseDetailsForm" asp-controller="Accounts" asp-action="licenseDetails" enctype="multipart/form-data" method="post">
-                                                <input type="hidden" asp-for="CustomerId" />
-                                                <div class="row">
-                                                    <div class="col-md-6">
-                                                        <div class="single-input-item mb-3">
-                                                            <label for="display-name" class="required mb-1">Họ và tên</label>
-                                                            <input type="text" asp-for="FullName" placeholder="Họ và tên" />
-                                                        </div>
-                                                    </div>
-                                                    <div class="col-md-6">
-                                                        <div class="single-input-item mb-3">
-                                                            <label for="email" class="required mb-1">Ngày sinh</label>
-                                                            <input type="date" asp-for="DateofBirth" placeholder="Ngày sinh" />
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div class="single-input-item mb-3">
-                                                    <label for="email" class="required mb-1">Số giấy phép lái xe</label>
-                                                    <label class="small-label" style="color:#808080; font-size: 12px;">Dãy 12 chữ số ở mặt trước GPLX</label>
-                                                    <input type="tel" asp-for="LicenseNumber" placeholder="0000-0000-0000" />
-                                                </div>
-
-                                                <fieldset style="margin-top: 25px;">
-                                                    <legend style="font-size: 18px; color: #2d3748; margin-bottom: 15px;">
-                                                        <i class="bi bi-image"></i> Cập nhật Ảnh
-                                                    </legend>
-                                                    <div class="single-input-item mb-3">
-                                                        <label for="img" class="required mb-1">Ảnh mặt trước GPLX</label>
-                                                        <input type="file" id="imageInput" name="img" accept="image/*" />
-                                                    </div>
-                                                    <div class="license-preview">
-                                                        <div id="display">
-                                                            @if (!string.IsNullOrEmpty(Model.LicenseImage))
-                                                            {
-                                                                <img id="currentImage" src="~/files/license/@Model.LicenseImage" alt="Ảnh mặt trước GPLX" style="max-width: 100%; max-height: 400px; border-radius: 8px;" />
-                                                            }
-                                                            else
-                                                            {
-                                                                <div id="noImageText" style="padding: 40px; color: #718096;">
-                                                                    <i class="bi bi-image" style="font-size: 48px; display: block; margin-bottom: 10px;"></i>
-                                                                    Chưa có ảnh nào được cập nhật.
-                                                                </div>
-                                                            }
-                                                        </div>
-                                                    </div>
-                                                </fieldset>
-
-                                                <div class="single-input-item single-item-button mt-4">
-                                                    <button type="submit" class="btn btn-modern">
-                                                        <i class="bi bi-check-circle"></i> Save Changes
-                                                    </button>
-                                                </div>
-                                            </form>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <!-- Payment Method Tab -->
-                                <div class="tab-pane fade" id="payment-method" role="tabpanel">
-                                    <div class="modern-content">
-                                        <h3><i class="bi bi-credit-card"></i> Payment Method</h3>
-                                        <div class="saved-message">
-                                            <i class="bi bi-info-circle"></i> Bạn chưa lưu phương thức thanh toán nào.
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <!-- Address Tab -->
-                                <div class="tab-pane fade" id="address-edit" role="tabpanel">
-                                    <div class="modern-content">
-                                        <h3><i class="bi bi-geo-alt"></i> Địa chỉ</h3>
-                                        <div class="address-card">
-                                            <h5 style="color: #2d3748; margin-bottom: 15px;">
-                                                <i class="bi bi-person-badge"></i> @Model.Name
-                                            </h5>
-                                            <p style="margin-bottom: 10px; color: #4a5568;">
-                                                <i class="bi bi-geo-alt-fill" style="color: #667eea;"></i> 
-                                                <strong>Địa chỉ:</strong> @(string.IsNullOrEmpty(Model.Address) ? "Chưa cập nhật" : Model.Address)
-                                            </p>
-                                            <p style="margin-bottom: 0; color: #4a5568;">
-                                                <i class="bi bi-telephone-fill" style="color: #667eea;"></i> 
-                                                <strong>Điện thoại:</strong> @(string.IsNullOrEmpty(Model.PhoneNumber) ? "Chưa cập nhật" : Model.PhoneNumber)
-                                            </p>
-                                        </div>
-                                        <div class="mt-4">
-                                            <a asp-controller="Accounts" asp-action="editAdress" class="btn btn-modern">
-                                                <i class="bi bi-pencil-square"></i> Edit Address
-                                            </a>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <!-- Account Info Tab -->
-                                <div class="tab-pane fade" id="account-info" role="tabpanel">
-                                    <div class="modern-content">
-                                        <h3><i class="bi bi-person-circle"></i> Chi tiết tài khoản</h3>
-                                        <div class="form-modern">
-                                            <form asp-controller="Accounts" asp-action="AccountDetails" enctype="multipart/form-data" method="post">
-                                               <input type="hidden" asp-for="CustomerId"/>
-                                                <div class="row">
-                                                    <div class="col-md-6">
-                                                        <div class="single-input-item mb-3">
-                                                            <label for="display-name" class="required mb-1">Tên hiển thị</label>
-                                                            <input type="text" asp-for="@Model.Name" placeholder="Tên hiển thị" />
-                                                        </div>
-                                                    </div>
-                                                    <div class="col-md-6">
-                                                        <div class="single-input-item mb-3">
-                                                            <label for="email" class="required mb-1">Địa chỉ Email</label>
-                                                            <input type="email" asp-for="@Model.Email" placeholder="Địa chỉ Email" />
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <fieldset style="margin-top: 25px;">
-                                                    <legend style="font-size: 18px; color: #2d3748; margin-bottom: 15px;">
-                                                        <i class="bi bi-lock"></i> Thay đổi Mật khẩu
-                                                    </legend>
-                                                    <div class="row">
-                                                        <div class="col-lg-6 col-custom">
-                                                            <div class="single-input-item mb-3">
-                                                                <label for="new-pwd" class="required mb-1">Mật khẩu mới</label>
-                                                                <input type="password" asp-for="@Model.Password" placeholder="Mật khẩu mới" />
-                                                            </div>
-                                                        </div>
-                                                        <div class="col-lg-6 col-custom">
-                                                            <div class="single-input-item mb-3">
-                                                                <label for="confirm-pwd" class="required mb-1">Nhập lại mật khẩu</label>
-                                                                <input type="password" placeholder="Nhập lại mật khẩu" />
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </fieldset>
-                                               
-                                                <div class="single-input-item single-item-button mt-4">
-                                                    <button type="submit" class="btn btn-modern">
-                                                        <i class="bi bi-check-circle"></i> Save Changes
-                                                    </button>
-                                                </div>
-                                            </form>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <!-- Car Owner Register Tab -->
-                                <div class="tab-pane fade" id="car-owner-register" role="tabpanel">
-                                    <div class="modern-content">
-                                        <h3><i class="bi bi-car-front"></i> Đăng ký trở thành Chủ xe</h3>
-                                        <div class="welcome mb-4" style="background: #f7fafc; padding: 20px; border-radius: 8px; border-left: 4px solid #667eea;">
-                                            <p style="margin: 0; color: #4a5568;">
-                                                <i class="bi bi-info-circle"></i> Bạn muốn cho thuê xe trên hệ thống? Đăng ký ngay để trở thành chủ xe và bắt đầu kiếm thu nhập từ xe của bạn!
-                                            </p>
-                                        </div>
-                                        
-                                        @if (existingCarOwnerAccount != null)
-                                        {
-                                            <div class="car-owner-card success">
-                                                <i class="bi bi-check-circle-fill" style="font-size: 64px; color: #48bb78; margin-bottom: 20px;"></i>
-                                                <h4 style="color: #22543d; margin-bottom: 15px;">Bạn đã là Chủ xe!</h4>
-                                                <p style="color: #2f855a; margin-bottom: 10px;">
-                                                    <strong>Tài khoản:</strong> @existingCarOwnerAccount.Username
-                                                </p>
-                                                <p style="color: #2f855a; margin-bottom: 20px;">
-                                                    <strong>Email:</strong> @existingCarOwnerAccount.Email
-                                                </p>
-                                                <a asp-controller="Accounts" asp-action="GoToCarOwner" class="btn btn-modern">
-                                                    <i class="bi bi-arrow-right"></i> Vào trang quản lý xe
-                                                </a>
-                                            </div>
-                                        }
-                                        else
-                                        {
-                                            @if (!string.IsNullOrEmpty(Function.GetMessage(Context.Session)))
-                                            {
-                                                @if (Function.GetMessage(Context.Session) == "LOCKED")
-                                                {
-                                                    <div class="alert alert-danger mb-3" style="border-radius: 8px;">
-                                                        <i class="bi bi-exclamation-triangle-fill"></i> 
-                                                        <strong>Tài khoản của bạn đã bị khóa!</strong><br>
-                                                        Tài khoản bạn đã vi phạm chính sách nên đã bị khóa. Vui lòng liên hệ admin để đượcđược trợ giúp.
-                                                    </div>
-                                                }
-                                                else
-                                                {
-                                                    <div class="alert alert-danger mb-3" style="border-radius: 8px;">
-                                                        <i class="bi bi-exclamation-triangle"></i> @Function.GetMessage(Context.Session)
-                                                    </div>
-                                                }
-                                            }
-
-                                            @if (string.IsNullOrEmpty(Model.LicenseNumber))
-                                            {
-                                                <div class="car-owner-card">
-                                                    <i class="bi bi-exclamation-triangle-fill" style="font-size: 64px; color: #fc8181; margin-bottom: 20px;"></i>
-                                                    <h4 style="color: #c53030; margin-bottom: 15px;">Chưa cập nhật Giấy phép lái xe</h4>
-                                                    <p style="color: #742a2a; margin-bottom: 20px;">
-                                                        Bạn cần cập nhật thông tin Giấy phép lái xe trước khi đăng ký làm chủ xe.
-                                                    </p>
-                                                    <a href="#download" data-bs-toggle="tab" class="btn btn-modern" onclick="activateLicenseTab()">
-                                                        <i class="bi bi-card-text"></i> Cập nhật Giấy phép lái xe ngay
-                                                    </a>
-                                                </div>
-                                            }
-                                            else
-                                            {
-                                                <div class="alert alert-info mb-4" style="border-radius: 8px; border-left: 4px solid #4299e1;">
-                                                    <h6 style="color: #2c5282; margin-bottom: 15px;">
-                                                        <i class="bi bi-info-circle"></i> Thông tin của bạn:
-                                                    </h6>
-                                                    <ul class="mb-0" style="color: #2c5282;">
-                                                        <li><strong>Email:</strong> @Model.Email</li>
-                                                        <li><strong>Họ tên:</strong> @(string.IsNullOrEmpty(Model.FullName) ? Model.Name : Model.FullName)</li>
-                                                        <li><strong>Số điện thoại:</strong> @Model.PhoneNumber</li>
-                                                        <li><strong>Giấy phép lái xe:</strong> @Model.LicenseNumber <i class="bi bi-check-circle text-success"></i></li>
-                                                    </ul>
-                                                </div>
-
-                                                <form asp-controller="Accounts" asp-action="RegisterCarOwner" method="post">
-                                                    @Html.AntiForgeryToken()
-                                                    <div class="single-input-item single-item-button">
-                                                        <button type="submit" class="btn btn-modern w-100" style="padding: 15px;">
-                                                            <i class="bi bi-car-front"></i> Đăng ký làm Chủ xe
-                                                        </button>
-                                                    </div>
-                                                    <p class="text-muted text-center mt-3 small">
-                                                        <i class="bi bi-shield-check"></i> Tài khoản chủ xe sẽ được tạo tự động từ thông tin của bạn
-                                                    </p>
-                                                </form>
-                                            }
-                                        }
-                                    </div>
-                                </div>
-                            </div>
-                        </div> <!-- My Account Tab Content End -->
-                    </div>
-                </div> <!-- My Account Page End -->
-            </div>
-        </div>
-    </div>
-</div>
-<!-- my account wrapper end -->
 
 @section scripts {
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -743,81 +557,38 @@
     function activateLicenseTab() {
         var licenseTab = document.querySelector('a[href="#download"]');
         if (licenseTab) {
-            document.querySelectorAll('.myaccount-tab-menu a').forEach(function(tab) {
-                tab.classList.remove('active');
-            });
-            licenseTab.classList.add('active');
-            document.querySelectorAll('.tab-pane').forEach(function(pane) {
-                pane.classList.remove('show', 'active');
-            });
-            var licensePane = document.getElementById('download');
-            if (licensePane) {
-                licensePane.classList.add('show', 'active');
-            }
-            setTimeout(function() {
-                licensePane.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }, 100);
+            var bsTab = new bootstrap.Tab(licenseTab);
+            bsTab.show();
         }
     }
     
-    // Tự động mở tab (GPLX / Đơn hàng) theo URL
     function checkAndActivateTabs() {
         var hash = window.location.hash;
         var urlParams = new URLSearchParams(window.location.search);
         var returnUrl = urlParams.get('returnUrl');
         var tabParam = urlParams.get('tab');
 
-        // Tab GPLX
         if (hash === '#download' || (returnUrl && returnUrl.includes('/Cart/Checkout'))) {
             var licenseTab = document.querySelector('a[href="#download"]');
             if (licenseTab) {
                 var bsTab = new bootstrap.Tab(licenseTab);
                 bsTab.show();
-                setTimeout(function() {
-                    activateLicenseTab();
-                }, 100);
             }
         }
 
-        // Tab Đơn hàng
         if (hash === '#orders' || tabParam === 'orders') {
             var ordersTab = document.querySelector('a[href="#orders"]');
             if (ordersTab) {
                 var bsOrdersTab = new bootstrap.Tab(ordersTab);
                 bsOrdersTab.show();
-                setTimeout(function () {
-                    document.querySelectorAll('.myaccount-tab-menu a').forEach(function (tab) {
-                        tab.classList.remove('active');
-                    });
-                    ordersTab.classList.add('active');
-
-                    document.querySelectorAll('.tab-pane').forEach(function (pane) {
-                        pane.classList.remove('show', 'active');
-                    });
-                    var ordersPane = document.getElementById('orders');
-                    if (ordersPane) {
-                        ordersPane.classList.add('show', 'active');
-                        ordersPane.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    }
-                }, 100);
             }
         }
     }
     
-    // Chạy ngay khi DOM ready và sau khi trang load xong
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', function() {
-            setTimeout(checkAndActivateTabs, 200);
-        });
-    } else {
-        setTimeout(checkAndActivateTabs, 200);
-    }
-    
-    // Chạy lại sau khi trang load hoàn toàn
-    window.addEventListener('load', function() {
-        setTimeout(checkAndActivateTabs, 300);
+    document.addEventListener('DOMContentLoaded', function() {
+        setTimeout(checkAndActivateTabs, 150);
     });
-    
+
     // Image preview
     document.getElementById('imageInput')?.addEventListener('change', function(e) {
         const file = e.target.files[0];
@@ -828,13 +599,12 @@
                 const noImageText = document.getElementById('noImageText');
                 if (noImageText) noImageText.remove();
                 
-                let img = document.getElementById('previewImage');
+                let img = document.getElementById('currentImage');
                 if (!img) {
                     img = document.createElement('img');
-                    img.id = 'previewImage';
-                    img.style.maxWidth = '100%';
-                    img.style.maxHeight = '400px';
-                    img.style.borderRadius = '8px';
+                    img.id = 'currentImage';
+                    img.className = 'img-fluid rounded-3';
+                    img.style.maxHeight = '250px';
                     display.appendChild(img);
                 }
                 img.src = e.target.result;
@@ -842,12 +612,11 @@
             reader.readAsDataURL(file);
         }
     });
-    
-    // License Details Form Submit với AJAX
+
+    // Submit form GPLX
     $(document).ready(function () {
         $("#licenseDetailsForm").submit(function (e) {
             e.preventDefault();
-            
             var formData = new FormData(this);
             
             $.ajax({
@@ -863,10 +632,10 @@
                         
                         Swal.fire({
                             icon: 'success',
-                            title: 'Thành công!',
+                            title: 'Cập nhật GPLX thành công!',
                             text: response.message,
                             confirmButtonText: hasReturnUrl ? 'Quay lại đặt xe ngay' : 'Đóng',
-                            confirmButtonColor: '#667eea',
+                            confirmButtonColor: '#2563eb',
                             allowOutsideClick: false,
                             allowEscapeKey: false
                         }).then((result) => {
@@ -878,31 +647,21 @@
                         Swal.fire({
                             icon: 'error',
                             title: 'Lỗi',
-                            text: response.message || 'Có lỗi xảy ra. Vui lòng thử lại.',
-                            confirmButtonColor: '#667eea'
+                            text: response.message || 'Có lỗi xảy ra. Vui lòng kiểm tra lại.',
+                            confirmButtonColor: '#2563eb'
                         });
                     }
                 },
                 error: function (xhr) {
-                    var errorMessage = 'Có lỗi xảy ra. Vui lòng thử lại.';
-                    if (xhr.responseJSON && xhr.responseJSON.message) {
-                        errorMessage = xhr.responseJSON.message;
-                    }
-                    
                     Swal.fire({
                         icon: 'error',
-                        title: 'Lỗi',
-                        text: errorMessage,
-                        confirmButtonColor: '#667eea'
+                        title: 'Lỗi kết nối',
+                        text: 'Không thể kết nối đến máy chủ. Vui lòng thử lại.',
+                        confirmButtonColor: '#2563eb'
                     });
                 }
             });
         });
-        
-        // Kiểm tra và mở tab GPLX nếu cần (sử dụng hàm đã định nghĩa ở trên)
-        setTimeout(function() {
-            checkAndActivateLicenseTab();
-        }, 300);
     });
     </script>
 }

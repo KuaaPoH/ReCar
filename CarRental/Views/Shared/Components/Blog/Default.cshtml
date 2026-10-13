@@ -1,28 +1,33 @@
-﻿@model IEnumerable<Blog>
-@foreach(var item in Model)
+@model IEnumerable<Blog>
+
+@if (Model != null && Model.Any())
 {
-    string url = $"/blog/{item.Alias}-{item.BlogId}.html";
-    <div class="col-12 col-custom mb-30">
-        <div class="blog-lst">
-            <div class="single-blog">
-                <div class="blog-image">
-                    <a class="d-block" href="@url">
-                        <img src="@item.Image" alt="Blog Image" class="w-100">
+    foreach (var item in Model)
+    {
+        string url = $"/blog/{item.Alias}-{item.BlogId}.html";
+        string img = string.IsNullOrEmpty(item.Image) ? "/images/cars/car-sedan.jpg" : item.Image;
+        string dateStr = item.CreatedDate.HasValue ? item.CreatedDate.Value.ToString("dd/MM/yyyy") : "08/10/2026";
+
+        <div class="col-12 col-md-6 col-lg-4">
+            <article class="h-100 rounded-3 border bg-white overflow-hidden shadow-sm" style="display: flex; flex-direction: column; transition: transform 0.2s, box-shadow 0.2s;">
+                <a href="@url" class="d-block overflow-hidden" style="aspect-ratio: 16/9;">
+                    <img src="@img" alt="@item.Title" class="w-100 h-100" style="object-fit: cover; transition: transform 0.3s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'" loading="lazy" />
+                </a>
+                <div class="p-4 d-flex flex-column flex-grow-1">
+                    <p class="small text-muted mb-2" style="font-size: 13px;">
+                        Cẩm nang · @dateStr
+                    </p>
+                    <h5 class="fw-bold mb-2" style="font-size: 17px; line-height: 1.4;">
+                        <a href="@url" class="text-decoration-none" style="color: var(--recar-navy);">@item.Title</a>
+                    </h5>
+                    <p class="small text-muted mb-3 flex-grow-1" style="font-size: 14px; line-height: 1.5;">
+                        @(string.IsNullOrEmpty(item.Description) ? "Kinh nghiệm thực tế giúp bạn chủ động hơn trên mọi hành trình." : item.Description)
+                    </p>
+                    <a href="@url" class="text-decoration-none fw-semibold small mt-auto" style="color: var(--recar-primary);">
+                        Đọc thêm →
                     </a>
                 </div>
-                <div class="blog-content">
-                    <div class="blog-text">
-                        <h4><a href="@url">@item.Title</a></h4>
-                        <div class="blog-post-info">
-                            <span><a href="#">By @item.CreatedBy</a></span>
-                            <span>@item.CreatedDate.Value.ToString("dd/MM/yyyy")</span>
-                        </div>
-                        <p>@item.Description</p>
-                        <a href="blog-details-fullwidth.html" class="readmore">Read More <i class="fa fa-long-arrow-right"></i></a>
-                    </div>
-                </div>
-            </div>
+            </article>
         </div>
-    </div>
-   
+    }
 }

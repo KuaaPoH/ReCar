@@ -1,587 +1,390 @@
-﻿@model CarType
+@using CarRental.Models
 @{
-    List<Car> productFeatured = ViewBag.productFeatured;
-    List<Car> productDealofDay = ViewBag.productDealofDay;
-    List<Blog> blogs = ViewBag.Blog;
+    ViewData["Title"] = "ReCar – Chủ động mọi hành trình | Thuê ô tô trực tuyến";
+    List<Car> productFeatured = ViewBag.productFeatured ?? new List<Car>();
+    List<Blog> blogs = ViewBag.Blog ?? new List<Blog>();
+    List<CarType> carTypes = ViewBag.CarTypes ?? new List<CarType>();
+
+    string todayStr = DateTime.Now.ToString("yyyy-MM-dd");
+    string nextDayStr = DateTime.Now.AddDays(2).ToString("yyyy-MM-dd");
 }
-<!-- Slider/Intro Section Start -->
-<div class="intro11-slider-wrap section">
-    <div class="intro11-slider swiper-container">
-        <div class="swiper-wrapper">
-            <div class="intro11-section swiper-slide slide-1 slide-bg-1 bg-position">
-                <!-- Intro Content Start -->
-                <div class="intro11-content text-left">
-                    <h3 class="title-slider text-uppercase">Hot</h3>
-                    <h2 class="title" style="color:#FFA500 !important; text-shadow: 2px 2px 4px rgba(0,0,0,0.9), 0 0 20px rgba(0,0,0,0.7) !important; font-weight: bold !important;">Cho thuê xe tự lái</h2>
-                    <p class="desc-content" style="color:#eceff8">Siêu ưu đãi đến từ ReCar </p>
-                    <a href="#product-countdown" class="btn flosun-button secondary-btn theme-color rounded-0">Cùng đến nào</a>
-                   
 
-                </div>
-                <!-- Intro Content End -->
+<style>
+    /* Hero Section Styling (Pixel-perfect Ảnh 1) */
+    .hero-banner-wrap {
+        position: relative;
+        background-color: var(--recar-navy);
+        overflow: hidden;
+    }
+    .hero-bg-img {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        opacity: 0.85;
+    }
+    .hero-gradient-overlay {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(to right, #0f172a 0%, rgba(15, 23, 42, 0.75) 60%, rgba(15, 23, 42, 0.2) 100%);
+    }
+    .hero-container {
+        position: relative;
+        max-width: 1280px;
+        margin: 0 auto;
+        padding: 80px 16px 140px 16px;
+    }
+    .hero-pill-tag {
+        display: inline-block;
+        border-radius: 9999px;
+        background: rgba(2, 132, 199, 0.25);
+        color: #ffffff;
+        font-size: 14px;
+        font-weight: 500;
+        padding: 6px 18px;
+        margin-bottom: 20px;
+    }
+    .hero-main-title {
+        font-size: 48px;
+        font-weight: 800;
+        color: #ffffff;
+        line-height: 1.15;
+        max-width: 720px;
+        margin-bottom: 18px;
+    }
+    .hero-sub-title {
+        font-size: 18px;
+        color: rgba(255, 255, 255, 0.85);
+        max-width: 540px;
+        line-height: 1.5;
+        margin-bottom: 0;
+    }
+
+    /* Floating Search Box */
+    .search-box-float {
+        position: relative;
+        z-index: 20;
+        max-width: 1280px;
+        margin: -80px auto 0 auto;
+        padding: 0 16px;
+    }
+
+    @@media (max-width: 768px) {
+        .hero-main-title { font-size: 32px; }
+        .hero-container { padding: 50px 16px 100px 16px; }
+        .search-box-float { margin-top: -50px; }
+    }
+</style>
+
+<!-- Hero Section (Ảnh 1) -->
+<section class="hero-banner-wrap">
+    <img src="/images/cars/hero.jpg" alt="SUV trên đại lộ thành phố" class="hero-bg-img" />
+    <div class="hero-gradient-overlay"></div>
+    <div class="hero-container">
+        <span class="hero-pill-tag">Chuyến đi của bạn, lựa chọn của bạn.</span>
+        <h1 class="hero-main-title">Chủ động mọi hành trình cùng ReCar</h1>
+        <p class="hero-sub-title">Khám phá hàng trăm mẫu xe phù hợp với nhu cầu di chuyển của bạn.</p>
+    </div>
+</section>
+
+<!-- Floating Search Box (Ảnh 1) -->
+<div class="search-box-float">
+    <div class="recar-search-card">
+        <form method="get" asp-controller="Product" asp-action="Index" id="quickSearchForm">
+            <!-- Tabs Tự lái / Có tài xế -->
+            <div class="d-flex gap-2 mb-3">
+                <button type="button" class="search-mode-tab active" id="btnSelfDrive">Tự lái</button>
+                <button type="button" class="search-mode-tab" id="btnWithDriver">Có tài xế</button>
+                <input type="hidden" name="driveMode" id="driveModeInput" value="Tự lái" />
             </div>
-            <div class="intro11-section swiper-slide slide-2 slide-bg-1 bg-position">
-                <!-- Intro Content Start -->
-                <div class="intro11-content text-left">
-                    <h3 class="title-slider black-slider-title text-uppercase">Collection</h3>
-                    <h2 class="title" style="color:#eceff8">Flowers and Candle <br> Birthday Gift</h2>
-                    <p class="desc-content" style="color:#eceff8">Lorem ipsum dolor sit amet, pri autem nemore bonorum te. Autem fierent ullamcorper ius no, nec ea quodsi invenire. </p>
-                    <a href="product" class="btn flosun-button secondary-btn rounded-0">Shop Now</a>
+
+            <!-- Form inputs grid -->
+            <div class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <label class="recar-field-label">Địa điểm nhận xe</label>
+                    <select class="recar-field-input" name="city">
+                        <option value="Hà Nội" selected>Hà Nội</option>
+                        <option value="TP. Hồ Chí Minh">TP. Hồ Chí Minh</option>
+                        <option value="Đà Nẵng">Đà Nẵng</option>
+                        <option value="Nha Trang">Nha Trang</option>
+                        <option value="Đà Lạt">Đà Lạt</option>
+                    </select>
                 </div>
-                <!-- Intro Content End -->
+
+                <div class="col-md-2">
+                    <label class="recar-field-label">Ngày nhận xe</label>
+                    <input type="date" class="recar-field-input" name="pickupDate" min="@todayStr" value="@todayStr" required />
+                </div>
+
+                <div class="col-md-2">
+                    <label class="recar-field-label">Giờ nhận</label>
+                    <input type="time" class="recar-field-input" name="pickupTime" value="08:00" required />
+                </div>
+
+                <div class="col-md-2">
+                    <label class="recar-field-label">Ngày trả xe</label>
+                    <input type="date" class="recar-field-input" name="returnDate" min="@todayStr" value="@nextDayStr" required />
+                </div>
+
+                <div class="col-md-1">
+                    <label class="recar-field-label">Giờ trả</label>
+                    <input type="time" class="recar-field-input" name="returnTime" value="08:00" required />
+                </div>
+
+                <div class="col-md-2">
+                    <button type="submit" class="btn-recar-search w-100">
+                        <i class="bi bi-search"></i> Tìm kiếm xe
+                    </button>
+                </div>
             </div>
-        </div>
-        <!-- Slider Navigation -->
-        <div class="home1-slider-prev swiper-button-prev main-slider-nav"><i class="lnr lnr-arrow-left"></i></div>
-        <div class="home1-slider-next swiper-button-next main-slider-nav"><i class="lnr lnr-arrow-right"></i></div>
-        <!-- Slider pagination -->
-        <div class="swiper-pagination"></div>
+        </form>
     </div>
 </div>
-<!-- Slider/Intro Section End -->
-<!--Categories Area Start-->
-<div class="categories-area pt-40">
-    <div class="container-fluid">
-        <div class="row">
-            <div class="cat-1 col-md-4 col-sm-12 col-custom">
-                <div class="categories-img mb-30">
-                    <a asp-controller="product"><img src="~/assets/images/CarImage/banner-left.png" alt=""></a>
-                    <div class="categories-content">
-                        <h3>Shop now</h3>
-                        @*  <h4>18 items</h4> *@
-                    </div>
-                </div>
-            </div>
-            <div class="cat-2 col-md-8 col-sm-12 col-custom">
-                <div class="product-slider swiper-container anime-element-multi">
-                    <div class="swiper-wrapper">
-                        @await Component.InvokeAsync("CarTypes")
-                        @* <div class="swiper-slide">
 
-                        <div class="row">
-                        @await Component.InvokeAsync("CarTypes")
-                        </div>
-                        </div> *@
-                        <script src="https://unpkg.com/swiper/swiper-bundle.min.js"></script>
-                        <!-- <script src="assets/js/plugins/swiper-bundle.min.js"></script> -->
-                        <!-- Slider pagination -->
-                        <div class="swiper-pagination"></div>
-                        <script>
-                            const swiper = new Swiper('.product-slider', {
-                                slidesPerView: 1,               // Hiển thị một slide tại một thời điểm
-                                spaceBetween: 10,               // Khoảng cách giữa các slide
-                                pagination: {
-                                    el: '.swiper-pagination',   // Phân trang
-                                    clickable: true,
-                                },
-                                loop: true,                      // Vòng lặp vô tận
-                                autoplay: {
-                                    delay: 3000,                 // Thời gian giữa mỗi lần chuyển slide (tính bằng ms), ví dụ: 3000ms = 3 giây
-                                    disableOnInteraction: false, // Tiếp tục autoplay ngay cả khi người dùng tương tác
-                                }
-                            });
-                        </script>
-                    </div>
-                </div>
-
+<div class="container py-5" style="max-width: 1280px;">
+    <!-- 6 Perks Section -->
+    <section class="row g-3 mb-5 mt-2">
+        <div class="col-6 col-md-4 col-lg-2">
+            <div class="p-3 rounded-3 h-100" style="background-color: var(--recar-secondary);">
+                <i class="bi bi-car-front fs-4" style="color: var(--recar-primary);"></i>
+                <h6 class="fw-bold mt-2 mb-1" style="color: var(--recar-navy); font-size: 14px;">Đa dạng lựa chọn xe</h6>
+                <p class="small text-muted mb-0" style="font-size: 12px;">Từ xe mini đến SUV 7 chỗ.</p>
             </div>
         </div>
-    </div>
-</div>
-<!--Categories Area End-->
-<!--Product Area Start-->
-<div class="product-area mt-text-2">
-    <div class="container custom-area-2 overflow-hidden">
-        <div class="row">
-            <!--Section Title Start-->
-            <div class="col-12 col-custom">
-                <div class="section-title text-center mb-30">
-                    <span class="section-title-1">Wonderful gift</span>
-                    <h3 class="section-title-3">Featured Products</h3>
-                </div>
-            </div>
-            <!--Section Title End-->
-        </div>
-        <div class="row product-row">
-            <div class="col-12 col-custom">
-                <div class="product-slider swiper-container anime-element-multi">
-                    <div class="swiper-wrapper">
-                        @if (productFeatured != null && productFeatured.Count > 0)
-                        {
-                            @for (int i = 0; i < productFeatured.Count; i += 2)
-                            {
-
-                                <div class="single-item swiper-slide">
-                                    @foreach(var item in productFeatured.Skip(i).Take(2))
-                                    {
-                                        string url = $"/product/{item.Alias}-{item.CarId}.html";
-                                        <!--Single Product Start-->
-                                        <div class="single-product position-relative mb-30">
-                                            <div class="product-image">
-                                                <a class="d-block" href="@url">
-                                                    <img src="@item.Image" alt="" class="product-image-1 w-100">
-                                                    <img src="@item.Image" alt="" class="product-image-2 position-absolute w-100">
-                                                </a>
-                                                @if(item.IsSale) {
-                                                    <span class="onsale">Giảm!</span>
-
-                                                }
-                                                <div class="add-action d-flex flex-column position-absolute">
-                                                    <a href="compare.html" title="Compare">
-                                                        <i class="lnr lnr-sync" data-toggle="tooltip" data-placement="left" title="Compare"></i>
-                                                    </a>
-                                                    <a href="wishlist.html" title="Add To Wishlist">
-                                                        <i class="lnr lnr-heart" data-toggle="tooltip" data-placement="left" title="Wishlist"></i>
-                                                    </a>
-                                                    <a href="#exampleModalCenter" title="Quick View" data-bs-toggle="modal" data-bs-target="#exampleModalCenter">
-                                                        <i class="lnr lnr-eye" data-toggle="tooltip" data-placement="left" title="Quick View"></i>
-                                                    </a>
-                                                </div>
-                                            </div>
-                                            <div class="product-content">
-                                                <div class="product-title">
-                                                    <h4 class="title-2"> <a href="@url">@item.CarName</a></h4>
-                                                </div>
-                                                <div class="product-rating">
-                                                    @for (int a = 0; a <= 5; a++)
-                                                    {
-                                                        if (a < item.Rate)
-                                                        {
-                                                            <i class="fa fa-star"></i>
-
-                                                        }
-                                                        else
-                                                        {
-                                                            <i class="fa fa-star-o"></i>
-
-                                                        }
-                                                    }
-                                                  
-                                                </div>
-                                                <div class="price-box">
-                                                    @if (item.SalePrice == 0)
-                                                    {
-                                                        <span class="regular-price ">$@item.Price</span>
-                                                    }
-                                                    else
-                                                    {
-                                                        <span class="regular-price ">$@item.SalePrice.Value.ToString("N0")/Ngày</span>
-                                                        <span class="old-price"><del>$@item.Price.Value.ToString("N0")</del></span>
-                                                    }
-
-
-                                                </div>
-                                                <button type="button" class="btn product-cart ajax-add-to-cart1" data-id="@item.CarId">Add to Cart</button>
-                                            </div>
-                                        </div>
-                                        <!--Single Product End-->
-                                    }
-
-                                       
-                                      
-                                </div>
-                                    
-                                      
-                            
-                            }
-
-                        }
-                           else
-                           {
-                             <p>khônng có sản phảm nào ở đây</p>
-                           }
-
-
-
-                            </div>
-                            <!-- Slider pagination -->
-                            <div class="swiper-pagination default-pagination"></div>
-                        </div>
-                    </div>
-                </div>
+        <div class="col-6 col-md-4 col-lg-2">
+            <div class="p-3 rounded-3 h-100" style="background-color: var(--recar-secondary);">
+                <i class="bi bi-calendar-check fs-4" style="color: var(--recar-primary);"></i>
+                <h6 class="fw-bold mt-2 mb-1" style="color: var(--recar-navy); font-size: 14px;">Đặt xe trực tuyến</h6>
+                <p class="small text-muted mb-0" style="font-size: 12px;">Vài bước, xác nhận nhanh.</p>
             </div>
         </div>
-        <!--Product Area End-->
-        <!-- Product Countdown Area Start Here -->
-        <div class="product-countdown-area mt-text-3">
-            <div class="container custom-area">
-                <div class="row">
-                    <!--Section Title Start-->
-                    <div class="col-12 col-custom">
-                        <div class="section-title text-center mb-30">
-                            <h3 class="section-title-3">Deal of The Day</h3>
-                        </div>
-                    </div>
-                    <!--Section Title End-->
-                </div>
-                <div class="row">
-                    <!--Countdown Start-->
-                    <div class="col-12 col-custom">
-                        <div class="countdown-area">
-                            <div class="countdown-wrapper d-flex justify-content-center" data-countdown="2022/12/24"></div>
-                        </div>
-                    </div>
-                    <!--Countdown End-->
-                </div>
-                <div class="row product-row">
-                    <div class="col-12 col-custom">
-                        <div class="item-carousel-2 swiper-container anime-element-multi product-area">
-                            <div class="swiper-wrapper">
-                        @foreach(var item in productDealofDay)
-                        {
-                            string url = $"/product/{item.Alias}-{item.CarId}.html";
-                            <div class="single-item swiper-slide">
-                                <!--Single Product Start-->
-                                <div class="single-product position-relative mb-30">
-                                    <div class="product-image">
-                                        <a class="d-block" href="@url">
-                                            <img src="@item.Image" alt="" class="product-image-1 w-100">
-                                            <img src="@item.Image" alt="" class="product-image-2 position-absolute w-100">
-                                        </a>
-                                        <span class="onsale">Sale!</span>
-                                        <div class="add-action d-flex flex-column position-absolute">
-                                            <a href="compare.html" title="Compare">
-                                                <i class="lnr lnr-sync" data-toggle="tooltip" data-placement="left" title="Compare"></i>
-                                            </a>
-                                            <a href="wishlist.html" title="Add To Wishlist">
-                                                <i class="lnr lnr-heart" data-toggle="tooltip" data-placement="left" title="Wishlist"></i>
-                                            </a>
-                                            <a href="#exampleModalCenter" title="Quick View" data-bs-toggle="modal" data-bs-target="#exampleModalCenter">
-                                                <i class="lnr lnr-eye" data-toggle="tooltip" data-placement="left" title="Quick View"></i>
-                                            </a>
-                                        </div>
-                                    </div>
-                                    <div class="product-content">
-                                        <div class="product-title">
-                                            <h4 class="title-2"> <a href="@url">@item.CarName</a></h4>
-                                        </div>
-                                        <div class="product-rating">
-                                            <i class="fa fa-star"></i>
-                                            <i class="fa fa-star"></i>
-                                            <i class="fa fa-star"></i>
-                                            <i class="fa fa-star-o"></i>
-                                            <i class="fa fa-star-o"></i>
-                                        </div>
-                                        <div class="price-box">
-                                            <span class="regular-price ">$80.00</span>
-                                            <span class="old-price"><del>$90.00</del></span>
-                                        </div>
-                                        <button type="button" class="btn product-cart ajax-add-to-cart1" data-id="@item.CarId">Add to Cart</button>
-                                    </div>
-                                </div>
-                                <!--Single Product End-->
-                            </div>
-                        }
-                       
-                                
-                            </div>
-                            <!-- Slider pagination -->
-                            <div class="swiper-pagination default-pagination"></div>
-                        </div>
-                    </div>
-                </div>
+        <div class="col-6 col-md-4 col-lg-2">
+            <div class="p-3 rounded-3 h-100" style="background-color: var(--recar-secondary);">
+                <i class="bi bi-headset fs-4" style="color: var(--recar-primary);"></i>
+                <h6 class="fw-bold mt-2 mb-1" style="color: var(--recar-navy); font-size: 14px;">Hỗ trợ 24/7</h6>
+                <p class="small text-muted mb-0" style="font-size: 12px;">Luôn sẵn sàng khi bạn cần.</p>
             </div>
         </div>
-        <!-- Product Countdown Area End Here -->
-        <!-- History Area Start Here -->
-        <div class="our-history-area pt-text-3">
-            <div class="container">
-                <div class="row">
-                    <!--Section Title Start-->
-                    <div class="col-12">
-                        <div class="section-title text-center mb-30">
-                            <span class="section-title-1">Chương trình khuyển mại tết 2025</span>
-                            <h2 class="section-title-large">SALES EVENT</h2>
-                        </div>
-                    </div>
-                    <!--Section Title End-->
-                </div>
-                <div class="row">
-                    <div class="col-lg-8 ms-auto me-auto">
-                        <div class="history-area-content pb-0 mb-0 border-0 text-center">
-                        <p><strong>Tết đến, xe về - Ưu đãi ngập tràn, hành trình an toàn</strong></p>
-                        <p>Chào đón Tết với ưu đãi đặc biệt từ dịch vụ cho thuê xe của chúng tôi! Nhận ngay giảm giá hấp dẫn và tận hưởng hành trình an toàn, tiện lợi cùng gia đình và bạn bè. Đặt xe ngay hôm nay để có một mùa Tết trọn vẹn và đáng nhớ!</p>
-                        </div>
-                    </div>
-                </div>
+        <div class="col-6 col-md-4 col-lg-2">
+            <div class="p-3 rounded-3 h-100" style="background-color: var(--recar-secondary);">
+                <i class="bi bi-patch-check fs-4" style="color: var(--recar-primary);"></i>
+                <h6 class="fw-bold mt-2 mb-1" style="color: var(--recar-navy); font-size: 14px;">Minh bạch</h6>
+                <p class="small text-muted mb-0" style="font-size: 12px;">Thông tin xe rõ ràng.</p>
             </div>
         </div>
-        <!-- History Area End Here -->
-        <!-- Banner Area Start Here -->
-        <div class="banner-area mt-text-3">
-            <div class="container-fluid">
-                <div class="row">
-                    <div class="col-md-4 col-custom">
-                        <!--Single Banner Area Start-->
-                        <div class="single-banner hover-style mb-30">
-                            <div class="banner-img">
-                                <a href="#">
-                                    <img src="~/files/sale/3IU3X62.jpg" alt="">
-                                    <div class="overlay-1"></div>
-                                </a>
-                            </div>
-                        </div>
-                        <!--Single Banner Area End-->
-                    </div>
-                    <div class="col-md-4 col-custom">
-                        <!--Single Banner Area Start-->
-                        <div class="single-banner hover-style mb-30">
-                            <div class="banner-img">
-                                <a href="#">
-                                    <img src="~/files/sale/IT55BVCT.jpg" alt="">
-                                    <div class="overlay-1"></div>
-                                </a>
-                            </div>
-                        </div>
-                        <!--Single Banner Area End-->
-                    </div>
-                    <div class="col-md-4 col-custom">
-                        <!--Single Banner Area Start-->
-                        <div class="single-banner hover-style mb-30">
-                            <div class="banner-img">
-                                <a href="#">
-                                    <img src="~/files/sale/JYPBS7Z.jpg" alt="">
-                                    <div class="overlay-1"></div>
-                                </a>
-                            </div>
-                        </div>
-                        <!--Single Banner Area End-->
-                    </div>
-                </div>
+        <div class="col-6 col-md-4 col-lg-2">
+            <div class="p-3 rounded-3 h-100" style="background-color: var(--recar-secondary);">
+                <i class="bi bi-truck fs-4" style="color: var(--recar-primary);"></i>
+                <h6 class="fw-bold mt-2 mb-1" style="color: var(--recar-navy); font-size: 14px;">Giao xe tận nơi</h6>
+                <p class="small text-muted mb-0" style="font-size: 12px;">Theo điều kiện từng chủ xe.</p>
             </div>
         </div>
-        <!-- Banner Area End Here -->
-        <!-- Testimonial Area Start Here -->
-        <div class="testimonial-area mt-text-2">
-            <div class="container custom-area">
-                <div class="row">
-                    <!--Section Title Start-->
-                    <div class="col-12 col-custom">
-                        <div class="section-title text-center">
-                            <span class="section-title-1">We Love Our Clients</span>
-                            <h3 class="section-title-3">What They’re Saying</h3>
-                        </div>
-                    </div>
-                    <!--Section Title End-->
-                </div>
-                <div class="row">
-                    <div class="testimonial-carousel swiper-container intro11-carousel-wrap col-12 col-custom">
-                        <div class="swiper-wrapper">
-                            <div class="single-item swiper-slide">
-                                <!--Single Testimonial Start-->
-                                <div class="single-testimonial text-center">
-                                    <div class="testimonial-img">
-                                        <img src="~/assets/images/testimonial/testimonial1.jpg" alt="">
-                                    </div>
-                                    <div class="testimonial-content">
-                                        <p>These guys have been absolutely outstanding. Perfect Themes and the best of all that you have many options to choose! Best Support team ever! Very fast responding! Thank you very much! I highly recommend this theme and these people!</p>
-                                        <div class="testimonial-author">
-                                            <h6>Katherine Sullivan <span>Customer</span></h6>
-                                        </div>
-                                    </div>
-                                </div>
-                                <!--Single Testimonial End-->
-                            </div>
-                            <div class="single-item swiper-slide">
-                                <!--Single Testimonial Start-->
-                                <div class="single-testimonial text-center">
-                                    <div class="testimonial-img">
-                                        <img src="~/assets/images/testimonial/testimonial2.jpg" alt="">
-                                    </div>
-                                    <div class="testimonial-content">
-                                        <p>These guys have been absolutely outstanding. Perfect Themes and the best of all that you have many options to choose! Best Support team ever! Very fast responding! Thank you very much! I highly recommend this theme and these people!</p>
-                                        <div class="testimonial-author">
-                                            <h6>Alex Jhon <span>Customer</span></h6>
-                                        </div>
-                                    </div>
-                                </div>
-                                <!--Single Testimonial End-->
-                            </div>
-                        </div>
-                        <!-- Slider Navigation -->
-                        <div class="home1-slider-prev swiper-button-prev main-slider-nav"><i class="lnr lnr-arrow-left"></i></div>
-                        <div class="home1-slider-next swiper-button-next main-slider-nav"><i class="lnr lnr-arrow-right"></i></div>
-                        <!-- Slider pagination -->
-                        <div class="swiper-pagination default-pagination"></div>
-                    </div>
-                </div>
+        <div class="col-6 col-md-4 col-lg-2">
+            <div class="p-3 rounded-3 h-100" style="background-color: var(--recar-secondary);">
+                <i class="bi bi-file-earmark-check fs-4" style="color: var(--recar-primary);"></i>
+                <h6 class="fw-bold mt-2 mb-1" style="color: var(--recar-navy); font-size: 14px;">Điều khoản rõ ràng</h6>
+                <p class="small text-muted mb-0" style="font-size: 12px;">Hợp đồng và chính sách cụ thể.</p>
             </div>
         </div>
-        <!-- Testimonial Area End Here -->
-        <!-- Newsletter Area Start Here -->
-        <div class="news-letter-area gray-bg pt-no-text pb-no-text mt-text-3">
-            <div class="container custom-area">
-                <div class="row align-items-center">
-                    <!--Section Title Start-->
-                    <div class="col-md-6 col-custom">
-                        <div class="section-title text-left mb-35">
-                            <h3 class="section-title-3">Send Newsletter</h3>
-                            <p class="desc-content mb-0">Enter Your Email Address For Our Mailing List To Keep Your Self Update</p>
-                        </div>
-                    </div>
-                    <!--Section Title End-->
-                    <div class="col-md-6 col-custom">
-                        <div class="news-latter-box">
-                            <div class="newsletter-form-wrap text-center">
-                                <form id="mc-form" class="mc-form">
-                                    <input type="email" id="mc-email" class="form-control email-box" placeholder="email@example.com" name="EMAIL">
-                                    <button id="mc-submit" class="btn rounded-0" type="submit">Subscribe</button>
-                                </form>
-                                <!-- mailchimp-alerts Start -->
-                                <div class="mailchimp-alerts text-centre">
-                                    <div class="mailchimp-submitting"></div><!-- mailchimp-submitting end -->
-                                    <div class="mailchimp-success text-success"></div><!-- mailchimp-success end -->
-                                    <div class="mailchimp-error text-danger"></div><!-- mailchimp-error end -->
-                                </div>
-                                <!-- mailchimp-alerts end -->
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+    </section>
+
+    <!-- Danh mục dòng xe (Khớp 100% Ảnh 3) -->
+    <section class="mb-5">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="fs-4 fw-bold m-0" style="color: var(--recar-navy);">Danh mục dòng xe</h2>
         </div>
-        <!-- Newsletter Area End Here -->
-        <!-- Blog Area Start Here -->
-        <div class="blog-post-area mt-text-3">
-            <div class="container custom-area">
-                <div class="row">
-                    <!--Section Title Start-->
-                    <div class="col-12">
-                        <div class="section-title text-center mb-30">
-                            <span class="section-title-1">From The Blogs</span>
-                            <h3 class="section-title-3">Our Latest Posts</h3>
-                        </div>
-                    </div>
-                    <!--Section Title End-->
-                </div>
-                <div class="row">
-                    @* @await Component.InvokeAsync("Blog") *@
-            @foreach (var item in blogs.Take(3))
+        <div class="row row-cols-2 row-cols-md-5 g-3 align-items-stretch">
+            @if (carTypes != null && carTypes.Any())
             {
-                string url = $"/blog/{item.Alias}-{item.BlogId}.html";
-
-                <div class="col-12 col-md-4 col-lg-4 col-custom mb-30">
-                    <div class="blog-lst">
-                        <div class="single-blog">
-                            <div class="blog-image">
-                                <a class="d-block" href="@url">
-                                    <img src="@item.Image" alt="Blog Image" class="w-100">
-                                </a>
+                foreach (var ct in carTypes.Take(5))
+                {
+                    <div class="col d-flex">
+                        <a href="/Product?TypeId=@ct.TypeId" class="recar-cat-card w-100">
+                            <img src="@ct.Image" alt="@ct.CarTypeName" class="recar-cat-img" loading="lazy" />
+                            <div class="recar-cat-body">
+                                <span class="recar-cat-title" title="@ct.CarTypeName">@ct.CarTypeName</span>
+                                <span class="recar-cat-arrow">Xem xe →</span>
                             </div>
-                            <div class="blog-content">
-                                <div class="blog-text">
-                                    <h4><a href="@url">@item.Title</a></h4>
-                                    <div class="blog-post-info">
-                                        <span><a href="#">By @item.CreatedBy</a></span>
-                                        <span>@item.CreatedDate.Value.ToString("dd/MM/yyyy")</span>
-                                    </div>
-                                    <p>@item.Description.</p>
-                                    <a href="blog-details-fullwidth.html" class="readmore">Read More <i class="fa fa-long-arrow-right"></i></a>
-                                </div>
-                            </div>
-                        </div>
+                        </a>
                     </div>
-                </div>
-
+                }
             }
-                </div>
-            </div>
         </div>
-        <!-- Blog Area End Here -->
-        <!-- Brand Logo Area Start Here -->
-        <div class="brand-logo-area gray-bg pt-no-text pb-no-text mt-text-5">
-            <div class="container custom-area">
-                <div class="row">
-                    <div class="col-12 col-custom">
-                        <div class="brand-logo-carousel swiper-container intro11-carousel-wrap arrow-style-3">
-                            <div class="swiper-wrapper">
-                                <div class="single-brand swiper-slide">
-                                    <a href="#">
-                                        <img src="~/assets/images/brand/1.png" alt="Brand Logo">
-                                    </a>
+    </section>
+
+    <!-- Xe nổi bật và ưu đãi (Khớp 100% Ảnh 3) -->
+    <section class="mb-5">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="fs-4 fw-bold m-0" style="color: var(--recar-navy);">Xe nổi bật và ưu đãi</h2>
+            <a href="/Product" class="text-decoration-none fw-semibold small" style="color: var(--recar-primary);">
+                Xem tất cả →
+            </a>
+        </div>
+
+        <div class="row g-4">
+            @if (productFeatured != null && productFeatured.Any())
+            {
+                foreach (var car in productFeatured.Take(4))
+                {
+                    string detailUrl = $"/product/{car.Alias}-{car.CarId}.html";
+
+                    // Tag
+                    string tag = car.Badge ?? car.Descriptions;
+                    string tagClass = "recar-badge-featured";
+                    if (tag == "Xe điện" || (car.Fuel != null && car.Fuel.Contains("Điện")) || (car.CarBrand != null && car.CarBrand.ToLower().Contains("vinfast")))
+                    {
+                        tag = "Xe điện";
+                        tagClass = "recar-badge-electric";
+                    }
+                    else if (tag == "Ưu đãi" || car.IsSale)
+                    {
+                        tag = "Ưu đãi";
+                        tagClass = "recar-badge-promo";
+                    }
+                    else if (tag == "Nổi bật")
+                    {
+                        tagClass = "recar-badge-featured";
+                    }
+
+                    // Specs từ database thật
+                    string gear = car.Transmission ?? "Tự động";
+                    string fuel = car.Fuel ?? "Xăng";
+                    string location = car.Location ?? "Hà Nội";
+                    int reviews = car.Trips ?? 50;
+
+                    decimal finalPrice = (car.SalePrice > 0 ? car.SalePrice : car.Price) ?? 0;
+
+                    <div class="col-12 col-sm-6 col-lg-3">
+                        <article class="recar-car-card">
+                            <div class="recar-car-media">
+                                <img src="@car.Image" alt="@car.CarName" class="recar-car-img" loading="lazy">
+                                @if (!string.IsNullOrEmpty(tag))
+                                {
+                                    <span class="recar-badge-tag @tagClass">@tag</span>
+                                }
+                            </div>
+                            <div class="recar-car-content">
+                                <div>
+                                    <p class="recar-car-brand">@car.CarBrand</p>
+                                    <h3 class="recar-car-name">@car.CarName</h3>
                                 </div>
-                                <div class="single-brand swiper-slide">
-                                    <a href="#">
-                                        <img src="~/assets/images/brand/2.png" alt="Brand Logo">
-                                    </a>
+                                <div class="recar-specs-grid">
+                                    <span class="recar-spec-item"><i class="bi bi-people"></i> @(car.Seat ?? 5) chỗ</span>
+                                    <span class="recar-spec-item"><i class="bi bi-gear"></i> @gear</span>
+                                    <span class="recar-spec-item"><i class="bi bi-fuel-pump"></i> @fuel</span>
                                 </div>
-                                <div class="single-brand swiper-slide">
-                                    <a href="#">
-                                        <img src="~/assets/images/brand/3.png" alt="Brand Logo">
-                                    </a>
+                                <div class="recar-meta-row">
+                                    <span class="recar-location-txt"><i class="bi bi-geo-alt"></i> @location</span>
+                                    <span class="recar-rating-txt"><i class="bi bi-star-fill text-warning"></i> @(car.Rate?.ToString("0.0") ?? "4.8") (@reviews)</span>
                                 </div>
-                                <div class="single-brand swiper-slide">
-                                    <a href="#">
-                                        <img src="~/assets/images/brand/4.png" alt="Brand Logo">
-                                    </a>
+                                <div class="recar-price-box">
+                                    <span class="recar-price-amount">@finalPrice.ToString("N0")đ</span>
+                                    <span class="recar-price-unit">/ngày</span>
                                 </div>
-                                <div class="single-brand swiper-slide">
-                                    <a href="#">
-                                        <img src="~/assets/images/brand/5.png" alt="Brand Logo">
-                                    </a>
+                                <div class="recar-card-actions">
+                                    <a href="@detailUrl" class="btn-card-outline">Xem chi tiết</a>
+                                    <a href="@detailUrl" class="btn-card-primary">Thuê ngay</a>
                                 </div>
                             </div>
-                            <!-- Slider Navigation -->
-                            <div class="home1-slider-prev swiper-button-prev main-slider-nav"><i class="lnr lnr-arrow-left"></i></div>
-                            <div class="home1-slider-next swiper-button-next main-slider-nav"><i class="lnr lnr-arrow-right"></i></div>
-                        </div>
+                        </article>
                     </div>
+                }
+            }
+        </div>
+    </section>
+
+    <!-- Thuê xe chỉ với 3 bước -->
+    <section class="mb-5">
+        <h2 class="fs-4 fw-bold mb-4" style="color: var(--recar-navy);">Thuê xe chỉ với 3 bước</h2>
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="p-4 rounded-3 border h-100 bg-white" style="box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);">
+                    <div style="font-size: 40px; font-weight: 800; color: rgba(2, 132, 199, 0.2); line-height: 1;">01</div>
+                    <i class="bi bi-search fs-3 my-2 d-block" style="color: var(--recar-primary);"></i>
+                    <h6 class="fw-bold mb-0" style="color: var(--recar-navy); font-size: 16px;">Chọn xe và thời gian thuê</h6>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="p-4 rounded-3 border h-100 bg-white" style="box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);">
+                    <div style="font-size: 40px; font-weight: 800; color: rgba(2, 132, 199, 0.2); line-height: 1;">02</div>
+                    <i class="bi bi-wallet2 fs-3 my-2 d-block" style="color: var(--recar-primary);"></i>
+                    <h6 class="fw-bold mb-0" style="color: var(--recar-navy); font-size: 16px;">Đặt cọc 30% trực tuyến</h6>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="p-4 rounded-3 border h-100 bg-white" style="box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);">
+                    <div style="font-size: 40px; font-weight: 800; color: rgba(2, 132, 199, 0.2); line-height: 1;">03</div>
+                    <i class="bi bi-key fs-3 my-2 d-block" style="color: var(--recar-primary);"></i>
+                    <h6 class="fw-bold mb-0" style="color: var(--recar-navy); font-size: 16px;">Nhận xe, kiểm tra giấy tờ và ký hợp đồng</h6>
                 </div>
             </div>
         </div>
-        <!-- Brand Logo Area End Here -->
+    </section>
+
+    <!-- Cẩm nang và tin tức (Theo template chuẩn) -->
+    <section class="mb-5">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="fs-4 fw-bold m-0" style="color: var(--recar-navy);">Cẩm nang và tin tức</h2>
+            <a href="/Blog" class="text-decoration-none fw-semibold small" style="color: var(--recar-primary);">
+                Xem tất cả bài viết →
+            </a>
+        </div>
+        <div class="row g-4">
+            <div class="col-md-4">
+                <article class="h-100 rounded-3 border bg-white overflow-hidden" style="box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04); display: flex; flex-direction: column;">
+                    <img src="/images/cars/car-sedan.jpg" alt="Kinh nghiệm thuê xe" style="aspect-ratio: 16/9; width: 100%; object-fit: cover;" />
+                    <div class="p-4 d-flex flex-column flex-grow-1">
+                        <p class="small text-muted mb-2">Cẩm nang · 08/10/2026</p>
+                        <h5 class="fw-bold mb-2" style="color: var(--recar-navy); font-size: 16px;">Kinh nghiệm thuê xe tự lái lần đầu</h5>
+                        <p class="small text-muted mb-3 flex-grow-1">Những điều cần kiểm tra trước khi nhận xe để chuyến đi suôn sẻ và an toàn.</p>
+                        <a href="/Blog" class="text-decoration-none fw-semibold small" style="color: var(--recar-primary);">Đọc thêm →</a>
+                    </div>
+                </article>
+            </div>
+            <div class="col-md-4">
+                <article class="h-100 rounded-3 border bg-white overflow-hidden" style="box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04); display: flex; flex-direction: column;">
+                    <img src="/images/cars/car-suv.jpg" alt="Giấy tờ cần chuẩn bị" style="aspect-ratio: 16/9; width: 100%; object-fit: cover;" />
+                    <div class="p-4 d-flex flex-column flex-grow-1">
+                        <p class="small text-muted mb-2">Cẩm nang · 02/10/2026</p>
+                        <h5 class="fw-bold mb-2" style="color: var(--recar-navy); font-size: 16px;">Giấy tờ cần chuẩn bị khi thuê ô tô</h5>
+                        <p class="small text-muted mb-3 flex-grow-1">CCCD, giấy phép lái xe và các giấy tờ đối chiếu khi ký hợp đồng thuê xe.</p>
+                        <a href="/Blog" class="text-decoration-none fw-semibold small" style="color: var(--recar-primary);">Đọc thêm →</a>
+                    </div>
+                </article>
+            </div>
+            <div class="col-md-4">
+                <article class="h-100 rounded-3 border bg-white overflow-hidden" style="box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04); display: flex; flex-direction: column;">
+                    <img src="/images/cars/hero.jpg" alt="Cung đường Đà Lạt" style="aspect-ratio: 16/9; width: 100%; object-fit: cover;" />
+                    <div class="p-4 d-flex flex-column flex-grow-1">
+                        <p class="small text-muted mb-2">Tin tức · 25/09/2026</p>
+                        <h5 class="fw-bold mb-2" style="color: var(--recar-navy); font-size: 16px;">5 cung đường đẹp quanh Đà Lạt</h5>
+                        <p class="small text-muted mb-3 flex-grow-1">Gợi ý lộ trình cuối tuần tuyệt vời cho những ai yêu thích lái xe đường đèo.</p>
+                        <a href="/News" class="text-decoration-none fw-semibold small" style="color: var(--recar-primary);">Đọc thêm →</a>
+                    </div>
+                </article>
+            </div>
+        </div>
+    </section>
+
+    <!-- Kết thúc danh sách Cẩm nang & tin tức -->
+</div>
+
 @section scripts {
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         $(document).ready(function () {
-             $(".ajax-add-to-cart1").click(function () {
-                 $.ajax({
-                       url: "/Cart/AddToCart",
-                      type: "POST",
-                      data: {
-                          id: $(this).data("id"),
-                          quantity: 1,
-                          type: "ajax"
-                      },
-                      success: function(data) {
-                          console.log(data);
-                                  Swal.fire({
-                                   position: "top-end",
-                                   icon: "success",
-                                   title: "Thêm vào giỏ hàng thành công",
-                                   showConfirmButton: false,
-                                   timer: 1500
-                                 });
-                                 appendNewCart();
-                      },
-                       error: function() {
-                                   Swal.fire({
-                                     icon: "error",
-                                     title: "Oops...",
-                                     text: "Không tìm thấy sản phẩm!",
-                                     footer: '<a href="#">Why do I have this issue?</a>'
-                                 });
-                       }
-                 });
-             });
+            // Chuyển đổi tab Tự lái / Có tài xế
+            $('#btnSelfDrive').on('click', function () {
+                $('.search-mode-tab').removeClass('active');
+                $(this).addClass('active');
+                $('#driveModeInput').val('Tự lái');
+            });
+
+            $('#btnWithDriver').on('click', function () {
+                $('.search-mode-tab').removeClass('active');
+                $(this).addClass('active');
+                $('#driveModeInput').val('Có tài xế');
+            });
         });
-
-        // Xử lý nút "Cùng đến nào" để cuộn đến phần tử mục tiêu
-               $("#scroll-to-countdown").click(function (e) {
-                   e.preventDefault();
-                   const targetElement = document.querySelector('.product-countdown-area.mt-text-3');
-                   if (targetElement) {
-                       targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                   } else {
-                       console.error("Không tìm thấy phần tử .product-countdown-area.mt-text-3");
-                   }
-               });
-           });
     </script>
-
-    <!-- Nút Cùng đến nào -->
-    <a href="javascript:void(0)" class="btn flosun-button secondary-btn theme-color rounded-0" id="scroll-to-countdown">Cùng đến nào</a>
 }
-
-
-

@@ -1,299 +1,368 @@
-﻿@model IEnumerable<CarRental.ViewModels.OrderDetailVM>
+@model IEnumerable<CarRental.ViewModels.OrderDetailVM>
 @using CarRental.Utilities;
 @{
-    ViewData["Title"] = "OrderDetails";
+    ViewData["Title"] = "Chi tiết đơn thuê xe #" + ViewBag.OrderId;
     Layout = "~/Views/Shared/_Layout.cshtml";
+    int statusId = ViewBag.StatusId != null ? (int)ViewBag.StatusId : 0;
+    string statusDescription = ViewBag.StatusDescription != null ? ViewBag.StatusDescription.ToString() : "";
+    string statusLower = !string.IsNullOrEmpty(statusDescription) ? statusDescription.ToLower() : "";
+    bool isCancelled = statusId == 2 || (!string.IsNullOrEmpty(statusDescription) && (statusLower.Contains("hủy") || statusLower.Contains("huy") || statusDescription.Contains("Huỷ")));
 }
 
 <style>
-    .order-detail-card {
-        background: white;
-        border-radius: 15px;
-        padding: 30px;
-        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
-        margin-bottom: 30px;
-    }
-    
-    .car-item-card {
-        background: #f7fafc;
-        border-radius: 12px;
-        padding: 20px;
-        margin-bottom: 20px;
-        border: 1px solid #e2e8f0;
-        transition: all 0.3s ease;
-    }
-    
-    .car-item-card:hover {
-        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-        border-color: #667eea;
-    }
-    
-    .car-image {
-        border-radius: 12px;
-        overflow: hidden;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-    }
-    
-    .car-image img {
-        width: 100%;
-        height: 200px;
-        object-fit: cover;
-    }
-    
-    .info-card {
-        background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
-        border-radius: 12px;
-        padding: 25px;
-        border-left: 4px solid #667eea;
-    }
-    
-    .info-row {
-        display: flex;
-        justify-content: space-between;
-        padding: 12px 0;
-        border-bottom: 1px solid #e2e8f0;
-    }
-    
-    .info-row:last-child {
-        border-bottom: none;
-    }
-    
-    .info-label {
+    .order-status-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 16px;
+        border-radius: 999px;
         font-weight: 600;
-        color: #4a5568;
+        font-size: 13px;
     }
-    
-    .info-value {
-        color: #2d3748;
-        font-weight: 500;
+    .status-badge-pending { background: #fef3c7; color: #92400e; }
+    .status-badge-cancelled { background: #fee2e2; color: #991b1b; }
+    .status-badge-paid { background: #dcfce7; color: #166534; }
+    .status-badge-delivery { background: #dbeafe; color: #1e40af; }
+
+    /* Modal Hợp đồng điện tử khổ A4 */
+    @@media print {
+        body * { visibility: hidden; }
+        #printableContract, #printableContract * { visibility: visible; }
+        #printableContract { position: absolute; left: 0; top: 0; width: 100%; }
     }
-    
-    .status-badge {
-        display: inline-block;
-        padding: 8px 16px;
-        border-radius: 20px;
-        font-size: 14px;
-        font-weight: 600;
+    .contract-paper {
+        background: #ffffff;
+        color: #1e293b;
+        font-family: "Times New Roman", Times, serif;
+        line-height: 1.6;
+        padding: 40px;
+        border: 1px solid #cbd5e1;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.06);
+    }
+    .contract-header-title {
+        font-size: 18px;
+        font-weight: bold;
         text-transform: uppercase;
-    }
-    
-    .status-cancelled {
-        background: #fed7d7;
-        color: #c53030;
-    }
-    
-    .status-cancelled-large {
-        background: linear-gradient(135deg, #fed7d7 0%, #fc8181 100%);
-        color: #c53030;
-        padding: 15px 30px;
-        border-radius: 12px;
-        font-size: 16px;
-        font-weight: 600;
         text-align: center;
-        display: block;
-        width: 100%;
-        border: 2px solid #fc8181;
-        cursor: not-allowed;
+        margin-bottom: 5px;
     }
-    
-    .btn-cancel {
-        background: linear-gradient(135deg, #fc8181 0%, #f56565 100%);
-        border: none;
-        border-radius: 8px;
-        padding: 12px 30px;
-        color: white;
-        font-weight: 600;
-        transition: all 0.3s ease;
-        width: 100%;
+    .contract-subtitle {
+        font-size: 14px;
+        text-align: center;
+        font-style: italic;
+        margin-bottom: 25px;
     }
-    
-    .btn-cancel:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 5px 15px rgba(252, 129, 129, 0.4);
-        color: white;
+    .contract-section-title {
+        font-size: 15px;
+        font-weight: bold;
+        margin-top: 20px;
+        margin-bottom: 8px;
+        border-bottom: 1px solid #e2e8f0;
+        padding-bottom: 4px;
     }
 </style>
 
-<!-- Breadcrumb Area Start Here -->
-<div class="breadcrumbs-area position-relative">
+<!-- Breadcrumb Area -->
+<div class="recar-section bg-light py-4 border-bottom">
     <div class="container">
-        <div class="row">
-            <div class="col-12 text-center">
-                <div class="breadcrumb-content position-relative section-content">
-                    <h3 class="title-3" style="color:white">Chi tiết đơn hàng</h3>
-                    <ul>
-                        <li><a href="index.html" style="color:white">Home</a></li>
-                        <li style="color:white">Chi tiết đơn hàng</li>
-                    </ul>
-                </div>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-2" style="font-size: 14px;">
+                <li class="breadcrumb-item"><a href="/" class="text-decoration-none text-muted">Trang chủ</a></li>
+                <li class="breadcrumb-item"><a href="/Accounts/Index?tab=orders" class="text-decoration-none text-muted">Đơn hàng của tôi</a></li>
+                <li class="breadcrumb-item active text-primary fw-bold" aria-current="page">Đơn thuê xe #@ViewBag.OrderId</li>
+            </ol>
+        </nav>
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <div>
+                <h2 class="fw-bold mb-1" style="color: var(--recar-dark);">Đơn thuê xe #@ViewBag.OrderId</h2>
+                <p class="text-muted mb-0">Theo dõi thông tin phương tiện, lịch trình nhận - trả xe và hợp đồng điện tử</p>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                @if (isCancelled)
+                {
+                    <span class="order-status-pill status-badge-cancelled">
+                        <i class="bi bi-x-circle-fill"></i> Đã hủy
+                    </span>
+                }
+                else if (statusId == 3)
+                {
+                    <span class="order-status-pill status-badge-paid">
+                        <i class="bi bi-check-circle-fill"></i> Đã đặt cọc / Hoàn thành
+                    </span>
+                }
+                else
+                {
+                    <span class="order-status-pill status-badge-pending">
+                        <i class="bi bi-clock-history"></i> @(string.IsNullOrEmpty(statusDescription) ? "Đang xử lý" : statusDescription)
+                    </span>
+                }
             </div>
         </div>
     </div>
 </div>
-<!-- Breadcrumb Area End Here -->
-<!-- cart main wrapper start -->
-<div class="cart-main-wrapper mt-no-text" style="margin-bottom:100px">
-    <div class="container custom-area">
-        <div class="order-detail-card">
-            <h2 style="color: #2d3748; margin-bottom: 30px; font-weight: 600;">
-                <i class="bi bi-receipt"></i> Chi tiết đơn hàng #@ViewBag.OrderId
-            </h2>
-            
-            <div class="row">
-                <div class="col-lg-8">
-                    <h4 style="color: #4a5568; margin-bottom: 20px; font-weight: 600;">
-                        <i class="bi bi-car-front"></i> Danh sách xe
-                    </h4>
-                    @foreach(var item in Model) {
-                        <div class="car-item-card">
-                            <div class="row align-items-center">
-                                <div class="col-md-3">
-                                    <div class="car-image">
-                                        <img src="@item.Image" alt="@item.CarName" />
-                                    </div>
+
+<div class="recar-section py-5">
+    <div class="container">
+        <div class="row g-4">
+            <!-- Cột trái: Danh sách xe trong đơn -->
+            <div class="col-lg-8">
+                <div class="card border-0 shadow-sm rounded-4 p-4 mb-4">
+                    <h5 class="fw-bold mb-3 d-flex align-items-center">
+                        <i class="bi bi-car-front text-primary me-2"></i>
+                        Phương tiện trong hợp đồng thuê
+                    </h5>
+
+                    <div class="d-flex flex-column gap-3">
+                        @foreach(var item in Model) {
+                            <div class="p-3 bg-light rounded-3 border d-flex flex-column flex-md-row gap-3 align-items-md-center">
+                                <div style="width: 140px; height: 95px; flex-shrink: 0;" class="rounded-3 overflow-hidden bg-white border">
+                                    <img src="@item.Image" alt="@item.CarName" class="w-100 h-100 object-fit-cover" onerror="this.src='/images/cars/car-sedan.jpg'">
                                 </div>
-                                <div class="col-md-9">
-                                    <h5 style="color: #2d3748; font-weight: 600; margin-bottom: 15px;">
-                                        @item.CarName
-                                    </h5>
-                                    <div class="row">
-                                        <div class="col-md-4 mb-2">
-                                            <div style="color: #718096; font-size: 13px; margin-bottom: 5px;">
-                                                <i class="bi bi-calendar-check"></i> Ngày nhận
-                                            </div>
-                                            <div style="font-weight: 600; color: #2d3748;">
-                                                @item.pickupDate.ToString("dd/MM/yyyy")
-                                            </div>
+                                <div class="flex-grow-1">
+                                    <h6 class="fw-bold text-dark mb-1">@item.CarName</h6>
+                                    <div class="row g-2 small text-muted mt-1">
+                                        <div class="col-sm-6">
+                                            <i class="bi bi-calendar-check text-success me-1"></i> <strong>Nhận xe:</strong> @item.pickupDate.ToString("dd/MM/yyyy")
                                         </div>
-                                        <div class="col-md-4 mb-2">
-                                            <div style="color: #718096; font-size: 13px; margin-bottom: 5px;">
-                                                <i class="bi bi-calendar-x"></i> Ngày trả
-                                            </div>
-                                            <div style="font-weight: 600; color: #2d3748;">
-                                                @item.returnDate.ToString("dd/MM/yyyy")
-                                            </div>
+                                        <div class="col-sm-6">
+                                            <i class="bi bi-calendar-x text-danger me-1"></i> <strong>Trả xe:</strong> @item.returnDate.ToString("dd/MM/yyyy")
                                         </div>
-                                        <div class="col-md-4 mb-2">
-                                            <div style="color: #718096; font-size: 13px; margin-bottom: 5px;">
-                                                <i class="bi bi-123"></i> Số lượng
-                                            </div>
-                                            <div style="font-weight: 600; color: #2d3748; font-size: 18px;">
-                                                @item.Quantity
-                                            </div>
+                                        <div class="col-sm-6">
+                                            <i class="bi bi-clock-history text-primary me-1"></i> <strong>Thời gian:</strong> @((item.returnDate - item.pickupDate).Days > 0 ? (item.returnDate - item.pickupDate).Days : 1) ngày
+                                        </div>
+                                        <div class="col-sm-6">
+                                            <i class="bi bi-cash-stack text-warning me-1"></i> <strong>Số lượng:</strong> @item.Quantity xe
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                    }
+                        }
+                    </div>
                 </div>
-                
-                <div class="col-lg-4">
-                    <div class="info-card">
-                        <h4 style="color: #2d3748; margin-bottom: 20px; font-weight: 600;">
-                            <i class="bi bi-geo-alt-fill"></i> Địa chỉ nhận hàng
-                        </h4>
-                        <div class="info-row">
-                            <span class="info-label"><i class="bi bi-person"></i> Tên người nhận</span>
-                            <span class="info-value">@Function.GetUserName(Context.Session)</span>
+
+                <!-- Cam kết an toàn & hỗ trợ cứu hộ -->
+                <div class="card border-0 shadow-sm rounded-4 p-4 bg-primary text-white">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="fs-1 text-white opacity-75">
+                            <i class="bi bi-headset"></i>
                         </div>
-                        <div class="info-row">
-                            <span class="info-label"><i class="bi bi-telephone"></i> Số điện thoại</span>
-                            <span class="info-value">@Function.GetPhone(Context.Session)</span>
+                        <div>
+                            <h6 class="fw-bold mb-1">Cần hỗ trợ trong hành trình thuê xe?</h6>
+                            <p class="small mb-0 opacity-75">Đội ngũ kỹ thuật & Cứu hộ 24/7 của ReCar luôn đồng hành cùng bạn trên mọi cung đường.</p>
                         </div>
-                        <div class="info-row">
-                            <span class="info-label"><i class="bi bi-geo-alt"></i> Địa chỉ</span>
-                            <span class="info-value" style="text-align: right;">@Function.GetAddress(Context.Session)</span>
+                        <div class="ms-auto">
+                            <a href="tel:19006868" class="btn btn-light rounded-pill px-3 py-2 fw-bold text-primary small text-nowrap">
+                                <i class="bi bi-telephone-fill me-1"></i> 1900 6868
+                            </a>
                         </div>
                     </div>
-                    
-                    @{
-                        int statusId = ViewBag.StatusId != null ? (int)ViewBag.StatusId : 0;
-                        string statusDescription = ViewBag.StatusDescription != null ? ViewBag.StatusDescription.ToString() : "";
-                        // Kiểm tra cả StatusId = 2 hoặc StatusDescription chứa "hủy", "Huỷ", "huy" (không dấu)
-                        string statusLower = !string.IsNullOrEmpty(statusDescription) ? statusDescription.ToLower() : "";
-                        bool isCancelled = statusId == 2 || 
-                                         (!string.IsNullOrEmpty(statusDescription) && 
-                                          (statusLower.Contains("hủy") || 
-                                           statusLower.Contains("huy") ||
-                                           statusDescription.Contains("Huỷ")));
-                    }
+                </div>
+            </div>
+
+            <!-- Cột phải: Thông tin người nhận, Thao tác Hợp đồng -->
+            <div class="col-lg-4">
+                <div class="card border-0 shadow-sm rounded-4 p-4 mb-4">
+                    <h5 class="fw-bold mb-3 border-bottom pb-3">Thông tin nhận xe</h5>
+
+                    <div class="mb-3">
+                        <label class="text-muted small d-block">Người nhận xe:</label>
+                        <span class="fw-bold text-dark fs-6">@Function.GetUserName(Context.Session)</span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="text-muted small d-block">Số điện thoại liên hệ:</label>
+                        <span class="fw-bold text-dark">@(string.IsNullOrEmpty(Function.GetPhone(Context.Session)) ? "Chưa cập nhật" : Function.GetPhone(Context.Session))</span>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="text-muted small d-block">Địa chỉ giao nhận xe:</label>
+                        <span class="text-secondary small">@(string.IsNullOrEmpty(Function.GetAddress(Context.Session)) ? "Nhận tại địa chỉ bàn giao ReCar" : Function.GetAddress(Context.Session))</span>
+                    </div>
+
+                    <hr class="my-3">
+
+                    <!-- Nút xem hợp đồng điện tử -->
+                    <button type="button" class="btn btn-outline-primary w-100 rounded-3 py-2 fw-bold mb-3" data-bs-toggle="modal" data-bs-target="#contractModal">
+                        <i class="bi bi-file-earmark-text-fill me-1"></i> Xem Hợp đồng điện tử
+                    </button>
+
                     @if (isCancelled)
                     {
-                        <!-- Đơn hàng đã hủy - chỉ hiển thị badge, không có nút hủy -->
-                        <div style="margin-top: 20px;">
-                            <div class="status-cancelled-large">
-                                <i class="bi bi-x-circle-fill"></i> Đã hủy
-                            </div>
+                        <div class="alert alert-secondary text-center small mb-0 rounded-3">
+                            <i class="bi bi-info-circle me-1"></i> Đơn hàng này đã được hủy thành công.
                         </div>
                     }
                     else
                     {
-                        <!-- Đơn hàng chưa hủy - hiển thị nút hủy đơn hàng -->
-                        <form id="cancelOrderForm" style="margin-top: 20px;">
+                        <form id="cancelOrderForm">
                             <input type="hidden" id="orderId" value="@ViewBag.OrderId" />
-                            <button type="submit" class="btn-cancel">
-                                <i class="bi bi-x-circle"></i> Hủy đơn hàng
+                            <button type="submit" class="btn btn-outline-danger w-100 rounded-3 py-2 fw-semibold small">
+                                <i class="bi bi-x-circle me-1"></i> Yêu cầu hủy đơn thuê xe
                             </button>
                         </form>
                     }
+                </div>
+
+                <div class="text-center">
+                    <a href="/Accounts/Index?tab=orders" class="text-decoration-none text-muted small">
+                        <i class="bi bi-arrow-left me-1"></i> Quay lại danh sách đơn hàng
+                    </a>
                 </div>
             </div>
         </div>
     </div>
 </div>
-<!-- cart main wrapper end -->
+
+<!-- MODAL HỢP ĐỒNG ĐIỆN TỬ CHUẨN A4 -->
+<div class="modal fade" id="contractModal" tabindex="-1" aria-labelledby="contractModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content rounded-4 border-0">
+            <div class="modal-header border-bottom">
+                <h5 class="modal-title fw-bold" id="contractModalLabel">
+                    <i class="bi bi-file-earmark-check text-primary me-2"></i>
+                    Hợp đồng điện tử thuê xe ô tô #@ViewBag.OrderId
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4 bg-light">
+                <div id="printableContract" class="contract-paper rounded-3">
+                    <div class="text-center mb-4">
+                        <div class="fw-bold" style="font-size: 14px;">CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</div>
+                        <div class="fw-semibold" style="font-size: 13px;">Độc lập – Tự do – Hạnh phúc</div>
+                        <div style="letter-spacing: 2px;">---------o0o---------</div>
+                    </div>
+
+                    <div class="contract-header-title">HỢP ĐỒNG THUÊ XE Ô TÔ TỰ LÁI ĐIỆN TỬ</div>
+                    <div class="contract-subtitle">Số hợp đồng: HD-RECAR-@ViewBag.OrderId / 2026</div>
+
+                    <p>Hôm nay, ngày @DateTime.Now.ToString("dd") tháng @DateTime.Now.ToString("MM") năm @DateTime.Now.ToString("yyyy"), tại hệ thống Nền tảng Cho thuê xe trực tuyến ReCar, hai bên gồm có:</p>
+
+                    <div class="contract-section-title">BÊN A (BÊN CHO THUÊ / NỀN TẢNG):</div>
+                    <ul class="list-unstyled mb-2">
+                        <li><strong>Đại diện:</strong> Công ty TNHH Dịch vụ Vận tải ReCar Việt Nam & Chủ sở hữu phương tiện</li>
+                        <li><strong>Địa chỉ trụ sở:</strong> Tòa nhà ReCar Tower, Đường Cầu Giấy, TP. Hà Nội</li>
+                        <li><strong>Hotline hỗ trợ:</strong> 1900 6868 - Email: support@recar.vn</li>
+                    </ul>
+
+                    <div class="contract-section-title">BÊN B (BÊN THUÊ XE):</div>
+                    <ul class="list-unstyled mb-2">
+                        <li><strong>Họ và tên:</strong> @Function.GetUserName(Context.Session)</li>
+                        <li><strong>Số điện thoại:</strong> @Function.GetPhone(Context.Session)</li>
+                        <li><strong>Địa chỉ liên hệ:</strong> @Function.GetAddress(Context.Session)</li>
+                        <li><strong>Hình thức xác thực:</strong> Đã đối chiếu thông tin Giấy phép lái xe qua hệ thống CSDL ReCar.</li>
+                    </ul>
+
+                    <div class="contract-section-title">ĐIỀU 1: PHƯƠNG TIỆN VÀ THỜI GIAN THUÊ</div>
+                    <p class="mb-2">Bên A đồng ý giao và Bên B đồng ý thuê phương tiện theo chi tiết sau:</p>
+                    <table class="table table-bordered table-sm small mb-3">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Tên xe</th>
+                                <th>Ngày nhận</th>
+                                <th>Ngày hoàn trả</th>
+                                <th>Số lượng</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach(var item in Model) {
+                                <tr>
+                                    <td><strong>@item.CarName</strong></td>
+                                    <td>@item.pickupDate.ToString("dd/MM/yyyy")</td>
+                                    <td>@item.returnDate.ToString("dd/MM/yyyy")</td>
+                                    <td>@item.Quantity xe</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+
+                    <div class="contract-section-title">ĐIỀU 2: GIÁ THUÊ VÀ ĐẶT CỌC</div>
+                    <ul>
+                        <li>Bên B có nghĩa vụ thanh toán khoản tiền cọc 30% giá trị hợp đồng để đảm bảo giữ chỗ xe hợp lệ trên hệ thống.</li>
+                        <li>Số tiền còn lại (70%) sẽ được thanh toán cho Bên A hoặc Đại diện chủ xe ngay khi bàn giao xe thực tế và ký biên bản kiểm tra tình trạng xe.</li>
+                    </ul>
+
+                    <div class="contract-section-title">ĐIỀU 3: TRÁCH NHIỆM VÀ CAM KẾT CỦA HAI BÊN</div>
+                    <ul>
+                        <li><strong>Bên A:</strong> Cam kết bàn giao phương tiện đúng chủng loại, đảm bảo tiêu chuẩn kỹ thuật an toàn, có đầy đủ bảo hiểm bắt buộc và tự nguyện theo quy định của pháp luật.</li>
+                        <li><strong>Bên B:</strong> Cam kết sử dụng xe đúng mục đích, chấp hành nghiêm chỉnh Luật Giao thông đường bộ, không sử dụng xe vào các hành vi vi phạm pháp luật.</li>
+                    </ul>
+
+                    <div class="row mt-5 pt-3">
+                        <div class="col-6 text-center">
+                            <strong>ĐẠI DIỆN BÊN B (BÊN THUÊ)</strong>
+                            <div class="text-muted small mt-1">(Đã ký xác nhận điện tử)</div>
+                            <div class="mt-4 fw-bold text-primary">@Function.GetUserName(Context.Session)</div>
+                        </div>
+                        <div class="col-6 text-center">
+                            <strong>ĐẠI DIỆN BÊN A (RECAR)</strong>
+                            <div class="text-muted small mt-1">(Ký số & Đóng dấu điện tử)</div>
+                            <div class="mt-4 text-danger fw-bold">
+                                <i class="bi bi-patch-check-fill me-1"></i> RECAR VIETNAM VERIFIED
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-top bg-white">
+                <button type="button" class="btn btn-secondary rounded-3 px-4" data-bs-dismiss="modal">Đóng</button>
+                <button type="button" class="btn btn-primary rounded-3 px-4 fw-bold" onclick="window.print()">
+                    <i class="bi bi-printer-fill me-1"></i> In / Xuất PDF Hợp đồng
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 
 @section scripts{
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         $(document).on('submit', '#cancelOrderForm', function (e) {
-            e.preventDefault(); // Ngừng việc gửi form theo cách mặc định
+            e.preventDefault();
+            var orderId = $('#orderId').val();
 
-            var orderId = $('#orderId').val(); // Lấy orderId từ hidden input
-
-            // Hiển thị hộp thoại xác nhận hủy đơn hàng
             Swal.fire({
-                title: 'Bạn có chắc chắn muốn hủy đơn hàng?',
-                text: 'Hành động này không thể hoàn tác!',
+                title: 'Hủy đơn thuê xe này?',
+                text: 'Nếu đã đặt cọc trước 24h, tiền cọc sẽ được hoàn lại theo chính sách của ReCar.',
                 icon: 'warning',
                 showCancelButton: true,
-                confirmButtonColor: '#3085d6',
-                cancelButtonColor: '#d33',
-                confirmButtonText: 'Đồng ý hủy!',
-                cancelButtonText: 'Không'
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: 'Đồng ý hủy đơn',
+                cancelButtonText: 'Không, giữ lại'
             }).then((result) => {
                 if (result.isConfirmed) {
-                    // Gửi yêu cầu hủy đơn hàng qua AJAX
                     $.ajax({
-                        url: '/Accounts/CancelOrder', // Đặt đúng URL cho controller và action
+                        url: '/Accounts/CancelOrder',
                         type: 'POST',
                         data: { orderId: orderId },
                         success: function (response) {
                             if (response.success) {
                                 Swal.fire({
-                                    title: 'Thành công!',
+                                    title: 'Đã hủy thành công!',
                                     text: response.message,
                                     icon: 'success',
-                                    confirmButtonText: 'OK'
+                                    confirmButtonText: 'OK',
+                                    confirmButtonColor: '#2563eb'
                                 }).then(() => {
-                                    window.location.href = "/Accounts/Index"; // Chuyển hướng về trang danh sách đơn hàng
+                                    window.location.href = "/Accounts/Index?tab=orders";
                                 });
                             } else {
                                 Swal.fire({
-                                    title: 'Lỗi!',
+                                    title: 'Không thể hủy!',
                                     text: response.message,
                                     icon: 'error',
-                                    confirmButtonText: 'OK'
+                                    confirmButtonText: 'Đóng',
+                                    confirmButtonColor: '#2563eb'
                                 });
                             }
                         },
                         error: function () {
                             Swal.fire({
-                                title: 'Oops!',
-                                text: 'Đã có lỗi xảy ra. Vui lòng thử lại.',
+                                title: 'Lỗi',
+                                text: 'Đã xảy ra lỗi khi hủy đơn. Vui lòng thử lại sau.',
                                 icon: 'error',
-                                confirmButtonText: 'OK'
+                                confirmButtonText: 'OK',
+                                confirmButtonColor: '#2563eb'
                             });
                         }
                     });
@@ -301,5 +370,4 @@
             });
         });
     </script>
-
 }

@@ -1,500 +1,206 @@
-﻿<!doctype html>
-<html class="no-js" lang="en">
-
-
-<!-- Mirrored from htmldemo.net/flosun/flosun/index.html by HTTrack Website Copier/3.x [XR&CO'2014], Sun, 04 Dec 2022 05:03:14 GMT -->
+@using CarRental.Utilities
+<!doctype html>
+<html lang="vi">
 <head>
     <meta charset="utf-8">
     <meta http-equiv="x-ua-compatible" content="ie=edge">
-    <title>ReCar</title>
-    <meta name="robots" content="noindex, follow" />
-    <meta name="description" content="">
+    <title>ReCar – Hệ thống cho thuê xe ô tô trực tuyến</title>
+    <meta name="description" content="ReCar – nền tảng cho thuê ô tô kết nối khách thuê và chủ xe.">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <!-- Favicon -->
     <link rel="shortcut icon" type="image/x-icon" href="~/assets/images/favicon.ico">
 
-    <!-- CSS
-    ============================================ -->
-    <!-- Bootstrap CSS -->
+    <!-- CSS Vendor & Bootstrap -->
     <link rel="stylesheet" href="~/assets/css/vendor/bootstrap.min.css">
-    <!-- Font Awesome CSS -->
-    <link rel="stylesheet" href="~/assets/css/vendor/font.awesome.min.css">
-    <!-- Linear Icons CSS -->
-    <link rel="stylesheet" href="~/assets/css/vendor/linearicons.min.css">
-    <!-- Swiper CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link rel="stylesheet" href="~/assets/css/plugins/swiper-bundle.min.css">
-    <!-- Animation CSS -->
-    <link rel="stylesheet" href="~/assets/css/plugins/animate.min.css">
-    <!-- Jquery ui CSS -->
-    <link rel="stylesheet" href="~/assets/css/plugins/jquery-ui.min.css">
-    <!-- Nice Select CSS -->
-    <link rel="stylesheet" href="~/assets/css/plugins/nice-select.min.css">
-    <!-- Magnific Popup -->
-    <link rel="stylesheet" href="~/assets/css/plugins/magnific-popup.css">
 
-    <!-- Main Style CSS -->
-    <link rel="stylesheet" href="~/assets/css/style.css">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
-    <link rel="stylesheet" href="~/assets/css/uploadimage.css">
+    <!-- ReCar Core Design System -->
+    <link rel="stylesheet" href="~/assets/css/recar.css">
+
     @RenderSection("style", required: false)
-
 </head>
 <body>
 
-    <!-- Header Area Start Here -->
-    <header class="main-header-area">
-        <!-- Main Header Area Start -->
-        <div class="main-header header-transparent header-sticky">
-            <div class="container-fluid">
-                <div class="row align-items-center">
-                    <div class="col-lg-2 col-xl-2 col-md-6 col-6 col-custom">
-                        <div class="header-logo d-flex align-items-center">
-                            <a asp-controller="Home" asp-action="Index">
-                                <img class="img-full" src="~/assets/images/logo/logo.png" alt="Header Logo">
-                            </a>
-                        </div>
-                    </div>
-                    <div class="col-lg-8 d-none d-lg-flex justify-content-center col-custom">
-                        <nav class="main-nav d-none d-lg-flex">
-                            <ul class="nav">
-                               @await Component.InvokeAsync("MenuTop")
-                            </ul>
-                        </nav>
-                    </div>
-                    <div class="col-lg-2 col-md-6 col-6 col-custom">
-                        <div class="header-right-area main-nav">
-                            <ul class="nav">
-                                @await Component.InvokeAsync("MiniCart")
-                                <li class="sidemenu-wrap">
-                                    <a href="#"><i class="fa fa-search"></i> </a>
-                                    <ul class="dropdown-sidemenu dropdown-hover-2 dropdown-search">
-                                        <li>
-                                            <form action="#">
-                                                <input name="search" id="search" placeholder="Search" type="text">
-                                                <button type="submit"><i class="fa fa-search"></i></button>
-                                            </form>
-                                        </li>
-                                    </ul>
-                                </li>
-                                
-                                <li class="account-menu-wrap d-none d-lg-flex">
-                                    <a asp-controller="Accounts" asp-action="Index"  class="off-canvas-menu-btn">
-                                        <i class="bi bi-person-fill"></i>
-                                    </a>
-                                    <ul class="dropdown-sidemenu dropdown-hover-2">
-                                        <li><a asp-controller="Accounts" asp-action="Index">Tài khoản</a></li>
-                                        @if (Function._CarOwnerAccountId > 0)
-                                        {
-                                            <li><a asp-controller="Accounts" asp-action="GoToCarOwner">Vào trang quản lý xe</a></li>
-                                        }
-                                    </ul>
-                                </li>
-                                <li class="mobile-menu-btn d-lg-none">
-                                    <a class="off-canvas-btn" href="#">
-                                        <i class="fa fa-bars"></i>
-                                    </a>
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <!-- Main Header Area End -->
-        <!-- off-canvas menu start -->
-        <aside class="off-canvas-wrapper" id="mobileMenu">
-            <div class="off-canvas-overlay"></div>
-            <div class="off-canvas-inner-content">
-                <div class="btn-close-off-canvas">
-                    <i class="fa fa-times"></i>
-                </div>
-                <div class="off-canvas-inner">
-                    <div class="search-box-offcanvas">
-                        <form>
-                            <input type="text" placeholder="Search product...">
-                            <button class="search-btn"><i class="fa fa-search"></i></button>
-                        </form>
-                    </div>
-                    <!-- mobile menu start -->
-                    <div class="mobile-navigation">
-                        <!-- mobile menu navigation start -->
-                        <nav>
-                            <ul class="mobile-menu">
-                                <li class="menu-item-has-children">
-                                    <a href="#">Home</a>
-                                    <ul class="dropdown">
-                                        <li><a href="index.html">Home Page 1</a></li>
-                                        <li><a href="index-2.html">Home Page 2</a></li>
-                                        <li><a href="index-3.html">Home Page 3</a></li>
-                                        <li><a href="index-4.html">Home Page 4</a></li>
-                                    </ul>
-                                </li>
-                                <li class="menu-item-has-children">
-                                    <a href="#">Shop</a>
-                                    <ul class="megamenu dropdown">
-                                        <li class="mega-title has-children">
-                                            <a href="#">Shop Layouts</a>
-                                            <ul class="dropdown">
-                                                <li><a href="shop.html">Shop Left Sidebar</a></li>
-                                                <li><a href="shop-right-sidebar.html">Shop Right Sidebar</a></li>
-                                                <li><a href="shop-list-left.html">Shop List Left Sidebar</a></li>
-                                                <li><a href="shop-list-right.html">Shop List Right Sidebar</a></li>
-                                                <li><a href="shop-fullwidth.html">Shop Full Width</a></li>
-                                            </ul>
-                                        </li>
-                                        <li class="mega-title has-children">
-                                            <a href="#">Product Details</a>
-                                            <ul class="dropdown">
-                                                <li><a href="product-details.html">Single Product Details</a></li>
-                                                <li><a href="variable-product-details.html">Variable Product Details</a></li>
-                                                <li><a href="external-product-details.html">External Product Details</a></li>
-                                                <li><a href="gallery-product-details.html">Gallery Product Details</a></li>
-                                                <li><a href="countdown-product-details.html">Countdown Product Details</a></li>
-                                            </ul>
-                                        </li>
-                                        <li class="mega-title has-children">
-                                            <a href="#">Others</a>
-                                            <ul class="dropdown">
-                                                <li><a href="error404.html">Error 404</a></li>
-                                                <li><a href="compare.html">Compare Page</a></li>
-                                                <li><a href="@Url.Action("Index", "Cart")">Cart Page</a></li>
-                                                <li><a href="@Url.Action("Checkout", "Cart")">Checkout Page</a></li>
-                                                <li><a href="wishlist.html">Wish List Page</a></li>
-                                            </ul>
-                                        </li>
-                                    </ul>
-                                </li>
-                                <li class="menu-item-has-children ">
-                                    <a href="#">Blog</a>
-                                    <ul class="dropdown">
-                                        <li><a href="blog.html">Blog Left Sidebar</a></li>
-                                        <li><a href="blog-list-right-sidebar.html">Blog List Right Sidebar</a></li>
-                                        <li><a href="blog-list-fullwidth.html">Blog List Fullwidth</a></li>
-                                        <li><a href="blog-grid.html">Blog Grid Page</a></li>
-                                        <li><a href="blog-grid-right-sidebar.html">Blog Grid Right Sidebar</a></li>
-                                        <li><a href="blog-grid-fullwidth.html">Blog Grid Fullwidth</a></li>
-                                        <li><a href="blog-details-sidebar.html">Blog Details Sidebar Page</a></li>
-                                        <li><a href="blog-details-fullwidth.html">Blog Details Fullwidth Page</a></li>
-                                    </ul>
-                                </li>
-                                <li class="menu-item-has-children ">
-                                    <a href="#">Pages</a>
-                                    <ul class="dropdown">
-                                        <li><a href="frequently-questions.html">FAQ</a></li>
-                                        <li><a href="my-account.html">My Account</a></li>
-                                        <li><a href="login-register.html">login &amp; register</a></li>
-                                    </ul>
-                                </li>
-                                <li><a href="about-us.html">About Us</a></li>
-                                <li><a href="contact-us.html">Contact</a></li>
-                            </ul>
-                        </nav>
-                        <!-- mobile menu navigation end -->
-                    </div>
-                    <!-- mobile menu end -->
-                    <div class="offcanvas-widget-area">
-                        <div class="switcher">
-                            <div class="language">
-                                <span class="switcher-title">Language: </span>
-                                <div class="switcher-menu">
-                                    <ul>
-                                        <li>
-                                            <a href="#">English</a>
-                                            <ul class="switcher-dropdown">
-                                                <li><a href="#">German</a></li>
-                                                <li><a href="#">French</a></li>
-                                            </ul>
-                                        </li>
-                                    </ul>
+    <!-- ReCar Header (Pixel-perfect Ảnh 1) -->
+    <header class="recar-navbar">
+        <div class="recar-navbar-container">
+            <!-- Logo -->
+            <a href="/" class="d-flex align-items-center gap-2 text-decoration-none">
+                <span style="width: 36px; height: 36px; border-radius: 8px; background-color: var(--recar-primary); color: #fff; display: flex; align-items: center; justify-content: center;">
+                    <i class="bi bi-car-front-fill fs-5"></i>
+                </span>
+                <span style="font-size: 20px; font-weight: 800; color: var(--recar-navy); letter-spacing: -0.5px;">
+                    Re<span style="color: var(--recar-primary);">Car</span>
+                </span>
+            </a>
+
+            <!-- Navigation Links (Pill Style) -->
+            @{
+                var currentCtrl = ViewContext.RouteData.Values["controller"]?.ToString();
+                var currentAct = ViewContext.RouteData.Values["action"]?.ToString();
+            }
+            <nav class="d-none d-md-flex align-items-center gap-1">
+                <a href="/" class="recar-nav-pill @(currentCtrl == "Home" && currentAct == "Index" ? "active" : "")">Trang chủ</a>
+                <a href="/Product" class="recar-nav-pill @(currentCtrl == "Product" ? "active" : "")">Thuê xe</a>
+                <a href="/Blog" class="recar-nav-pill @(currentCtrl == "Blog" ? "active" : "")">Cẩm nang</a>
+                <a href="/News" class="recar-nav-pill @(currentCtrl == "News" ? "active" : "")">Tin tức</a>
+                <a href="/Contact" class="recar-nav-pill @(currentCtrl == "Contact" ? "active" : "")">Liên hệ</a>
+            </nav>
+
+            <!-- Navigation Actions: Khi chưa login hiện Đăng nhập/Đăng ký; sau khi login hiện avatar & tên user -->
+            @{
+                bool isLogged = Function.IsLogin(Context.Session);
+                string userName = Function.GetUserName(Context.Session);
+                if (string.IsNullOrEmpty(userName) && isLogged)
+                {
+                    userName = Function._UserName;
+                }
+
+                string initials = "U";
+                if (!string.IsNullOrEmpty(userName))
+                {
+                    var words = userName.Trim().Split(' ');
+                    if (words.Length >= 2)
+                    {
+                        initials = $"{words[0][0]}{words[words.Length - 1][0]}".ToUpper();
+                    }
+                    else if (words.Length == 1 && words[0].Length >= 2)
+                    {
+                        initials = words[0].Substring(0, 2).ToUpper();
+                    }
+                    else if (words.Length == 1 && words[0].Length == 1)
+                    {
+                        initials = words[0].ToUpper();
+                    }
+                }
+            }
+
+            @if (isLogged)
+            {
+                <div class="d-flex align-items-center gap-2">
+                    <!-- Chuông thông báo -->
+                    <button type="button" aria-label="Thông báo" class="btn btn-link position-relative p-2 text-decoration-none" style="color: var(--recar-navy);">
+                        <i class="bi bi-bell fs-5"></i>
+                        <span class="position-absolute bg-danger rounded-circle" style="top: 8px; right: 8px; width: 8px; height: 8px;"></span>
+                    </button>
+
+                    <!-- User Dropdown Menu -->
+                    <div class="dropdown">
+                        <button class="user-pill-btn dropdown-toggle" type="button" id="recarUserMenu" data-bs-toggle="dropdown" aria-expanded="false" style="border: 1px solid #e2e8f0;">
+                            <span class="user-avatar-circle">@initials</span>
+                            <span class="text-sm fw-medium d-none d-sm-inline" style="font-size: 14px; font-weight: 500;">@userName</span>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end shadow-sm border p-2 mt-2" aria-labelledby="recarUserMenu" style="border-radius: 12px; min-width: 220px;">
+                            <li>
+                                <div class="px-3 py-2 border-bottom mb-1">
+                                    <p class="small fw-bold text-dark m-0">@userName</p>
+                                    <p class="text-muted m-0" style="font-size: 12px;">@Function.GetEmail(Context.Session)</p>
                                 </div>
-                            </div>
-                            <div class="currency">
-                                <span class="switcher-title">Currency: </span>
-                                <div class="switcher-menu">
-                                    <ul>
-                                        <li>
-                                            <a href="#">$ USD</a>
-                                            <ul class="switcher-dropdown">
-                                                <li><a href="#">€ EUR</a></li>
-                                            </ul>
-                                        </li>
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="top-info-wrap text-left text-black">
-                            <ul class="address-info">
-                                <li>
-                                    <i class="fa fa-phone"></i>
-                                    <a href="info%40yourdomain.html">(1245) 2456 012</a>
-                                </li>
-                                <li>
-                                    <i class="fa fa-envelope"></i>
-                                    <a href="info%40yourdomain.html">info@yourdomain.com</a>
-                                </li>
-                            </ul>
-                            <div class="widget-social">
-                                <a class="facebook-color-bg" title="Facebook-f" href="#"><i class="fa fa-facebook-f"></i></a>
-                                <a class="twitter-color-bg" title="Twitter" href="#"><i class="fa fa-twitter"></i></a>
-                                <a class="linkedin-color-bg" title="Linkedin" href="#"><i class="fa fa-linkedin"></i></a>
-                                <a class="youtube-color-bg" title="Youtube" href="#"><i class="fa fa-youtube"></i></a>
-                                <a class="vimeo-color-bg" title="Vimeo" href="#"><i class="fa fa-vimeo"></i></a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </aside>
-        <!-- off-canvas menu end -->
-        <!-- off-canvas menu start -->
-        @* <aside class="off-canvas-menu-wrapper" id="sideMenu">
-            <div class="off-canvas-overlay"></div>
-            <div class="off-canvas-inner-content">
-                <div class="off-canvas-inner">
-                    <div class="btn-close-off-canvas">
-                        <i class="fa fa-times"></i>
-                    </div>
-                    <!-- offcanvas widget area start -->
-                    <div class="offcanvas-widget-area">
-                        <ul class="menu-top-menu">
-                            <li><a href="about-us.html">About Us</a></li>
-                        </ul>
-                        <p class="desc-content">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. <br> Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. <br> Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
-                        <div class="switcher">
-                            <div class="language">
-                                <span class="switcher-title">Language: </span>
-                                <div class="switcher-menu">
-                                    <ul>
-                                        <li>
-                                            <a href="#">English</a>
-                                            <ul class="switcher-dropdown">
-                                                <li><a href="#">German</a></li>
-                                                <li><a href="#">French</a></li>
-                                            </ul>
-                                        </li>
-                                    </ul>
-                                </div>
-                            </div>
-                            <div class="currency">
-                                <span class="switcher-title">Currency: </span>
-                                <div class="switcher-menu">
-                                    <ul>
-                                        <li>
-                                            <a href="#">$ USD</a>
-                                            <ul class="switcher-dropdown">
-                                                <li><a href="#">€ EUR</a></li>
-                                            </ul>
-                                        </li>
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="top-info-wrap text-left text-black">
-                            <ul class="address-info">
-                                <li>
-                                    <i class="fa fa-phone"></i>
-                                    <a href="info%40yourdomain.html">(1245) 2456 012</a>
-                                </li>
-                                <li>
-                                    <i class="fa fa-envelope"></i>
-                                    <a href="info%40yourdomain.html">info@yourdomain.com</a>
-                                </li>
-                            </ul>
-                            <div class="widget-social">
-                                <a class="facebook-color-bg" title="Facebook-f" href="#"><i class="fa fa-facebook-f"></i></a>
-                                <a class="twitter-color-bg" title="Twitter" href="#"><i class="fa fa-twitter"></i></a>
-                                <a class="linkedin-color-bg" title="Linkedin" href="#"><i class="fa fa-linkedin"></i></a>
-                                <a class="youtube-color-bg" title="Youtube" href="#"><i class="fa fa-youtube"></i></a>
-                                <a class="vimeo-color-bg" title="Vimeo" href="#"><i class="fa fa-vimeo"></i></a>
-                            </div>
-                        </div>
-                    </div>
-                    <!-- offcanvas widget area end -->
-                </div>
-            </div>
-        </aside> *@
-        <!-- off-canvas menu end -->
-    </header>
-    <!-- Header Area End Here -->
-   @RenderBody()
-    <!--Footer Area Start-->
-    <footer class="footer-area">
-        <div class="footer-widget-area">
-            <div class="container container-default custom-area">
-                <div class="row">
-                    <div class="col-12 col-sm-12 col-md-12 col-lg-3 col-custom">
-                        <div class="single-footer-widget m-0">
-                            <div class="footer-logo">
-                                <a asp-controller="Home" asp-action="Index">
-                                    <img src="~/assets/images/logo/logo-footer.png" alt="Logo Image">
+                            </li>
+                            <li>
+                                <a class="dropdown-item py-2 rounded-2 small fw-medium" href="/Accounts">
+                                    <i class="bi bi-person me-2"></i> Tài khoản của tôi
                                 </a>
-                            </div>
-                            <p class="desc-content">Lorem Khaled Ipsum is a major key to success. To be successful you’ve got to work hard you’ve got to make it.</p>
-                            <div class="social-links">
-                                <ul class="d-flex">
-                                    <li>
-                                        <a class="rounded-circle" href="#" title="Facebook">
-                                            <i class="fa fa-facebook-f"></i>
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a class="rounded-circle" href="#" title="Twitter">
-                                            <i class="fa fa-twitter"></i>
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a class="rounded-circle" href="#" title="Linkedin">
-                                            <i class="fa fa-linkedin"></i>
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a class="rounded-circle" href="#" title="Youtube">
-                                            <i class="fa fa-youtube"></i>
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a class="rounded-circle" href="#" title="Vimeo">
-                                            <i class="fa fa-vimeo"></i>
-                                        </a>
-                                    </li>
-                                </ul>
-                            </div>
-                        </div>
+                            </li>
+                            <li>
+                                <a class="dropdown-item py-2 rounded-2 small fw-medium" href="/Accounts?tab=orders">
+                                    <i class="bi bi-file-earmark-text me-2"></i> Đơn thuê xe
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item py-2 rounded-2 small fw-medium" href="/CarOwner/Home/Index">
+                                    <i class="bi bi-speedometer2 me-2"></i> Trang chủ xe
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item py-2 rounded-2 small fw-medium" href="/Admin/Home/Index">
+                                    <i class="bi bi-shield-check me-2"></i> Quản trị
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider my-1"></li>
+                            <li>
+                                <a class="dropdown-item py-2 rounded-2 small fw-medium text-danger" href="/Accounts/Logout">
+                                    <i class="bi bi-box-arrow-right me-2"></i> Đăng xuất
+                                </a>
+                            </li>
+                        </ul>
                     </div>
-                    <div class="col-12 col-sm-6 col-md-6 col-lg-2 col-custom">
-                        <div class="single-footer-widget">
-                            <h2 class="widget-title">Information</h2>
-                            <ul class="widget-list">
-                                <li><a href="about-us.html">Our Company</a></li>
-                                <li><a href="contact-us.html">Contact Us</a></li>
-                                <li><a href="about-us.html">Our Services</a></li>
-                                <li><a href="about-us.html">Why We?</a></li>
-                                <li><a href="about-us.html">Careers</a></li>
-                            </ul>
-                        </div>
+                </div>
+            }
+            else
+            {
+                <div class="d-flex align-items-center gap-2">
+                    <a href="/Login" class="btn btn-sm rounded-pill px-3 py-1 fw-medium" style="border: 1px solid #cbd5e1; color: var(--recar-navy); background: #ffffff; font-size: 13px;">
+                        Đăng nhập
+                    </a>
+                    <a href="/Register" class="btn btn-sm rounded-pill px-3 py-1 fw-medium text-white" style="background-color: var(--recar-primary); border: 1px solid var(--recar-primary); font-size: 13px;">
+                        Đăng ký
+                    </a>
+                </div>
+            }
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main>
+        @RenderBody()
+    </main>
+
+    <!-- ReCar Footer (Pixel-perfect) -->
+    <footer style="margin-top: 96px; background-color: var(--recar-navy); color: #f8fafc;">
+        <div class="container py-5">
+            <div class="row g-4">
+                <div class="col-lg-3 col-md-6">
+                    <div class="d-flex align-items-center gap-2 mb-3">
+                        <span style="width: 36px; height: 36px; border-radius: 8px; background-color: var(--recar-primary); color: #fff; display: flex; align-items: center; justify-content: center;">
+                            <i class="bi bi-car-front-fill fs-5"></i>
+                        </span>
+                        <span style="font-size: 20px; font-weight: 800; color: #ffffff;">
+                            Re<span style="color: var(--recar-primary);">Car</span>
+                        </span>
                     </div>
-                    <div class="col-12 col-sm-6 col-md-6 col-lg-2 col-custom">
-                        <div class="single-footer-widget">
-                            <h2 class="widget-title">Quicklink</h2>
-                            <ul class="widget-list">
-                                <li><a href="about-us.html">About</a></li>
-                                <li><a href="blog.html">Blog</a></li>
-                                <li><a href="shop.html">Shop</a></li>
-                                <li><a href="@Url.Action("Index", "Cart")">Cart</a></li>
-                                <li><a href="contact-us.html">Contact</a></li>
-                            </ul>
-                        </div>
-                    </div>
-                    <div class="col-12 col-sm-6 col-md-6 col-lg-2 col-custom">
-                        <div class="single-footer-widget">
-                            <h2 class="widget-title">Support</h2>
-                            <ul class="widget-list">
-                                <li><a href="contact-us.html">Online Support</a></li>
-                                <li><a href="contact-us.html">Shipping Policy</a></li>
-                                <li><a href="contact-us.html">Return Policy</a></li>
-                                <li><a href="contact-us.html">Privacy Policy</a></li>
-                                <li><a href="contact-us.html">Terms of Service</a></li>
-                            </ul>
-                        </div>
-                    </div>
-                    <div class="col-12 col-sm-6 col-md-6 col-lg-3 col-custom">
-                        <div class="single-footer-widget">
-                            <h2 class="widget-title">See Information</h2>
-                            <div class="widget-body">
-                                <address>123, ABC, Road ##, Main City, Your address goes here.<br>Phone: 01234 567 890<br>Email: https://example.com</address>
-                            </div>
-                        </div>
+                    <p class="small opacity-75 mb-0">Chuyến đi của bạn, lựa chọn của bạn. Nền tảng kết nối khách thuê và chủ xe hàng đầu Việt Nam.</p>
+                </div>
+                <div class="col-lg-3 col-md-6">
+                    <h6 class="fw-bold mb-3 text-white">Khám phá</h6>
+                    <ul class="list-unstyled small opacity-75 mb-0 d-flex flex-column gap-2">
+                        <li><a href="/Product" class="text-white text-decoration-none">Thuê xe tự lái</a></li>
+                        <li><a href="/Blog" class="text-white text-decoration-none">Cẩm nang du lịch</a></li>
+                        <li><a href="/News" class="text-white text-decoration-none">Tin tức thị trường</a></li>
+                        <li><a href="/Contact" class="text-white text-decoration-none">Liên hệ hỗ trợ</a></li>
+                    </ul>
+                </div>
+                <div class="col-lg-3 col-md-6">
+                    <h6 class="fw-bold mb-3 text-white">Chính sách</h6>
+                    <ul class="list-unstyled small opacity-75 mb-0 d-flex flex-column gap-2">
+                        <li><a href="/Home/Privacy" class="text-white text-decoration-none">Chính sách thuê xe</a></li>
+                        <li><a href="/Home/Privacy" class="text-white text-decoration-none">Điều khoản sử dụng</a></li>
+                        <li><a href="/Home/Privacy" class="text-white text-decoration-none">Chính sách bảo mật</a></li>
+                        <li><a href="/Contact" class="text-white text-decoration-none">Hỗ trợ khách hàng</a></li>
+                    </ul>
+                </div>
+                <div class="col-lg-3 col-md-6">
+                    <h6 class="fw-bold mb-3 text-white">
+                        Liên hệ <span class="badge bg-warning text-dark ms-1 small" style="font-size: 10px;">Dữ liệu mẫu</span>
+                    </h6>
+                    <div class="small opacity-75 d-flex flex-column gap-2">
+                        <div>Hotline: 1900 6868</div>
+                        <div>Email: hotro@recar.example</div>
+                        <div>Hà Nội & TP. Hồ Chí Minh</div>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="footer-copyright-area">
-            <div class="container custom-area">
-                <div class="row">
-                    <div class="col-12 text-center col-custom">
-                        <div class="copyright-content">
-                            <p>Copyright © 2021 <a href="https://hasthemes.com/" title="https://hasthemes.com/">HasThemes</a> | Built with&nbsp;<strong>FloSun</strong>&nbsp;by <a href="https://hasthemes.com/" title="https://hasthemes.com/">HasThemes</a>.</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
+        <div class="border-top border-secondary py-3 text-center small opacity-60" style="border-color: rgba(255,255,255,0.1) !important;">
+            © 2026 ReCar. Nền tảng cho thuê ô tô trực tuyến (Đồ án tốt nghiệp).
         </div>
     </footer>
-   
 
-    <!-- Scroll to Top Start -->
-    <a class="scroll-to-top" href="#">
-        <i class="lnr lnr-arrow-up"></i>
-    </a>
-    <!-- Scroll to Top End -->
-    <!-- JS
-    ============================================ -->
-    <!-- jQuery JS -->
+    <!-- Scripts -->
     <script src="~/assets/js/vendor/jquery-3.6.0.min.js"></script>
-    <!-- jQuery Migrate JS -->
-    <script src="~/assets/js/vendor/jquery-migrate-3.3.2.min.js"></script>
-    <!-- Modernizer JS -->
-    <script src="~/assets/js/vendor/modernizr-3.7.1.min.js"></script>
-    <!-- Bootstrap JS -->
     <script src="~/assets/js/vendor/bootstrap.bundle.min.js"></script>
-
-    <!-- Swiper Slider JS -->
     <script src="~/assets/js/plugins/swiper-bundle.min.js"></script>
-    <!-- nice select JS -->
-    <script src="~/assets/js/plugins/nice-select.min.js"></script>
-    <!-- Ajaxchimpt js -->
-    <script src="~/assets/js/plugins/jquery.ajaxchimp.min.js"></script>
-    <!-- Jquery Ui js -->
-    <script src="~/assets/js/plugins/jquery-ui.min.js"></script>
-    <!-- Jquery Countdown js -->
-    <script src="~/assets/js/plugins/jquery.countdown.min.js"></script>
-    <!-- jquery magnific popup js -->
-    <script src="~/assets/js/plugins/jquery.magnific-popup.min.js"></script>
-
-    <!-- Main JS -->
-    <script src="~/assets/js/main.js"></script>
-    <script src="~/assets/js/uploadimage.js"></script>
     @RenderSection("scripts", required: false)
-   @*  @section scripts {
-        <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-        <script>
-            $(document).ready(function () {
-                 $(".ajax-add-to-cart").click(function () {
-                     $.ajax({
-                           url: "/Cart/AddToCart",
-                          type: "POST",
-                          data: {
-                              id: $(this).data("id"),
-                              quantity: 1,
-                              type: "ajax"
-                          },
-                          success: function(data) {
-                              console.log(data);
-                                      Swal.fire({
-                                       position: "top-end",
-                                       icon: "success",
-                                       title: "Your work has been saved",
-                                       showConfirmButton: false,
-                                       timer: 1500
-                                     });
-                          },
-                           error: function() {
-                                       Swal.fire({
-                                         icon: "error",
-                                         title: "Oops...",
-                                         text: "Something went wrong!",
-                                         footer: '<a href="#">Why do I have this issue?</a>'
-                                     });
-                           }
-                     });
-                 });
-            });
-        </script>
-    } *@
-
-
 </body>
-
-
-<!-- Mirrored from htmldemo.net/flosun/flosun/index.html by HTTrack Website Copier/3.x [XR&CO'2014], Sun, 04 Dec 2022 05:03:14 GMT -->
 </html>

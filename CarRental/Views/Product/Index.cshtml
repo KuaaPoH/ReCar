@@ -48,6 +48,19 @@
         <!-- Sidebar Filter (Cột bộ lọc dạng Chip pills - Ảnh 5) -->
         <div class="col-lg-3 col-md-4">
             <aside class="pe-lg-3">
+                <!-- 0. Hình thức thuê Pill chips -->
+                <div class="filter-group-divider">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <p class="filter-section-title m-0">Hình thức thuê</p>
+                        <span class="badge bg-light text-primary border" style="font-size: 11px;" id="driveModeActiveBadge">Tất cả</span>
+                    </div>
+                    <div class="d-flex flex-wrap gap-2 mt-2" id="driveModeChipsWrap">
+                        <button type="button" class="recar-chip chip-drive-mode active" data-drive-mode="">Tất cả</button>
+                        <button type="button" class="recar-chip chip-drive-mode" data-drive-mode="Tự lái"><i class="bi bi-car-front me-1"></i> Tự lái</button>
+                        <button type="button" class="recar-chip chip-drive-mode" data-drive-mode="Có tài xế"><i class="bi bi-person-badge me-1"></i> Có tài xế</button>
+                    </div>
+                </div>
+
                 <!-- 1. Khoảng giá kéo từ Min đến Max (Thẩm mỹ & chuẩn xác) -->
                 <div class="filter-group-divider">
                     <div class="d-flex justify-content-between align-items-center mb-1">
@@ -262,6 +275,29 @@
                 applyFilter();
             });
 
+            var selectedDriveMode = "";
+
+            // Chọn hình thức thuê (Tự lái / Có tài xế)
+            $('.chip-drive-mode').on('click', function () {
+                $('.chip-drive-mode').removeClass('active');
+                $(this).addClass('active');
+                selectedDriveMode = $(this).data('drive-mode') || "";
+                $('#driveModeActiveBadge').text(selectedDriveMode ? selectedDriveMode : "Tất cả");
+                updateCardLinks();
+            });
+
+            function updateCardLinks() {
+                if (selectedDriveMode) {
+                    $('#carListContainer a').each(function () {
+                        var href = $(this).attr('href');
+                        if (href && href.indexOf('/product') !== -1) {
+                            var cleanHref = href.split('?')[0];
+                            $(this).attr('href', cleanHref + '?driveMode=' + encodeURIComponent(selectedDriveMode));
+                        }
+                    });
+                }
+            }
+
             // Gửi AJAX filter
             function applyFilter() {
                 let params = {
@@ -284,6 +320,7 @@
                     success: function (data) {
                         $('#carListContainer').html(data);
                         $('#carListContainer').css('opacity', '1');
+                        updateCardLinks();
                     },
                     error: function () {
                         $('#carListContainer').css('opacity', '1');
@@ -291,13 +328,22 @@
                 });
             }
 
-            // Nhận TypeId từ query param nếu có
+            // Nhận TypeId & driveMode từ query param nếu có (từ Trang chủ tìm kiếm)
             const urlParams = new URLSearchParams(window.location.search);
             const queryTypeId = urlParams.get('TypeId');
             if (queryTypeId) {
                 $('.chip-type').removeClass('active');
                 $(`.chip-type[data-type="${queryTypeId}"]`).addClass('active');
                 selectedType = queryTypeId;
+            }
+
+            const queryDriveMode = urlParams.get('driveMode');
+            if (queryDriveMode) {
+                $('.chip-drive-mode').removeClass('active');
+                $(`.chip-drive-mode[data-drive-mode="${queryDriveMode}"]`).addClass('active');
+                selectedDriveMode = queryDriveMode;
+                $('#driveModeActiveBadge').text(queryDriveMode);
+                updateCardLinks();
             }
         });
     </script>

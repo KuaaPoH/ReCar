@@ -23,11 +23,16 @@ namespace CarRental.Areas.CarOwner.Controllers
                 return RedirectToAction("Index", "Login", new { area = "" });
             }
 
-            // Kiểm tra role chủ xe
+            // Kiểm tra role chủ xe linh hoạt
             var accountId = Function.GetAccountId(HttpContext.Session);
+            var carOwnerId = Function.GetCarOwnerAccountId(HttpContext.Session);
+            var userEmail = Function.GetEmail(HttpContext.Session);
+
             var account = _context.Accounts
                 .Include(a => a.Role)
-                .FirstOrDefault(a => a.AccountId == accountId);
+                .FirstOrDefault(a => (carOwnerId > 0 && a.AccountId == carOwnerId) ||
+                                     a.AccountId == accountId ||
+                                     (!string.IsNullOrEmpty(userEmail) && a.Email == userEmail && a.RoleId == 3));
 
             if (account == null || account.RoleId != 3) // RoleId 3 = Chủ xe
             {
@@ -35,8 +40,7 @@ namespace CarRental.Areas.CarOwner.Controllers
                 return RedirectToAction("Index", "Home", new { area = "" });
             }
 
-            // Lấy thống kê
-            var ownerId = Function.GetAccountId(HttpContext.Session);
+            var ownerId = account.AccountId;
             var totalCars = _context.Cars.Count(c => c.OwnerId == ownerId);
             var activeCars = _context.Cars.Count(c => c.OwnerId == ownerId && c.IsActive);
             var totalOrders = _context.OrderDetails
@@ -61,6 +65,20 @@ namespace CarRental.Areas.CarOwner.Controllers
                 .ToList();
 
             ViewBag.RecentCars = recentCars;
+
+            // Lấy danh sách đơn thuê gần đây của chủ xe
+            var recentOrders = _context.OrderDetails
+                .Include(od => od.Order)
+                    .ThenInclude(o => o.Customer)
+                .Include(od => od.Order)
+                    .ThenInclude(o => o.Status)
+                .Include(od => od.Car)
+                .Where(od => od.Car != null && od.Car.OwnerId == ownerId)
+                .OrderByDescending(od => od.OrderDetailId)
+                .Take(5)
+                .ToList();
+
+            ViewBag.RecentOrders = recentOrders;
 
             return View();
         }

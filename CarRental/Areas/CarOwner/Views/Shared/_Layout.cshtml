@@ -1,97 +1,472 @@
 @using CarRental.Utilities;
 @{
-    // Xác định controller và action hiện tại để set class 'active' cho menu
     var currentController = ViewContext.RouteData.Values["controller"]?.ToString();
     var currentAction = ViewContext.RouteData.Values["action"]?.ToString();
+    var ownerName = Function.GetUserName(Context.Session);
+    if (string.IsNullOrEmpty(ownerName))
+    {
+        ownerName = "Đối tác Chủ xe";
+    }
+    var ownerInitials = ownerName.Length >= 2 ? ownerName.Substring(0, 2).ToUpper() : "CX";
 }
 <!DOCTYPE html>
-<html lang="en">
-
+<html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quản lý xe - Chủ xe</title>
+    <title>@(ViewData["Title"] ?? "Quản lý xe") | ReCar - Phân hệ Chủ xe</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Bootstrap 5 & Icons -->
+    <link rel="stylesheet" href="~/assets/css/vendor/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    
+    <style>
+        :root {
+            --recar-navy: #0f172a;
+            --recar-navy-hover: #1e293b;
+            --recar-primary: #0284c7;
+            --recar-primary-hover: #0369a1;
+            --recar-bg: #f8fafc;
+            --recar-border: #e2e8f0;
+            --recar-card-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05);
+        }
 
-    <link rel="preconnect" href="https://fonts.gstatic.com">
-    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="~/admin/assets/css/bootstrap.css">
-    <link rel="stylesheet" href="~/admin/assets/vendors/iconly/bold.css">
-    <link rel="stylesheet" href="~/admin/assets/vendors/perfect-scrollbar/perfect-scrollbar.css">
-    <link rel="stylesheet" href="~/admin/assets/vendors/bootstrap-icons/bootstrap-icons.css">
-    <link rel="stylesheet" href="~/admin/assets/css/app.css">
-    <link rel="shortcut icon" href="~/admin/assets/images/favicon.svg" type="image/x-icon">
-    <script src="~/admin/assets/vendors/jquery/jquery.min.js"></script>
+        body {
+            font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+            background-color: var(--recar-bg);
+            color: #334155;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* Sidebar Styling */
+        .recar-owner-sidebar {
+            background-color: var(--recar-navy);
+            color: #f8fafc;
+            width: 260px;
+            min-height: 100vh;
+            position: sticky;
+            top: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 1.5rem 1rem;
+            z-index: 1030;
+            transition: all 0.3s ease;
+        }
+
+        .recar-owner-logo {
+            display: flex;
+            align-items: center;
+            gap: 0.65rem;
+            text-decoration: none;
+            color: #fff;
+        }
+
+        .recar-owner-logo-icon {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, #0284c7, #0ea5e9);
+            border-radius: 9px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 1.15rem;
+        }
+
+        .recar-owner-brand {
+            font-size: 1.25rem;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            color: #fff;
+        }
+
+        .recar-owner-badge {
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #94a3b8;
+            font-weight: 700;
+            margin-top: 0.35rem;
+        }
+
+        /* Navigation Links */
+        .recar-owner-nav {
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+            margin-top: 1.75rem;
+        }
+
+        .recar-owner-nav-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.65rem 0.9rem;
+            border-radius: 10px;
+            color: #94a3b8;
+            text-decoration: none;
+            font-size: 0.875rem;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+
+        .recar-owner-nav-item i {
+            font-size: 1.1rem;
+        }
+
+        .recar-owner-nav-item:hover {
+            color: #ffffff;
+            background-color: var(--recar-navy-hover);
+        }
+
+        .recar-owner-nav-item.active {
+            background-color: var(--recar-primary);
+            color: #ffffff;
+            box-shadow: 0 4px 12px rgba(2, 132, 199, 0.35);
+        }
+
+        /* Content Area */
+        .recar-owner-main {
+            flex: 1;
+            min-width: 0;
+            padding: 2rem 2.25rem;
+        }
+
+        .recar-owner-topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 2rem;
+            gap: 1rem;
+        }
+
+        .recar-owner-page-title {
+            font-size: 1.65rem;
+            font-weight: 800;
+            color: var(--recar-navy);
+            letter-spacing: -0.5px;
+            margin: 0;
+        }
+
+        /* Common Components */
+        .recar-panel {
+            background: #ffffff;
+            border: 1px solid var(--recar-border);
+            border-radius: 14px;
+            box-shadow: var(--recar-card-shadow);
+            overflow: hidden;
+            margin-bottom: 1.75rem;
+        }
+
+        .recar-panel-header {
+            padding: 1.1rem 1.4rem;
+            border-bottom: 1px solid var(--recar-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background-color: #ffffff;
+        }
+
+        .recar-panel-title {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: var(--recar-navy);
+            margin: 0;
+        }
+
+        /* Stat Card */
+        .recar-stat-card {
+            background: #ffffff;
+            border: 1px solid var(--recar-border);
+            border-radius: 14px;
+            padding: 1.35rem;
+            box-shadow: var(--recar-card-shadow);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .recar-stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
+        }
+
+        .recar-stat-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            color: #64748b;
+            font-size: 0.825rem;
+            font-weight: 600;
+        }
+
+        .recar-stat-value {
+            font-size: 1.75rem;
+            font-weight: 800;
+            color: var(--recar-navy);
+            margin: 0.5rem 0 0.15rem 0;
+            letter-spacing: -0.5px;
+        }
+
+        .recar-stat-hint {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #10b981;
+            margin: 0;
+        }
+
+        /* Tables */
+        .recar-table {
+            width: 100%;
+            margin-bottom: 0;
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+
+        .recar-table th {
+            background-color: #f8fafc;
+            color: #64748b;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 0.85rem 1.25rem;
+            border-bottom: 1px solid var(--recar-border);
+            border-top: none;
+        }
+
+        .recar-table td {
+            padding: 1rem 1.25rem;
+            font-size: 0.875rem;
+            vertical-align: middle;
+            border-bottom: 1px solid var(--recar-border);
+            color: #334155;
+        }
+
+        .recar-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .recar-table tr:hover td {
+            background-color: #f8fafc;
+        }
+
+        /* Status Badges */
+        .recar-status-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.3rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            line-height: 1;
+        }
+
+        .recar-status-badge.status-ready {
+            background-color: #ecfdf5;
+            color: #059669;
+            border: 1px solid #a7f3d0;
+        }
+
+        .recar-status-badge.status-busy {
+            background-color: #e0f2fe;
+            color: #0284c7;
+            border: 1px solid #bae6fd;
+        }
+
+        .recar-status-badge.status-maintenance {
+            background-color: #fef2f2;
+            color: #dc2626;
+            border: 1px solid #fecaca;
+        }
+
+        .recar-status-badge.status-pending {
+            background-color: #fefce8;
+            color: #ca8a04;
+            border: 1px solid #fef08a;
+        }
+
+        /* Inputs & Buttons */
+        .recar-input {
+            width: 100%;
+            border-radius: 10px;
+            border: 1px solid var(--recar-border);
+            padding: 0.65rem 0.9rem;
+            font-size: 0.875rem;
+            color: #1e293b;
+            background-color: #ffffff;
+            transition: border-color 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        .recar-input:focus {
+            border-color: var(--recar-primary);
+            outline: 0;
+            box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
+        }
+
+        .btn-recar-primary {
+            background-color: var(--recar-primary);
+            color: #ffffff;
+            border: 1px solid var(--recar-primary);
+            border-radius: 10px;
+            padding: 0.6rem 1.25rem;
+            font-size: 0.875rem;
+            font-weight: 700;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.2s ease;
+        }
+
+        .btn-recar-primary:hover {
+            background-color: var(--recar-primary-hover);
+            color: #ffffff;
+            box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3);
+        }
+
+        /* Bar Chart */
+        .recar-bar-chart {
+            display: flex;
+            align-items: flex-end;
+            gap: 1.25rem;
+            height: 180px;
+            padding: 1.25rem 1.5rem;
+        }
+
+        .recar-bar-col {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+            height: 100%;
+            justify-content: flex-end;
+        }
+
+        .recar-bar-fill {
+            width: 100%;
+            background: linear-gradient(180deg, #0ea5e9, #0284c7);
+            border-radius: 6px 6px 0 0;
+            transition: height 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+        }
+
+        .recar-bar-fill:hover {
+            background: #0284c7;
+        }
+
+        .recar-bar-label {
+            font-size: 0.75rem;
+            color: #64748b;
+            font-weight: 600;
+        }
+
+        @@media (max-width: 991px) {
+            .recar-owner-sidebar {
+                width: 100%;
+                min-height: auto;
+                position: relative;
+                flex-direction: row;
+                align-items: center;
+                flex-wrap: wrap;
+            }
+            .recar-owner-nav {
+                flex-direction: row;
+                overflow-x: auto;
+                width: 100%;
+                margin-top: 1rem;
+                padding-bottom: 0.5rem;
+            }
+            .recar-owner-main {
+                padding: 1.25rem;
+            }
+        }
+    </style>
 </head>
 
 <body>
-    <div id="app">
-        <div id="sidebar" class="active">
-            <div class="sidebar-wrapper active">
-                <div class="sidebar-header">
-                    <div class="d-flex justify-content-between row">
-                        <div class="logo ">
-                            <a href="/CarOwner/Home/Index" style="text-decoration: none; color: inherit; display: flex; align-items: center;">
-                                <img src="~/admin/assets/images/faces/1.jpg" alt="profile" class="rounded-circle col-auto" />
-                                <h6 class="col">@Function._UserName</h6>
-                            </a>
+    <div class="d-flex flex-column flex-lg-row min-vh-100">
+        <!-- Sidebar Navigation (Pixel-Perfect DashboardShell) -->
+        <aside class="recar-owner-sidebar">
+            <div>
+                <a href="/CarOwner/Home/Index" class="recar-owner-logo">
+                    <div class="recar-owner-logo-icon">
+                        <i class="bi bi-car-front-fill"></i>
+                    </div>
+                    <div>
+                        <div class="recar-owner-brand">Re<span style="color: #38bdf8;">Car</span></div>
+                        <div class="recar-owner-badge">Phân hệ Chủ xe</div>
+                    </div>
+                </a>
+
+                <nav class="recar-owner-nav">
+                    <a href="/CarOwner/Home/Index" class="recar-owner-nav-item @(currentController == "Home" ? "active" : "")">
+                        <i class="bi bi-house-door"></i>
+                        <span>Tổng quan</span>
+                    </a>
+                    <a href="/CarOwner/Cars/Index" class="recar-owner-nav-item @((currentController == "Cars" && currentAction == "Index") ? "active" : "")">
+                        <i class="bi bi-speedometer2"></i>
+                        <span>Quản lý xe</span>
+                    </a>
+                    <a href="/CarOwner/Cars/Create" class="recar-owner-nav-item @((currentController == "Cars" && currentAction == "Create") ? "active" : "")">
+                        <i class="bi bi-plus-circle"></i>
+                        <span>Thêm xe mới</span>
+                    </a>
+                    <a href="/CarOwner/Orders/Index" class="recar-owner-nav-item @(currentController == "Orders" ? "active" : "")">
+                        <i class="bi bi-clipboard-check"></i>
+                        <span>Đơn thuê xe</span>
+                    </a>
+                    <a href="/CarOwner/Home/Logout" class="recar-owner-nav-item mt-2 text-danger opacity-75">
+                        <i class="bi bi-box-arrow-right"></i>
+                        <span>Đăng xuất</span>
+                    </a>
+                </nav>
+            </div>
+
+            <div class="d-none d-lg-block pt-4 border-top border-secondary" style="border-color: rgba(255,255,255,0.1) !important;">
+                <a href="/" class="text-white text-decoration-none small opacity-75 d-flex align-items-center gap-2 hover-opacity-100">
+                    <i class="bi bi-arrow-left"></i>
+                    <span>Về trang chủ ReCar</span>
+                </a>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="recar-owner-main">
+            <!-- Topbar Header -->
+            <div class="recar-owner-topbar">
+                <div>
+                    <h1 class="recar-owner-page-title">@(ViewData["Title"] ?? "Tổng quan")</h1>
+                    <div class="text-muted small mt-1">Quản lý phương tiện, lịch trình và doanh thu đối tác ReCar.</div>
+                </div>
+
+                <div class="d-flex align-items-center gap-3">
+                    <span class="badge bg-warning-subtle text-warning border border-warning-subtle rounded-pill px-3 py-2 fw-semibold d-none d-sm-inline-flex align-items-center gap-1">
+                        <i class="bi bi-stars"></i> Đối tác ReCar
+                    </span>
+
+                    <div class="d-flex align-items-center gap-2 bg-white px-3 py-1.5 rounded-pill border shadow-sm">
+                        <div class="user-avatar-circle" style="width: 32px; height: 32px; font-size: 13px; font-weight: 700; background: linear-gradient(135deg, #0ea5e9, #0284c7); color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                            @ownerInitials
                         </div>
-                        <div class="toggler">
-                            <a href="#" class="sidebar-hide d-xl-none d-block"><i class="bi bi-x bi-middle"></i></a>
-                        </div>
+                        <span class="fw-bold text-dark small">@ownerName</span>
                     </div>
                 </div>
-                <div class="sidebar-menu">
-                    <ul class="menu">
-                        <li class="sidebar-title">Menu Chủ xe</li>
-
-                        <li class="sidebar-item @(currentController == "Home" ? "active" : "")">
-                            <a asp-controller="Home" asp-action="Index" asp-area="CarOwner" class='sidebar-link'>
-                                <i class="bi bi-grid-fill me-2"></i>
-                                <span>Trang chủ</span>
-                            </a>
-                        </li>
-
-                        <li class="sidebar-item @((currentController == "Cars" && currentAction == "Index") ? "active" : "")">
-                            <a asp-controller="Cars" asp-action="Index" asp-area="CarOwner" class='sidebar-link'>
-                                <i class="bi bi-speedometer2 me-2"></i>
-                                <span>Quản lý xe</span>
-                            </a>
-                        </li>
-
-                        <li class="sidebar-item @((currentController == "Cars" && currentAction == "Create") ? "active" : "")">
-                            <a asp-controller="Cars" asp-action="Create" asp-area="CarOwner" class='sidebar-link'>
-                                <i class="bi bi-plus-circle me-2"></i>
-                                <span>Thêm xe mới</span>
-                            </a>
-                        </li>
-
-                        <li class="sidebar-item @(currentController == "Orders" ? "active" : "")">
-                            <a asp-controller="Orders" asp-action="Index" asp-area="CarOwner" class='sidebar-link'>
-                                <i class="bi bi-receipt me-2"></i>
-                                <span>Đơn đặt xe</span>
-                            </a>
-                        </li>
-
-                        <li class="sidebar-item">
-                            <a asp-controller="Home" asp-action="Logout" asp-area="CarOwner" class='sidebar-link'>
-                                <i class="bi bi-box-arrow-right me-2"></i>
-                                <span>Đăng xuất</span>
-                            </a>
-                        </li>
-                    </ul>
-                </div>
-                <button class="sidebar-toggler btn x"><i data-feather="x"></i></button>
             </div>
-        </div>
-        @RenderBody()
+
+            @RenderBody()
+        </main>
     </div>
+
+    <!-- Scripts -->
+    <script src="~/assets/js/vendor/jquery-3.6.0.min.js"></script>
+    <script src="~/assets/js/vendor/bootstrap.bundle.min.js"></script>
     @RenderSection("Scripts", required: false)
-    <script src="~/admin/assets/vendors/perfect-scrollbar/perfect-scrollbar.min.js"></script>
-    <script src="~/admin/assets/js/bootstrap.bundle.min.js"></script>
-    <script src="~/admin/assets/vendors/apexcharts/apexcharts.js"></script>
-    <script src="~/admin/assets/js/pages/dashboard.js"></script>
-    <script src="~/admin/assets/js/main.js"></script>
 </body>
-
 </html>
-

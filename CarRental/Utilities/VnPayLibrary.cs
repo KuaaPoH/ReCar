@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using System.Net.Sockets;
 using System.Net;
 using System.Security.Cryptography;
@@ -119,7 +119,6 @@ namespace CarRental.Utilities
         // có chế biến cho .NET Core MVC
         public static string GetIpAddress(HttpContext context)
         {
-            var ipAddress = string.Empty;
             try
             {
                 var remoteIpAddress = context.Connection.RemoteIpAddress;
@@ -128,18 +127,22 @@ namespace CarRental.Utilities
                 {
                     if (remoteIpAddress.AddressFamily == AddressFamily.InterNetworkV6)
                     {
-                        remoteIpAddress = Dns.GetHostEntry(remoteIpAddress).AddressList
+                        var ipv4 = Dns.GetHostEntry(remoteIpAddress).AddressList
                             .FirstOrDefault(x => x.AddressFamily == AddressFamily.InterNetwork);
+                        if (ipv4 != null)
+                        {
+                            return ipv4.ToString();
+                        }
                     }
-
-                    if (remoteIpAddress != null) ipAddress = remoteIpAddress.ToString();
-
-                    return ipAddress;
+                    else
+                    {
+                        return remoteIpAddress.ToString();
+                    }
                 }
             }
-            catch (Exception ex)
+            catch
             {
-                return "Invalid IP:" + ex.Message;
+                // Fallback nếu có lỗi phân giải DNS
             }
 
             return "127.0.0.1";

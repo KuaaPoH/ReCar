@@ -1,4 +1,4 @@
-﻿using CarRental.Extensions;
+using CarRental.Extensions;
 using CarRental.Models;
 using CarRental.Services;
 using CarRental.Utilities;
@@ -14,12 +14,13 @@ namespace CarRental.Controllers
     {
         private readonly DbRenalCarContext _context;
         private readonly IVnpayServices _vnpayServices;
+        private readonly IConfiguration _config;
 
-        public CartController(DbRenalCarContext context, IVnpayServices vnpayServices)
+        public CartController(DbRenalCarContext context, IVnpayServices vnpayServices, IConfiguration config)
         {
-
             _context = context;
             _vnpayServices = vnpayServices;
+            _config = config;
         }
         string CART_KEY = "MYCART";
         public List<CartItemsVM> CART => HttpContext.Session.Get<List<CartItemsVM>>(CART_KEY) ?? new List<CartItemsVM> ();
@@ -29,35 +30,32 @@ namespace CarRental.Controllers
             return View(CART);
         }
         [HttpPost]
-        public IActionResult AddToCart(int id, DateTime pickupDate, DateTime returnDate, int quantity = 1, string type = "Normal")
+        public IActionResult AddToCart(int id, DateTime pickupDate, DateTime returnDate, int quantity = 1, string type = "Normal", string driveMode = "Tự lái")
         {
-
             var cart = CART;
             // lấy thông tin sản phảm từ DB
             var product = _context.Cars.FirstOrDefault(p => p.CarId == id);
 
-            /*if (returnDate <= pickupDate)
-            {
-                TempData["ErrorMessage"] = "Ngày trả xe phải lớn hơn ngày nhận xe.";
-                return RedirectToAction("product", new { alias = product.Alias, id = id });
-            }*/
-
-          
-
             // Xử lý thêm sản phẩm vào giỏ hàng
             int rentalDays = (returnDate - pickupDate).Days;
-            if (product == null) {
+            if (rentalDays <= 0) rentalDays = 1;
 
+            if (product == null) {
                 return NotFound();// nếu không tìm thấy sp
             }
             decimal finalPrice;
-            if (product.SalePrice > 0)
+            if (product.IsSale && product.SalePrice.HasValue && product.SalePrice > 0 && product.SalePrice < product.Price)
             {
-                finalPrice = product.SalePrice ?? 0;
-            } else 
+                finalPrice = product.SalePrice.Value;
+            }
+            else 
             {
                 finalPrice = product.Price ?? 0;
             }
+
+            bool withDriver = (driveMode == "Có tài xế" || driveMode == "Kèm tài xế");
+            decimal driverFeeTotal = withDriver ? (500000m * rentalDays) : 0m;
+
             // kiểm tra xem có sản phẩm tồn tai trong giỏ hàng hay chưa
             var CarItem = cart.FirstOrDefault(p => p.CartId == id);
             if (CarItem == null)
@@ -72,25 +70,19 @@ namespace CarRental.Controllers
                     returnDate = returnDate,
                     Price = finalPrice * rentalDays,
                     Quantity = quantity,
-                    
+                    DriveMode = withDriver ? "Có tài xế" : "Tự lái",
+                    DriverFee = driverFeeTotal
                 };
                 cart.Add(CarItem);
-               
             } else
             {
-                // nếu đãn có thì tăng số lượng len
-                CarItem.Quantity += quantity;
-                if (CarItem.pickupDate != pickupDate || CarItem.returnDate != returnDate)
-                {
-                    CarItem.pickupDate = pickupDate;
-                    CarItem.returnDate = returnDate;
-
-                    // Tính lại số ngày thuê
-                    int newRentalDays = (CarItem.returnDate - CarItem.pickupDate).Days;
-
-                    // Cập nhật lại giá thuê
-                    CarItem.Price = finalPrice * newRentalDays * CarItem.Quantity;
-                }
+                // nếu đã có thì cập nhật lại
+                CarItem.Quantity = quantity;
+                CarItem.pickupDate = pickupDate;
+                CarItem.returnDate = returnDate;
+                CarItem.DriveMode = withDriver ? "Có tài xế" : "Tự lái";
+                CarItem.DriverFee = driverFeeTotal;
+                CarItem.Price = finalPrice * rentalDays * CarItem.Quantity;
             }
             HttpContext.Session.Set(CART_KEY, cart);
 
@@ -263,6 +255,10 @@ namespace CarRental.Controllers
                 decimal price = cart.Sum(p => p.PriceTotal);
                 decimal deposit = (30*price)/100;
                 decimal payments = price - deposit;
+
+                var driveModeSummary = string.Join("; ", cart.Select(c => $"Hình thức: {c.DriveMode}" + (c.DriverFee > 0 ? $" (Phụ phí tài xế: {c.DriverFee:N0}đ)" : "")));
+                string combinedNotes = driveModeSummary + (!string.IsNullOrWhiteSpace(model.Notes) ? $" | Ghi chú khách: {model.Notes}" : "");
+
                 var order = new CarRentalOrder
                 {
                     CustomerId = customerID,
@@ -271,7 +267,7 @@ namespace CarRental.Controllers
                     //ReturnDate = DateOnly.FromDateTime(cart.Max(p => p.returnDate)),
                     StatusId = 1,
                     Payment = payments,
-                    Notes = model.Notes,
+                    Notes = combinedNotes
                 };
 
                 
@@ -314,13 +310,32 @@ namespace CarRental.Controllers
                         transaction.Commit();
                         if (model.paymentmethod == "Thanh toán VNPay")
                         {
+                            bool isBypass = _config.GetValue<bool>("VnPay:BypassPayment", false);
+                            if (isBypass)
+                            {
+                                // Chế độ giả lập test: Xác nhận cọc 30% thành công ngay lập tức
+                                order.StatusId = 3; // Đã thanh toán / cọc thành công
+                                order.Notes = (order.Notes ?? "") + " | [VNPay Test] Đã thanh toán đặt cọc 30% thành công";
+                                _context.SaveChanges();
+
+                                var ordersUrlMock = Url.Action("Index", "Accounts") + "?tab=orders";
+                                return Json(new 
+                                { 
+                                    success = true, 
+                                    redirectUrl = ordersUrlMock, 
+                                    isVnpay = false,
+                                    title = "Thanh toán VNPay thành công!",
+                                    message = "Bạn đã đặt cọc 30% thành công qua cổng VNPay (Chế độ giả lập để kiểm thử). Đơn hàng đã chuyển sang trạng thái Đã thanh toán!"
+                                });
+                            }
+
                             var vnPayModel = new VnPaymentRequestModel
                             {
                                 Amount = (double)deposit,
                                 CreatedDate = DateTime.Now,
                                 Description = $"{Function.GetUserName(HttpContext.Session)} {Function.GetPhone(HttpContext.Session)}",
                                 FullName = Function.GetUserName(HttpContext.Session),
-                                OrderId = new Random().Next(1000, 100000)
+                                OrderId = order.OrderId
                             };
                             var paymentUrl = _vnpayServices.CreatePaymentUrl(HttpContext, vnPayModel);
 
@@ -328,7 +343,14 @@ namespace CarRental.Controllers
                         }
                         // Trả về URL trang đơn hàng của khách
                         var ordersUrl = Url.Action("Index", "Accounts") + "?tab=orders";
-                        return Json(new { success = true, redirectUrl = ordersUrl, isVnpay = false });
+                        return Json(new 
+                        { 
+                            success = true, 
+                            redirectUrl = ordersUrl, 
+                            isVnpay = false,
+                            title = "Đặt xe thành công!",
+                            message = "Đơn thuê xe của bạn đã được ghi nhận. Chủ xe sẽ liên hệ sớm nhất."
+                        });
                     }
                     catch (Exception ex)
                     {
@@ -418,21 +440,31 @@ namespace CarRental.Controllers
             return View();
         }
 
-        public IActionResult PaymentCallBack() {
+        public IActionResult PaymentCallBack()
+        {
             var response = _vnpayServices.PaymentExecute(Request.Query);
 
-            if (response == null || response.VnPayResponseCode != "00")
+            if (response == null || !response.Success || response.VnPayResponseCode != "00")
             {
-                TempData["Message"] = $"Lỗi thanh toán VN Pay: {response.VnPayResponseCode}";
+                var errCode = response?.VnPayResponseCode ?? "99";
+                TempData["Message"] = $"Giao dịch VNPay không thành công hoặc bạn đã hủy giao dịch (Mã phản hồi: {errCode}).";
                 return RedirectToAction("PaymentFail");
             }
 
+            // Cập nhật trạng thái đơn hàng đã cọc qua VNPay
+            if (!string.IsNullOrEmpty(response.OrderId) && int.TryParse(response.OrderId, out int orderId))
+            {
+                var order = _context.CarRentalOrders.FirstOrDefault(o => o.OrderId == orderId);
+                if (order != null)
+                {
+                    order.StatusId = 3; // Trạng thái: Đã thanh toán / cọc thành công
+                    order.Notes = (order.Notes ?? "") + $" | Đã thanh toán cọc qua VNPay (Mã GD: {response.TransactionId})";
+                    _context.SaveChanges();
+                }
+            }
 
-            // Lưu đơn hàng vô database
-
-            TempData["Message"] = $"Thanh toán VNPay thành công";
+            TempData["Message"] = "Thanh toán đặt cọc qua VNPay thành công!";
             return RedirectToAction("Success", "Cart");
-            
         }
     }
     

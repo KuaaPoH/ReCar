@@ -3,366 +3,133 @@
 @{
     ViewData["Title"] = "Đơn đặt xe";
     Layout = "~/Areas/CarOwner/Views/Shared/_Layout.cshtml";
+    var orderStatuses = ViewBag.OrderStatuses as List<SelectListItem> ?? new List<SelectListItem>();
 }
 
-<style>
-    .page-header-modern {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        padding: 2rem;
-        border-radius: 15px;
-        margin-bottom: 2rem;
-        box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
-    }
-
-    .page-header-modern h3 {
-        color: white;
-        font-weight: 600;
-        margin: 0 0 0.5rem 0;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
-
-    .page-header-modern h3 i {
-        font-size: 1.5rem;
-    }
-
-    .page-header-modern p {
-        color: rgba(255, 255, 255, 0.9);
-        margin: 0;
-    }
-
-    .breadcrumb-modern {
-        background: rgba(255, 255, 255, 0.2);
-        backdrop-filter: blur(10px);
-        padding: 0.75rem 1.5rem;
-        border-radius: 10px;
-        margin: 0;
-    }
-
-    .breadcrumb-modern .breadcrumb-item a {
-        color: rgba(255, 255, 255, 0.9);
-        text-decoration: none;
-    }
-
-    .breadcrumb-modern .breadcrumb-item.active {
-        color: white;
-        font-weight: 500;
-    }
-
-    .orders-card {
-        background: white;
-        border-radius: 15px;
-        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
-        overflow: hidden;
-        border: none;
-    }
-
-    .card-header-modern {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        padding: 1.5rem;
-        color: white;
-    }
-
-    .card-header-modern h4 {
-        margin: 0;
-        font-weight: 600;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
-
-    .filter-section {
-        padding: 1.5rem;
-        background: #f8f9fa;
-        border-bottom: 1px solid #e9ecef;
-    }
-
-    .filter-select-modern {
-        border: 2px solid #e9ecef;
-        border-radius: 10px;
-        padding: 0.75rem 1rem;
-        font-size: 0.95rem;
-        transition: all 0.3s ease;
-        background: white;
-    }
-
-    .filter-select-modern:focus {
-        border-color: #667eea;
-        box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.15);
-        outline: none;
-    }
-
-    .table-modern {
-        margin: 0;
-    }
-
-    .table-modern thead {
-        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-    }
-
-    .table-modern thead th {
-        border: none;
-        padding: 1rem;
-        font-weight: 600;
-        color: #333;
-        text-transform: uppercase;
-        font-size: 0.85rem;
-        letter-spacing: 0.5px;
-    }
-
-    .table-modern tbody tr {
-        transition: all 0.3s ease;
-        border-bottom: 1px solid #f0f0f0;
-    }
-
-    .table-modern tbody tr:hover {
-        background: #f8f9ff;
-        transform: translateX(5px);
-        box-shadow: 0 2px 10px rgba(102, 126, 234, 0.1);
-    }
-
-    .table-modern tbody td {
-        padding: 1rem;
-        vertical-align: middle;
-        border: none;
-    }
-
-    .badge-modern {
-        padding: 0.5rem 1rem;
-        border-radius: 20px;
-        font-weight: 600;
-        font-size: 0.85rem;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-
-    .btn-modern-edit {
-        background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
-        border: none;
-        color: white;
-        padding: 0.5rem 1.25rem;
-        border-radius: 8px;
-        font-weight: 600;
-        font-size: 0.85rem;
-        transition: all 0.3s ease;
-        box-shadow: 0 4px 15px rgba(17, 153, 142, 0.3);
-    }
-
-    .btn-modern-edit:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(17, 153, 142, 0.4);
-        color: white;
-    }
-
-    .btn-modern-details {
-        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-        border: none;
-        color: white;
-        padding: 0.5rem 1.25rem;
-        border-radius: 8px;
-        font-weight: 600;
-        font-size: 0.85rem;
-        transition: all 0.3s ease;
-        box-shadow: 0 4px 15px rgba(79, 172, 254, 0.3);
-    }
-
-    .btn-modern-details:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(79, 172, 254, 0.4);
-        color: white;
-    }
-
-    .alert-modern {
-        border-radius: 10px;
-        border: none;
-        padding: 1rem 1.5rem;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-        margin-bottom: 1.5rem;
-    }
-
-    .empty-state {
-        padding: 3rem;
-        text-align: center;
-        color: #6c757d;
-    }
-
-    .empty-state i {
-        font-size: 4rem;
-        color: #dee2e6;
-        margin-bottom: 1rem;
-    }
-
-    @@media (max-width: 768px) {
-        .page-header-modern {
-            padding: 1.5rem;
-        }
-
-        .table-modern thead th,
-        .table-modern tbody td {
-            padding: 0.75rem 0.5rem;
-            font-size: 0.85rem;
-        }
-
-        .btn-modern-edit,
-        .btn-modern-details {
-            padding: 0.4rem 0.8rem;
-            font-size: 0.75rem;
-            display: block;
-            width: 100%;
-            margin-bottom: 0.5rem;
-        }
-    }
-</style>
-
-<div id="main">
-    <header class="mb-3">
-        <a href="#" class="burger-btn d-block d-xl-none">
-            <i class="bi bi-justify fs-3"></i>
-        </a>
-    </header>
-
-    <div class="page-heading">
-        <div class="page-header-modern">
-            <div class="row align-items-center">
-                <div class="col-12 col-md-6 order-md-1 order-last">
-                    <h3>
-                        <i class="bi bi-receipt"></i>
-                        Đơn đặt xe
-                    </h3>
-                    <p>Quản lý đơn đặt xe của bạn</p>
-                </div>
-                <div class="col-12 col-md-6 order-md-2 order-first">
-                    <nav aria-label="breadcrumb">
-                        <ol class="breadcrumb breadcrumb-modern">
-                            <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index" asp-area="CarOwner">Trang chủ</a></li>
-                            <li class="breadcrumb-item active" aria-current="page">Đơn đặt xe</li>
-                        </ol>
-                    </nav>
-                </div>
+<div class="space-y-4">
+    <!-- Panel Quản lý Đơn đặt xe (Pixel-Perfect Template) -->
+    <div class="recar-panel">
+        <div class="recar-panel-header flex-wrap gap-2">
+            <div>
+                <h2 class="recar-panel-title">Danh sách đơn đặt thuê xe</h2>
+                <div class="text-muted small mt-1">Theo dõi các đơn khách hàng đặt cọc giữ xe và xác nhận lịch trình bàn giao xe.</div>
             </div>
+
+            <!-- Bộ lọc trạng thái nhanh -->
+            <form method="get" class="d-flex align-items-center gap-2">
+                <select name="filterStatusId" class="recar-input py-1 px-3 small" style="width: auto;" onchange="this.form.submit()">
+                    <option value="">Tất cả trạng thái</option>
+                    @foreach (var s in orderStatuses)
+                    {
+                        <option value="@s.Value" selected="@(s.Selected)">@s.Text</option>
+                    }
+                </select>
+            </form>
         </div>
 
-        <section class="section">
-            <div class="row">
-                <div class="col-12">
-                    <div class="card orders-card">
-                        @if (!string.IsNullOrEmpty(Function._Message))
+        <div class="table-responsive">
+            <table class="recar-table">
+                <thead>
+                    <tr>
+                        <th>Mã đơn</th>
+                        <th>Khách hàng</th>
+                        <th>Ngày tạo đơn</th>
+                        <th>Đặt cọc (30%)</th>
+                        <th>Tổng tiền thuê</th>
+                        <th>Trạng thái</th>
+                        <th class="text-end">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model != null && Model.Any())
+                    {
+                        foreach (var item in Model)
                         {
-                            <div class="alert alert-info alert-modern">@Function._Message</div>
-                            Function._Message = string.Empty;
-                        }
-                        
-                        <div class="filter-section">
-                            <div class="row align-items-center">
-                                <div class="col-md-4">
-                                    <label class="form-label fw-bold mb-2">
-                                        <i class="bi bi-funnel-fill"></i> Lọc theo trạng thái
-                                    </label>
-                                    <select id="filterStatusDropdown" class="form-select filter-select-modern">
-                                        <option value="all" selected>-- Tất cả trạng thái --</option>
-                                        @foreach (var status in ViewBag.orderstatus)
-                                        {
-                                            if (!string.IsNullOrEmpty(status.Value))
-                                            {
-                                                <option value="@status.Value">@status.Text</option>
-                                            }
-                                        }
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
+                            string statusClass = "status-ready";
+                            string statusName = item.Status?.StatusDescription ?? "Đã thanh toán cọc";
 
-                        <div class="card-body p-0">
-                            <div class="table-responsive">
-                                <table class="table table-modern mb-0" id="ordersTable">
-                                    <thead>
-                                        <tr>
-                                            <th>#</th>
-                                            <th>Mã đơn</th>
-                                            <th>Ngày đặt</th>
-                                            <th>Trạng thái</th>
-                                            <th>Người đặt</th>
-                                            <th>Tổng tiền</th>
-                                            <th>Chức năng</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @if (Model != null && Model.Any())
+                            if (item.StatusId == 1 || item.StatusId == 2)
+                            {
+                                statusClass = "status-pending"; // Chờ duyệt / Chờ thanh toán
+                            }
+                            else if (item.StatusId == 3)
+                            {
+                                statusClass = "status-ready"; // Đã thanh toán cọc
+                            }
+                            else if (item.StatusId == 4)
+                            {
+                                statusClass = "status-busy"; // Đang thực hiện
+                            }
+                            else if (item.StatusId == 5)
+                            {
+                                statusClass = "status-maintenance"; // Đã hủy
+                            }
+
+                            <tr>
+                                <td>
+                                    <span class="fw-bold text-dark font-monospace fs-6">#@item.OrderId</span>
+                                </td>
+                                <td>
+                                    <div class="fw-bold text-dark">@(item.Customer?.Name ?? "Khách hàng ReCar")</div>
+                                    <div class="text-muted small">
+                                        <i class="bi bi-telephone text-secondary me-1"></i>@(item.Customer?.PhoneNumber ?? "0988.xxx.xxx")
+                                    </div>
+                                </td>
+                                <td class="text-muted small">
+                                    <i class="bi bi-clock-history me-1"></i>
+                                    @(item.OrderDate?.ToString("HH:mm - dd/MM/yyyy") ?? "Gần đây")
+                                </td>
+                                <td>
+                                    <span class="fw-bold text-success">
+                                        @((item.Deposit ?? 0).ToString("N0"))đ
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="fw-bold text-primary fs-6">
+                                        @((item.Payment ?? 0).ToString("N0"))đ
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="recar-status-badge @statusClass">
+                                        @statusName
+                                    </span>
+                                </td>
+                                <td class="text-end">
+                                    <div class="d-inline-flex gap-1">
+                                        <a href="/CarOwner/Orders/Details/@item.OrderId" class="btn btn-outline-primary btn-sm rounded-pill px-3 py-1 fw-semibold">
+                                            <i class="bi bi-eye me-1"></i>Chi tiết
+                                        </a>
+                                        @if (item.StatusId == 1 || item.StatusId == 2)
                                         {
-                                            int i = 1;
-                                            foreach (var item in Model)
-                                            {
-                                                <tr data-status-id="@item.StatusId">
-                                                    <td class="fw-bold">@(i++)</td>
-                                                    <td class="fw-bold">@Html.DisplayFor(modelItem => item.OrderId)</td>
-                                                    <td>@(item.OrderDate?.ToString("dd-MM-yyyy") ?? "N/A")</td>
-                                                    <td>
-                                                        @if (item.StatusId == 1)
-                                                        {
-                                                            <span class="badge badge-modern bg-warning">@item.Status.StatusDescription</span>
-                                                        }
-                                                        else if (item.StatusId == 2)
-                                                        {
-                                                            <span class="badge badge-modern bg-danger">@item.Status.StatusDescription</span>
-                                                        }
-                                                        else if (item.StatusId == 3)
-                                                        {
-                                                            <span class="badge badge-modern bg-success">@item.Status.StatusDescription</span>
-                                                        }
-                                                        else
-                                                        {
-                                                            <span class="badge badge-modern bg-info">@item.Status.StatusDescription</span>
-                                                        }
-                                                    </td>
-                                                    <td>@(item.Customer?.Name ?? item.Customer?.FullName ?? "N/A")</td>
-                                                    <td class="fw-bold text-primary">@string.Format("{0:N0}", (item.Deposit + item.Payment)) ₫</td>
-                                                    <td>
-                                                        <div class="d-flex gap-2">
-                                                            <a asp-action="Edit" asp-route-id="@item.OrderId" class="btn btn-modern-edit">
-                                                                <i class="bi bi-pencil-fill"></i> Sửa
-                                                            </a>
-                                                            <a asp-action="Details" asp-route-id="@item.OrderId" class="btn btn-modern-details">
-                                                                <i class="bi bi-eye-fill"></i> Chi tiết
-                                                            </a>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            }
+                                            <a href="/CarOwner/Orders/Confirm/@item.OrderId" class="btn btn-success btn-sm rounded-pill px-2.5 py-1 text-white" title="Xác nhận đơn">
+                                                <i class="bi bi-check-lg"></i>
+                                            </a>
+                                            <a href="/CarOwner/Orders/Cancel/@item.OrderId" class="btn btn-outline-danger btn-sm rounded-pill px-2.5 py-1" onclick="return confirm('Bạn có chắc muốn từ chối đơn này?');" title="Từ chối">
+                                                <i class="bi bi-x-lg"></i>
+                                            </a>
                                         }
-                                        else
-                                        {
-                                            <tr>
-                                                <td colspan="7" class="empty-state">
-                                                    <i class="bi bi-inbox"></i>
-                                                    <p class="mb-0">Không có đơn hàng nào được tìm thấy.</p>
-                                                </td>
-                                            </tr>
-                                        }
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="7" class="text-center py-5 text-muted">
+                                <div class="mb-3">
+                                    <i class="bi bi-clipboard-x fs-1 text-secondary opacity-50"></i>
+                                </div>
+                                <h5>Chưa có đơn đặt xe nào</h5>
+                                <p class="small text-muted">Khi khách hàng đặt cọc giữ xe của bạn, các thông báo và lịch trình sẽ xuất hiện tại đây.</p>
+                                <a href="/CarOwner/Home/Index" class="btn btn-light rounded-pill px-4 py-2 border text-primary fw-bold">
+                                    Quay về Tổng quan
+                                </a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
-
-<script>
-    document.getElementById('filterStatusDropdown').addEventListener('change', function () {
-        const selectedStatus = this.value;
-        const rows = document.querySelectorAll('#ordersTable tbody tr');
-
-        rows.forEach(row => {
-            const statusId = row.getAttribute('data-status-id');
-            if (selectedStatus === 'all' || statusId === selectedStatus) {
-                row.style.display = '';
-            } else {
-                row.style.display = 'none';
-            }
-        });
-    });
-</script>
-

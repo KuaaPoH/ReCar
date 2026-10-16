@@ -17,27 +17,40 @@ namespace CarRental.Areas.CarOwner.Controllers
         }
 
         // Kiểm tra quyền chủ xe
-        private bool CheckCarOwnerPermission()
+        private Account? GetCurrentCarOwner()
         {
             if (!Function.IsLogin(HttpContext.Session))
             {
-                return false;
+                return null;
             }
 
             var accountId = Function.GetAccountId(HttpContext.Session);
-            var account = _context.Accounts.FirstOrDefault(a => a.AccountId == accountId);
-            return account != null && account.RoleId == 3; // RoleId 3 = Chủ xe
+            var carOwnerId = Function.GetCarOwnerAccountId(HttpContext.Session);
+            var userEmail = Function.GetEmail(HttpContext.Session);
+
+            return _context.Accounts
+                .Include(a => a.Role)
+                .FirstOrDefault(a => (carOwnerId > 0 && a.AccountId == carOwnerId) ||
+                                     a.AccountId == accountId ||
+                                     (!string.IsNullOrEmpty(userEmail) && a.Email == userEmail && a.RoleId == 3));
+        }
+
+        private bool CheckCarOwnerPermission()
+        {
+            var owner = GetCurrentCarOwner();
+            return owner != null && owner.RoleId == 3; // RoleId 3 = Chủ xe
         }
 
         public IActionResult Index()
         {
-            if (!CheckCarOwnerPermission())
+            var owner = GetCurrentCarOwner();
+            if (owner == null || owner.RoleId != 3)
             {
                 Function.SetMessage(HttpContext.Session, "Bạn không có quyền truy cập");
                 return RedirectToAction("Index", "Login", new { area = "" });
             }
 
-            var ownerId = Function.GetAccountId(HttpContext.Session);
+            var ownerId = owner.AccountId;
             var cars = _context.Cars
                 .Include(c => c.Type)
                 .Where(c => c.OwnerId == ownerId)
@@ -84,8 +97,10 @@ namespace CarRental.Areas.CarOwner.Controllers
 
             if (ModelState.IsValid)
             {
-                car.OwnerId = Function.GetAccountId(HttpContext.Session); // Gán chủ xe hiện tại
+                var currentOwner = GetCurrentCarOwner();
+                car.OwnerId = currentOwner?.AccountId ?? Function.GetAccountId(HttpContext.Session); // Gán chủ xe hiện tại
                 car.Alias = Function.TitleSlugGenerationAlias(car.CarName ?? "");
+                car.CarStatus = "Sẵn sàng"; // Mặc định sẵn sàng hoặc chờ duyệt
 
                 _context.Cars.Add(car);
                 _context.SaveChanges();

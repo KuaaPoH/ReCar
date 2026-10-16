@@ -4,575 +4,153 @@
 @{
     ViewData["Title"] = "Thêm xe mới";
     Layout = "~/Areas/CarOwner/Views/Shared/_Layout.cshtml";
+    var carTypes = ViewBag.CarTypes as List<SelectListItem> ?? new List<SelectListItem>();
 }
 
-<div id="main">
-    <header class="mb-3">
-        <a href="#" class="burger-btn d-block d-xl-none">
-            <i class="bi bi-justify fs-3"></i>
-        </a>
-    </header>
-
-    <style>
-        .page-header-modern {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            padding: 2rem;
-            border-radius: 15px;
-            margin-bottom: 2rem;
-            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
-        }
-
-        .page-header-modern h3 {
-            color: white;
-            font-weight: 600;
-            margin: 0;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .page-header-modern h3 i {
-            font-size: 1.5rem;
-        }
-
-        .breadcrumb-modern {
-            background: rgba(255, 255, 255, 0.2);
-            backdrop-filter: blur(10px);
-            padding: 0.75rem 1.5rem;
-            border-radius: 10px;
-            margin: 0;
-        }
-
-        .breadcrumb-modern .breadcrumb-item a {
-            color: rgba(255, 255, 255, 0.9);
-            text-decoration: none;
-        }
-
-        .breadcrumb-modern .breadcrumb-item.active {
-            color: white;
-            font-weight: 500;
-        }
-
-        .form-card-modern {
-            background: white;
-            border-radius: 15px;
-            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
-            overflow: hidden;
-            border: none;
-        }
-
-        .form-card-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            padding: 1.5rem;
-            color: white;
-        }
-
-        .form-card-header h4 {
-            margin: 0;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .form-card-body {
-            padding: 2rem;
-        }
-
-        .form-group-modern {
-            margin-bottom: 1.5rem;
-        }
-
-        .form-group-modern label {
-            font-weight: 600;
-            color: #333;
-            margin-bottom: 0.5rem;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-
-        .form-group-modern label i {
-            color: #667eea;
-        }
-
-        .form-control-modern {
-            border: 2px solid #e9ecef;
-            border-radius: 10px;
-            padding: 0.75rem 1rem;
-            transition: all 0.3s ease;
-            font-size: 0.95rem;
-        }
-
-        .form-control-modern:focus {
-            border-color: #667eea;
-            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.15);
-            outline: none;
-        }
-
-        .form-select.form-control-modern {
-            border: 2px solid #e9ecef;
-            border-radius: 10px;
-            padding: 0.75rem 1rem;
-            transition: all 0.3s ease;
-            font-size: 0.95rem;
-            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
-            background-repeat: no-repeat;
-            background-position: right 0.75rem center;
-            background-size: 16px 12px;
-        }
-
-        .form-select.form-control-modern:focus {
-            border-color: #667eea;
-            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.15);
-            outline: none;
-        }
-
-        .btn-modern-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border: none;
-            color: white;
-            padding: 0.75rem 2rem;
-            border-radius: 10px;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
-        }
-
-        .btn-modern-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
-            color: white;
-        }
-
-        .btn-modern-secondary {
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-            border: none;
-            color: white;
-            padding: 0.75rem 2rem;
-            border-radius: 10px;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(245, 87, 108, 0.3);
-        }
-
-        .btn-modern-secondary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(245, 87, 108, 0.4);
-            color: white;
-        }
-
-        .btn-image-selector {
-            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-            border: none;
-            color: white;
-            padding: 0.75rem 1.5rem;
-            border-radius: 10px;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(79, 172, 254, 0.3);
-        }
-
-        .btn-image-selector:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(79, 172, 254, 0.4);
-            color: white;
-        }
-
-        .form-check-modern {
-            padding: 0;
-            background: transparent;
-            border-radius: 0;
-            border: none;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            height: 100%;
-            min-height: 3.5rem;
-        }
-
-        .form-check-modern:hover {
-            border-color: transparent;
-            background: transparent;
-        }
-
-        .form-check-modern .form-check-input {
-            width: 1.25rem;
-            height: 1.25rem;
-            cursor: pointer;
-            margin-top: 0;
-            margin-right: 0.5rem;
-        }
-
-        .form-check-modern .form-check-label {
-            margin-left: 0;
-            cursor: pointer;
-            font-weight: 500;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .checkbox-wrapper {
-            padding: 1rem;
-            background: #f8f9fa;
-            border-radius: 10px;
-            border: 2px solid #e9ecef;
-            transition: all 0.3s ease;
-            height: 100%;
-            display: flex;
-            align-items: center;
-            min-height: 3.5rem;
-        }
-
-        .checkbox-wrapper:hover {
-            border-color: #667eea;
-            background: #f0f4ff;
-        }
-
-        .alert-modern {
-            border-radius: 10px;
-            border: none;
-            padding: 1rem 1.5rem;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-        }
-
-        .input-group-modern {
-            display: flex;
-            gap: 0.5rem;
-        }
-
-        .input-group-modern .form-control {
-            flex: 1;
-        }
-
-        @@media (max-width: 768px) {
-            .page-header-modern {
-                padding: 1.5rem;
-            }
-
-            .form-card-body {
-                padding: 1.5rem;
-            }
-
-            .btn-modern-primary,
-            .btn-modern-secondary {
-                width: 100%;
-                margin-bottom: 0.5rem;
-            }
-        }
-    </style>
-
-    <div class="page-heading">
-        <div class="page-header-modern">
-            <div class="row align-items-center">
-                <div class="col-12 col-md-6 order-md-1 order-last">
-                    <h3>
-                        <i class="bi bi-plus-circle-fill"></i>
-                        Thêm xe mới
-                    </h3>
+<div class="row justify-content-center">
+    <div class="col-12 col-xl-10">
+        <!-- Panel Thêm xe mới (Pixel-Perfect Template) -->
+        <div class="recar-panel">
+            <div class="recar-panel-header">
+                <div>
+                    <h2 class="recar-panel-title">Đăng ký phương tiện cho thuê</h2>
+                    <div class="text-muted small mt-1">Cung cấp đầy đủ và chính xác thông tin để hồ sơ được duyệt nhanh chóng.</div>
                 </div>
-                <div class="col-12 col-md-6 order-md-2 order-first">
-                    <nav aria-label="breadcrumb">
-                        <ol class="breadcrumb breadcrumb-modern">
-                            <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index" asp-area="CarOwner">Trang chủ</a></li>
-                            <li class="breadcrumb-item"><a asp-action="Index">Quản lý xe</a></li>
-                            <li class="breadcrumb-item active" aria-current="page">Thêm xe mới</li>
-                        </ol>
-                    </nav>
-                </div>
+                <a href="/CarOwner/Cars/Index" class="btn btn-light btn-sm rounded-pill px-3 border text-secondary">
+                    <i class="bi bi-arrow-left me-1"></i> Quay lại
+                </a>
             </div>
-        </div>
 
-        <section class="section">
-            <div class="card form-card-modern">
-                <div class="form-card-header">
-                    <h4>
-                        <i class="bi bi-car-front"></i>
-                        Thông tin xe
-                    </h4>
-                </div>
-                <div class="form-card-body">
-                    @if (!string.IsNullOrEmpty(Function._Message))
-                    {
-                        <div class="alert alert-info alert-modern">@Function._Message</div>
-                        Function._Message = string.Empty;
-                    }
+            <div class="p-4 p-md-5">
+                <form asp-action="Create" method="post" enctype="multipart/form-data">
+                    @Html.AntiForgeryToken()
 
-                    <form asp-action="Create" method="post" enctype="multipart/form-data">
-                        <div asp-validation-summary="ModelOnly" class="text-danger mb-4"></div>
+                    <div class="row g-4">
+                        <!-- Tên xe -->
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-bold text-dark small">Tên phương tiện <span class="text-danger">*</span></label>
+                            <input asp-for="CarName" class="recar-input" placeholder="Ví dụ: VinFast VF 5 Plus, Toyota Vios G..." required />
+                            <span asp-validation-for="CarName" class="text-danger small"></span>
+                        </div>
 
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="form-group-modern">
-                                    <label asp-for="CarName">
-                                        <i class="bi bi-tag-fill"></i>
-                                        Tên xe <span class="text-danger">*</span>
-                                    </label>
-                                    <input asp-for="CarName" type="text" class="form-control form-control-modern" placeholder="Nhập tên xe" required>
-                                    <span asp-validation-for="CarName" class="text-danger"></span>
-                                </div>
+                        <!-- Hãng xe -->
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-bold text-dark small">Hãng sản xuất <span class="text-danger">*</span></label>
+                            <select asp-for="CarBrand" class="recar-input" required>
+                                <option value="">-- Chọn hãng xe --</option>
+                                <option value="VinFast">VinFast</option>
+                                <option value="Toyota">Toyota</option>
+                                <option value="Hyundai">Hyundai</option>
+                                <option value="Mazda">Mazda</option>
+                                <option value="Kia">Kia</option>
+                                <option value="Ford">Ford</option>
+                                <option value="Honda">Honda</option>
+                                <option value="Mitsubishi">Mitsubishi</option>
+                            </select>
+                            <span asp-validation-for="CarBrand" class="text-danger small"></span>
+                        </div>
+
+                        <!-- Phân khúc loại xe -->
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-bold text-dark small">Phân khúc xe <span class="text-danger">*</span></label>
+                            <select asp-for="TypeId" class="recar-input" asp-items="carTypes" required>
+                            </select>
+                            <span asp-validation-for="TypeId" class="text-danger small"></span>
+                        </div>
+
+                        <!-- Biển số xe -->
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-bold text-dark small">Biển số xe kiểm định <span class="text-danger">*</span></label>
+                            <input asp-for="LicensePlate" class="recar-input font-monospace text-uppercase" placeholder="Ví dụ: 30H-988.22" required />
+                            <span asp-validation-for="LicensePlate" class="text-danger small"></span>
+                        </div>
+
+                        <!-- Giá thuê ngày -->
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-bold text-dark small">Giá thuê niêm yết (VNĐ/ngày) <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <input asp-for="Price" type="number" min="300000" step="50000" class="recar-input rounded-start" placeholder="850000" required />
+                                <span class="input-group-text bg-light text-muted small border-start-0" style="border-radius: 0 10px 10px 0;">đ/ngày</span>
                             </div>
+                            <span asp-validation-for="Price" class="text-danger small"></span>
+                        </div>
 
-                            <div class="col-md-6">
-                                <div class="form-group-modern">
-                                    <label asp-for="TypeId">
-                                        <i class="bi bi-grid-3x3-gap-fill"></i>
-                                        Hạng xe <span class="text-danger">*</span>
-                                    </label>
-                                    <select asp-for="TypeId" asp-items="ViewBag.CarTypes" class="form-select form-control-modern" required>
-                                    </select>
-                                    <span asp-validation-for="TypeId" class="text-danger"></span>
-                                </div>
+                        <!-- Số chỗ ngồi -->
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-bold text-dark small">Số lượng chỗ ngồi <span class="text-danger">*</span></label>
+                            <select asp-for="Seat" class="recar-input" required>
+                                <option value="4">4 chỗ</option>
+                                <option value="5" selected>5 chỗ</option>
+                                <option value="7">7 chỗ</option>
+                                <option value="8">8 chỗ</option>
+                            </select>
+                        </div>
+
+                        <!-- Hộp số -->
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-bold text-dark small">Hộp số truyền động <span class="text-danger">*</span></label>
+                            <select asp-for="Transmission" class="recar-input" required>
+                                <option value="Tự động" selected>Tự động</option>
+                                <option value="Số sàn">Số sàn</option>
+                            </select>
+                        </div>
+
+                        <!-- Nhiên liệu -->
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-bold text-dark small">Loại nhiên liệu <span class="text-danger">*</span></label>
+                            <select asp-for="Fuel" class="recar-input" required>
+                                <option value="Xăng" selected>Xăng</option>
+                                <option value="Dầu">Dầu (Diesel)</option>
+                                <option value="Điện">Điện (EV)</option>
+                            </select>
+                        </div>
+
+                        <!-- Địa điểm nhận bàn giao xe -->
+                        <div class="col-12">
+                            <label class="form-label fw-bold text-dark small">Địa điểm bàn giao xe cho khách <span class="text-danger">*</span></label>
+                            <input asp-for="Location" class="recar-input" placeholder="Ví dụ: Cầu Giấy, Hà Nội hoặc Quận 7, TP.HCM" required />
+                            <div class="text-muted small mt-1" style="font-size: 0.75rem;">
+                                Khách hàng sẽ tìm kiếm xe theo địa điểm này trên bản đồ ReCar.
                             </div>
                         </div>
 
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="form-group-modern">
-                                    <label asp-for="LicensePlate">
-                                        <i class="bi bi-123"></i>
-                                        Biển số <span class="text-danger">*</span>
-                                    </label>
-                                    <input asp-for="LicensePlate" type="text" class="form-control form-control-modern" placeholder="Nhập biển số xe" required>
-                                    <span asp-validation-for="LicensePlate" class="text-danger"></span>
-                                </div>
-                            </div>
-
-                            <div class="col-md-6">
-                                <div class="form-group-modern">
-                                    <label asp-for="Seat">
-                                        <i class="bi bi-people-fill"></i>
-                                        Số chỗ ngồi
-                                    </label>
-                                    <input asp-for="Seat" type="number" class="form-control form-control-modern" placeholder="Nhập số chỗ ngồi">
-                                    <span asp-validation-for="Seat" class="text-danger"></span>
-                                </div>
+                        <!-- Ảnh đại diện xe -->
+                        <div class="col-12">
+                            <label class="form-label fw-bold text-dark small">Đường dẫn hình ảnh đại diện (URL hoặc tải lên) <span class="text-danger">*</span></label>
+                            <input asp-for="Image" class="recar-input" placeholder="Ví dụ: /images/cars/car-suv.jpg hoặc liên kết hình ảnh trực tuyến" required />
+                            <div class="text-muted small mt-1" style="font-size: 0.75rem;">
+                                Hãy sử dụng hình ảnh rõ nét góc 3/4 phía trước của xe để đạt tỷ lệ đặt xe cao nhất.
                             </div>
                         </div>
 
-                        <div class="row">
-                            <div class="col-md-4">
-                                <div class="form-group-modern">
-                                    <label asp-for="Color">
-                                        <i class="bi bi-palette-fill"></i>
-                                        Màu xe
-                                    </label>
-                                    <input asp-for="Color" type="text" class="form-control form-control-modern" placeholder="Nhập màu xe">
-                                    <span asp-validation-for="Color" class="text-danger"></span>
-                                </div>
-                            </div>
+                        <!-- Mô tả chi tiết -->
+                        <div class="col-12">
+                            <label class="form-label fw-bold text-dark small">Mô tả chi tiết và tiện nghi trang bị</label>
+                            <textarea asp-for="Details" rows="4" class="recar-input" placeholder="Giới thiệu về tình trạng xe, tiện nghi nổi bật (Camera 360, Apple CarPlay, Cảm biến áp suất lốp, cửa sổ trời...)..."></textarea>
+                        </div>
 
-                            <div class="col-md-4">
-                                <div class="form-group-modern">
-                                    <label asp-for="Model">
-                                        <i class="bi bi-calendar-event"></i>
-                                        Năm sản xuất
-                                    </label>
-                                    <input asp-for="Model" type="text" class="form-control form-control-modern" placeholder="Nhập năm sản xuất">
-                                    <span asp-validation-for="Model" class="text-danger"></span>
-                                </div>
-                            </div>
-
-                            <div class="col-md-4">
-                                <div class="form-group-modern">
-                                    <label asp-for="CarBrand">
-                                        <i class="bi bi-building"></i>
-                                        Hãng xe
-                                    </label>
-                                    <input asp-for="CarBrand" type="text" class="form-control form-control-modern" placeholder="Nhập tên hãng xe">
-                                    <span asp-validation-for="CarBrand" class="text-danger"></span>
-                                </div>
+                        <!-- Thông báo quy định -->
+                        <div class="col-12">
+                            <div class="alert alert-info d-flex align-items-center gap-2 mb-0 py-2.5 rounded-3 border-0" style="background-color: #f0f9ff; color: #0369a1;">
+                                <i class="bi bi-info-circle-fill fs-5"></i>
+                                <span class="small">
+                                    Phương tiện mới sau khi gửi sẽ ở trạng thái <b>"Chờ duyệt"</b> để ban quản trị ReCar kiểm định hồ sơ trước khi công khai trên sàn cho thuê.
+                                </span>
                             </div>
                         </div>
 
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="form-group-modern">
-                                    <label asp-for="Price">
-                                        <i class="bi bi-currency-dollar"></i>
-                                        Giá thuê/ngày (VNĐ) <span class="text-danger">*</span>
-                                    </label>
-                                    <input asp-for="Price" type="number" class="form-control form-control-modern" placeholder="Nhập giá thuê" required>
-                                    <span asp-validation-for="Price" class="text-danger"></span>
-                                </div>
-                            </div>
-
-                            <div class="col-md-6">
-                                <div class="form-group-modern">
-                                    <label asp-for="SalePrice">
-                                        <i class="bi bi-tag-fill"></i>
-                                        Giá giảm/ngày (VNĐ)
-                                    </label>
-                                    <input asp-for="SalePrice" type="number" class="form-control form-control-modern" placeholder="Nhập giá giảm (nếu có)">
-                                    <span asp-validation-for="SalePrice" class="text-danger"></span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="form-group-modern">
-                            <label asp-for="Image">
-                                <i class="bi bi-image-fill"></i>
-                                Ảnh đại diện
-                            </label>
-                            <div class="input-group-modern">
-                                <button class="btn btn-image-selector" type="button" onclick="openDialog()">
-                                    <i class="bi bi-folder2-open"></i> Chọn ảnh
-                                </button>
-                                <input asp-for="Image" type="text" class="form-control form-control-modern" id="file_input" placeholder="Đường dẫn ảnh">
-                            </div>
-                            <span asp-validation-for="Image" class="text-danger"></span>
-                            <small class="form-text text-muted">Bạn có thể chọn nhiều ảnh, cách nhau bằng dấu phẩy</small>
-                        </div>
-
-                        <div class="form-group-modern">
-                            <label asp-for="Descriptions">
-                                <i class="bi bi-card-text"></i>
-                                Mô tả ngắn
-                            </label>
-                            <textarea asp-for="Descriptions" class="form-control form-control-modern" rows="3" placeholder="Nhập mô tả ngắn về xe"></textarea>
-                            <span asp-validation-for="Descriptions" class="text-danger"></span>
-                        </div>
-
-                        <div class="form-group-modern">
-                            <label asp-for="Details">
-                                <i class="bi bi-file-text-fill"></i>
-                                Chi tiết
-                            </label>
-                            <textarea asp-for="Details" class="form-control form-control-modern" rows="5" placeholder="Nhập thông tin chi tiết về xe"></textarea>
-                            <span asp-validation-for="Details" class="text-danger"></span>
-                        </div>
-
-                        <div class="row align-items-end">
-                            <div class="col-md-4">
-                                <div class="form-group-modern">
-                                    <label asp-for="Rate">
-                                        <i class="bi bi-star-fill"></i>
-                                        Đánh giá (sao)
-                                    </label>
-                                    <input asp-for="Rate" type="number" step="0.1" min="0" max="5" class="form-control form-control-modern" placeholder="0-5">
-                                    <span asp-validation-for="Rate" class="text-danger"></span>
-                                </div>
-                            </div>
-
-                            <div class="col-md-4">
-                                <div class="checkbox-wrapper">
-                                    <div class="form-check-modern">
-                                        <input asp-for="IsActive" class="form-check-input" type="checkbox" checked>
-                                        <label asp-for="IsActive" class="form-check-label">
-                                            <i class="bi bi-eye-fill"></i> Hiển thị trên hệ thống
-                                        </label>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="col-md-4">
-                                <div class="checkbox-wrapper">
-                                    <div class="form-check-modern">
-                                        <input asp-for="IsSale" class="form-check-input" type="checkbox">
-                                        <label asp-for="IsSale" class="form-check-label">
-                                            <i class="bi bi-percent"></i> Đang giảm giá
-                                        </label>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <input type="hidden" id="filePaths" name="filePaths" value="" />
-
-                        <div class="d-flex gap-3 mt-4">
-                            <button type="submit" class="btn btn-modern-primary">
-                                <i class="bi bi-check-circle-fill"></i> Thêm xe
+                        <!-- Nút gửi duyệt -->
+                        <div class="col-12 pt-2">
+                            <button type="submit" class="btn-recar-primary px-5 py-2.5 shadow-sm">
+                                <i class="bi bi-send-check-fill me-1"></i> Gửi hồ sơ duyệt xe
                             </button>
-                            <a asp-action="Index" class="btn btn-modern-secondary">
-                                <i class="bi bi-arrow-left-circle-fill"></i> Quay lại
+                            <a href="/CarOwner/Cars/Index" class="btn btn-light rounded-pill px-4 py-2.5 border ms-2 text-secondary fw-semibold">
+                                Hủy bỏ
                             </a>
                         </div>
-                    </form>
-                </div>
+                    </div>
+                </form>
             </div>
-        </section>
+        </div>
     </div>
 </div>
-
-@section Scripts {
-    <link rel="stylesheet" href="~/admin/lib/jqueryui/themes/themes/base/theme.css" />
-    <link rel="stylesheet" href="~/admin/lib/jqueryui/themes/jquery-ui.css" />
-    <link rel="stylesheet" href="~/admin/lib/elfinder/css/elfinder.full.css" />
-    <link rel="stylesheet" href="~/admin/lib/elfinder/css/theme.min.css" />
-
-    <script src="~/admin/lib/jquery/dist/jquery.min.js"></script>
-    <script src="~/admin/lib/jqueryui/jquery-ui.min.js"></script>
-    <script src="~/admin/lib/elfinder/js/elfinder.min.js"></script>
-
-    <script type="text/javascript">
-        function openDialog() {
-            var getFileCallback = function (files) {
-                var inputElement = document.getElementById('file_input');
-                var filePathsInput = document.getElementById('filePaths');
-                var currentValue = inputElement.value;
-
-                if (Array.isArray(files)) {
-                    var urls = files.map(function (file) {
-                        return file.url;
-                    });
-
-                    inputElement.value = currentValue
-                        ? currentValue + ', ' + urls.join(', ')
-                        : urls.join(', ');
-                    
-                    filePathsInput.value = urls.join(',');
-                } else {
-                    inputElement.value = files.url;
-                    filePathsInput.value = files.url;
-                }
-            };
-
-            var dialog = $('<div/>').dialogelfinder({
-                baseUrl: "@Url.Content("~/admin/lib/elFinder/")",
-                url: '/Admin/el-finder-file-system/connector',
-                lang: 'vi',
-                width: 840,
-                height: 450,
-                destroyOnClose: true,
-                closeOnEditorCallback: true,
-                getFileCallback: getFileCallback,
-                commandsOptions: {
-                    getfile: {
-                        oncomplete: 'close',
-                        folders: false,
-                        multiple: true
-                    }
-                }
-            }).dialogelfinder('instance');
-            
-            // Xử lý double-click để tự động chọn file và đóng dialog
-            dialog.one('open', function() {
-                var elfinder = dialog.elfinder('instance');
-                if (elfinder) {
-                    // Override command map để double-click vào file sẽ gọi getfile thay vì open
-                    var originalOpen = elfinder.commandMap.open;
-                    elfinder.commandMap.open = 'getfile';
-                    
-                    // Bind event dblclick để xử lý khi double-click
-                    elfinder.bind('dblclick', function(e) {
-                        var file = e.data.file;
-                        if (file && file.mime && file.mime.indexOf('image/') === 0) {
-                            // Gọi getfile command để chọn file
-                            elfinder.exec('getfile', [file.hash]);
-                        }
-                    });
-                    
-                    // Restore original command map khi dialog đóng
-                    dialog.on('close', function() {
-                        if (originalOpen) {
-                            elfinder.commandMap.open = originalOpen;
-                        }
-                    });
-                }
-            });
-        }
-
-    </script>
-}
-

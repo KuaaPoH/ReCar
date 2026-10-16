@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 
@@ -22,6 +22,8 @@ public partial class DbRenalCarContext : DbContext
     public virtual DbSet<BlogComment> BlogComments { get; set; }
 
     public virtual DbSet<Car> Cars { get; set; }
+
+    public virtual DbSet<ChatMessage> ChatMessages { get; set; }
 
     public virtual DbSet<CarImage> CarImages { get; set; }
 
@@ -130,6 +132,7 @@ public partial class DbRenalCarContext : DbContext
             entity.Property(e => e.SalePrice).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.TypeId).HasColumnName("TypeID");
             entity.Property(e => e.OwnerId).HasColumnName("OwnerID");
+            entity.Property(e => e.CarStatus).HasMaxLength(50);
 
             entity.HasOne(d => d.Type).WithMany(p => p.Cars)
                 .HasForeignKey(d => d.TypeId)
@@ -403,6 +406,34 @@ public partial class DbRenalCarContext : DbContext
             entity.Property(e => e.Email).HasMaxLength(50);
             entity.Property(e => e.Password).HasMaxLength(50);
             entity.Property(e => e.UserName).HasMaxLength(50);
+        });
+
+        modelBuilder.Entity<ChatMessage>(entity =>
+        {
+            entity.HasKey(e => e.MessageId);
+            entity.ToTable("ChatMessages");
+
+            entity.Property(e => e.MessageId).HasColumnName("MessageId");
+            entity.Property(e => e.CarId).HasColumnName("CarId");
+            entity.Property(e => e.SenderId).HasColumnName("SenderId");
+            entity.Property(e => e.SenderName).HasMaxLength(100);
+            entity.Property(e => e.SenderRole).HasMaxLength(50);
+            entity.Property(e => e.ReceiverId).HasColumnName("ReceiverId");
+            entity.Property(e => e.ReceiverName).HasMaxLength(100);
+            entity.Property(e => e.MessageText).HasColumnType("text");
+            entity.Property(e => e.SentAt).HasColumnType("datetime");
+
+            entity.HasOne(d => d.Car).WithMany()
+                .HasForeignKey(d => d.CarId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(d => d.Sender).WithMany()
+                .HasForeignKey(d => d.SenderId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(d => d.Receiver).WithMany()
+                .HasForeignKey(d => d.ReceiverId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
 
         OnModelCreatingPartial(modelBuilder);

@@ -29,12 +29,12 @@ namespace CarRental.Controllers
 
             if (minPrice.HasValue && minPrice.Value > 0)
             {
-                query = query.Where(c => (c.SalePrice > 0 ? c.SalePrice : c.Price) >= minPrice.Value);
+                query = query.Where(c => (c.IsSale && c.SalePrice != null && c.SalePrice > 0 && c.SalePrice < c.Price ? c.SalePrice : c.Price) >= minPrice.Value);
             }
 
             if (maxPrice.HasValue && maxPrice.Value > 0)
             {
-                query = query.Where(c => (c.SalePrice > 0 ? c.SalePrice : c.Price) <= maxPrice.Value);
+                query = query.Where(c => (c.IsSale && c.SalePrice != null && c.SalePrice > 0 && c.SalePrice < c.Price ? c.SalePrice : c.Price) <= maxPrice.Value);
             }
 
             if (!string.IsNullOrEmpty(brands))
@@ -62,11 +62,11 @@ namespace CarRental.Controllers
 
             if (sort == "price-asc")
             {
-                query = query.OrderBy(c => c.SalePrice > 0 ? c.SalePrice : c.Price);
+                query = query.OrderBy(c => c.IsSale && c.SalePrice != null && c.SalePrice > 0 && c.SalePrice < c.Price ? c.SalePrice : c.Price);
             }
             else if (sort == "price-desc")
             {
-                query = query.OrderByDescending(c => c.SalePrice > 0 ? c.SalePrice : c.Price);
+                query = query.OrderByDescending(c => c.IsSale && c.SalePrice != null && c.SalePrice > 0 && c.SalePrice < c.Price ? c.SalePrice : c.Price);
             }
             else if (sort == "rating")
             {
@@ -89,7 +89,10 @@ namespace CarRental.Controllers
             {
                 return NotFound();
             }
-            var product = await _context.Cars.Include(i=>i.Type).FirstOrDefaultAsync(m => m.CarId == id);
+            var product = await _context.Cars
+                .Include(i => i.Type)
+                .Include(i => i.Owner)
+                .FirstOrDefaultAsync(m => m.CarId == id);
             //var product = await _context.Cars.FirstOrDefaultAsync(m => m.CarId == id);
 
             if (product == null)

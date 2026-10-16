@@ -1,556 +1,136 @@
-@model IList<Car>
+@model IList<CarRental.Models.Car>
 @using CarRental.Utilities
 @{
     ViewData["Title"] = "Quản lý xe";
     Layout = "~/Areas/CarOwner/Views/Shared/_Layout.cshtml";
 }
 
-<style>
-    .page-header-modern {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        padding: 2rem;
-        border-radius: 15px;
-        margin-bottom: 2rem;
-        box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
-    }
-
-    .page-header-modern h3 {
-        margin: 0;
-        font-size: 2rem;
-        font-weight: 700;
-    }
-
-    .breadcrumb-modern {
-        background: rgba(255, 255, 255, 0.2);
-        backdrop-filter: blur(10px);
-        padding: 0.5rem 1rem;
-        border-radius: 10px;
-        display: inline-block;
-    }
-
-    .breadcrumb-modern .breadcrumb-item a {
-        color: rgba(255, 255, 255, 0.9);
-        text-decoration: none;
-    }
-
-    .breadcrumb-modern .breadcrumb-item.active {
-        color: white;
-    }
-
-    .cars-card {
-        border: none;
-        border-radius: 15px;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
-        overflow: hidden;
-    }
-
-    .cars-card .card-header {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        border: none;
-        padding: 1.25rem 1.5rem;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-
-    .cars-card .card-header h4 {
-        margin: 0;
-        font-weight: 600;
-        font-size: 1.25rem;
-    }
-
-    .btn-add-car {
-        background: rgba(255, 255, 255, 0.2);
-        backdrop-filter: blur(10px);
-        border: 2px solid rgba(255, 255, 255, 0.3);
-        color: white;
-        padding: 0.5rem 1.5rem;
-        border-radius: 10px;
-        font-weight: 600;
-        transition: all 0.3s ease;
-    }
-
-    .btn-add-car:hover {
-        background: rgba(255, 255, 255, 0.3);
-        transform: translateY(-2px);
-        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-        color: white;
-    }
-
-    .cars-card .table {
-        margin: 0;
-    }
-
-    .cars-card .table thead {
-        background-color: #f8f9fa;
-    }
-
-    .cars-card .table thead th {
-        border: none;
-        padding: 1rem;
-        font-weight: 600;
-        color: #495057;
-        font-size: 0.875rem;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        white-space: nowrap;
-    }
-
-    .cars-card .table tbody tr {
-        transition: all 0.2s ease;
-        border-bottom: 1px solid #e9ecef;
-    }
-
-    .cars-card .table tbody tr:hover {
-        background-color: #f8f9fa;
-        transform: scale(1.01);
-    }
-
-    .cars-card .table tbody td {
-        padding: 1rem;
-        vertical-align: middle;
-        border-top: none;
-    }
-
-    .car-image {
-        width: 60px;
-        height: 60px;
-        object-fit: cover;
-        border-radius: 10px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    }
-
-    .toggle-status, .toggle-sale {
-        border: none;
-        background: transparent;
-        padding: 0;
-        cursor: pointer;
-        transition: transform 0.2s ease;
-    }
-
-    .toggle-status:hover, .toggle-sale:hover {
-        transform: scale(1.1);
-    }
-
-    .badge-modern {
-        padding: 0.5rem 1rem;
-        border-radius: 20px;
-        font-weight: 500;
-        font-size: 0.875rem;
-    }
-
-    .btn-action-group {
-        display: flex;
-        gap: 0.5rem;
-        flex-wrap: wrap;
-    }
-
-    .btn-action {
-        padding: 0.4rem 0.8rem;
-        border-radius: 8px;
-        font-size: 0.875rem;
-        font-weight: 500;
-        border: none;
-        transition: all 0.3s ease;
-        text-decoration: none;
-        display: inline-flex;
-        align-items: center;
-        gap: 0.25rem;
-    }
-
-    .btn-action:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    }
-
-    .btn-details {
-        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-        color: white;
-    }
-
-    .btn-edit {
-        background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
-        color: white;
-    }
-
-    .btn-delete {
-        background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
-        color: white;
-    }
-
-    .empty-state {
-        text-align: center;
-        padding: 3rem 1rem;
-        color: #6c757d;
-    }
-
-    .empty-state i {
-        font-size: 4rem;
-        margin-bottom: 1rem;
-        opacity: 0.5;
-    }
-
-    @@media (max-width: 992px) {
-        .cars-card .table thead th {
-            font-size: 0.75rem;
-            padding: 0.75rem 0.5rem;
-        }
-
-        .cars-card .table tbody td {
-            padding: 0.75rem 0.5rem;
-            font-size: 0.875rem;
-        }
-
-        .btn-action-group {
-            flex-direction: column;
-        }
-
-        .btn-action {
-            width: 100%;
-            justify-content: center;
-        }
-    }
-
-    @@media (max-width: 768px) {
-        .page-header-modern {
-            padding: 1.5rem;
-        }
-
-        .page-header-modern h3 {
-            font-size: 1.5rem;
-        }
-
-        .cars-card .card-header {
-            flex-direction: column;
-            gap: 1rem;
-            align-items: flex-start;
-        }
-
-        .btn-add-car {
-            width: 100%;
-            text-align: center;
-        }
-
-        .car-image {
-            width: 50px;
-            height: 50px;
-        }
-
-        .table-responsive {
-            font-size: 0.875rem;
-        }
-    }
-
-    @@media (max-width: 576px) {
-        .cars-card .table thead th,
-        .cars-card .table tbody td {
-            padding: 0.5rem 0.25rem;
-            font-size: 0.75rem;
-        }
-
-        .badge-modern {
-            padding: 0.25rem 0.5rem;
-            font-size: 0.75rem;
-        }
-    }
-</style>
-
-<div id="main">
-    <header class="mb-3">
-        <a href="#" class="burger-btn d-block d-xl-none">
-            <i class="bi bi-justify fs-3"></i>
-        </a>
-    </header>
-
-    <div class="page-heading">
-        <div class="page-header-modern">
-            <div class="d-flex justify-content-between align-items-center flex-wrap">
-                <div>
-                    <h3><i class="bi bi-car-front me-2"></i>Quản lý xe</h3>
-                </div>
-                <nav aria-label="breadcrumb">
-                    <ol class="breadcrumb breadcrumb-modern mb-0">
-                        <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index" asp-area="CarOwner">Trang chủ</a></li>
-                        <li class="breadcrumb-item active" aria-current="page">Quản lý xe</li>
-                    </ol>
-                </nav>
+<div class="space-y-4">
+    <!-- Panel Quản lý xe của tôi (Pixel-Perfect Template) -->
+    <div class="recar-panel">
+        <div class="recar-panel-header flex-wrap gap-2">
+            <div>
+                <h2 class="recar-panel-title">Danh sách xe của tôi</h2>
+                <div class="text-muted small mt-1">Quản lý phương tiện, tình trạng sẵn sàng đón khách và giá niêm yết theo ngày.</div>
             </div>
+            <a href="/CarOwner/Cars/Create" class="btn-recar-primary">
+                <i class="bi bi-plus-lg"></i> Thêm xe mới
+            </a>
         </div>
-    </div>
 
-    <div class="page-content">
-        <section class="section">
-            <div class="row">
-                <div class="col-12">
-                    <div class="card cars-card">
-                        <div class="card-header">
-                            <h4><i class="bi bi-list-ul me-2"></i>Danh sách xe</h4>
-                            <a asp-action="Create" class="btn btn-add-car">
-                                <i class="bi bi-plus-circle me-2"></i>Thêm xe mới
-                            </a>
-                        </div>
-                        <div class="card-content">
-                            <div class="card-body">
-                                @if (!string.IsNullOrEmpty(Function._Message))
-                                {
-                                    <div class="alert alert-info alert-dismissible fade show" role="alert">
-                                        <i class="bi bi-info-circle me-2"></i>@Function._Message
-                                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        <div class="table-responsive">
+            <table class="recar-table">
+                <thead>
+                    <tr>
+                        <th>Phương tiện</th>
+                        <th>Biển số xe</th>
+                        <th>Khu vực nhận xe</th>
+                        <th>Thông số</th>
+                        <th>Giá thuê / ngày</th>
+                        <th>Trạng thái</th>
+                        <th class="text-end">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model != null && Model.Any())
+                    {
+                        foreach (var car in Model)
+                        {
+                            string statusClass = "status-ready";
+                            string statusText = "Sẵn sàng";
+                            if (car.CarStatus == "Đang bận")
+                            {
+                                statusClass = "status-busy";
+                                statusText = "Đang có khách";
+                            }
+                            else if (car.CarStatus == "Bảo trì")
+                            {
+                                statusClass = "status-maintenance";
+                                statusText = "Đang bảo trì";
+                            }
+
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center gap-3">
+                                        <img src="@(string.IsNullOrEmpty(car.Image) ? "/images/cars/car-sedan.jpg" : car.Image)" 
+                                             alt="@car.CarName" 
+                                             class="rounded-3 border shadow-sm" 
+                                             style="width: 64px; height: 46px; object-fit: cover;" />
+                                        <div>
+                                            <div class="fw-bold text-dark fs-6">@car.CarName</div>
+                                            <div class="text-muted small">@car.CarBrand · @(car.Type?.CarTypeName ?? "Ô tô")</div>
+                                        </div>
                                     </div>
-                                    Function._Message = string.Empty;
-                                }
-                            </div>
-                            <div class="table-responsive">
-                                @if (Model != null && Model.Any())
-                                {
-                                    <table class="table table-hover mb-0">
-                                        <thead>
-                                            <tr>
-                                                <th>#</th>
-                                                <th>Tên xe</th>
-                                                <th>Hạng xe</th>
-                                                <th>Biển số</th>
-                                                <th>Giá</th>
-                                                <th>Giá giảm</th>
-                                                <th>Ảnh</th>
-                                                <th>Hoạt động</th>
-                                                <th>Giảm giá</th>
-                                                <th>Thao tác</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            @{
-                                                int i = 0;
-                                            }
-                                            @foreach (var item in Model)
-                                            {
-                                                <tr>
-                                                    <td class="fw-bold">@(++i)</td>
-                                                    <td class="fw-semibold">@Html.DisplayFor(m => item.CarName)</td>
-                                                    <td>@(item.Type?.CarTypeName ?? "N/A")</td>
-                                                    <td><span class="badge bg-secondary">@Html.DisplayFor(m => item.LicensePlate)</span></td>
-                                                    <td class="text-primary fw-bold">@string.Format("{0:N0}", item.Price) đ</td>
-                                                    <td class="text-success fw-bold">@(item.SalePrice.HasValue ? string.Format("{0:N0}", item.SalePrice) + " đ" : "-")</td>
-                                                    <td>
-                                                        @if (!string.IsNullOrEmpty(item.Image))
-                                                        {
-                                                            <img src="@item.Image" alt="Car" class="car-image" />
-                                                        }
-                                                        else
-                                                        {
-                                                            <div class="car-image bg-light d-flex align-items-center justify-content-center">
-                                                                <i class="bi bi-image text-muted"></i>
-                                                            </div>
-                                                        }
-                                                    </td>
-                                                    <td>
-                                                        <button type="button" class="toggle-status" data-id="@item.CarId" data-status="@item.IsActive.ToString().ToLower()">
-                                                            @if (item.IsActive)
-                                                            {
-                                                                <span class="badge badge-modern bg-success rounded-pill">Hoạt động</span>
-                                                            }
-                                                            else
-                                                            {
-                                                                <span class="badge badge-modern bg-danger rounded-pill">Tạm dừng</span>
-                                                            }
-                                                        </button>
-                                                    </td>
-                                                    <td>
-                                                        <button type="button" class="toggle-sale" data-id="@item.CarId" data-sale="@item.IsSale.ToString().ToLower()">
-                                                            @if (item.IsSale)
-                                                            {
-                                                                <span class="badge badge-modern bg-warning rounded-pill">Có</span>
-                                                            }
-                                                            else
-                                                            {
-                                                                <span class="badge badge-modern bg-secondary rounded-pill">Không</span>
-                                                            }
-                                                        </button>
-                                                    </td>
-                                                    <td>
-                                                        <div class="btn-action-group">
-                                                            <a asp-action="Details" asp-route-id="@item.CarId" class="btn-action btn-details">
-                                                                <i class="bi bi-eye"></i> Chi tiết
-                                                            </a>
-                                                            <a asp-action="Edit" asp-route-id="@item.CarId" class="btn-action btn-edit">
-                                                                <i class="bi bi-pencil"></i> Sửa
-                                                            </a>
-                                                            <a asp-action="Delete" asp-route-id="@item.CarId" class="btn-action btn-delete">
-                                                                <i class="bi bi-trash"></i> Xóa
-                                                            </a>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            }
-                                        </tbody>
-                                    </table>
-                                }
-                                else
-                                {
-                                    <div class="empty-state">
-                                        <i class="bi bi-inbox"></i>
-                                        <h5>Chưa có xe nào</h5>
-                                        <p class="text-muted">Hãy thêm xe mới để bắt đầu quản lý</p>
-                                        <a asp-action="Create" class="btn btn-primary mt-3">
-                                            <i class="bi bi-plus-circle me-2"></i>Thêm xe mới
+                                </td>
+                                <td>
+                                    <span class="badge bg-light text-dark border px-2.5 py-1.5 font-monospace fw-bold" style="font-size: 0.8rem;">
+                                        @(string.IsNullOrEmpty(car.LicensePlate) ? "Chưa cấp" : car.LicensePlate)
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="d-flex align-items-center gap-1 text-dark small">
+                                        <i class="bi bi-geo-alt-fill text-danger"></i>
+                                        <span>@(string.IsNullOrEmpty(car.Location) ? "Toàn quốc" : car.Location)</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="small text-muted">
+                                        <span><i class="bi bi-people-fill text-secondary me-1"></i>@car.Seat chỗ</span> · 
+                                        <span>@car.Transmission</span>
+                                    </div>
+                                    <div class="small text-muted">
+                                        <i class="bi bi-fuel-pump-fill text-secondary me-1"></i>@car.Fuel
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="fw-bold text-primary fs-6">
+                                        @((car.Price ?? 0).ToString("N0"))đ
+                                    </div>
+                                    @if (car.IsSale && car.SalePrice.HasValue && car.SalePrice > 0 && car.SalePrice < car.Price)
+                                    {
+                                        <div class="text-danger small" style="font-size: 0.75rem;">
+                                            Ưu đãi: @car.SalePrice.Value.ToString("N0")đ
+                                        </div>
+                                    }
+                                </td>
+                                <td>
+                                    <span class="recar-status-badge @statusClass">
+                                        @statusText
+                                    </span>
+                                </td>
+                                <td class="text-end">
+                                    <div class="d-inline-flex gap-1">
+                                        <a href="/CarOwner/Cars/Edit/@car.CarId" class="btn btn-outline-primary btn-sm rounded-pill px-3 py-1 fw-semibold" title="Chỉnh sửa xe">
+                                            <i class="bi bi-pencil-square me-1"></i>Sửa
+                                        </a>
+                                        <a href="/product/@(car.Alias)-@(car.CarId).html" target="_blank" class="btn btn-light btn-sm rounded-pill px-2.5 py-1 text-muted border" title="Xem trên sàn ReCar">
+                                            <i class="bi bi-box-arrow-up-right"></i>
+                                        </a>
+                                        <a href="/CarOwner/Cars/Delete/@car.CarId" class="btn btn-outline-danger btn-sm rounded-pill px-2.5 py-1" onclick="return confirm('Bạn có chắc muốn tạm dừng hoạt động chiếc xe này?');" title="Xóa / Dừng">
+                                            <i class="bi bi-trash"></i>
                                         </a>
                                     </div>
-                                }
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="7" class="text-center py-5 text-muted">
+                                <div class="mb-3">
+                                    <i class="bi bi-car-front fs-1 text-secondary opacity-50"></i>
+                                </div>
+                                <h5>Chưa có xe nào trong danh sách</h5>
+                                <p class="small text-muted">Đăng ký chiếc xe đầu tiên của bạn để tiếp cận hàng nghìn khách hàng thuê xe trên ReCar.</p>
+                                <a href="/CarOwner/Cars/Create" class="btn-recar-primary mt-2">
+                                    <i class="bi bi-plus-lg"></i> Thêm xe ngay
+                                </a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
-
-@section Scripts {
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script>
-        $(document).ready(function () {
-            // Kiểm tra thông báo thành công từ TempData
-            @if (TempData["SuccessMessage"] != null)
-            {
-                <text>
-                var successMessage = '@Html.Raw(TempData["SuccessMessage"])';
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Thành công!',
-                    text: successMessage,
-                    confirmButtonText: 'OK',
-                    confirmButtonColor: '#667eea',
-                    timer: 2000,
-                    timerProgressBar: true
-                }).then((result) => {
-                    // Xóa query parameter success khỏi URL nếu có
-                    if (window.location.search.includes('success=true')) {
-                        window.history.replaceState({}, document.title, window.location.pathname);
-                    }
-                });
-                </text>
-            }
-
-            // Kiểm tra thông báo lỗi từ TempData
-            @if (TempData["ErrorMessage"] != null)
-            {
-                <text>
-                var errorMessage = '@Html.Raw(TempData["ErrorMessage"])';
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Lỗi!',
-                    text: errorMessage,
-                    confirmButtonText: 'OK',
-                    confirmButtonColor: '#f5576c'
-                });
-                </text>
-            }
-
-            // Lấy anti-forgery token
-            function getToken() {
-                return $('input[name="__RequestVerificationToken"]').val() || '';
-            }
-
-            // Toggle trạng thái hoạt động
-            $('.toggle-status').click(function () {
-                var carId = $(this).data('id');
-                var button = $(this);
-                var currentStatus = button.data('status') === 'true';
-
-                $.ajax({
-                    url: '@Url.Action("ToggleStatus", "Cars", new { area = "CarOwner" })',
-                    type: 'POST',
-                    headers: {
-                        'RequestVerificationToken': getToken()
-                    },
-                    data: { id: carId },
-                    success: function (response) {
-                        if (response.success) {
-                            // Cập nhật UI
-                            if (response.isActive) {
-                                button.html('<span class="badge badge-modern bg-success rounded-pill">Hoạt động</span>');
-                                button.data('status', 'true');
-                            } else {
-                                button.html('<span class="badge badge-modern bg-danger rounded-pill">Tạm dừng</span>');
-                                button.data('status', 'false');
-                            }
-                            
-                            Swal.fire({
-                                icon: 'success',
-                                title: 'Thành công',
-                                text: response.message,
-                                timer: 1500,
-                                showConfirmButton: false
-                            });
-                        } else {
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'Lỗi',
-                                text: response.message
-                            });
-                        }
-                    },
-                    error: function () {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Lỗi',
-                            text: 'Có lỗi xảy ra khi cập nhật trạng thái'
-                        });
-                    }
-                });
-            });
-
-            // Toggle trạng thái giảm giá
-            $('.toggle-sale').click(function () {
-                var carId = $(this).data('id');
-                var button = $(this);
-                var currentSale = button.data('sale') === 'true';
-
-                $.ajax({
-                    url: '@Url.Action("ToggleSale", "Cars", new { area = "CarOwner" })',
-                    type: 'POST',
-                    headers: {
-                        'RequestVerificationToken': getToken()
-                    },
-                    data: { id: carId },
-                    success: function (response) {
-                        if (response.success) {
-                            // Cập nhật UI
-                            if (response.isSale) {
-                                button.html('<span class="badge badge-modern bg-warning rounded-pill">Có</span>');
-                                button.data('sale', 'true');
-                            } else {
-                                button.html('<span class="badge badge-modern bg-secondary rounded-pill">Không</span>');
-                                button.data('sale', 'false');
-                            }
-                            
-                            Swal.fire({
-                                icon: 'success',
-                                title: 'Thành công',
-                                text: response.message,
-                                timer: 1500,
-                                showConfirmButton: false
-                            });
-                        } else {
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'Lỗi',
-                                text: response.message
-                            });
-                        }
-                    },
-                    error: function () {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Lỗi',
-                            text: 'Có lỗi xảy ra khi cập nhật trạng thái giảm giá'
-                        });
-                    }
-                });
-            });
-        });
-    </script>
-}
-

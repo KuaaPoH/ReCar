@@ -7,6 +7,8 @@
     string statusDescription = ViewBag.StatusDescription != null ? ViewBag.StatusDescription.ToString() : "";
     string statusLower = !string.IsNullOrEmpty(statusDescription) ? statusDescription.ToLower() : "";
     bool isCancelled = statusId == 2 || (!string.IsNullOrEmpty(statusDescription) && (statusLower.Contains("hủy") || statusLower.Contains("huy") || statusDescription.Contains("Huỷ")));
+    string orderNotes = ViewBag.Notes != null ? ViewBag.Notes.ToString() : "";
+    bool isWithDriver = orderNotes.Contains("Có tài xế");
 }
 
 <style>
@@ -119,7 +121,17 @@
                                     <img src="@item.Image" alt="@item.CarName" class="w-100 h-100 object-fit-cover" onerror="this.src='/images/cars/car-sedan.jpg'">
                                 </div>
                                 <div class="flex-grow-1">
-                                    <h6 class="fw-bold text-dark mb-1">@item.CarName</h6>
+                                    <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
+                                        <h6 class="fw-bold text-dark mb-0">@item.CarName</h6>
+                                        @if (isWithDriver)
+                                        {
+                                            <span class="badge bg-warning text-dark"><i class="bi bi-person-badge"></i> Có tài xế</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-primary text-white"><i class="bi bi-car-front"></i> Tự lái</span>
+                                        }
+                                    </div>
                                     <div class="row g-2 small text-muted mt-1">
                                         <div class="col-sm-6">
                                             <i class="bi bi-calendar-check text-success me-1"></i> <strong>Nhận xe:</strong> @item.pickupDate.ToString("dd/MM/yyyy")
@@ -232,16 +244,16 @@
                         <div style="letter-spacing: 2px;">---------o0o---------</div>
                     </div>
 
-                    <div class="contract-header-title">HỢP ĐỒNG THUÊ XE Ô TÔ TỰ LÁI ĐIỆN TỬ</div>
+                    <div class="contract-header-title">HỢP ĐỒNG ĐIỆN TỬ THUÊ XE Ô TÔ (SÀN KẾT NỐI RECAR)</div>
                     <div class="contract-subtitle">Số hợp đồng: HD-RECAR-@ViewBag.OrderId / 2026</div>
 
-                    <p>Hôm nay, ngày @DateTime.Now.ToString("dd") tháng @DateTime.Now.ToString("MM") năm @DateTime.Now.ToString("yyyy"), tại hệ thống Nền tảng Cho thuê xe trực tuyến ReCar, hai bên gồm có:</p>
+                    <p>Hôm nay, ngày @DateTime.Now.ToString("dd") tháng @DateTime.Now.ToString("MM") năm @DateTime.Now.ToString("yyyy"), tại hệ thống Sàn giao dịch thương mại điện tử ReCar, các bên tham gia thỏa thuận gồm có:</p>
 
-                    <div class="contract-section-title">BÊN A (BÊN CHO THUÊ / NỀN TẢNG):</div>
+                    <div class="contract-section-title">BÊN A (CHỦ SỞ HỮU PHƯƠNG TIỆN / BÊN CHO THUÊ):</div>
                     <ul class="list-unstyled mb-2">
-                        <li><strong>Đại diện:</strong> Công ty TNHH Dịch vụ Vận tải ReCar Việt Nam & Chủ sở hữu phương tiện</li>
-                        <li><strong>Địa chỉ trụ sở:</strong> Tòa nhà ReCar Tower, Đường Cầu Giấy, TP. Hà Nội</li>
-                        <li><strong>Hotline hỗ trợ:</strong> 1900 6868 - Email: support@recar.vn</li>
+                        <li><strong>Đại diện:</strong> Đối tác Chủ xe cá nhân/Hộ kinh doanh đã được xác thực trên nền tảng ReCar</li>
+                        <li><strong>Tình trạng xe:</strong> Phương tiện đã được phê duyệt đăng kiểm, bảo hiểm và hồ sơ pháp lý bởi Admin ReCar</li>
+                        <li><strong>Trách nhiệm:</strong> Bàn giao phương tiện đúng hẹn và trực tiếp phục vụ lái xe nếu khách chọn gói Có tài xế</li>
                     </ul>
 
                     <div class="contract-section-title">BÊN B (BÊN THUÊ XE):</div>
@@ -249,7 +261,20 @@
                         <li><strong>Họ và tên:</strong> @Function.GetUserName(Context.Session)</li>
                         <li><strong>Số điện thoại:</strong> @Function.GetPhone(Context.Session)</li>
                         <li><strong>Địa chỉ liên hệ:</strong> @Function.GetAddress(Context.Session)</li>
-                        <li><strong>Hình thức xác thực:</strong> Đã đối chiếu thông tin Giấy phép lái xe qua hệ thống CSDL ReCar.</li>
+                        @if (isWithDriver)
+                        {
+                            <li><strong>Hình thức dịch vụ:</strong> <span class="badge bg-warning text-dark">Thuê xe có tài xế</span> (Tài xế phục vụ điều khiển phương tiện, khách hàng không cần xuất trình GPLX).</li>
+                        }
+                        else
+                        {
+                            <li><strong>Hình thức dịch vụ:</strong> <span class="badge bg-primary">Thuê xe tự lái</span> (Khách hàng nhận xe từ chủ xe và tự điều khiển, cam kết có GPLX B1/B2 hợp lệ).</li>
+                        }
+                    </ul>
+
+                    <div class="contract-section-title">ĐƠN VỊ VẬN HÀNH NỀN TẢNG (TRUNG GIAN BẢO LÃNH):</div>
+                    <ul class="list-unstyled mb-2">
+                        <li><strong>Đơn vị:</strong> Công ty TNHH Dịch vụ Công nghệ ReCar Việt Nam (ReCar Platform)</li>
+                        <li><strong>Vai trò:</strong> Cung cấp nền tảng kết nối trực tuyến, xác minh danh tính hai bên, giữ tiền cọc an toàn và bảo vệ quyền lợi hợp đồng</li>
                     </ul>
 
                     <div class="contract-section-title">ĐIỀU 1: PHƯƠNG TIỆN VÀ THỜI GIAN THUÊ</div>
@@ -258,6 +283,7 @@
                         <thead class="table-light">
                             <tr>
                                 <th>Tên xe</th>
+                                <th>Hình thức</th>
                                 <th>Ngày nhận</th>
                                 <th>Ngày hoàn trả</th>
                                 <th>Số lượng</th>
@@ -267,6 +293,7 @@
                             @foreach(var item in Model) {
                                 <tr>
                                     <td><strong>@item.CarName</strong></td>
+                                    <td>@(isWithDriver ? "Có tài xế" : "Tự lái")</td>
                                     <td>@item.pickupDate.ToString("dd/MM/yyyy")</td>
                                     <td>@item.returnDate.ToString("dd/MM/yyyy")</td>
                                     <td>@item.Quantity xe</td>
@@ -277,27 +304,45 @@
 
                     <div class="contract-section-title">ĐIỀU 2: GIÁ THUÊ VÀ ĐẶT CỌC</div>
                     <ul>
-                        <li>Bên B có nghĩa vụ thanh toán khoản tiền cọc 30% giá trị hợp đồng để đảm bảo giữ chỗ xe hợp lệ trên hệ thống.</li>
-                        <li>Số tiền còn lại (70%) sẽ được thanh toán cho Bên A hoặc Đại diện chủ xe ngay khi bàn giao xe thực tế và ký biên bản kiểm tra tình trạng xe.</li>
+                        <li>Bên B có nghĩa vụ thanh toán khoản tiền cọc 30% qua cổng thanh toán do ReCar bảo lãnh để xác nhận đặt xe.</li>
+                        @if (isWithDriver)
+                        {
+                            <li>Chi phí đơn hàng đã bao gồm tiền thuê phương tiện và <strong>phụ phí tài xế</strong> (500.000đ/ngày).</li>
+                        }
+                        <li>Số tiền còn lại (70%) sẽ được Bên B thanh toán trực tiếp cho Chủ xe (Bên A) ngay khi nhận bàn giao xe và đối chiếu thực tế.</li>
                     </ul>
 
-                    <div class="contract-section-title">ĐIỀU 3: TRÁCH NHIỆM VÀ CAM KẾT CỦA HAI BÊN</div>
+                    <div class="contract-section-title">ĐIỀU 3: TRÁCH NHIỆM VÀ CAM KẾT CỦA CÁC BÊN</div>
                     <ul>
-                        <li><strong>Bên A:</strong> Cam kết bàn giao phương tiện đúng chủng loại, đảm bảo tiêu chuẩn kỹ thuật an toàn, có đầy đủ bảo hiểm bắt buộc và tự nguyện theo quy định của pháp luật.</li>
-                        <li><strong>Bên B:</strong> Cam kết sử dụng xe đúng mục đích, chấp hành nghiêm chỉnh Luật Giao thông đường bộ, không sử dụng xe vào các hành vi vi phạm pháp luật.</li>
+                        @if (isWithDriver)
+                        {
+                            <li><strong>Bên A (Chủ xe & Tài xế):</strong> Chịu trách nhiệm cung cấp phương tiện tiêu chuẩn kỹ thuật an toàn, tài xế điều khiển xe an toàn, lịch sự, đúng giờ. Mọi sự cố va chạm hoặc vi phạm Luật Giao thông trong quá trình phục vụ thuộc trách nhiệm của Bên A.</li>
+                            <li><strong>Bên B (Khách hàng):</strong> Sử dụng phương tiện đúng lịch trình và mục đích thỏa thuận, không mang chất cấm, chất cháy nổ lên xe; thanh toán đủ tiền thuê cho chủ xe theo thỏa thuận.</li>
+                        }
+                        else
+                        {
+                            <li><strong>Bên A (Chủ xe):</strong> Bàn giao xe đúng chủng loại, đảm bảo xe sạch sẽ, an toàn kỹ thuật, đầy đủ giấy tờ đăng ký và bảo hiểm hợp lệ.</li>
+                            <li><strong>Bên B (Khách tự lái):</strong> Cam kết người điều khiển phương tiện có Giấy phép lái xe hợp lệ, trực tiếp lái xe đúng mục đích, chấp hành nghiêm chỉnh Luật Giao thông và tự chịu trách nhiệm về các vi phạm giao thông phát sinh trong thời gian thuê.</li>
+                        }
+                        <li><strong>Nền tảng ReCar:</strong> Giám sát giao dịch, bảo vệ tiền cọc minh bạch và hỗ trợ hòa giải nếu phát sinh tranh chấp giữa Chủ xe và Khách thuê.</li>
                     </ul>
 
                     <div class="row mt-5 pt-3">
-                        <div class="col-6 text-center">
+                        <div class="col-4 text-center">
                             <strong>ĐẠI DIỆN BÊN B (BÊN THUÊ)</strong>
                             <div class="text-muted small mt-1">(Đã ký xác nhận điện tử)</div>
                             <div class="mt-4 fw-bold text-primary">@Function.GetUserName(Context.Session)</div>
                         </div>
-                        <div class="col-6 text-center">
-                            <strong>ĐẠI DIỆN BÊN A (RECAR)</strong>
-                            <div class="text-muted small mt-1">(Ký số & Đóng dấu điện tử)</div>
-                            <div class="mt-4 text-danger fw-bold">
-                                <i class="bi bi-patch-check-fill me-1"></i> RECAR VIETNAM VERIFIED
+                        <div class="col-4 text-center">
+                            <strong>ĐẠI DIỆN BÊN A (CHỦ XE)</strong>
+                            <div class="text-muted small mt-1">(Đã xác nhận bàn giao)</div>
+                            <div class="mt-4 fw-bold text-dark">Đối tác Chủ xe ReCar</div>
+                        </div>
+                        <div class="col-4 text-center">
+                            <strong>XÁC THỰC BỞI RECAR</strong>
+                            <div class="text-muted small mt-1">(Bảo lãnh nền tảng)</div>
+                            <div class="mt-4 text-success fw-bold">
+                                <i class="bi bi-patch-check-fill me-1"></i> PLATFORM VERIFIED
                             </div>
                         </div>
                     </div>

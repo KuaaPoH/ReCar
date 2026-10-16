@@ -279,8 +279,8 @@
                             } else {
                                 Swal.fire({
                                     icon: 'success',
-                                    title: 'Đặt xe thành công!',
-                                    text: 'Đơn thuê xe của bạn đã được ghi nhận. Chủ xe sẽ liên hệ sớm nhất.',
+                                    title: response.title || 'Đặt xe thành công!',
+                                    text: response.message || 'Đơn thuê xe của bạn đã được ghi nhận. Chủ xe sẽ liên hệ sớm nhất.',
                                     confirmButtonText: 'Xem đơn hàng của tôi',
                                     confirmButtonColor: '#2563eb',
                                     allowOutsideClick: false,

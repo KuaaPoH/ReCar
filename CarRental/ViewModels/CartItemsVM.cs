@@ -1,4 +1,4 @@
-﻿namespace CarRental.ViewModels
+namespace CarRental.ViewModels
 {
     public class CartItemsVM
     {
@@ -10,6 +10,8 @@
         public decimal SalePrice { get; set; }
         public DateTime pickupDate { get; set; }
         public DateTime returnDate { get; set; }
-        public decimal PriceTotal => Price * Quantity;
+        public string DriveMode { get; set; } = "Tự lái";
+        public decimal DriverFee { get; set; } = 0;
+        public decimal PriceTotal => (Price * Quantity) + DriverFee;
     }
 }

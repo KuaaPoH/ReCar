@@ -1,4 +1,4 @@
-﻿using CarRental.Models;
+using CarRental.Models;
 using CarRental.Utilities;
 using CarRental.ViewModels;
 using Microsoft.AspNetCore.Mvc;
@@ -371,6 +371,9 @@ namespace CarRental.Controllers
             ViewBag.OrderId = id; // Lưu OrderId vào ViewBag
             ViewBag.StatusId = (int)(order.StatusId ?? 0); // Lưu StatusId vào ViewBag (StatusId = 2 là đã hủy)
             ViewBag.StatusDescription = order.Status?.StatusDescription ?? ""; // Lưu mô tả trạng thái
+            ViewBag.Notes = order.Notes ?? "";
+            ViewBag.Deposit = order.Deposit ?? 0;
+            ViewBag.Payment = order.Payment ?? 0;
             return View(orderItems);
         }
         [HttpPost]

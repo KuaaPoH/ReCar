@@ -51,6 +51,8 @@ public partial class Car
 
     public string? Badge { get; set; }
 
+    public string? CarStatus { get; set; } = "Sẵn sàng";
+
     public virtual ICollection<CarReview> CarReviews { get; set; } = new List<CarReview>();
 
     public virtual CarType? Type { get; set; }

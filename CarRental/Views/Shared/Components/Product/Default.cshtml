@@ -7,15 +7,17 @@
         string detailUrl = $"/product/{item.Alias}-{item.CarId}.html";
         string checkoutUrl = $"/Product/Details/{item.CarId}"; // Đi vào chi tiết chọn ngày hoặc checkout
 
-        // Xác định badge từ database
-        string tag = item.Badge ?? item.Descriptions;
+        // Xác định ưu đãi và badge từ database
+        bool hasDiscount = item.IsSale && item.SalePrice.HasValue && item.SalePrice > 0 && item.SalePrice < item.Price;
+        string? tag = item.Badge;
         string tagClass = "recar-badge-featured";
+
         if (tag == "Xe điện" || (item.Fuel != null && item.Fuel.Contains("Điện")) || (item.CarBrand != null && item.CarBrand.ToLower().Contains("vinfast")))
         {
             tag = "Xe điện";
             tagClass = "recar-badge-electric";
         }
-        else if (tag == "Ưu đãi" || item.IsSale)
+        else if (hasDiscount)
         {
             tag = "Ưu đãi";
             tagClass = "recar-badge-promo";
@@ -24,6 +26,10 @@
         {
             tagClass = "recar-badge-featured";
         }
+        else if (tag == "Ưu đãi")
+        {
+            tag = null; // Không giảm giá thì không gắn tag ưu đãi
+        }
 
         // Lấy trực tiếp từ database
         string gear = item.Transmission ?? "Tự động";
@@ -31,15 +37,29 @@
         string location = item.Location ?? "Hà Nội";
         int reviews = item.Trips ?? 50;
 
-        decimal finalPrice = (item.SalePrice > 0 ? item.SalePrice : item.Price) ?? 0;
+        decimal finalPrice = hasDiscount ? item.SalePrice!.Value : (item.Price ?? 0);
+
+        string carStatus = item.CarStatus ?? "Sẵn sàng";
+        bool isBusy = carStatus == "Đang bận";
+        bool isMaintenance = carStatus == "Bảo trì";
+        string statusCardClass = isBusy ? "is-busy" : (isMaintenance ? "is-maintenance" : "");
 
         <div class="col-sm-6 col-lg-4 mb-4">
-            <article class="recar-car-card">
+            <article class="recar-car-card @statusCardClass">
                 <div class="recar-car-media">
                     <img src="@(string.IsNullOrEmpty(item.Image) ? "/images/cars/car-sedan.jpg" : item.Image)" alt="@item.CarName" class="recar-car-img" loading="lazy">
                     @if (!string.IsNullOrEmpty(tag) && tag != "Tiêu chuẩn")
                     {
                         <span class="recar-badge-tag @tagClass">@tag</span>
+                    }
+
+                    @if (isBusy)
+                    {
+                        <span class="car-status-badge status-busy"><i class="bi bi-clock-history"></i> Đang bận</span>
+                    }
+                    else if (isMaintenance)
+                    {
+                        <span class="car-status-badge status-maintenance"><i class="bi bi-tools"></i> Bảo trì</span>
                     }
                 </div>
                 <div class="recar-car-content">
@@ -56,13 +76,28 @@
                         <span class="recar-location-txt"><i class="bi bi-geo-alt"></i> @location</span>
                         <span class="recar-rating-txt"><i class="bi bi-star-fill text-warning"></i> @(item.Rate?.ToString("0.0") ?? "4.8") (@reviews)</span>
                     </div>
-                    <div class="recar-price-box">
+                    <div class="recar-price-box d-flex align-items-baseline gap-2 flex-wrap">
                         <span class="recar-price-amount">@finalPrice.ToString("N0")đ</span>
                         <span class="recar-price-unit">/ngày</span>
+                        @if (hasDiscount)
+                        {
+                            <span class="text-muted text-decoration-line-through small ms-auto" style="font-size: 0.82rem;">@((item.Price ?? 0).ToString("N0"))đ</span>
+                        }
                     </div>
                     <div class="recar-card-actions">
-                        <a href="@detailUrl" class="btn-card-outline">Xem chi tiết</a>
-                        <a href="@detailUrl" class="btn-card-primary">Thuê ngay</a>
+                        @if (isBusy)
+                        {
+                            <a href="@detailUrl" class="btn-card-outline w-100 text-center"><i class="bi bi-clock-history me-1"></i> Đang có khách (Xem lịch)</a>
+                        }
+                        else if (isMaintenance)
+                        {
+                            <a href="@detailUrl" class="btn-card-outline w-100 text-center text-danger border-danger"><i class="bi bi-tools me-1"></i> Xe đang bảo trì</a>
+                        }
+                        else
+                        {
+                            <a href="@detailUrl" class="btn-card-outline">Xem chi tiết</a>
+                            <a href="@detailUrl" class="btn-card-primary">Thuê ngay</a>
+                        }
                     </div>
                 </div>
             </article>

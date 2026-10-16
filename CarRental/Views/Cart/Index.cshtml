@@ -52,7 +52,22 @@
                                         </td>
                                         <td>
                                             <a href="/product/@item.CartId" class="fw-bold text-dark text-decoration-none d-block">@item.CarName</a>
-                                            <span class="badge bg-secondary text-dark small mt-1">Số tự động</span>
+                                            <div class="d-flex align-items-center gap-1 mt-1 flex-wrap">
+                                                @if (item.DriveMode == "Có tài xế")
+                                                {
+                                                    <span class="badge bg-warning text-dark"><i class="bi bi-person-badge"></i> Có tài xế</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-primary text-white"><i class="bi bi-car-front"></i> Tự lái</span>
+                                                }
+                                            </div>
+                                            @if (item.DriverFee > 0)
+                                            {
+                                                <div class="text-muted small mt-1" style="font-size: 0.78rem;">
+                                                    Phí tài xế: <span class="fw-semibold text-primary">+@item.DriverFee.ToString("N0")đ</span> (@days ngày)
+                                                </div>
+                                            }
                                         </td>
                                         <td class="small text-muted">
                                             <div><i class="bi bi-calendar-event text-primary me-1"></i>Nhận: <strong>@item.pickupDate.ToString("dd/MM/yyyy")</strong></div>
@@ -87,8 +102,21 @@
                     <h5 class="fw-bold text-dark mb-3"><i class="bi bi-receipt text-primary me-1"></i> Tóm tắt chi phí</h5>
                     
                     <div class="d-flex justify-content-between py-2 border-bottom small">
-                        <span class="text-muted">Tổng tiền thuê dự kiến:</span>
-                        <span class="fw-bold text-dark">@total.ToString("N0")đ</span>
+                        <span class="text-muted">Tiền thuê xe:</span>
+                        <span class="fw-bold text-dark">@((total - Model.Sum(p => p.DriverFee)).ToString("N0"))đ</span>
+                    </div>
+
+                    @if (Model.Any(p => p.DriverFee > 0))
+                    {
+                        <div class="d-flex justify-content-between py-2 border-bottom small">
+                            <span class="text-muted">Phụ phí tài xế:</span>
+                            <span class="fw-bold text-primary">+@Model.Sum(p => p.DriverFee).ToString("N0")đ</span>
+                        </div>
+                    }
+
+                    <div class="d-flex justify-content-between py-2 border-bottom small">
+                        <span class="fw-bold text-dark">Tổng tiền dự kiến:</span>
+                        <span class="fw-bold text-dark fs-6">@total.ToString("N0")đ</span>
                     </div>
 
                     <div class="d-flex justify-content-between py-2 border-bottom">
@@ -97,7 +125,7 @@
                     </div>
 
                     <div class="d-flex justify-content-between py-2 border-bottom small text-muted">
-                        <span>Số tiền thanh toán khi nhận xe (70%):</span>
+                        <span>Thanh toán cho chủ xe khi nhận (70%):</span>
                         <span class="fw-semibold text-dark">@remaining.ToString("N0")đ</span>
                     </div>
 
@@ -105,9 +133,9 @@
                         <div class="d-flex align-items-start gap-2 text-muted">
                             <i class="bi bi-shield-check text-success fs-5"></i>
                             <div>
-                                <strong>Bảo vệ đặt cọc ReCar:</strong>
+                                <strong>Bảo vệ đặt cọc ReCar (Trung gian):</strong>
                                 <p class="m-0 mt-1" style="font-size: 0.78rem;">
-                                    Tiền cọc 30% được giữ an toàn qua cổng VNPay. Được hoàn cọc 100% nếu hủy trước 24 giờ nhận xe.
+                                    ReCar là nền tảng trung gian bảo vệ giao dịch. Tiền cọc 30% được giữ an toàn qua cổng VNPay và chỉ giải ngân sau khi hai bên ký kết biên bản bàn giao xe.
                                 </p>
                             </div>
                         </div>

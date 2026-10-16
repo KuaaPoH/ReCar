@@ -1,4 +1,4 @@
-﻿using CarRental.Models;
+using CarRental.Models;
 using CarRental.Utilities;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -76,13 +76,19 @@ namespace CarRental.Controllers
                 Function.SetAddress(HttpContext.Session, string.IsNullOrEmpty(check.Address) ? string.Empty : check.Address);
                 Function.SetPhone(HttpContext.Session, string.IsNullOrEmpty(check.PhoneNumber) ? string.Empty : check.PhoneNumber);
 
-                // Kiểm tra xem Customer có Account với RoleId=3 (Chủ xe) không
+                // Kiểm tra xem Customer có Account tương ứng và có phải RoleId=3 (Chủ xe) không
                 var carOwnerAccount = await _context.Accounts
                     .FirstOrDefaultAsync(a => a.Email == check.Email && a.RoleId == 3);
                 
                 if (carOwnerAccount != null)
                 {
+                    Function.SetAccountId(HttpContext.Session, carOwnerAccount.AccountId);
                     Function.SetCarOwnerAccountId(HttpContext.Session, carOwnerAccount.AccountId);
+                }
+                else if (account != null)
+                {
+                    Function.SetAccountId(HttpContext.Session, account.AccountId);
+                    Function.SetCarOwnerAccountId(HttpContext.Session, 0);
                 }
                 else
                 {       

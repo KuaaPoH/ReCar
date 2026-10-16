@@ -16,7 +16,7 @@
     <link rel="stylesheet" href="~/assets/css/plugins/swiper-bundle.min.css">
 
     <!-- ReCar Core Design System -->
-    <link rel="stylesheet" href="~/assets/css/recar.css">
+    <link rel="stylesheet" href="~/assets/css/recar.css" asp-append-version="true">
 
     @RenderSection("style", required: false)
 </head>
@@ -79,6 +79,57 @@
             @if (isLogged)
             {
                 <div class="d-flex align-items-center gap-2">
+                    <!-- Icon Chat / Tin nhắn với Chủ xe -->
+                    <div class="dropdown">
+                        <button type="button" aria-label="Tin nhắn" class="btn btn-link position-relative p-2 text-decoration-none" id="btnHeaderChat" data-bs-toggle="dropdown" aria-expanded="false" style="color: var(--recar-navy);">
+                            <i class="bi bi-chat-dots fs-5"></i>
+                            <span class="position-absolute bg-primary rounded-circle" style="top: 8px; right: 8px; width: 8px; height: 8px;"></span>
+                        </button>
+                        <div class="dropdown-menu dropdown-menu-end recar-chat-dropdown p-2" aria-labelledby="btnHeaderChat">
+                            <div class="d-flex justify-content-between align-items-center px-2 py-2 border-bottom mb-1">
+                                <span class="fw-bold small text-dark"><i class="bi bi-chat-dots-fill text-primary me-1"></i> Tin nhắn trao đổi</span>
+                                <span class="badge bg-light text-primary border" style="font-size: 11px;">Hoạt động</span>
+                            </div>
+                            <div id="recentChatList">
+                                <div class="chat-item" onclick="openChatBox('Trần Quốc Bảo', 'Chào bạn! VinFast VF 5 Plus dự kiến về vào sáng mai nhé.', 1, 6, 'VinFast VF 5 Plus')">
+                                    <div class="chat-avatar">QB</div>
+                                    <div class="flex-grow-1 overflow-hidden" style="font-size: 13px;">
+                                        <div class="d-flex justify-content-between">
+                                            <strong class="text-truncate">Trần Quốc Bảo (VF 5)</strong>
+                                            <span class="text-muted" style="font-size: 11px;">Mới</span>
+                                        </div>
+                                        <p class="text-muted text-truncate m-0" style="font-size: 12px;">Chào bạn! Xe dự kiến về sáng mai...</p>
+                                    </div>
+                                </div>
+                                <div class="chat-item" onclick="openChatBox('Nguyễn Minh Anh', 'Chào bạn! Toyota Vios G 2023 luôn sẵn sàng giao nhận.', 2, 8, 'Toyota Vios G 2023')">
+                                    <div class="chat-avatar">MA</div>
+                                    <div class="flex-grow-1 overflow-hidden" style="font-size: 13px;">
+                                        <div class="d-flex justify-content-between">
+                                            <strong class="text-truncate">Nguyễn Minh Anh (Vios)</strong>
+                                            <span class="text-muted" style="font-size: 11px;">10:30</span>
+                                        </div>
+                                        <p class="text-muted text-truncate m-0" style="font-size: 12px;">Toyota Vios G 2023 luôn sẵn sàng...</p>
+                                    </div>
+                                </div>
+                                <div class="chat-item" onclick="openChatBox('Lê Thu Hà', 'Mazda 3 Luxury bên em đã sẵn sàng phục vụ anh/chị.', 4, 20, 'Mazda 3 Luxury')">
+                                    <div class="chat-avatar">TH</div>
+                                    <div class="flex-grow-1 overflow-hidden" style="font-size: 13px;">
+                                        <div class="d-flex justify-content-between">
+                                            <strong class="text-truncate">Lê Thu Hà (Mazda 3)</strong>
+                                            <span class="text-muted" style="font-size: 11px;">Hôm qua</span>
+                                        </div>
+                                        <p class="text-muted text-truncate m-0" style="font-size: 12px;">Mazda 3 Luxury bên em đã sẵn sàng...</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="border-top pt-2 mt-1 text-center">
+                                <button type="button" class="btn btn-link btn-sm text-decoration-none small p-0" onclick="openChatBox('CSKH ReCar Support', 'Xin chào! Đội ngũ hỗ trợ ReCar có thể giúp gì cho chuyến đi của bạn?')">
+                                    <i class="bi bi-headset me-1"></i> Trò chuyện với Hỗ trợ viên ReCar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Chuông thông báo -->
                     <button type="button" aria-label="Thông báo" class="btn btn-link position-relative p-2 text-decoration-none" style="color: var(--recar-navy);">
                         <i class="bi bi-bell fs-5"></i>
@@ -91,7 +142,7 @@
                             <span class="user-avatar-circle">@initials</span>
                             <span class="text-sm fw-medium d-none d-sm-inline" style="font-size: 14px; font-weight: 500;">@userName</span>
                         </button>
-                        <ul class="dropdown-menu dropdown-menu-end shadow-sm border p-2 mt-2" aria-labelledby="recarUserMenu" style="border-radius: 12px; min-width: 220px;">
+                        <ul class="dropdown-menu dropdown-menu-end shadow border p-2 mt-2" aria-labelledby="recarUserMenu" style="border-radius: 12px; min-width: 220px; z-index: 1060;">
                             <li>
                                 <div class="px-3 py-2 border-bottom mb-1">
                                     <p class="small fw-bold text-dark m-0">@userName</p>
@@ -197,10 +248,186 @@
         </div>
     </footer>
 
+    <!-- Floating Chat Window (Trao đổi trực tiếp với Chủ xe) -->
+    <div class="recar-chat-window" id="recarChatWindow">
+        <div class="chat-header">
+            <div class="d-flex align-items-center gap-2">
+                <span class="rounded-circle bg-success" style="width: 8px; height: 8px;"></span>
+                <span class="fw-bold small text-truncate" id="chatPartnerName" style="max-width: 220px;">Đối tác Chủ xe ReCar</span>
+            </div>
+            <div class="d-flex align-items-center gap-1">
+                <button type="button" class="btn btn-sm btn-link text-white p-0 me-1" onclick="minimizeChat()"><i class="bi bi-dash-lg"></i></button>
+                <button type="button" class="btn btn-sm btn-link text-white p-0" onclick="closeChat()"><i class="bi bi-x-lg"></i></button>
+            </div>
+        </div>
+        <div class="chat-body" id="chatMessages">
+            <div class="chat-bubble from-owner" id="chatFirstMessage">
+                Chào bạn! Tôi là đối tác chủ xe trên ReCar. Bạn có thắc mắc gì về thủ tục nhận xe, thời gian hay cung đường di chuyển không?
+            </div>
+        </div>
+        <div class="chat-footer">
+            <input type="text" class="form-control form-control-sm rounded-pill border" id="chatInputText" placeholder="Nhập tin nhắn..." autocomplete="off">
+            <button class="btn btn-primary btn-sm rounded-circle d-flex align-items-center justify-content-center" id="btnSendChat" style="width: 32px; height: 32px; flex-shrink: 0;">
+                <i class="bi bi-send-fill" style="font-size: 12px;"></i>
+            </button>
+        </div>
+    </div>
+
     <!-- Scripts -->
     <script src="~/assets/js/vendor/jquery-3.6.0.min.js"></script>
     <script src="~/assets/js/vendor/bootstrap.bundle.min.js"></script>
     <script src="~/assets/js/plugins/swiper-bundle.min.js"></script>
+    
+    <script>
+        var currentChatCarId = null;
+        var currentChatOwnerId = null;
+        var currentChatCarName = null;
+        var currentChatPartnerName = 'Đối tác Chủ xe ReCar';
+
+        function openChatBox(partnerName, greeting, carId, ownerId, carName) {
+            currentChatPartnerName = partnerName || 'Đối tác Chủ xe ReCar';
+            currentChatCarId = carId || null;
+            currentChatOwnerId = ownerId || null;
+            currentChatCarName = carName || null;
+
+            $('#chatPartnerName').text(currentChatPartnerName);
+            $('#recarChatWindow').addClass('open');
+            $('#chatMessages').html('<div class="text-center py-3 text-muted small"><div class="spinner-border spinner-border-sm text-primary me-1" role="status"></div> Đang tải lịch sử tin nhắn...</div>');
+
+            // Nạp lịch sử tin nhắn từ CSDL
+            $.ajax({
+                url: '/Chat/GetMessages',
+                type: 'GET',
+                data: { carId: currentChatCarId, ownerId: currentChatOwnerId },
+                success: function(res) {
+                    $('#chatMessages').empty();
+                    if (res && res.success && res.messages && res.messages.length > 0) {
+                        res.messages.forEach(function(m) {
+                            var bubbleClass = m.isFromOwner ? 'chat-bubble from-owner' : 'chat-bubble from-user';
+                            var bubble = $('<div class="' + bubbleClass + '"></div>');
+                            bubble.append($('<div class="fw-bold mb-1" style="font-size: 11px; opacity: 0.85;"></div>').text(m.senderName + ' · ' + m.sentAt));
+                            bubble.append($('<div></div>').text(m.messageText));
+                            $('#chatMessages').append(bubble);
+                        });
+                    } else {
+                        var defaultMsg = greeting || ('Chào bạn! Cảm ơn bạn đã quan tâm đến phương tiện của chúng tôi. Bạn có thắc mắc gì về thủ tục hay lịch trình cần hỗ trợ không?');
+                        var bubble = $('<div class="chat-bubble from-owner"></div>');
+                        bubble.append($('<div class="fw-bold mb-1" style="font-size: 11px; opacity: 0.85;"></div>').text(currentChatPartnerName));
+                        bubble.append($('<div></div>').text(defaultMsg));
+                        $('#chatMessages').append(bubble);
+                    }
+                    $('#chatMessages').scrollTop($('#chatMessages')[0].scrollHeight);
+                },
+                error: function() {
+                    $('#chatMessages').html('<div class="chat-bubble from-owner"><div class="fw-bold mb-1" style="font-size: 11px;">' + currentChatPartnerName + '</div>' + (greeting || 'Chào bạn! Rất vui được hỗ trợ bạn.') + '</div>');
+                }
+            });
+
+            setTimeout(function() { $('#chatInputText').focus(); }, 200);
+        }
+
+        function closeChat() {
+            $('#recarChatWindow').removeClass('open');
+        }
+
+        function minimizeChat() {
+            $('#recarChatWindow').toggleClass('open');
+        }
+
+        function sendChatMessage() {
+            var msg = $('#chatInputText').val().trim();
+            if (!msg) return;
+
+            // 1. Hiển thị ngay bong bóng tin nhắn của khách
+            var nowStr = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+            var userBubble = $('<div class="chat-bubble from-user"></div>');
+            userBubble.append($('<div class="fw-bold mb-1" style="font-size: 11px; opacity: 0.85;">Bạn · ' + nowStr + '</div>'));
+            userBubble.append($('<div></div>').text(msg));
+            $('#chatMessages').append(userBubble);
+            $('#chatInputText').val('');
+            $('#chatMessages').scrollTop($('#chatMessages')[0].scrollHeight);
+
+            // 2. Gửi AJAX lên ChatController để lưu CSDL và nhận phản hồi từ chủ xe
+            $.ajax({
+                url: '/Chat/SendMessage',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    carId: currentChatCarId,
+                    ownerId: currentChatOwnerId,
+                    carName: currentChatCarName,
+                    messageText: msg
+                }),
+                success: function(res) {
+                    if (res && res.success && res.ownerReply) {
+                        setTimeout(function() {
+                            var reply = res.ownerReply;
+                            var ownerBubble = $('<div class="chat-bubble from-owner"></div>');
+                            ownerBubble.append($('<div class="fw-bold mb-1" style="font-size: 11px; opacity: 0.85;"></div>').text(reply.senderName + ' · ' + reply.sentAt));
+                            ownerBubble.append($('<div></div>').text(reply.messageText));
+                            $('#chatMessages').append(ownerBubble);
+                            $('#chatMessages').scrollTop($('#chatMessages')[0].scrollHeight);
+                            loadRecentChats();
+                        }, 800);
+                    }
+                },
+                error: function(err) {
+                    console.error("Lỗi gửi tin nhắn:", err);
+                }
+            });
+        }
+
+        function loadRecentChats() {
+            $.ajax({
+                url: '/Chat/GetRecentConversations',
+                type: 'GET',
+                success: function(res) {
+                    if (res && res.success && res.conversations && res.conversations.length > 0) {
+                        var container = $('#recentChatList');
+                        if (container.length) {
+                            container.empty();
+                            res.conversations.forEach(function(c) {
+                                var initials = c.partnerName ? c.partnerName.substring(0, 2).toUpperCase() : 'CX';
+                                var item = $('<div class="chat-item"></div>');
+                                item.html('<div class="chat-avatar">' + initials + '</div>' +
+                                    '<div class="flex-grow-1 overflow-hidden" style="font-size: 13px;">' +
+                                        '<div class="d-flex justify-content-between">' +
+                                            '<strong class="text-truncate" style="max-width: 140px;">' + c.partnerName + '</strong>' +
+                                            '<span class="text-muted" style="font-size: 11px;">' + c.time + '</span>' +
+                                        '</div>' +
+                                        '<p class="text-muted text-truncate m-0" style="font-size: 12px;">' + c.lastMessage + '</p>' +
+                                    '</div>');
+                                item.on('click', function() {
+                                    openChatBox(c.partnerName, c.lastMessage, c.carId, c.ownerId, c.title);
+                                });
+                                container.append(item);
+                            });
+                        }
+                    }
+                }
+            });
+        }
+
+        $(document).on('click', '.btn-open-owner-chat', function() {
+            var owner = $(this).data('owner') || 'Đối tác Chủ xe ReCar';
+            var car = $(this).data('car') || 'xe';
+            var carId = $(this).data('car-id') || null;
+            var ownerId = $(this).data('owner-id') || null;
+            openChatBox(owner, 'Chào bạn! Cảm ơn bạn đã quan tâm đến mẫu ' + car + '. Bạn muốn hỏi về lịch trình, địa điểm nhận xe hay hình thức thuê xe ạ?', carId, ownerId, car);
+        });
+
+        $('#btnSendChat').on('click', sendChatMessage);
+        $('#chatInputText').on('keypress', function(e) {
+            if (e.which === 13) {
+                sendChatMessage();
+            }
+        });
+
+        $(document).ready(function() {
+            loadRecentChats();
+        });
+    </script>
+
     @RenderSection("scripts", required: false)
 </body>
 </html>

@@ -8,7 +8,8 @@
     string todayStr = DateTime.Now.ToString("yyyy-MM-dd");
     string nextDayStr = DateTime.Now.AddDays(2).ToString("yyyy-MM-dd");
 
-    decimal finalPrice = (Model.SalePrice > 0 ? Model.SalePrice : Model.Price) ?? 0;
+    bool hasDiscount = Model.IsSale && Model.SalePrice.HasValue && Model.SalePrice > 0 && Model.SalePrice < Model.Price;
+    decimal finalPrice = hasDiscount ? Model.SalePrice.Value : (Model.Price ?? 0);
     string carImg = string.IsNullOrEmpty(Model.Image) ? "/images/cars/car-sedan.jpg" : Model.Image;
 }
 
@@ -30,16 +31,65 @@
     <div class="row g-4">
         <!-- Cột trái: Thông tin chi tiết xe (8 cột) -->
         <div class="col-lg-8">
+            @{
+                string carStatus = Model.CarStatus ?? "Sẵn sàng";
+                bool isBusy = carStatus == "Đang bận";
+                bool isMaintenance = carStatus == "Bảo trì";
+                string overlayClass = isBusy ? "is-busy" : (isMaintenance ? "is-maintenance" : "");
+            }
             <!-- Ảnh xe chính -->
-            <div class="position-relative rounded-4 overflow-hidden mb-4 border shadow-sm" style="aspect-ratio: 16/10; background: #f8fafc;">
+            <div class="position-relative rounded-4 overflow-hidden mb-4 border shadow-sm car-detail-busy-overlay @overlayClass" style="aspect-ratio: 16/10; background: #f8fafc;">
                 <img src="@carImg" alt="@Model.CarName" class="w-100 h-100 object-fit-cover" id="mainCarImage" />
-                @if (Model.IsSale)
+                @if (hasDiscount)
                 {
                     <span class="position-absolute top-0 start-0 m-3 badge bg-danger fs-6 px-3 py-2 shadow-sm">
                         <i class="bi bi-lightning-fill"></i> Đang ưu đãi
                     </span>
                 }
+                else if (!string.IsNullOrEmpty(Model.Badge) && Model.Badge != "Tiêu chuẩn")
+                {
+                    string badgeBg = Model.Badge == "Xe điện" ? "bg-success" : (Model.Badge == "Nổi bật" ? "bg-primary" : "bg-dark");
+                    <span class="position-absolute top-0 start-0 m-3 badge @badgeBg fs-6 px-3 py-2 shadow-sm">
+                        @if (Model.Badge == "Xe điện") { <i class="bi bi-ev-front me-1"></i> }
+                        else if (Model.Badge == "Nổi bật") { <i class="bi bi-fire me-1"></i> }
+                        @Model.Badge
+                    </span>
+                }
+
+                @if (isBusy)
+                {
+                    <span class="position-absolute top-0 end-0 m-3 badge bg-warning text-dark fs-6 px-3 py-2 shadow">
+                        <i class="bi bi-clock-history me-1"></i> Đang bận (Có khách thuê)
+                    </span>
+                }
+                else if (isMaintenance)
+                {
+                    <span class="position-absolute top-0 end-0 m-3 badge bg-danger text-white fs-6 px-3 py-2 shadow">
+                        <i class="bi bi-tools me-1"></i> Đang bảo trì định kỳ
+                    </span>
+                }
             </div>
+
+            @if (isBusy)
+            {
+                <div class="alert alert-warning d-flex align-items-center mb-4 rounded-3 shadow-sm border-warning">
+                    <i class="bi bi-exclamation-triangle-fill fs-4 me-3 text-warning"></i>
+                    <div>
+                        <strong class="d-block text-dark">Xe hiện đang trong chuyến đi!</strong>
+                        <span class="small text-muted">Phương tiện đang được một khách hàng khác thuê. Bạn có thể bấm <b>Chat với chủ xe</b> bên dưới để hỏi giờ xe quay về và giữ chỗ cho chuyến tiếp theo.</span>
+                    </div>
+                </div>
+            }
+            else if (isMaintenance)
+            {
+                <div class="alert alert-danger d-flex align-items-center mb-4 rounded-3 shadow-sm border-danger">
+                    <i class="bi bi-tools fs-4 me-3 text-danger"></i>
+                    <div>
+                        <strong class="d-block text-dark">Xe đang kiểm tra & bảo dưỡng định kỳ!</strong>
+                        <span class="small text-muted">Chủ xe đang thực hiện quy trình kiểm tra an toàn kỹ thuật phương tiện định kỳ. Tạm dừng nhận đặt cọc cho mẫu xe này.</span>
+                    </div>
+                </div>
+            }
 
             <!-- Tiêu đề & Thông tin cơ bản -->
             <div class="mb-4">
@@ -123,6 +173,37 @@
                     <h5 class="fs-6 fw-bold text-dark mb-2">Mô tả chi tiết từ chủ xe:</h5>
                     <p class="text-secondary small m-0" style="line-height: 1.7;">@Model.Details</p>
                 }
+            </div>
+
+            <!-- Card Đối tác Chủ xe & Nút Chat trực tiếp -->
+            <div class="p-3 bg-white rounded-3 border mb-4 shadow-sm">
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="user-avatar-circle" style="width: 52px; height: 52px; font-size: 18px; font-weight: 700; background: linear-gradient(135deg, #0ea5e9, #0284c7); color: #fff; box-shadow: 0 4px 10px rgba(14,165,233,0.3);">
+                            @(string.IsNullOrEmpty(Model.Owner?.FullName) ? "CX" : Model.Owner.FullName.Substring(0, 1).ToUpper())
+                        </div>
+                        <div>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="fw-bold text-dark fs-6">@(Model.Owner?.FullName ?? "Đối tác Chủ xe ReCar")</span>
+                                <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2 py-1 small" style="font-size: 0.72rem;">
+                                    <i class="bi bi-patch-check-fill text-success me-1"></i>Chủ xe đã xác minh
+                                </span>
+                            </div>
+                            <div class="text-muted small mt-1 d-flex flex-wrap gap-3">
+                                <span><i class="bi bi-telephone text-primary me-1"></i>@(string.IsNullOrEmpty(Model.Owner?.Phone) ? "Liên hệ qua chat" : Model.Owner.Phone)</span>
+                                <span><i class="bi bi-clock-history text-secondary me-1"></i>Phản hồi trong 5 phút</span>
+                                <span><i class="bi bi-star-fill text-warning me-1"></i>5.0 (Đánh giá tốt)</span>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-primary rounded-pill px-4 py-2 fw-semibold small btn-open-owner-chat shadow-sm" 
+                            data-owner="@(Model.Owner?.FullName ?? "Đối tác Chủ xe")" 
+                            data-owner-id="@(Model.OwnerId ?? 0)" 
+                            data-car="@Model.CarName" 
+                            data-car-id="@Model.CarId">
+                        <i class="bi bi-chat-dots-fill me-1"></i> Chat với chủ xe
+                    </button>
+                </div>
             </div>
 
             <!-- Giấy tờ & Điều kiện thuê xe -->
@@ -221,15 +302,40 @@
                         <span class="fs-2 fw-bold text-primary">@finalPrice.ToString("N0")đ</span>
                         <span class="text-muted fw-normal">/ ngày</span>
                     </div>
-                    @if (Model.SalePrice > 0)
+                    @if (hasDiscount)
                     {
-                        <span class="text-muted text-decoration-line-through small">@((Model.Price ?? 0).ToString("N0"))đ/ngày</span>
+                        <div class="d-flex align-items-center gap-2 mt-1">
+                            <span class="text-muted text-decoration-line-through small">@((Model.Price ?? 0).ToString("N0"))đ/ngày</span>
+                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle small py-1 px-2">
+                                -@((((Model.Price ?? 0) - (Model.SalePrice ?? 0)) / (Model.Price ?? 1) * 100).ToString("0"))%
+                            </span>
+                        </div>
                     }
                 </div>
 
                 <!-- Form Đặt xe sang Cart -->
                 <form asp-controller="Cart" asp-action="AddToCart" asp-route-id="@Model.CarId" method="post" id="detailBookingForm">
                     <input type="hidden" name="quantity" value="1" />
+
+                    <!-- Lựa chọn hình thức thuê xe: Tự lái hoặc Có tài xế -->
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-dark d-flex justify-content-between align-items-center">
+                            <span><i class="bi bi-person-gear text-primary me-1"></i> Hình thức thuê xe</span>
+                            <span class="badge bg-light text-muted border fw-normal" style="font-size: 11px;">Chọn nhu cầu</span>
+                        </label>
+                        <div class="d-flex gap-2">
+                            <button type="button" class="btn btn-sm flex-fill fw-semibold recar-drive-mode-btn btn-primary text-white" data-mode="Tự lái" id="btnModeSelf">
+                                <i class="bi bi-car-front me-1"></i> Tự lái
+                            </button>
+                            <button type="button" class="btn btn-sm flex-fill fw-semibold recar-drive-mode-btn btn-outline-secondary" data-mode="Có tài xế" id="btnModeDriver">
+                                <i class="bi bi-person-badge me-1"></i> Có tài xế
+                            </button>
+                        </div>
+                        <input type="hidden" name="driveMode" id="detailDriveModeInput" value="Tự lái" />
+                        <div class="form-text text-muted mt-1" id="driveModeDesc" style="font-size: 11px;">
+                            <i class="bi bi-info-circle text-primary"></i> Khách hàng nhận xe từ chủ xe và tự lái. Yêu cầu xuất trình CCCD & GPLX B1/B2 khi nhận xe.
+                        </div>
+                    </div>
 
                     <div class="mb-3">
                         <label class="form-label small fw-bold text-dark"><i class="bi bi-calendar-event text-primary me-1"></i> Ngày nhận xe</label>
@@ -248,8 +354,16 @@
                             <span class="fw-bold text-dark" id="rentalDaysText">2 ngày</span>
                         </div>
                         <div class="d-flex justify-content-between mb-2">
-                            <span class="text-muted">Tổng tiền thuê:</span>
-                            <span class="fw-bold text-dark" id="totalPriceText">@((finalPrice * 2).ToString("N0"))đ</span>
+                            <span class="text-muted">Tiền thuê xe:</span>
+                            <span class="fw-bold text-dark" id="carRentalPriceText">@((finalPrice * 2).ToString("N0"))đ</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2" id="driverFeeRow" style="display: none !important;">
+                            <span class="text-muted">Phụ phí tài xế:</span>
+                            <span class="fw-bold text-primary" id="driverFeeText">0đ</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2 pt-2 border-top">
+                            <span class="fw-bold text-dark">Tổng tiền dự kiến:</span>
+                            <span class="fw-bold text-dark fs-6" id="totalPriceText">@((finalPrice * 2).ToString("N0"))đ</span>
                         </div>
                         <hr class="my-2" />
                         <div class="d-flex justify-content-between mb-1">
@@ -262,8 +376,37 @@
                         </div>
                     </div>
 
-                    <button type="submit" class="btn btn-warning w-100 py-2 fw-bold text-dark fs-6 rounded-3 shadow-sm mb-2">
-                        <i class="bi bi-credit-card me-1"></i> Tiến hành đặt cọc giữ xe
+                    @if (isBusy)
+                    {
+                        <button type="button" class="btn btn-secondary w-100 py-2 fw-bold text-white fs-6 rounded-3 shadow-sm mb-2" disabled>
+                            <i class="bi bi-clock-history me-1"></i> Xe đang có khách thuê
+                        </button>
+                        <p class="text-warning text-center small m-0 fw-semibold mb-2" style="font-size: 0.78rem;">
+                            <i class="bi bi-info-circle me-1"></i> Tạm khóa đặt trực tuyến. Vui lòng nhắn tin với chủ xe để hẹn lịch.
+                        </p>
+                    }
+                    else if (isMaintenance)
+                    {
+                        <button type="button" class="btn btn-danger w-100 py-2 fw-bold text-white fs-6 rounded-3 shadow-sm mb-2" disabled>
+                            <i class="bi bi-tools me-1"></i> Xe đang bảo trì kỹ thuật
+                        </button>
+                        <p class="text-danger text-center small m-0 fw-semibold mb-2" style="font-size: 0.78rem;">
+                            <i class="bi bi-exclamation-circle me-1"></i> Phương tiện đang bảo dưỡng an toàn, tạm dừng nhận cọc.
+                        </p>
+                    }
+                    else
+                    {
+                        <button type="submit" class="btn btn-warning w-100 py-2 fw-bold text-dark fs-6 rounded-3 shadow-sm mb-2">
+                            <i class="bi bi-credit-card me-1"></i> Tiến hành đặt cọc giữ xe
+                        </button>
+                    }
+
+                    <button type="button" class="btn btn-outline-primary w-100 py-2 fw-semibold rounded-3 mb-2 btn-open-owner-chat" 
+                            data-owner="@(Model.Owner?.FullName ?? "Đối tác Chủ xe")" 
+                            data-owner-id="@(Model.OwnerId ?? 0)" 
+                            data-car="@Model.CarName" 
+                            data-car-id="@Model.CarId">
+                        <i class="bi bi-chat-dots-fill me-1"></i> Chat trao đổi với chủ xe
                     </button>
                     
                     <p class="text-muted text-center m-0" style="font-size: 0.75rem;">
@@ -297,7 +440,11 @@
                                     <i class="bi bi-geo-alt-fill text-danger"></i> @(string.IsNullOrEmpty(car.Descriptions) ? "Toàn quốc" : car.Descriptions)
                                 </div>
                                 <div class="recar-card-footer">
-                                    <div class="recar-price-main">@(((car.SalePrice > 0 ? car.SalePrice : car.Price) ?? 0).ToString("N0"))đ</div>
+                                    @{
+                                        bool relDiscount = car.IsSale && car.SalePrice.HasValue && car.SalePrice > 0 && car.SalePrice < car.Price;
+                                        decimal relFinal = relDiscount ? car.SalePrice.Value : (car.Price ?? 0);
+                                    }
+                                    <div class="recar-price-main">@relFinal.ToString("N0")đ</div>
                                     <a href="@carUrl" class="btn-card-rent">Xem xe</a>
                                 </div>
                             </div>
@@ -313,6 +460,38 @@
     <script>
         $(document).ready(function() {
             var unitPrice = @finalPrice;
+            var driverFeeDaily = 500000;
+            var currentDriveMode = "Tự lái";
+
+            // Kiểm tra xem trang có nhận param driveMode từ URL không (ví dụ từ Trang chủ)
+            var urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('driveMode') === 'Có tài xế' || urlParams.get('driveMode') === 'with-driver') {
+                setDriveMode('Có tài xế');
+            }
+
+            $('.recar-drive-mode-btn').on('click', function() {
+                var mode = $(this).data('mode');
+                setDriveMode(mode);
+            });
+
+            function setDriveMode(mode) {
+                currentDriveMode = mode;
+                $('#detailDriveModeInput').val(mode);
+                $('.recar-drive-mode-btn').removeClass('active btn-primary text-white').addClass('btn-outline-secondary');
+                
+                if (mode === 'Có tài xế') {
+                    $('#btnModeDriver').addClass('active btn-primary text-white').removeClass('btn-outline-secondary');
+                    $('#btnModeSelf').removeClass('active btn-primary text-white').addClass('btn-outline-secondary');
+                    $('#driverFeeRow').attr('style', 'display: flex !important;');
+                    $('#driveModeDesc').html('<i class="bi bi-shield-check text-success"></i> <b>Thuê xe có tài xế</b> (+500k/ngày). Khách hàng không cần bằng lái ô tô.');
+                } else {
+                    $('#btnModeSelf').addClass('active btn-primary text-white').removeClass('btn-outline-secondary');
+                    $('#btnModeDriver').removeClass('active btn-primary text-white').addClass('btn-outline-secondary');
+                    $('#driverFeeRow').attr('style', 'display: none !important;');
+                    $('#driveModeDesc').html('<i class="bi bi-info-circle text-primary"></i> Khách hàng nhận xe từ chủ xe và tự lái. Yêu cầu xuất trình CCCD & GPLX B1/B2 khi nhận xe.');
+                }
+                calculateTotals();
+            }
 
             function calculateTotals() {
                 var pickup = new Date($('#detailPickupDate').val());
@@ -331,11 +510,16 @@
                 var diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
                 if (diffDays < 1) diffDays = 1;
 
-                var total = unitPrice * diffDays;
-                var deposit = total * 0.3;
+                var carTotal = unitPrice * diffDays;
+                var driverFeeTotal = (currentDriveMode === 'Có tài xế') ? (driverFeeDaily * diffDays) : 0;
+                var total = carTotal + driverFeeTotal;
+
+                var deposit = Math.round(total * 0.3);
                 var remain = total - deposit;
 
                 $('#rentalDaysText').text(diffDays + ' ngày');
+                $('#carRentalPriceText').text(carTotal.toLocaleString('vi-VN') + 'đ');
+                $('#driverFeeText').text(driverFeeTotal.toLocaleString('vi-VN') + 'đ (' + diffDays + ' ngày)');
                 $('#totalPriceText').text(total.toLocaleString('vi-VN') + 'đ');
                 $('#depositPriceText').text(deposit.toLocaleString('vi-VN') + 'đ');
                 $('#remainPriceText').text(remain.toLocaleString('vi-VN') + 'đ');

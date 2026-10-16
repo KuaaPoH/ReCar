@@ -16,27 +16,40 @@ namespace CarRental.Areas.CarOwner.Controllers
             _context = context;
         }
 
-        private bool CheckCarOwnerPermission()
+        private Account? GetCurrentCarOwner()
         {
             if (!Function.IsLogin(HttpContext.Session))
             {
-                return false;
+                return null;
             }
 
             var accountId = Function.GetAccountId(HttpContext.Session);
-            var account = _context.Accounts.FirstOrDefault(a => a.AccountId == accountId);
-            return account != null && account.RoleId == 3; // RoleId 3 = Chủ xe
+            var carOwnerId = Function.GetCarOwnerAccountId(HttpContext.Session);
+            var userEmail = Function.GetEmail(HttpContext.Session);
+
+            return _context.Accounts
+                .Include(a => a.Role)
+                .FirstOrDefault(a => (carOwnerId > 0 && a.AccountId == carOwnerId) ||
+                                     a.AccountId == accountId ||
+                                     (!string.IsNullOrEmpty(userEmail) && a.Email == userEmail && a.RoleId == 3));
+        }
+
+        private bool CheckCarOwnerPermission()
+        {
+            var owner = GetCurrentCarOwner();
+            return owner != null && owner.RoleId == 3; // RoleId 3 = Chủ xe
         }
 
         public IActionResult Index(int? filterStatusId)
         {
-            if (!CheckCarOwnerPermission())
+            var owner = GetCurrentCarOwner();
+            if (owner == null || owner.RoleId != 3)
             {
                 Function.SetMessage(HttpContext.Session, "Bạn không có quyền truy cập");
                 return RedirectToAction("Index", "Login", new { area = "" });
             }
 
-            var ownerId = Function.GetAccountId(HttpContext.Session);
+            var ownerId = owner.AccountId;
 
             // Lấy danh sách CarId của chủ xe này
             var carIds = _context.Cars

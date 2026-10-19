@@ -1,0 +1,229 @@
+@model List<CarRental.Models.Car>
+@{
+    ViewData["Title"] = "Quản lý đội xe";
+    var brands = ViewBag.Brands as List<string> ?? new List<string>();
+    var cities = ViewBag.Cities as string[] ?? new string[0];
+}
+
+<div class="container-fluid px-0">
+    <!-- Header -->
+    <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4">
+        <div>
+            <div class="d-flex align-items-center gap-2">
+                <h1 class="h3 fw-bold mb-0 text-dark tracking-tight">Quản lý đội xe toàn sàn</h1>
+                <span class="badge bg-light text-dark border rounded-pill fw-semibold px-2.5 py-1">@Model.Count xe</span>
+            </div>
+            <p class="text-muted small mb-0 mt-1">Giám sát toàn bộ phương tiện của các đối tác chủ xe đang đăng ký và lưu hành trên hệ thống ReCar.</p>
+        </div>
+        <div>
+            <a asp-area="Admin" asp-controller="Cars" asp-action="Pending" class="btn btn-outline-warning btn-sm rounded-pill px-3 fw-semibold">
+                <i class="bi bi-shield-check me-1"></i> Hồ sơ chờ duyệt
+            </a>
+        </div>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="recar-panel mb-4 p-3">
+        <form method="get" asp-area="Admin" asp-controller="Cars" asp-action="Index" class="row g-2 align-items-center">
+            <div class="col-12 col-md-3">
+                <div class="position-relative">
+                    <i class="bi bi-search position-absolute text-muted" style="left: 12px; top: 10px; font-size: 0.85rem;"></i>
+                    <input type="text" name="q" value="@ViewBag.FilterQ" class="form-control form-control-sm ps-5 rounded-3" placeholder="Tìm theo tên xe hoặc biển số..." />
+                </div>
+            </div>
+            <div class="col-6 col-md-2">
+                <select name="brand" class="form-select form-select-sm rounded-3">
+                    <option value="__all">Tất cả hãng xe</option>
+                    @foreach (var b in brands)
+                    {
+                        <option value="@b" selected="@(ViewBag.FilterBrand == b)">@b</option>
+                    }
+                </select>
+            </div>
+            <div class="col-6 col-md-2">
+                <select name="status" class="form-select form-select-sm rounded-3">
+                    <option value="__all">Tất cả trạng thái</option>
+                    <option value="Sẵn sàng" selected="@(ViewBag.FilterStatus == "Sẵn sàng")">Sẵn sàng</option>
+                    <option value="Đang bận" selected="@(ViewBag.FilterStatus == "Đang bận")">Đang bận (Có khách)</option>
+                    <option value="Bảo trì" selected="@(ViewBag.FilterStatus == "Bảo trì")">Bảo trì</option>
+                    <option value="Chờ duyệt" selected="@(ViewBag.FilterStatus == "Chờ duyệt")">Chờ duyệt</option>
+                    <option value="Tạm ngừng" selected="@(ViewBag.FilterStatus == "Tạm ngừng")">Tạm ngừng</option>
+                </select>
+            </div>
+            <div class="col-6 col-md-2">
+                <select name="city" class="form-select form-select-sm rounded-3">
+                    <option value="__all">Tất cả thành phố</option>
+                    @foreach (var c in cities)
+                    {
+                        <option value="@c" selected="@(ViewBag.FilterCity == c)">@c</option>
+                    }
+                </select>
+            </div>
+            <div class="col-6 col-md-3 d-flex gap-2">
+                <button type="submit" class="btn btn-primary btn-sm rounded-3 flex-grow-1" style="background-color: var(--recar-primary); border: none;">
+                    <i class="bi bi-funnel"></i> Lọc danh sách
+                </button>
+                <a asp-area="Admin" asp-controller="Cars" asp-action="Index" class="btn btn-light btn-sm rounded-3 border" title="Đặt lại bộ lọc">
+                    <i class="bi bi-arrow-counterclockwise"></i>
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Data Table Panel -->
+    <div class="recar-panel mb-0">
+        <div class="table-responsive">
+            <table class="table recar-table align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th style="width: 70px;">Ảnh xe</th>
+                        <th>Tên xe & Đời</th>
+                        <th>Biển số</th>
+                        <th>Chủ xe phụ trách</th>
+                        <th>Khu vực bàn giao</th>
+                        <th>Giá thuê/ngày</th>
+                        <th class="text-center">Số chuyến</th>
+                        <th>Trạng thái</th>
+                        <th class="text-end">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model == null || Model.Count == 0)
+                    {
+                        <tr>
+                            <td colspan="9" class="text-center py-5 text-muted">
+                                <i class="bi bi-inbox fs-2 text-secondary d-block mb-2"></i>
+                                Không tìm thấy chiếc xe nào phù hợp với điều kiện lọc.
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        foreach (var car in Model)
+                        {
+                            var badgeClass = "badge-neutral";
+                            if (car.CarStatus == "Sẵn sàng") { badgeClass = "badge-ready"; }
+                            else if (car.CarStatus == "Đang bận") { badgeClass = "badge-rented"; }
+                            else if (car.CarStatus == "Bảo trì") { badgeClass = "badge-maintenance"; }
+                            else if (car.CarStatus == "Chờ duyệt") { badgeClass = "badge-pending"; }
+                            else if (car.CarStatus == "Từ chối" || car.CarStatus == "Tạm ngừng") { badgeClass = "badge-danger"; }
+
+                            <tr id="fleet-row-@car.CarId">
+                                <td>
+                                    <img src="@(string.IsNullOrEmpty(car.Image) ? "/images/cars/car-sedan.jpg" : car.Image)" 
+                                         alt="@car.CarName" class="rounded object-fit-cover" style="width: 60px; height: 42px;" />
+                                </td>
+                                <td>
+                                    <div class="fw-bold text-dark small">@car.CarName</div>
+                                    <div class="text-muted" style="font-size: 0.72rem;">@car.CarBrand · Đời @(car.Model ?? 2023) · @(car.Seat ?? 5) chỗ</div>
+                                </td>
+                                <td>
+                                    <span class="font-mono-plate">@car.LicensePlate</span>
+                                </td>
+                                <td>
+                                    <div class="fw-semibold small">@(car.Owner?.FullName ?? "Chủ xe ReCar")</div>
+                                    <div class="text-muted" style="font-size: 0.72rem;">@(car.Owner?.Phone ?? "09xx.xxx.xxx")</div>
+                                </td>
+                                <td class="small text-muted">
+                                    <i class="bi bi-geo-alt text-danger me-1"></i>@(car.Location ?? "Toàn quốc")
+                                </td>
+                                <td>
+                                    <span class="fw-bold text-primary small">@((car.Price ?? 0).ToString("N0")) đ</span>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge bg-light text-dark border rounded-pill">@(car.Trips ?? 0) chuyến</span>
+                                </td>
+                                <td>
+                                    <span class="status-badge @badgeClass" id="status-badge-@car.CarId">
+                                        @(car.CarStatus ?? "Sẵn sàng")
+                                    </span>
+                                </td>
+                                <td class="text-end">
+                                    <div class="dropdown">
+                                        <button class="btn btn-light btn-sm rounded-circle p-1.5" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                            <i class="bi bi-three-dots-vertical"></i>
+                                        </button>
+                                        <ul class="dropdown-menu dropdown-menu-end shadow-sm p-1 small" style="border-radius: 10px;">
+                                            <li>
+                                                <a class="dropdown-item py-1.5" href="/product/@(car.Alias)-@(car.CarId).html" target="_blank">
+                                                    <i class="bi bi-box-arrow-up-right me-2 text-primary"></i> Xem trên sàn ReCar
+                                                </a>
+                                            </li>
+                                            <li><hr class="dropdown-divider my-1"></li>
+                                            @if (car.CarStatus != "Sẵn sàng")
+                                            {
+                                                <li>
+                                                    <a class="dropdown-item py-1.5 text-success" href="javascript:void(0)" onclick="toggleFleetStatus(@car.CarId, 'Sẵn sàng')">
+                                                        <i class="bi bi-check-circle me-2"></i> Kích hoạt Sẵn sàng
+                                                    </a>
+                                                </li>
+                                            }
+                                            @if (car.CarStatus != "Bảo trì")
+                                            {
+                                                <li>
+                                                    <a class="dropdown-item py-1.5 text-warning" href="javascript:void(0)" onclick="toggleFleetStatus(@car.CarId, 'Bảo trì')">
+                                                        <i class="bi bi-wrench me-2"></i> Chuyển sang Bảo trì
+                                                    </a>
+                                                </li>
+                                            }
+                                            @if (car.CarStatus != "Tạm ngừng")
+                                            {
+                                                <li>
+                                                    <a class="dropdown-item py-1.5 text-danger" href="javascript:void(0)" onclick="toggleFleetStatus(@car.CarId, 'Tạm ngừng')">
+                                                        <i class="bi bi-pause-circle me-2"></i> Tạm ngừng hoạt động
+                                                    </a>
+                                                </li>
+                                            }
+                                        </ul>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    function toggleFleetStatus(carId, newStatus) {
+        Swal.fire({
+            title: 'Thay đổi trạng thái?',
+            text: `Bạn có chắc muốn chuyển trạng thái xe này sang '${newStatus}'?`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Xác nhận',
+            cancelButtonText: 'Hủy bỏ',
+            customClass: { popup: 'rounded-4' }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: '/Admin/Cars/ToggleStatus',
+                    type: 'POST',
+                    data: { id: carId, status: newStatus },
+                    success: function (res) {
+                        if (res.success) {
+                            Swal.fire({
+                                title: 'Thành công!',
+                                text: res.message,
+                                icon: 'success',
+                                timer: 1500,
+                                showConfirmButton: false,
+                                customClass: { popup: 'rounded-4' }
+                            });
+                            setTimeout(() => { location.reload(); }, 1200);
+                        } else {
+                            Swal.fire('Lỗi', res.message, 'error');
+                        }
+                    },
+                    error: function () {
+                        Swal.fire('Lỗi', 'Không thể kết nối máy chủ.', 'error');
+                    }
+                });
+            }
+        });
+    }
+</script>
+}

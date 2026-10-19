@@ -1,0 +1,372 @@
+@model List<CarRental.Models.Car>
+@{
+    ViewData["Title"] = "Phê duyệt xe";
+    var brands = ViewBag.Brands as List<string> ?? new List<string>();
+    var cities = ViewBag.Cities as string[] ?? new string[0];
+}
+
+<div class="container-fluid px-0">
+    <!-- Page Header -->
+    <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4">
+        <div>
+            <div class="d-flex align-items-center gap-2">
+                <h1 class="h3 fw-bold mb-0 text-dark tracking-tight">Phê duyệt xe mới</h1>
+                <span class="badge bg-warning text-dark rounded-pill fw-bold px-2.5 py-1">@Model.Count hồ sơ chờ duyệt</span>
+            </div>
+            <p class="text-muted small mb-0 mt-1">Kiểm duyệt hồ sơ đăng kiểm và giấy tờ xe do chủ xe gửi lên. Xe chưa duyệt sẽ không xuất hiện công khai trên sàn ReCar.</p>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <div class="btn-group btn-group-sm" role="group">
+                <button type="button" class="btn btn-outline-secondary active" id="btnViewGrid" onclick="switchView('grid')">
+                    <i class="bi bi-grid-fill"></i> Dạng thẻ
+                </button>
+                <button type="button" class="btn btn-outline-secondary" id="btnViewTable" onclick="switchView('table')">
+                    <i class="bi bi-list-ul"></i> Dạng bảng
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Bar Panel -->
+    <div class="recar-panel mb-4 p-3">
+        <form method="get" asp-area="Admin" asp-controller="Cars" asp-action="Pending" class="row g-2 align-items-center">
+            <div class="col-12 col-md-3">
+                <div class="position-relative">
+                    <i class="bi bi-search position-absolute text-muted" style="left: 12px; top: 10px; font-size: 0.85rem;"></i>
+                    <input type="text" name="q" value="@ViewBag.FilterQ" class="form-control form-control-sm ps-5 rounded-3" placeholder="Tên xe hoặc biển số..." />
+                </div>
+            </div>
+            <div class="col-6 col-md-2">
+                <select name="brand" class="form-select form-select-sm rounded-3">
+                    <option value="__all">Tất cả hãng xe</option>
+                    @foreach (var b in brands)
+                    {
+                        <option value="@b" selected="@(ViewBag.FilterBrand == b)">@b</option>
+                    }
+                </select>
+            </div>
+            <div class="col-6 col-md-2">
+                <select name="city" class="form-select form-select-sm rounded-3">
+                    <option value="__all">Tất cả thành phố</option>
+                    @foreach (var c in cities)
+                    {
+                        <option value="@c" selected="@(ViewBag.FilterCity == c)">@c</option>
+                    }
+                </select>
+            </div>
+            <div class="col-12 col-md-3">
+                <input type="text" name="owner" value="@ViewBag.FilterOwner" class="form-control form-control-sm rounded-3" placeholder="Tên hoặc SĐT chủ xe..." />
+            </div>
+            <div class="col-12 col-md-2 d-flex gap-2">
+                <button type="submit" class="btn btn-primary btn-sm rounded-3 flex-grow-1" style="background-color: var(--recar-primary); border: none;">
+                    <i class="bi bi-funnel"></i> Lọc hồ sơ
+                </button>
+                <a asp-area="Admin" asp-controller="Cars" asp-action="Pending" class="btn btn-light btn-sm rounded-3 border" title="Đặt lại bộ lọc">
+                    <i class="bi bi-arrow-counterclockwise"></i>
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Content: Empty or List -->
+    @if (Model == null || Model.Count == 0)
+    {
+        <div class="recar-panel text-center py-5">
+            <div class="rounded-circle bg-light d-inline-flex align-items-center justify-content-center mb-3" style="width: 64px; height: 64px;">
+                <i class="bi bi-check2-circle text-success fs-1"></i>
+            </div>
+            <h5 class="fw-bold text-dark">Đã xử lý hết hồ sơ phê duyệt</h5>
+            <p class="text-muted small mb-0">Hiện tại không còn chiếc xe nào đang chờ duyệt trên toàn sàn ReCar.</p>
+        </div>
+    }
+    else
+    {
+        <!-- Grid View Mode -->
+        <div id="pendingGridView" class="row g-4">
+            @foreach (var car in Model)
+            {
+                <div class="col-12 col-md-6 col-xl-4" id="car-card-@car.CarId">
+                    <div class="recar-panel h-100 d-flex flex-column mb-0">
+                        <!-- Car Image Box -->
+                        <div class="position-relative overflow-hidden" style="height: 190px;">
+                            <img src="@(string.IsNullOrEmpty(car.Image) ? "/images/cars/car-sedan.jpg" : car.Image)" 
+                                 alt="@car.CarName" 
+                                 class="w-100 h-100 object-fit-cover" />
+                            <span class="position-absolute top-0 start-0 m-2 status-badge badge-pending shadow-sm">
+                                Chờ duyệt
+                            </span>
+                            <span class="position-absolute bottom-0 end-0 m-2 badge bg-dark text-white rounded-pill px-2.5 py-1 small" style="opacity: 0.9;">
+                                @(car.Seat ?? 5) chỗ · @(car.Transmission ?? "Tự động")
+                            </span>
+                        </div>
+
+                        <!-- Card Body Details -->
+                        <div class="p-3.5 flex-grow-1 d-flex flex-column justify-content-between">
+                            <div>
+                                <div class="d-flex align-items-start justify-content-between gap-2 mb-1.5">
+                                    <h5 class="fw-bold text-dark mb-0 fs-6">@car.CarName</h5>
+                                    <span class="font-mono-plate">@car.LicensePlate</span>
+                                </div>
+
+                                <div class="text-muted small mb-2 d-flex align-items-center gap-1">
+                                    <i class="bi bi-geo-alt text-danger"></i> @(car.Location ?? "Toàn quốc")
+                                </div>
+
+                                <!-- Owner Info Box -->
+                                <div class="p-2.5 rounded-3 mb-3" style="background-color: #f8fafc; border: 1px solid #e2e8f0;">
+                                    <div class="d-flex align-items-center justify-content-between mb-1">
+                                        <span class="text-muted small" style="font-size: 0.75rem;">Chủ xe đối tác:</span>
+                                        <span class="fw-bold small text-dark">@(car.Owner?.FullName ?? "Chủ xe ReCar")</span>
+                                    </div>
+                                    <div class="d-flex align-items-center justify-content-between text-muted" style="font-size: 0.75rem;">
+                                        <span><i class="bi bi-telephone text-primary me-1"></i>@(car.Owner?.Phone ?? "09xx.xxx.xxx")</span>
+                                        <span><i class="bi bi-calendar3 me-1"></i>Đời xe @(car.Model ?? 2023)</span>
+                                    </div>
+                                </div>
+
+                                <!-- Price & Verification -->
+                                <div class="d-flex align-items-center justify-content-between mb-3">
+                                    <div>
+                                        <span class="text-muted small" style="font-size: 0.72rem;">Giá đề xuất:</span>
+                                        <div class="fw-bold text-primary fs-6">@((car.Price ?? 0).ToString("N0")) đ<span class="text-muted fw-normal" style="font-size: 0.75rem;">/ngày</span></div>
+                                    </div>
+                                    <div class="text-end">
+                                        <span class="badge bg-light text-success border border-success-subtle rounded-pill small">
+                                            <i class="bi bi-check-circle-fill me-1"></i> Đăng kiểm hợp lệ
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Action Buttons -->
+                            <div class="d-flex gap-2 pt-2 border-top">
+                                <button type="button" class="btn btn-outline-danger btn-sm flex-grow-1 rounded-pill fw-semibold" 
+                                        onclick="openRejectModal(@car.CarId, '@car.CarName', '@car.LicensePlate')">
+                                    <i class="bi bi-x-circle me-1"></i> Từ chối
+                                </button>
+                                <button type="button" class="btn btn-success btn-sm flex-grow-1 rounded-pill fw-semibold text-white shadow-sm" 
+                                        onclick="approveCar(@car.CarId, '@car.CarName', '@car.LicensePlate')">
+                                    <i class="bi bi-check2-circle me-1"></i> Phê duyệt
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <!-- Table View Mode (Hidden by default) -->
+        <div id="pendingTableView" class="recar-panel d-none mb-0">
+            <div class="table-responsive">
+                <table class="table recar-table align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Ảnh xe</th>
+                            <th>Tên xe & Đời</th>
+                            <th>Biển số</th>
+                            <th>Chủ xe</th>
+                            <th>Khu vực</th>
+                            <th>Giá thuê/ngày</th>
+                            <th>Hồ sơ giấy tờ</th>
+                            <th class="text-end">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var car in Model)
+                        {
+                            <tr id="car-row-@car.CarId">
+                                <td style="width: 70px;">
+                                    <img src="@(string.IsNullOrEmpty(car.Image) ? "/images/cars/car-sedan.jpg" : car.Image)" 
+                                         alt="@car.CarName" class="rounded object-fit-cover" style="width: 60px; height: 42px;" />
+                                </td>
+                                <td>
+                                    <div class="fw-bold text-dark small">@car.CarName</div>
+                                    <div class="text-muted" style="font-size: 0.72rem;">@car.CarBrand · Đời @(car.Model ?? 2023)</div>
+                                </td>
+                                <td>
+                                    <span class="font-mono-plate">@car.LicensePlate</span>
+                                </td>
+                                <td>
+                                    <div class="fw-semibold small">@(car.Owner?.FullName ?? "Chủ xe ReCar")</div>
+                                    <div class="text-muted" style="font-size: 0.72rem;">@(car.Owner?.Phone ?? "09xx.xxx.xxx")</div>
+                                </td>
+                                <td class="small text-muted">
+                                    <i class="bi bi-geo-alt text-danger me-1"></i>@(car.Location ?? "Hà Nội")
+                                </td>
+                                <td>
+                                    <span class="fw-bold text-primary small">@((car.Price ?? 0).ToString("N0")) đ</span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-light text-success border border-success-subtle rounded-pill" style="font-size: 0.72rem;">
+                                        <i class="bi bi-check-circle-fill me-1"></i> Đầy đủ giấy tờ
+                                    </span>
+                                </td>
+                                <td class="text-end">
+                                    <div class="d-inline-flex gap-1.5">
+                                        <button type="button" class="btn btn-outline-danger btn-sm rounded-pill px-2.5 py-1" style="font-size: 0.75rem;"
+                                                onclick="openRejectModal(@car.CarId, '@car.CarName', '@car.LicensePlate')">
+                                            Từ chối
+                                        </button>
+                                        <button type="button" class="btn btn-success btn-sm rounded-pill px-2.5 py-1 text-white shadow-sm" style="font-size: 0.75rem;"
+                                                onclick="approveCar(@car.CarId, '@car.CarName', '@car.LicensePlate')">
+                                            Phê duyệt
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+</div>
+
+<!-- Modal Từ Chối Duyệt Xe -->
+<div class="modal fade" id="rejectModal" tabindex="-1" aria-labelledby="rejectModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow">
+            <div class="modal-header border-bottom py-3">
+                <h5 class="modal-title fw-bold text-dark fs-6" id="rejectModalLabel">
+                    <i class="bi bi-x-circle-fill text-danger me-1"></i> Từ chối duyệt hồ sơ xe
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body py-3">
+                <input type="hidden" id="rejectCarId" />
+                <div class="mb-3">
+                    <label class="form-label small text-muted mb-1">Xe đang xử lý:</label>
+                    <div class="fw-bold text-dark p-2 rounded-3 bg-light border" id="rejectCarInfo"></div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="rejectReason" class="form-label small fw-bold text-dark">Lý do từ chối hồ sơ <span class="text-danger">*</span></label>
+                    <textarea class="form-control rounded-3" id="rejectReason" rows="3" placeholder="Nhập lý do cụ thể (VD: Ảnh chụp mờ, thông tin biển số không trùng khớp với giấy đăng kiểm, yêu cầu tải lại ảnh 4 góc xe...)"></textarea>
+                    <div class="text-muted" style="font-size: 0.72rem; margin-top: 4px;">Nội dung này sẽ được thông báo trực tiếp đến Chủ xe để tiến hành sửa lại hồ sơ.</div>
+                </div>
+
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="chkNotifyOwner" checked />
+                    <label class="form-check-label small text-dark" for="chkNotifyOwner">
+                        Gửi thông báo yêu cầu chỉnh sửa hồ sơ qua hệ thống tới chủ xe
+                    </label>
+                </div>
+            </div>
+            <div class="modal-footer border-top py-2.5">
+                <button type="button" class="btn btn-light btn-sm rounded-pill px-3" data-bs-dismiss="modal">Hủy bỏ</button>
+                <button type="button" class="btn btn-danger btn-sm rounded-pill px-3 fw-semibold" onclick="confirmReject()">
+                    <i class="bi bi-x-circle me-1"></i> Xác nhận từ chối
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    function switchView(view) {
+        if (view === 'grid') {
+            document.getElementById('pendingGridView').classList.remove('d-none');
+            document.getElementById('pendingTableView').classList.add('d-none');
+            document.getElementById('btnViewGrid').classList.add('active');
+            document.getElementById('btnViewTable').classList.remove('active');
+        } else {
+            document.getElementById('pendingGridView').classList.add('d-none');
+            document.getElementById('pendingTableView').classList.remove('d-none');
+            document.getElementById('btnViewGrid').classList.remove('active');
+            document.getElementById('btnViewTable').classList.add('active');
+        }
+    }
+
+    function approveCar(carId, carName, plate) {
+        Swal.fire({
+            title: 'Phê duyệt xe này?',
+            html: `Xác nhận phê duyệt xe <strong>${carName}</strong> (${plate})?<br><span class="text-muted small">Sau khi duyệt, xe sẽ lập tức chuyển sang trạng thái <strong>Sẵn sàng</strong> và xuất hiện công khai trên sàn ReCar.</span>`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#10b981',
+            cancelButtonColor: '#94a3b8',
+            confirmButtonText: 'Đồng ý phê duyệt',
+            cancelButtonText: 'Hủy bỏ',
+            customClass: { popup: 'rounded-4' }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: '/Admin/Cars/Approve',
+                    type: 'POST',
+                    data: { id: carId },
+                    success: function (res) {
+                        if (res.success) {
+                            Swal.fire({
+                                title: 'Thành công!',
+                                text: res.message,
+                                icon: 'success',
+                                timer: 2000,
+                                showConfirmButton: false,
+                                customClass: { popup: 'rounded-4' }
+                            });
+                            // Xóa thẻ khỏi giao diện
+                            $('#car-card-' + carId).fadeOut(400, function() { $(this).remove(); });
+                            $('#car-row-' + carId).fadeOut(400, function() { $(this).remove(); });
+                        } else {
+                            Swal.fire('Thất bại', res.message, 'error');
+                        }
+                    },
+                    error: function () {
+                        Swal.fire('Lỗi kết nối', 'Không thể kết nối đến máy chủ.', 'error');
+                    }
+                });
+            }
+        });
+    }
+
+    function openRejectModal(carId, carName, plate) {
+        $('#rejectCarId').val(carId);
+        $('#rejectCarInfo').html(`${carName} <span class="font-mono-plate ms-1">${plate}</span>`);
+        $('#rejectReason').val('');
+        const modal = new bootstrap.Modal(document.getElementById('rejectModal'));
+        modal.show();
+    }
+
+    function confirmReject() {
+        const carId = $('#rejectCarId').val();
+        const reason = $('#rejectReason').val().trim();
+
+        if (!reason) {
+            Swal.fire({
+                title: 'Thiếu lý do!',
+                text: 'Vui lòng nhập lý do từ chối để chủ xe biết cần chỉnh sửa mục nào.',
+                icon: 'warning',
+                customClass: { popup: 'rounded-4' }
+            });
+            return;
+        }
+
+        $.ajax({
+            url: '/Admin/Cars/Reject',
+            type: 'POST',
+            data: { id: carId, reason: reason },
+            success: function (res) {
+                if (res.success) {
+                    bootstrap.Modal.getInstance(document.getElementById('rejectModal')).hide();
+                    Swal.fire({
+                        title: 'Đã từ chối hồ sơ',
+                        text: res.message,
+                        icon: 'info',
+                        timer: 2000,
+                        showConfirmButton: false,
+                        customClass: { popup: 'rounded-4' }
+                    });
+                    $('#car-card-' + carId).fadeOut(400, function() { $(this).remove(); });
+                    $('#car-row-' + carId).fadeOut(400, function() { $(this).remove(); });
+                } else {
+                    Swal.fire('Thất bại', res.message, 'error');
+                }
+            },
+            error: function () {
+                Swal.fire('Lỗi kết nối', 'Không thể kết nối đến máy chủ.', 'error');
+            }
+        });
+    }
+</script>
+}

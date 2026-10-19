@@ -1,0 +1,222 @@
+@{
+    ViewData["Title"] = "Tài chính & đối soát";
+    decimal totalGmv = ViewBag.TotalGmv ?? 0m;
+    decimal totalDeposit = ViewBag.TotalDeposit ?? 0m;
+    decimal totalCommission = ViewBag.TotalCommission ?? 0m;
+    decimal totalOwnerPayout = ViewBag.TotalOwnerPayout ?? 0m;
+}
+
+<div class="container-fluid px-0">
+    <!-- Header -->
+    <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4">
+        <div>
+            <h1 class="h3 fw-bold mb-1 text-dark tracking-tight">Tài chính & Đối soát hoa hồng</h1>
+            <p class="text-muted small mb-0">Theo dõi dòng tiền cọc giữ hộ, doanh thu hoa hồng sàn ReCar (10%) và lệnh quyết toán trả cho Chủ xe đối tác.</p>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-white text-secondary border px-3 py-2 rounded-pill small shadow-sm">
+                <i class="bi bi-calendar-check me-1 text-success"></i> Kỳ đối soát: <strong>Tháng 10/2026</strong>
+            </span>
+        </div>
+    </div>
+
+    <!-- 4 KPI Cards -->
+    <div class="row g-3 mb-4">
+        <!-- Card 1: Tổng GMV -->
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="recar-stat-card">
+                <div class="d-flex align-items-center justify-content-between text-muted small mb-2">
+                    <span class="fw-medium">Tổng giá trị giao dịch (GMV)</span>
+                    <div class="rounded-3 p-2 bg-light text-primary">
+                        <i class="bi bi-wallet2 fs-5"></i>
+                    </div>
+                </div>
+                <div class="fs-4 fw-bold text-dark mb-1">
+                    @totalGmv.ToString("N0") đ
+                </div>
+                <div class="text-muted small" style="font-size: 0.78rem;">Tổng doanh thu toàn bộ chuyến thuê</div>
+            </div>
+        </div>
+
+        <!-- Card 2: Tiền cọc sàn giữ -->
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="recar-stat-card">
+                <div class="d-flex align-items-center justify-content-between text-muted small mb-2">
+                    <span class="fw-medium">Tiền cọc giữ qua sàn (30%)</span>
+                    <div class="rounded-3 p-2 bg-light text-info">
+                        <i class="bi bi-piggy-bank fs-5"></i>
+                    </div>
+                </div>
+                <div class="fs-4 fw-bold text-dark mb-1">
+                    @totalDeposit.ToString("N0") đ
+                </div>
+                <div class="text-muted small" style="font-size: 0.78rem;">Đã thanh toán an toàn qua VNPay</div>
+            </div>
+        </div>
+
+        <!-- Card 3: Doanh thu sàn thực nhận -->
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="recar-stat-card">
+                <div class="d-flex align-items-center justify-content-between text-muted small mb-2">
+                    <span class="fw-medium">Hoa hồng sàn thực thu (10%)</span>
+                    <div class="rounded-3 p-2 bg-light text-success">
+                        <i class="bi bi-cash-stack fs-5"></i>
+                    </div>
+                </div>
+                <div class="fs-4 fw-bold text-success mb-1">
+                    @totalCommission.ToString("N0") đ
+                </div>
+                <div class="text-muted small" style="font-size: 0.78rem;">Phí dịch vụ nền tảng giữ lại</div>
+            </div>
+        </div>
+
+        <!-- Card 4: Tiền quyết toán chủ xe -->
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="recar-stat-card">
+                <div class="d-flex align-items-center justify-content-between text-muted small mb-2">
+                    <span class="fw-medium">Cần thanh toán cho Chủ xe (90%)</span>
+                    <div class="rounded-3 p-2 bg-light text-warning">
+                        <i class="bi bi-arrow-left-right fs-5"></i>
+                    </div>
+                </div>
+                <div class="fs-4 fw-bold text-primary mb-1">
+                    @totalOwnerPayout.ToString("N0") đ
+                </div>
+                <div class="text-muted small" style="font-size: 0.78rem;">Quyết toán định kỳ theo tuần/tháng</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settlement Table Panel -->
+    <div class="recar-panel mb-0">
+        <div class="recar-panel-header">
+            <div>
+                <h2 class="h6 fw-bold mb-0 text-dark">Bảng đối soát doanh thu chủ xe đối tác</h2>
+                <span class="text-muted small">Chi tiết số tiền sau khi trừ 10% phí sàn ReCar</span>
+            </div>
+            <span class="badge bg-light text-dark border small">Kỳ quyết toán hiện tại</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table recar-table align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Mã đối soát</th>
+                        <th>Chủ xe đối tác</th>
+                        <th>Tài khoản nhận tiền</th>
+                        <th class="text-center">Số chuyến</th>
+                        <th>Doanh thu gộp</th>
+                        <th>Phí sàn (10%)</th>
+                        <th>Thực nhận (90%)</th>
+                        <th>Trạng thái</th>
+                        <th class="text-end">Quyết toán</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @{
+                        var settlementsList = ViewBag.Settlements as List<CarRental.ViewModels.SettlementVM>;
+                    }
+                    @if (settlementsList != null)
+                    {
+                        foreach (var item in settlementsList)
+                        {
+                            <tr id="settlement-row-@item.OwnerId">
+                                <td>
+                                    <span class="font-mono-plate">@item.SettlementCode</span>
+                                </td>
+                                <td>
+                                    <div class="fw-bold small text-dark">@item.OwnerName</div>
+                                    <div class="text-muted" style="font-size: 0.72rem;"><i class="bi bi-telephone text-primary me-1"></i>@item.OwnerPhone</div>
+                                </td>
+                                <td>
+                                    <span class="small text-muted"><i class="bi bi-bank me-1 text-secondary"></i>@item.Bank</span>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge bg-light text-dark border rounded-pill">@item.Trips chuyến</span>
+                                </td>
+                                <td>
+                                    <span class="fw-semibold small text-dark">@(((decimal)item.TotalGmv).ToString("N0")) đ</span>
+                                </td>
+                                <td>
+                                    <span class="text-danger small">-@(((decimal)item.Fee).ToString("N0")) đ</span>
+                                </td>
+                                <td>
+                                    <span class="fw-bold text-success small">@(((decimal)item.NetPayout).ToString("N0")) đ</span>
+                                </td>
+                                <td>
+                                    @if (item.IsSettled)
+                                    {
+                                        <span class="status-badge badge-settled">Đã quyết toán</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="status-badge badge-processing" id="badge-@item.OwnerId">Chờ đối soát</span>
+                                    }
+                                </td>
+                                <td class="text-end">
+                                    @if (item.IsSettled)
+                                    {
+                                        <button class="btn btn-light btn-sm rounded-pill px-3 text-muted disabled" style="font-size: 0.75rem;">
+                                            <i class="bi bi-check2-all text-success me-1"></i> Đã chuyển
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <button class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-semibold" style="font-size: 0.75rem;" id="btn-settle-@item.OwnerId"
+                                                onclick="confirmPayout(@item.OwnerId, '@item.SettlementCode', '@item.OwnerName', '@(((decimal)item.NetPayout).ToString("N0")) đ')">
+                                            <i class="bi bi-send me-1"></i> Xác nhận chuyển
+                                        </button>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    function confirmPayout(ownerId, code, ownerName, amount) {
+        Swal.fire({
+            title: 'Xác nhận quyết toán?',
+            html: `Xác nhận lệnh chuyển tiền đối soát <strong>${code}</strong> cho chủ xe <strong>${ownerName}</strong>?<br><br>Số tiền thực nhận: <strong class="text-success fs-5">${amount}</strong><br><span class="text-muted small">Hệ thống sẽ lưu lại dấu vết kiểm toán giao dịch của lệnh chuyển tiền này.</span>`,
+            icon: 'info',
+            showCancelButton: true,
+            confirmButtonColor: '#0284c7',
+            cancelButtonColor: '#94a3b8',
+            confirmButtonText: 'Đã chuyển tiền',
+            cancelButtonText: 'Hủy bỏ',
+            customClass: { popup: 'rounded-4' }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: '/Admin/Finance/SettlePayout',
+                    type: 'POST',
+                    data: { ownerId: ownerId, code: code },
+                    success: function (res) {
+                        if (res.success) {
+                            Swal.fire({
+                                title: 'Thành công!',
+                                text: res.message,
+                                icon: 'success',
+                                timer: 2000,
+                                showConfirmButton: false,
+                                customClass: { popup: 'rounded-4' }
+                            });
+                            $('#badge-' + ownerId).removeClass('badge-processing').addClass('badge-settled').text('Đã quyết toán');
+                            $('#btn-settle-' + ownerId).replaceWith('<button class="btn btn-light btn-sm rounded-pill px-3 text-muted disabled" style="font-size: 0.75rem;"><i class="bi bi-check2-all text-success me-1"></i> Đã chuyển</button>');
+                        } else {
+                            Swal.fire('Lỗi', res.message, 'error');
+                        }
+                    },
+                    error: function () {
+                        Swal.fire('Lỗi', 'Không thể kết nối máy chủ.', 'error');
+                    }
+                });
+            }
+        });
+    }
+</script>
+}

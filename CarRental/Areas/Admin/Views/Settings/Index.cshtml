@@ -1,0 +1,138 @@
+@{
+    ViewData["Title"] = "Cấu hình hệ thống";
+}
+
+<div class="container-fluid px-0">
+    <!-- Header -->
+    <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4">
+        <div>
+            <h1 class="h3 fw-bold mb-1 text-dark tracking-tight">Cấu hình hệ thống</h1>
+            <p class="text-muted small mb-0">Thiết lập các thông số tài chính, tỷ lệ cọc, hoa hồng nền tảng và thông tin vận hành sàn ReCar.</p>
+        </div>
+        <div>
+            <button type="button" class="btn btn-primary btn-sm rounded-pill px-3 fw-semibold shadow-sm" onclick="saveSettings()" style="background-color: var(--recar-primary); border: none;">
+                <i class="bi bi-floppy me-1"></i> Lưu cấu hình
+            </button>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Cấu hình tài chính -->
+        <div class="col-12 col-xl-6">
+            <div class="recar-panel mb-4">
+                <div class="recar-panel-header">
+                    <h2 class="h6 fw-bold mb-0 text-dark">
+                        <i class="bi bi-wallet2 text-primary me-2"></i> Cấu hình tỷ lệ tài chính & Đặt cọc
+                    </h2>
+                </div>
+                <div class="p-4">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small text-dark">Tỷ lệ đặt cọc giữ xe (%) <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <input type="number" id="cfgDepositPct" class="form-control rounded-start-3" value="@ViewBag.DepositPct" min="10" max="50" />
+                            <span class="input-group-text rounded-end-3 bg-light">% GMV</span>
+                        </div>
+                        <div class="text-muted" style="font-size: 0.72rem; margin-top: 4px;">Khách hàng thanh toán qua cổng VNPay để giữ xe (Mặc định 30%).</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small text-dark">Tỷ lệ hoa hồng nền tảng sàn thu (%) <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <input type="number" id="cfgCommissionPct" class="form-control rounded-start-3" value="@ViewBag.CommissionPct" min="5" max="30" />
+                            <span class="input-group-text rounded-end-3 bg-light">% GMV</span>
+                        </div>
+                        <div class="text-muted" style="font-size: 0.72rem; margin-top: 4px;">Sàn ReCar trích phí dịch vụ nền tảng trên mỗi chuyến thuê hoàn thành (Mặc định 10%).</div>
+                    </div>
+
+                    <div class="mb-0">
+                        <label class="form-label fw-bold small text-dark">Chính sách hủy chuyến & Hoàn cọc</label>
+                        <textarea class="form-control rounded-3" rows="3" readonly style="background-color: #f8fafc; font-size: 0.85rem;">- Hủy trước 24 giờ nhận xe: Hoàn 100% tiền cọc.
+- Hủy trong vòng 24 giờ trước chuyến đi: Phạt 50% tiền cọc chuyển cho chủ xe.
+- Khách không đến nhận xe (No-show): Không hoàn cọc.</textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cấu hình nền tảng & Hỗ trợ -->
+        <div class="col-12 col-xl-6">
+            <div class="recar-panel mb-4">
+                <div class="recar-panel-header">
+                    <h2 class="h6 fw-bold mb-0 text-dark">
+                        <i class="bi bi-headset text-success me-2"></i> Thông tin hỗ trợ & Vận hành sàn
+                    </h2>
+                </div>
+                <div class="p-4">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small text-dark">Tổng đài Hotline hỗ trợ 24/7</label>
+                        <div class="input-group">
+                            <span class="input-group-text rounded-start-3 bg-light"><i class="bi bi-telephone text-primary"></i></span>
+                            <input type="text" id="cfgHotline" class="form-control rounded-end-3" value="@ViewBag.Hotline" />
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small text-dark">Email hỗ trợ khách hàng & chủ xe</label>
+                        <div class="input-group">
+                            <span class="input-group-text rounded-start-3 bg-light"><i class="bi bi-envelope text-primary"></i></span>
+                            <input type="email" id="cfgSupportEmail" class="form-control rounded-end-3" value="@ViewBag.SupportEmail" />
+                        </div>
+                    </div>
+
+                    <div class="mb-0">
+                        <label class="form-label fw-bold small text-dark">Địa chỉ trụ sở chính ReCar</label>
+                        <div class="input-group">
+                            <span class="input-group-text rounded-start-3 bg-light"><i class="bi bi-geo-alt text-danger"></i></span>
+                            <input type="text" class="form-control rounded-end-3" value="@ViewBag.Address" readonly />
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    function saveSettings() {
+        const deposit = $('#cfgDepositPct').val();
+        const commission = $('#cfgCommissionPct').val();
+        const hotline = $('#cfgHotline').val();
+        const email = $('#cfgSupportEmail').val();
+
+        Swal.fire({
+            title: 'Lưu thay đổi cấu hình?',
+            text: 'Cấu hình mới sẽ có hiệu lực ngay lập tức cho các giao dịch và đơn đặt xe mới trên sàn ReCar.',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#0284c7',
+            confirmButtonText: 'Đồng ý lưu',
+            cancelButtonText: 'Hủy bỏ',
+            customClass: { popup: 'rounded-4' }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: '/Admin/Settings/SaveSettings',
+                    type: 'POST',
+                    data: {
+                        depositPct: deposit,
+                        commissionPct: commission,
+                        hotline: hotline,
+                        supportEmail: email
+                    },
+                    success: function (res) {
+                        Swal.fire({
+                            title: 'Thành công!',
+                            text: res.message,
+                            icon: 'success',
+                            timer: 2000,
+                            showConfirmButton: false,
+                            customClass: { popup: 'rounded-4' }
+                        });
+                    }
+                });
+            }
+        });
+    }
+</script>
+}

@@ -100,7 +100,7 @@ namespace CarRental.Areas.CarOwner.Controllers
                 var currentOwner = GetCurrentCarOwner();
                 car.OwnerId = currentOwner?.AccountId ?? Function.GetAccountId(HttpContext.Session); // Gán chủ xe hiện tại
                 car.Alias = Function.TitleSlugGenerationAlias(car.CarName ?? "");
-                car.CarStatus = "Sẵn sàng"; // Mặc định sẵn sàng hoặc chờ duyệt
+                car.CarStatus = "Chờ duyệt"; // Xe mới cần Admin phê duyệt trước khi công khai
 
                 _context.Cars.Add(car);
                 _context.SaveChanges();
@@ -121,7 +121,7 @@ namespace CarRental.Areas.CarOwner.Controllers
                     _context.SaveChanges();
                 }
 
-                Function.SetMessage(HttpContext.Session, "Thêm xe thành công");
+                Function.SetMessage(HttpContext.Session, "Thêm xe thành công! Hồ sơ xe đang ở trạng thái 'Chờ duyệt' để Ban quản trị ReCar kiểm tra trước khi công khai lên sàn.");
                 return RedirectToAction("Index");
             }
 

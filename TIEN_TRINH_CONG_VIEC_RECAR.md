@@ -107,6 +107,34 @@ Chuyển đổi toàn diện từ giao diện màu tím cũ sang thiết kế **
 
 ---
 
+### 2.6. Nâng cấp Toàn diện Phân hệ Quản trị Toàn sàn (`Areas/Admin`) Chuẩn SaaS B2B Pixel-Perfect
+Hoàn thành chuyển đổi 100% từ giao diện Mazer cũ sang hệ thống quản trị hiện đại theo đúng bản thiết kế Lovable ([giao dien admin](file:///d:/CarRental_TTCN/giao%20dien%20admin)):
+1. **Khung Layout chuẩn mực ([Areas/Admin/Views/Shared/_Layout.cshtml](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Views/Shared/_Layout.cshtml)):**
+   - **Sidebar Deep Navy (`#0f172a`):** Logo ReCar trắng, nhãn `ADMIN PORTAL`, phân quyền `Quản trị viên`.
+   - **8 Mục Menu điều hướng chính:** *Tổng quan*, *Phê duyệt xe* (tự động gắn badge đếm số lượng xe chờ duyệt lấy trực tiếp từ CSDL), *Quản lý đội xe*, *Đơn thuê xe*, *Tài chính & đối soát*, *Người dùng & đối tác*, *Bài viết & tin tức*, *Cấu hình hệ thống*.
+   - **Topbar thông minh:** Breadcrumb tự động, thanh tìm kiếm toàn sàn, chuông thông báo (nhảy popup xe chờ duyệt), Avatar Super Admin kèm dropdown hồ sơ và đăng xuất.
+2. **Bảng điều khiển Tổng quan ([Areas/Admin/Views/Home/Index.cshtml](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Views/Home/Index.cshtml)):**
+   - **4 Thẻ chỉ số KPI:** Tổng giá trị giao dịch (GMV +8.4%), Hoa hồng sàn thực thu (10%), Xe đang hoạt động (tỷ lệ lấp đầy %), Xe chờ phê duyệt (nút dẫn sang duyệt xe).
+   - **Biểu đồ Cột 6 tháng (Chart.js):** Chuyển đổi linh hoạt giữa xem Doanh thu (GMV vs Hoa hồng) và Lượt thuê xe thành công.
+   - **Biểu đồ Tròn cơ cấu đội xe:** Phân bổ trực quan số lượng *Sẵn sàng*, *Đang có khách*, *Bảo dưỡng*, *Chờ duyệt*.
+   - **Bảng dữ liệu tóm tắt:** 6 đơn thuê xe mới nhất (mã monospace `#RC-...`, ảnh xe, tiền cọc, status) và Top 5 chủ xe có doanh thu cao.
+3. **Module Phê duyệt xe mới ([Cars/Pending.cshtml](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Views/Cars/Pending.cshtml) & [CarsController.cs](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Controllers/CarsController.cs)):**
+   - Nghiệp vụ thực tế: Khi chủ xe thêm xe mới từ `/CarOwner/Cars/Create`, xe tự động mang trạng thái `Chờ duyệt` và **không xuất hiện ngoài trang chủ**.
+   - Admin kiểm tra hồ sơ, thông số xe, ảnh xe, giấy tờ đăng kiểm.
+   - Hỗ trợ chuyển đổi chế độ xem **Dạng thẻ (Grid)** và **Dạng bảng (Table)** kèm bộ lọc đa tiêu chí (Hãng xe, Thành phố, Chủ xe).
+   - Thao tác: **[Phê duyệt xe]** (cập nhật CSDL sang `Sẵn sàng` để xuất hiện trên sàn) hoặc **[Từ chối duyệt]** (nhập lý do từ chối gửi thông báo cho chủ xe).
+4. **Quản lý Đội xe toàn sàn ([Cars/Index.cshtml](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Views/Cars/Index.cshtml)):**
+   - Danh sách toàn bộ xe trên hệ thống, biển số font Monospace, link xem bài đăng công khai, thao tác chuyển nhanh trạng thái *Sẵn sàng / Bảo trì / Tạm ngừng*.
+5. **Quản lý Đơn thuê xe ([Orders/Index.cshtml](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Views/Orders/Index.cshtml) & [Edit.cshtml](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Views/Orders/Edit.cshtml)):**
+   - Bảng đơn thuê bóc tách minh bạch: Tổng tiền thuê, Tiền cọc 30% giữ qua sàn, Tiền còn lại 70%, StatusBadge chuẩn màu.
+6. **Quản lý Tài chính & Đối soát ([FinanceController.cs](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Controllers/FinanceController.cs) & [Finance/Index.cshtml](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Views/Finance/Index.cshtml)):**
+   - Bóc tách dòng tiền: Tổng GMV, Tiền cọc sàn giữ hộ (30%), Phí hoa hồng sàn thực thu (10%), Tiền thanh toán cho chủ xe (90%).
+   - Bảng lệnh đối soát từng đối tác chủ xe kèm nút **[Xác nhận đã chuyển khoản quyết toán]** có lưu dấu vết kiểm toán.
+7. **Người dùng, Bài viết & Cấu hình sàn:**
+   - Hoàn thiện trang [UserManagement](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Views/UserManagement/Index.cshtml), [Blogs](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Views/Blogs/Index.cshtml) và [Settings](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Views/Settings/Index.cshtml).
+
+---
+
 ## 3. DANH SÁCH TÀI KHOẢN MẪU PHỤC VỤ KIỂM THỬ HỆ THỐNG
 
 Tất cả tài khoản dưới đây đã được đồng bộ chuẩn hóa vào CSDL MySQL, mật khẩu mặc định đều là `123`:
@@ -129,30 +157,52 @@ Tất cả tài khoản dưới đây đã được đồng bộ chuẩn hóa v�
 
 Dưới đây là lộ trình các hạng mục trọng tâm nhằm hoàn thiện sản phẩm ở mức độ thương mại hóa cao:
 
-### Giai đoạn 1: Nâng cấp Phân hệ Quản trị Viên (`Areas/Admin`)
-1. **Áp dụng Design System theo mẫu `admin.tsx` của Lovable:**
-   - Chuyển đổi giao diện Admin sang phong cách đồng bộ với CarOwner (Sidebar tối màu, thẻ thống kê chỉ số toàn sàn, biểu đồ tăng trưởng doanh thu, biểu đồ tỷ lệ lấp đầy xe).
+### Giai đoạn 1: Nâng cấp Phân hệ Quản trị Viên (`Areas/Admin`) — [x] ĐÃ HOÀN THÀNH (19 - 20/10/2026)
+1. **Áp dụng Design System theo mẫu `admin.tsx` / `AdminLayout.tsx` của Lovable:**
+   - Hoàn thành Layout Deep Navy (`#0f172a`), 8 Menu quản trị, topbar tìm kiếm, chuông thông báo và avatar quản trị viên.
+   - Thống kê 4 KPI toàn sàn (GMV, hoa hồng 10%, xe hoạt động, xe chờ duyệt), biểu đồ BarChart 6 tháng (doanh thu/chuyến đi), biểu đồ Donut cơ cấu đội xe.
 2. **Chức năng Kiểm duyệt xe mới (Car Moderation):**
-   - Khi chủ xe thêm xe mới, xe sẽ ở trạng thái `Chờ duyệt`. Admin có màn hình so sánh thông tin đăng kiểm, ảnh xe, giấy tờ xe trước khi bấm `Phê duyệt` để xe hiển thị công khai trên sàn ReCar.
+   - Xe do chủ xe đăng ký mới tự động mang trạng thái `Chờ duyệt` và không xuất hiện công khai.
+   - Màn hình duyệt xe với bộ lọc đa tiêu chí, chuyển đổi dạng thẻ/bảng, luồng Duyệt và Từ chối kèm lý do gửi cho chủ xe.
 3. **Quản lý Dòng tiền & Hoa hồng sàn (Commission & Payouts):**
-   - Cấu hình tỷ lệ hoa hồng sàn (ví dụ sàn giữ 10-15% phí giao dịch, chủ xe nhận 85-90%).
-   - Bảng đối soát và lệnh chuyển tiền quyết toán cho từng chủ xe định kỳ theo tuần hoặc tháng.
+   - Tính toán hoa hồng sàn 10%, tiền cọc 30% giữ hộ và tiền quyết toán cho chủ xe 90%.
+   - Bảng lệnh đối soát từng chủ xe kèm nút [Xác nhận đã chuyển khoản quyết toán] có lưu vết kiểm toán.
+4. **Chuẩn hóa các phân hệ Đơn thuê xe, Người dùng, Bài viết và Cấu hình hệ thống.**
 
-### Giai đoạn 2: Nâng cấp Công nghệ Giao tiếp Thời gian thực (Real-time Communication)
-1. **Tích hợp ASP.NET Core SignalR:**
-   - Nâng cấp hệ thống Chat từ AJAX Polling hiện tại lên WebSockets thời gian thực (Real-time Two-Way Chat). Tin nhắn giữa khách và chủ xe hiển thị tức thì không có độ trễ.
-   - Thêm thông báo âm thanh (Sound Notification) và hiệu ứng "đang gõ tin nhắn" (`typing indicator`).
-2. **Hệ thống Thông báo Đẩy (Push Notifications):**
-   - Khi có khách đặt xe mới: Chủ xe nhận được chuông thông báo và popup đẩy ngay trên màn hình.
-   - Khi chủ xe duyệt đơn hoặc giao xe: Khách hàng nhận được thông báo trạng thái cập nhật tức thời.
+---
 
-### Giai đoạn 3: Tích hợp Cổng thanh toán & Ký kết Hợp đồng số
+### Giai đoạn 2: Nâng cấp Công nghệ Giao tiếp Thời gian thực (Real-time Communication với SignalR)
+1. **Tích hợp ASP.NET Core SignalR cho Hệ thống Chat:**
+   - Nâng cấp Chat giữa Khách hàng và Chủ xe từ AJAX Polling hiện tại lên WebSockets thời gian thực (Real-time Two-Way Chat). Tin nhắn hiển thị tức thì không có độ trễ.
+   - Bổ sung hiệu ứng âm thanh thông báo (Sound Ping) và chỉ báo "đối phương đang soạn tin..." (`typing indicator`).
+2. **Hệ thống Thông báo Đẩy Thời gian thực (Live Push Notifications):**
+   - Khi có khách đặt xe mới: Chủ xe và Admin nhận được chuông thông báo và popup đẩy ngay trên góc màn hình mà không cần F5.
+   - Khi chủ xe thêm xe mới: Badge số xe chờ duyệt trên thanh Sidebar Admin tự động nhảy số thời gian thực.
+   - Khi Admin duyệt xe hoặc Chủ xe giao xe: Khách hàng nhận được thông báo trạng thái cập nhật tức thời.
+
+---
+
+### Giai đoạn 3: Tích hợp Cổng thanh toán Mở rộng & Ký kết Hợp đồng số (E-Signature)
 1. **Kết nối Đa cổng thanh toán chính thức:**
-   - Tích hợp thêm MoMo QR, ZaloPay và thẻ tín dụng quốc tế (Visa/Mastercard qua Stripe hoặc PayOS).
-   - Tự động hoàn tiền cọc (Refund API) khi khách hủy chuyến hợp lệ theo quy chế của sàn.
+   - Tích hợp thêm MoMo QR, ZaloPay và thẻ tín dụng quốc tế (Visa/Mastercard qua cổng PayOS / Stripe).
+   - Tự động hoàn tiền cọc (Refund API) khi khách hủy chuyến hợp lệ theo đúng quy chế sàn.
 2. **Ký số Hợp đồng điện tử (E-Signature):**
    - Tích hợp khung vẽ chữ ký điện tử trực tiếp trên màn hình điện thoại hoặc máy tính trước khi bấm "Nhận xe".
    - Tự động xuất file PDF hợp đồng thuê xe có mã Hash xác thực và chữ ký 3 bên gửi về email của khách và chủ xe.
+
+---
+
+### Giai đoạn 4: Bản đồ Tương tác Tìm xe Xung quanh (Interactive Map View - Leaflet/Mapbox)
+- Bên cạnh giao diện danh sách xe, bổ sung nút chuyển đổi `Dạng danh sách` ⟷ `Bản đồ`.
+- Hiển thị vị trí các xe đang sẵn sàng bằng pin giá tiền trên bản đồ Hà Nội, TP.HCM, Đà Nẵng, Đà Lạt.
+- Khi rê chuột vào pin hiển thị popup ảnh xe, bấm vào xem chi tiết và đặt xe nhanh chóng.
+
+---
+
+### Giai đoạn 5: Tự động Quét & Xác thực Bằng lái xe bằng AI (AI OCR License Verification)
+- Khách hàng tải ảnh CCCD và Giấy phép lái xe (GPLX B1/B2) lên hệ thống.
+- Sử dụng mô hình OCR / AI Vision tự động trích xuất: Họ tên, Số bằng lái, Ngày hết hạn, Hạng xe.
+- Tự động đối chiếu thông tin và cấp huy hiệu `Đã xác thực danh tính ✓`, tăng độ uy tín và bảo vệ an toàn cho chủ xe.
 
 ---
 

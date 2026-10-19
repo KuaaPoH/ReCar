@@ -25,7 +25,7 @@ namespace CarRental.Controllers
         [HttpGet]
         public IActionResult FilterProducts(decimal? minPrice, decimal? maxPrice, string? brands, int? TypeId, int? seats, string? fuel, string? sort)
         {
-            var query = _context.Cars.Include(c => c.Type).Where(c => c.IsActive);
+            var query = _context.Cars.Include(c => c.Type).Where(c => c.IsActive && c.CarStatus != "Chờ duyệt" && c.CarStatus != "Từ chối");
 
             if (minPrice.HasValue && minPrice.Value > 0)
             {

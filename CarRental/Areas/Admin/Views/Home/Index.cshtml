@@ -1,234 +1,420 @@
 @using CarRental.Utilities;
 @{
-    ViewData["Title"] = "Bảng điều khiển Quản trị";
+    ViewData["Title"] = "Tổng quan";
+    decimal gmv = ViewBag.GMV ?? 0m;
+    decimal netCommission = ViewBag.NetCommission ?? 0m;
+    int activeCars = ViewBag.ActiveCarsCount ?? 0;
+    int occupancy = ViewBag.OccupancyRate ?? 0;
+    int pendingCars = ViewBag.PendingCarsCount ?? 0;
 }
 
-<style>
-    .admin-hero-card {
-        background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
-        color: white;
-        padding: 24px 28px;
-        border-radius: 16px;
-        margin-bottom: 24px;
-        box-shadow: 0 10px 25px rgba(37, 99, 235, 0.2);
-    }
-    .metric-card-box {
-        background: white;
-        border-radius: 14px;
-        padding: 20px;
-        border: 1px solid #e2e8f0;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.03);
-        transition: transform 0.2s ease;
-        height: 100%;
-    }
-    .metric-card-box:hover {
-        transform: translateY(-3px);
-    }
-    .metric-icon-wrap {
-        width: 48px;
-        height: 48px;
-        border-radius: 12px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 22px;
-    }
-</style>
+<div class="container-fluid px-0">
+    <!-- Page Header -->
+    <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4">
+        <div>
+            <h1 class="h3 fw-bold mb-1 text-dark tracking-tight">Tổng quan hệ thống</h1>
+            <p class="text-muted small mb-0">Bảng điều khiển giám sát hoạt động giao dịch toàn sàn ReCar tháng 10/2026.</p>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-white text-secondary border px-3 py-2 rounded-pill small shadow-sm">
+                <i class="bi bi-clock-history me-1 text-primary"></i> Dữ liệu thời gian thực
+            </span>
+            <a asp-area="Admin" asp-controller="Cars" asp-action="Pending" class="btn btn-primary btn-sm px-3 rounded-pill fw-semibold shadow-sm d-flex align-items-center gap-1.5" style="background-color: var(--recar-primary); border: none;">
+                <i class="bi bi-shield-check"></i> Duyệt xe mới
+                @if (pendingCars > 0)
+                {
+                    <span class="badge bg-white text-primary rounded-pill ms-1">@pendingCars</span>
+                }
+            </a>
+        </div>
+    </div>
 
-<div id="main">
-    <header class="mb-3">
-        <a href="#" class="burger-btn d-block d-xl-none">
-            <i class="bi bi-justify fs-3"></i>
-        </a>
-    </header>
-
-    <div class="page-heading">
-        <div class="admin-hero-card d-flex align-items-center justify-content-between flex-wrap gap-3">
-            <div>
-                <h3 class="fw-bold mb-1 text-white">Bảng điều khiển Quản trị Hệ thống ReCar</h3>
-                <p class="mb-0 opacity-75">Xin chào @Function._UserName! Chúc bạn một ngày làm việc hiệu quả.</p>
+    <!-- 4 KPI Cards -->
+    <div class="row g-3 mb-4">
+        <!-- KPI 1: Tổng GMV -->
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="recar-stat-card">
+                <div class="d-flex align-items-center justify-content-between text-muted small mb-2">
+                    <span class="fw-medium">Tổng giá trị giao dịch (GMV)</span>
+                    <div class="rounded-3 p-2 d-flex align-items-center justify-content-center" style="background-color: #f0f9ff; color: #0284c7;">
+                        <i class="bi bi-currency-dollar fs-5"></i>
+                    </div>
+                </div>
+                <div class="fs-4 fw-bold text-dark mb-1">
+                    @(gmv.ToString("N0")) đ
+                </div>
+                <div class="d-flex align-items-center gap-1 text-muted" style="font-size: 0.78rem;">
+                    <span class="text-success fw-bold d-flex align-items-center">
+                        <i class="bi bi-arrow-up-right me-0.5"></i> +@ViewBag.GmvDelta%
+                    </span>
+                    <span>so với tháng trước</span>
+                </div>
             </div>
-            <div>
-                <span class="badge bg-white text-primary px-3 py-2 rounded-pill fs-6 fw-bold">
-                    <i class="bi bi-shield-lock-fill me-1"></i> Quản trị viên cao cấp
-                </span>
+        </div>
+
+        <!-- KPI 2: Hoa hồng sàn -->
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="recar-stat-card">
+                <div class="d-flex align-items-center justify-content-between text-muted small mb-2">
+                    <span class="fw-medium">Doanh thu hoa hồng sàn</span>
+                    <div class="rounded-3 p-2 d-flex align-items-center justify-content-center" style="background-color: #f0fdf4; color: #16a34a;">
+                        <i class="bi bi-percent fs-5"></i>
+                    </div>
+                </div>
+                <div class="fs-4 fw-bold text-dark mb-1">
+                    @(netCommission.ToString("N0")) đ
+                </div>
+                <div class="text-muted" style="font-size: 0.78rem;">
+                    Tỷ lệ áp dụng: <strong>@ViewBag.CommissionPct% GMV</strong>
+                </div>
+            </div>
+        </div>
+
+        <!-- KPI 3: Xe đang hoạt động -->
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="recar-stat-card">
+                <div class="d-flex align-items-center justify-content-between text-muted small mb-2">
+                    <span class="fw-medium">Xe đang hoạt động</span>
+                    <div class="rounded-3 p-2 d-flex align-items-center justify-content-center" style="background-color: #faf5ff; color: #9333ea;">
+                        <i class="bi bi-car-front fs-5"></i>
+                    </div>
+                </div>
+                <div class="fs-4 fw-bold text-dark mb-1">
+                    @activeCars xe
+                </div>
+                <div class="d-flex align-items-center gap-1 text-muted" style="font-size: 0.78rem;">
+                    <span class="badge badge-ready px-2 py-0.5 rounded-pill" style="font-size: 0.72rem;">
+                        Tỷ lệ lấp đầy @occupancy%
+                    </span>
+                    <span>đang chạy trên đường</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- KPI 4: Xe chờ phê duyệt -->
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="recar-stat-card" style="border-left: 4px solid #f59e0b;">
+                <div class="d-flex align-items-center justify-content-between text-muted small mb-2">
+                    <span class="fw-medium">Xe chờ phê duyệt</span>
+                    <div class="rounded-3 p-2 d-flex align-items-center justify-content-center" style="background-color: #fffbeb; color: #d97706;">
+                        <i class="bi bi-shield-exclamation fs-5"></i>
+                    </div>
+                </div>
+                <div class="fs-4 fw-bold text-dark mb-1">
+                    @pendingCars hồ sơ
+                </div>
+                <div class="d-flex align-items-center justify-content-between mt-2">
+                    <span class="text-muted" style="font-size: 0.75rem;">Cần xác minh đăng kiểm</span>
+                    <a asp-area="Admin" asp-controller="Cars" asp-action="Pending" class="btn btn-outline-warning btn-sm py-0 px-2 fw-semibold rounded-pill" style="font-size: 0.72rem;">
+                        Duyệt ngay <i class="bi bi-arrow-right"></i>
+                    </a>
+                </div>
             </div>
         </div>
     </div>
 
-    <div class="page-content">
-        <!-- 4 Thẻ thống kê số liệu thật -->
-        <div class="row g-3 mb-4">
-            <div class="col-6 col-lg-3 col-md-6">
-                <div class="metric-card-box">
-                    <div class="d-flex align-items-center justify-content-between mb-2">
-                        <span class="text-muted small fw-semibold">Khách hàng</span>
-                        <div class="metric-icon-wrap bg-primary-subtle text-primary">
-                            <i class="bi bi-people-fill"></i>
-                        </div>
+    <!-- Charts Row -->
+    <div class="row g-4 mb-4">
+        <!-- 6 Months Bar Chart -->
+        <div class="col-12 col-xl-8">
+            <div class="recar-panel h-100 mb-0">
+                <div class="recar-panel-header">
+                    <div>
+                        <h2 class="h6 fw-bold mb-0 text-dark">Doanh thu & Lượt thuê thành công (6 tháng gần nhất)</h2>
+                        <span class="text-muted small">Xu hướng tăng trưởng từ Tháng 5 đến Tháng 10/2026</span>
                     </div>
-                    <div class="fs-3 fw-bold text-dark">@ViewBag.TotalCustomers</div>
-                    <div class="text-muted small mt-1">Tài khoản thành viên</div>
+                    <div class="btn-group btn-group-sm" role="group">
+                        <button type="button" class="btn btn-primary active" id="btnChartGmv" onclick="switchChartMode('gmv')">Doanh thu</button>
+                        <button type="button" class="btn btn-outline-primary" id="btnChartTrips" onclick="switchChartMode('trips')">Lượt chuyến</button>
+                    </div>
                 </div>
-            </div>
-
-            <div class="col-6 col-lg-3 col-md-6">
-                <div class="metric-card-box">
-                    <div class="d-flex align-items-center justify-content-between mb-2">
-                        <span class="text-muted small fw-semibold">Chủ xe đối tác</span>
-                        <div class="metric-icon-wrap bg-success-subtle text-success">
-                            <i class="bi bi-person-badge-fill"></i>
-                        </div>
-                    </div>
-                    <div class="fs-3 fw-bold text-success">@ViewBag.TotalCarOwners</div>
-                    <div class="text-muted small mt-1">Đối tác cho thuê xe</div>
-                </div>
-            </div>
-
-            <div class="col-6 col-lg-3 col-md-6">
-                <div class="metric-card-box">
-                    <div class="d-flex align-items-center justify-content-between mb-2">
-                        <span class="text-muted small fw-semibold">Tổng phương tiện</span>
-                        <div class="metric-icon-wrap bg-warning-subtle text-warning">
-                            <i class="bi bi-car-front-fill"></i>
-                        </div>
-                    </div>
-                    <div class="fs-3 fw-bold text-warning">@ViewBag.TotalCars</div>
-                    <div class="text-muted small mt-1">Xe đang niêm yết</div>
-                </div>
-            </div>
-
-            <div class="col-6 col-lg-3 col-md-6">
-                <div class="metric-card-box">
-                    <div class="d-flex align-items-center justify-content-between mb-2">
-                        <span class="text-muted small fw-semibold">Tổng doanh thu</span>
-                        <div class="metric-icon-wrap bg-info-subtle text-info">
-                            <i class="bi bi-cash-stack"></i>
-                        </div>
-                    </div>
-                    <div class="fs-4 fw-bold text-dark">@(((decimal)(ViewBag.TotalRevenue ?? 0m)).ToString("N0")) đ</div>
-                    <div class="text-muted small mt-1">Từ các đơn hoàn tất</div>
+                <div class="p-4" style="height: 320px; position: relative;">
+                    <canvas id="monthlyChart"></canvas>
                 </div>
             </div>
         </div>
 
-        <div class="row g-4">
-            <!-- Đơn hàng gần đây -->
-            <div class="col-12 col-xl-7">
-                <div class="card border-0 shadow-sm rounded-4">
-                    <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
-                        <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-receipt text-primary me-2"></i>Đơn đặt xe mới nhất</h5>
-                        <a href="/Admin/Orders" class="btn btn-sm btn-outline-primary rounded-pill px-3">Xem tất cả</a>
-                    </div>
-                    <div class="card-body p-0">
-                        <div class="table-responsive">
-                            <table class="table table-hover align-middle mb-0">
-                                <thead class="table-light small">
-                                    <tr>
-                                        <th>Mã đơn</th>
-                                        <th>Khách hàng</th>
-                                        <th>Ngày đặt</th>
-                                        <th>Tiền cọc</th>
-                                        <th>Trạng thái</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @if (ViewBag.RecentOrders != null && ((List<CarRental.Models.CarRentalOrder>)ViewBag.RecentOrders).Any())
-                                    {
-                                        @foreach (var order in (List<CarRental.Models.CarRentalOrder>)ViewBag.RecentOrders)
-                                        {
-                                            <tr>
-                                                <td class="fw-bold text-primary">#@order.OrderId</td>
-                                                <td>@(order.Customer?.Name ?? "Khách vãng lai")</td>
-                                                <td class="small text-muted">@(order.OrderDate?.ToString("dd/MM/yyyy") ?? "N/A")</td>
-                                                <td class="fw-semibold">@((order.Deposit ?? 0).ToString("N0")) đ</td>
-                                                <td>
-                                                    @{
-                                                        var badgeClass = "bg-warning-subtle text-warning";
-                                                        if (order.StatusId == 2) badgeClass = "bg-danger-subtle text-danger";
-                                                        else if (order.StatusId == 3) badgeClass = "bg-success-subtle text-success";
-                                                        else if (order.StatusId == 4) badgeClass = "bg-primary-subtle text-primary";
-                                                    }
-                                                    <span class="badge @badgeClass rounded-pill">
-                                                        @(order.Status?.StatusDescription ?? "Đang chờ")
-                                                    </span>
-                                                </td>
-                                            </tr>
-                                        }
-                                    }
-                                    else
-                                    {
-                                        <tr>
-                                            <td colspan="5" class="text-center py-4 text-muted">Chưa có đơn hàng nào</td>
-                                        </tr>
-                                    }
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
+        <!-- Fleet Distribution Donut Chart -->
+        <div class="col-12 col-xl-4">
+            <div class="recar-panel h-100 mb-0">
+                <div class="recar-panel-header">
+                    <h2 class="h6 fw-bold mb-0 text-dark">Cơ cấu trạng thái đội xe</h2>
+                    <span class="badge bg-light text-muted border small">Toàn sàn</span>
                 </div>
-            </div>
-
-            <!-- Xe niêm yết gần đây -->
-            <div class="col-12 col-xl-5">
-                <div class="card border-0 shadow-sm rounded-4">
-                    <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
-                        <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-car-front text-primary me-2"></i>Xe mới đăng gần đây</h5>
-                        <a href="/Admin/Product" class="btn btn-sm btn-outline-primary rounded-pill px-3">Quản lý xe</a>
+                <div class="p-4 d-flex flex-column align-items-center justify-content-center" style="height: 320px;">
+                    <div style="width: 200px; height: 200px; position: relative;">
+                        <canvas id="fleetChart"></canvas>
                     </div>
-                    <div class="card-body p-0">
-                        <div class="table-responsive">
-                            <table class="table table-hover align-middle mb-0">
-                                <thead class="table-light small">
-                                    <tr>
-                                        <th>Tên xe</th>
-                                        <th>Dòng xe</th>
-                                        <th>Giá / ngày</th>
-                                        <th>Trạng thái</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @if (ViewBag.RecentCars != null && ((List<CarRental.Models.Car>)ViewBag.RecentCars).Any())
-                                    {
-                                        @foreach (var car in (List<CarRental.Models.Car>)ViewBag.RecentCars)
-                                        {
-                                            <tr>
-                                                <td class="fw-bold text-dark">@car.CarName</td>
-                                                <td class="small text-muted">@(car.Type?.CarTypeName ?? "N/A")</td>
-                                                <td class="text-primary fw-semibold small">@((car.Price ?? 0).ToString("N0")) đ</td>
-                                                <td>
-                                                    @if (car.IsActive)
-                                                    {
-                                                        <span class="badge bg-success-subtle text-success rounded-pill">Hoạt động</span>
-                                                    }
-                                                    else
-                                                    {
-                                                        <span class="badge bg-secondary-subtle text-secondary rounded-pill">Tạm dừng</span>
-                                                    }
-                                                </td>
-                                            </tr>
-                                        }
-                                    }
-                                    else
-                                    {
-                                        <tr>
-                                            <td colspan="4" class="text-center py-4 text-muted">Chưa có xe nào</td>
-                                        </tr>
-                                    }
-                                </tbody>
-                            </table>
-                        </div>
+                    <div class="d-flex flex-wrap justify-content-center gap-3 mt-3 small text-muted">
+                        <span class="d-flex align-items-center gap-1"><span style="width:10px; height:10px; border-radius:50%; background-color:#10b981;"></span> Sẵn sàng (@ViewBag.ReadyCarsCount)</span>
+                        <span class="d-flex align-items-center gap-1"><span style="width:10px; height:10px; border-radius:50%; background-color:#0284c7;"></span> Có khách (@ViewBag.RentedCarsCount)</span>
+                        <span class="d-flex align-items-center gap-1"><span style="width:10px; height:10px; border-radius:50%; background-color:#f59e0b;"></span> Bảo dưỡng (@ViewBag.MaintenanceCarsCount)</span>
+                        <span class="d-flex align-items-center gap-1"><span style="width:10px; height:10px; border-radius:50%; background-color:#94a3b8;"></span> Chờ duyệt (@ViewBag.PendingAndSuspendedCount)</span>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <footer class="mt-5">
-        <div class="footer clearfix mb-0 text-muted small">
-            <div class="float-start">
-                <p>2026 &copy; ReCar - Nền tảng Cho thuê xe trực tuyến Việt Nam (Đồ án tốt nghiệp)</p>
+    <!-- Tables Row: Latest Orders & Top Owners -->
+    <div class="row g-4">
+        <!-- Latest Orders Table -->
+        <div class="col-12 col-xl-7">
+            <div class="recar-panel mb-0">
+                <div class="recar-panel-header">
+                    <h2 class="h6 fw-bold mb-0 text-dark">Đơn thuê xe mới nhất</h2>
+                    <a asp-area="Admin" asp-controller="Orders" asp-action="Index" class="btn btn-light btn-sm text-primary fw-semibold rounded-pill px-3" style="font-size: 0.78rem;">
+                        Xem tất cả đơn <i class="bi bi-arrow-right"></i>
+                    </a>
+                </div>
+                <div class="table-responsive">
+                    <table class="table recar-table align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>Mã đơn</th>
+                                <th>Xe thuê</th>
+                                <th>Khách hàng</th>
+                                <th>Tiền cọc</th>
+                                <th>Trạng thái</th>
+                                <th class="text-end">Chi tiết</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (ViewBag.RecentOrders != null)
+                            {
+                                foreach (var order in ViewBag.RecentOrders)
+                                {
+                                    var detail = order.OrderDetails != null && order.OrderDetails.Count > 0 ? order.OrderDetails[0] : null;
+                                    var car = detail?.Car;
+                                    var statusName = order.Status?.StatusDescription ?? "Chờ xử lý";
+                                    var badgeClass = "badge-neutral";
+                                    if (order.StatusId == 1) { badgeClass = "badge-pending"; }
+                                    else if (order.StatusId == 2) { badgeClass = "badge-rented"; }
+                                    else if (order.StatusId == 3) { badgeClass = "badge-ready"; }
+                                    else if (order.StatusId == 4) { badgeClass = "badge-danger"; }
+
+                                    <tr>
+                                        <td>
+                                            <span class="font-mono-plate">#RC-@order.OrderId</span>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center gap-2">
+                                                <img src="@(car?.Image ?? "/images/cars/car-sedan.jpg")" alt="Car" class="rounded object-fit-cover" style="width: 38px; height: 28px;" />
+                                                <div>
+                                                    <div class="fw-semibold small text-dark">@(car?.CarName ?? "Thuê xe tự lái")</div>
+                                                    <div class="text-muted" style="font-size: 0.72rem;">@(car?.LicensePlate ?? "Đang cập nhật")</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="fw-medium small">@(order.Customer?.Name ?? "Khách hàng")</div>
+                                            <div class="text-muted" style="font-size: 0.72rem;">@(order.Customer?.PhoneNumber ?? "09xx.xxx.xxx")</div>
+                                        </td>
+                                        <td>
+                                            <span class="fw-bold text-dark small">@((order.Deposit ?? 0).ToString("N0")) đ</span>
+                                        </td>
+                                        <td>
+                                            <span class="status-badge @badgeClass">@statusName</span>
+                                        </td>
+                                        <td class="text-end">
+                                            <a asp-area="Admin" asp-controller="Orders" asp-action="Edit" asp-route-id="@order.OrderId" class="btn btn-light btn-sm rounded-circle p-1" title="Xem chi tiết đơn">
+                                                <i class="bi bi-chevron-right text-muted"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
-    </footer>
+
+        <!-- Top Owners Table -->
+        <div class="col-12 col-xl-5">
+            <div class="recar-panel mb-0">
+                <div class="recar-panel-header">
+                    <h2 class="h6 fw-bold mb-0 text-dark">Top Chủ xe doanh thu cao</h2>
+                    <span class="badge bg-light text-muted border small">Tháng này</span>
+                </div>
+                <div class="table-responsive">
+                    <table class="table recar-table align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>Chủ xe</th>
+                                <th class="text-center">Số xe</th>
+                                <th class="text-center">Chuyến</th>
+                                <th class="text-end">Doanh thu</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @{
+                                var topOwnersList = ViewBag.TopOwners as List<CarRental.ViewModels.TopOwnerVM>;
+                            }
+                            @if (topOwnersList != null)
+                            {
+                                foreach (var o in topOwnersList)
+                                {
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center gap-2">
+                                                <div class="rounded-circle bg-light d-flex align-items-center justify-content-center fw-bold text-primary border" style="width: 32px; height: 32px; font-size: 0.75rem;">
+                                                    @(o.FullName.Length >= 2 ? o.FullName.Substring(0, 2).ToUpper() : "CX")
+                                                </div>
+                                                <div>
+                                                    <div class="fw-semibold small text-dark">@o.FullName</div>
+                                                    <div class="text-warning small" style="font-size: 0.72rem;">
+                                                        <i class="bi bi-star-fill"></i> @o.Rating ★
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="badge bg-light text-dark border rounded-pill">@o.CarCount xe</span>
+                                        </td>
+                                        <td class="text-center small text-muted">
+                                            @o.Trips
+                                        </td>
+                                        <td class="text-end">
+                                            <span class="fw-bold text-success small">@(((decimal)o.Revenue).ToString("N0")) đ</span>
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
+
+@section Scripts {
+<script>
+    // 6-Month Chart Initialization
+    const ctxMonthly = document.getElementById('monthlyChart').getContext('2d');
+    const months = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.ChartMonths));
+    const gmvData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.ChartGMV));
+    const commissionData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.ChartCommission));
+    const tripsData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.ChartTrips));
+
+    let monthlyChart = new Chart(ctxMonthly, {
+        type: 'bar',
+        data: {
+            labels: months,
+            datasets: [
+                {
+                    label: 'Tổng GMV (VND)',
+                    data: gmvData,
+                    backgroundColor: '#0284c7',
+                    borderRadius: 6,
+                    borderSkipped: false
+                },
+                {
+                    label: 'Hoa hồng sàn (VND)',
+                    data: commissionData,
+                    backgroundColor: '#38bdf8',
+                    borderRadius: 6,
+                    borderSkipped: false
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'top',
+                    labels: { boxWidth: 12, font: { family: 'Plus Jakarta Sans', size: 12 } }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return context.dataset.label + ': ' + Number(context.raw).toLocaleString('vi-VN') + ' đ';
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return (value / 1000000) + ' tr';
+                        },
+                        font: { family: 'Plus Jakarta Sans', size: 11 }
+                    },
+                    grid: { color: '#f1f5f9' }
+                },
+                x: {
+                    grid: { display: false },
+                    ticks: { font: { family: 'Plus Jakarta Sans', size: 11 } }
+                }
+            }
+        }
+    });
+
+    function switchChartMode(mode) {
+        if (mode === 'gmv') {
+            document.getElementById('btnChartGmv').className = 'btn btn-primary active';
+            document.getElementById('btnChartTrips').className = 'btn btn-outline-primary';
+            monthlyChart.data.datasets = [
+                {
+                    label: 'Tổng GMV (VND)',
+                    data: gmvData,
+                    backgroundColor: '#0284c7',
+                    borderRadius: 6
+                },
+                {
+                    label: 'Hoa hồng sàn (VND)',
+                    data: commissionData,
+                    backgroundColor: '#38bdf8',
+                    borderRadius: 6
+                }
+            ];
+            monthlyChart.options.scales.y.ticks.callback = function(value) {
+                return (value / 1000000) + ' tr';
+            };
+            monthlyChart.update();
+        } else {
+            document.getElementById('btnChartGmv').className = 'btn btn-outline-primary';
+            document.getElementById('btnChartTrips').className = 'btn btn-primary active';
+            monthlyChart.data.datasets = [
+                {
+                    label: 'Lượt thuê xe thành công (Chuyến)',
+                    data: tripsData,
+                    backgroundColor: '#10b981',
+                    borderRadius: 6
+                }
+            ];
+            monthlyChart.options.scales.y.ticks.callback = function(value) {
+                return value + ' chuyến';
+            };
+            monthlyChart.update();
+        }
+    }
+
+    // Fleet Donut Chart
+    const ctxFleet = document.getElementById('fleetChart').getContext('2d');
+    new Chart(ctxFleet, {
+        type: 'doughnut',
+        data: {
+            labels: ['Sẵn sàng', 'Đang có khách', 'Bảo dưỡng', 'Chờ duyệt'],
+            datasets: [{
+                data: [@ViewBag.ReadyCarsCount, @ViewBag.RentedCarsCount, @ViewBag.MaintenanceCarsCount, @ViewBag.PendingAndSuspendedCount],
+                backgroundColor: ['#10b981', '#0284c7', '#f59e0b', '#94a3b8'],
+                borderWidth: 2,
+                borderColor: '#ffffff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false }
+            },
+            cutout: '72%'
+        }
+    });
+</script>
+}

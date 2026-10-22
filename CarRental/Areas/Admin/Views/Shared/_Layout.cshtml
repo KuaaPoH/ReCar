@@ -1,8 +1,22 @@
 @using CarRental.Utilities;
 @inject CarRental.Models.DbRenalCarContext _db;
 @{
-    var currentController = ViewContext.RouteData.Values["controller"]?.ToString();
-    var currentAction = ViewContext.RouteData.Values["action"]?.ToString();
+    var ctrl = (ViewContext.RouteData.Values["controller"]?.ToString() ?? "").ToLower();
+    var act = (ViewContext.RouteData.Values["action"]?.ToString() ?? "").ToLower();
+
+    bool isHome = ctrl == "home";
+    bool isPendingCars = ctrl == "cars" && act == "pending";
+    bool isCars = ctrl == "cars" && act != "pending";
+    bool isCarTypes = ctrl == "cartypes";
+    bool isOrders = ctrl == "orders";
+    bool isFinance = ctrl == "finance";
+    bool isBlogs = ctrl == "blogs";
+    bool isMenus = ctrl == "menus";
+    bool isReviews = ctrl == "reviews";
+    bool isLocations = ctrl == "locations";
+    bool isUsers = ctrl == "usermanagement" || ctrl == "customer";
+    bool isSettings = ctrl == "settings";
+
     var adminName = Function.GetUserName(Context.Session);
     if (string.IsNullOrEmpty(adminName))
     {
@@ -26,6 +40,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>@(ViewData["Title"] ?? "Quản trị viên") | ReCar - Admin Portal</title>
     
+    <!-- Khôi phục trạng thái thu gọn ngay lập tức trước khi render, tránh giật lag hoặc bị reset khi chuyển trang -->
+    <script>
+        (function() {
+            try {
+                if (localStorage.getItem('recar_admin_sidebar_collapsed') === 'true' && window.innerWidth >= 992) {
+                    document.documentElement.classList.add('sidebar-collapsed');
+                }
+            } catch(e) {}
+        })();
+    </script>
+
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -55,69 +80,189 @@
             --recar-font-mono: 'JetBrains Mono', monospace;
         }
 
+        html {
+            scrollbar-gutter: stable;
+        }
+
         body {
             font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
             background-color: var(--recar-bg);
             color: var(--recar-text-main);
             margin: 0;
             padding: 0;
+            min-height: 100vh;
         }
 
-        /* Sidebar Styling */
+        /* Sidebar Styling: Khóa cố định tuyệt đối chiều cao 100vh và chiều rộng 260px (72px khi thu gọn), loại bỏ hoàn toàn hiện tượng dài ngắn */
         .recar-admin-sidebar {
             background-color: var(--recar-navy);
             color: #f8fafc;
-            width: 260px;
-            min-height: 100vh;
-            position: sticky;
-            top: 0;
+            width: 260px !important;
+            min-width: 260px !important;
+            max-width: 260px !important;
+            height: 100vh !important;
+            max-height: 100vh !important;
+            position: sticky !important;
+            top: 0 !important;
+            flex-shrink: 0 !important;
+            align-self: flex-start !important;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            padding: 1.5rem 1rem;
+            padding: 0.85rem 0.75rem;
             z-index: 1030;
-            transition: all 0.3s ease;
+            overflow-x: hidden;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+        }
+
+        .recar-admin-sidebar::-webkit-scrollbar {
+            width: 5px;
+        }
+        .recar-admin-sidebar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .recar-admin-sidebar::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 4px;
+        }
+        .recar-admin-sidebar::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        /* Chỉ animate khi người dùng chủ động bấm nút toggle, không bao giờ animate lúc tải hoặc chuyển trang */
+        .sidebar-animating .recar-admin-sidebar {
+            transition: width 0.22s cubic-bezier(0.4, 0, 0.2, 1), min-width 0.22s cubic-bezier(0.4, 0, 0.2, 1), max-width 0.22s cubic-bezier(0.4, 0, 0.2, 1), padding 0.22s ease !important;
+        }
+
+        /* Collapsed Sidebar mode: Cố định 72px */
+        html.sidebar-collapsed .recar-admin-sidebar,
+        body.sidebar-collapsed .recar-admin-sidebar {
+            width: 72px !important;
+            min-width: 72px !important;
+            max-width: 72px !important;
+            padding: 0.85rem 0.5rem;
+        }
+
+        html.sidebar-collapsed .recar-admin-sidebar .recar-brand div:last-child,
+        body.sidebar-collapsed .recar-admin-sidebar .recar-brand div:last-child,
+        html.sidebar-collapsed .recar-admin-sidebar .admin-user-pill,
+        body.sidebar-collapsed .recar-admin-sidebar .admin-user-pill,
+        html.sidebar-collapsed .recar-admin-sidebar .sidebar-category-header,
+        body.sidebar-collapsed .recar-admin-sidebar .sidebar-category-header,
+        html.sidebar-collapsed .recar-admin-sidebar .nav-label,
+        body.sidebar-collapsed .recar-admin-sidebar .nav-label,
+        html.sidebar-collapsed .recar-admin-sidebar .sidebar-footer-text,
+        body.sidebar-collapsed .recar-admin-sidebar .sidebar-footer-text {
+            display: none !important;
+        }
+
+        html.sidebar-collapsed .recar-brand,
+        body.sidebar-collapsed .recar-brand {
+            justify-content: center;
+            padding: 0 0 0.75rem 0;
+            margin-bottom: 0.5rem;
+        }
+
+        html.sidebar-collapsed .recar-nav-pills .nav-link,
+        body.sidebar-collapsed .recar-nav-pills .nav-link {
+            justify-content: center;
+            padding: 0.55rem 0;
+            border-radius: 8px;
+        }
+
+        html.sidebar-collapsed .recar-nav-pills .nav-link i,
+        body.sidebar-collapsed .recar-nav-pills .nav-link i {
+            font-size: 1.15rem;
+            margin: 0 !important;
+        }
+
+        html.sidebar-collapsed .recar-nav-pills .nav-link .badge,
+        body.sidebar-collapsed .recar-nav-pills .nav-link .badge {
+            position: absolute;
+            top: 2px;
+            right: 4px;
+            font-size: 0.65rem;
+            padding: 2px 4px;
+        }
+
+        .sidebar-category-header {
+            font-size: 0.68rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #64748b;
+            font-weight: 700;
+            padding: 0.45rem 0.65rem 0.15rem 0.65rem;
+            margin-top: 0.2rem;
         }
 
         .recar-brand {
             display: flex;
             align-items: center;
             gap: 12px;
-            padding: 0 0.5rem 1.25rem 0.5rem;
+            padding: 0 0.4rem 0.75rem 0.4rem;
             border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-            margin-bottom: 1.25rem;
+            margin-bottom: 0.65rem;
         }
 
         .recar-brand-icon {
-            width: 38px;
-            height: 38px;
+            width: 34px;
+            height: 34px;
             background: var(--recar-primary);
-            border-radius: 10px;
+            border-radius: 8px;
             display: flex;
             align-items: center;
             justify-content: center;
             color: white;
-            font-size: 1.25rem;
+            font-size: 1.15rem;
             box-shadow: 0 4px 12px rgba(2, 132, 199, 0.35);
+            flex-shrink: 0;
         }
 
         .recar-nav-pills .nav-link {
             color: #94a3b8;
             border-radius: 8px;
-            padding: 0.65rem 0.9rem;
+            padding: 0.46rem 0.75rem;
             font-weight: 500;
-            font-size: 0.88rem;
+            font-size: 0.84rem;
             display: flex;
             align-items: center;
-            justify-content: space-between;
-            margin-bottom: 4px;
-            transition: all 0.2s ease;
+            margin-bottom: 2px;
+            transition: color 0.15s ease, background-color 0.15s ease;
             position: relative;
+            text-decoration: none;
+        }
+
+        /* Định khoảng cách giữa Icon và Tiêu đề menu: Cách nhau 12px rộng rãi, không bao giờ dính liền */
+        .recar-nav-pills .nav-link i {
+            width: 20px;
+            min-width: 20px;
+            height: 20px;
+            font-size: 1.05rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            margin-right: 12px !important;
+            color: #94a3b8;
+            transition: color 0.15s ease;
+        }
+
+        .recar-nav-pills .nav-link .nav-label {
+            flex-grow: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .recar-nav-pills .nav-link:hover {
             color: #ffffff;
             background-color: rgba(255, 255, 255, 0.06);
+        }
+
+        .recar-nav-pills .nav-link:hover i {
+            color: #ffffff;
         }
 
         .recar-nav-pills .nav-link.active {
@@ -132,13 +277,13 @@
             left: 0;
             top: 6px;
             bottom: 6px;
-            width: 3px;
+            width: 3.5px;
             background-color: var(--recar-primary-glow);
             border-radius: 0 3px 3px 0;
         }
 
         .recar-nav-pills .nav-link.active i {
-            color: var(--recar-primary-glow);
+            color: var(--recar-primary-glow) !important;
         }
 
         /* Topbar Header */
@@ -320,7 +465,7 @@
                     </div>
                 </div>
 
-                <div class="px-2 mb-3">
+                <div class="px-2 mb-3 admin-user-pill">
                     <span class="d-inline-flex align-items-center gap-1 px-2.5 py-1 rounded-pill small" style="background-color: var(--recar-navy-hover); color: #94a3b8; font-size: 0.75rem;">
                         <i class="bi bi-person-badge text-info"></i> Quyền: <strong>Quản trị viên</strong>
                     </span>
@@ -328,72 +473,96 @@
 
                 <!-- Navigation Links -->
                 <nav class="nav recar-nav-pills flex-column">
-                    <!-- 1. Tổng quan -->
-                    <a class="nav-link @(currentController == "Home" ? "active" : "")" 
-                       asp-area="Admin" asp-controller="Home" asp-action="Index">
-                        <span class="d-flex align-items-center gap-2.5">
-                            <i class="bi bi-grid-fill"></i> Tổng quan
-                        </span>
+                    <!-- TỔNG QUAN -->
+                    <div class="sidebar-category-header">Tổng quan</div>
+                    <a class="nav-link @(isHome ? "active" : "")" 
+                       asp-area="Admin" asp-controller="Home" asp-action="Index" title="Tổng quan">
+                        <i class="bi bi-grid-fill"></i>
+                        <span class="nav-label">Tổng quan</span>
                     </a>
 
-                    <!-- 2. Phê duyệt xe (kèm Badge đếm xe chờ duyệt) -->
-                    <a class="nav-link @(currentController == "Cars" && currentAction == "Pending" ? "active" : "")" 
-                       asp-area="Admin" asp-controller="Cars" asp-action="Pending">
-                        <span class="d-flex align-items-center gap-2.5">
-                            <i class="bi bi-shield-check"></i> Phê duyệt xe
-                        </span>
-                        @if (pendingCarsCount > 0)
-                        {
-                            <span class="badge bg-warning text-dark fw-bold rounded-pill" style="font-size: 0.72rem;">@pendingCarsCount</span>
-                        }
+                    <!-- XE & ĐƠN HÀNG -->
+                    <div class="sidebar-category-header">Xe & Đơn hàng</div>
+                    <!-- Phê duyệt xe -->
+                    <a class="nav-link @(isPendingCars ? "active" : "")" 
+                       asp-area="Admin" asp-controller="Cars" asp-action="Pending" title="Phê duyệt xe">
+                        <i class="bi bi-shield-check"></i>
+                        <span class="nav-label">Phê duyệt xe</span>
+                        <span id="pendingCarsBadge" class="badge bg-warning text-dark fw-bold rounded-pill ms-auto" style="font-size: 0.72rem; @(pendingCarsCount > 0 ? "" : "display:none;")">@pendingCarsCount</span>
                     </a>
 
-                    <!-- 3. Quản lý đội xe -->
-                    <a class="nav-link @(currentController == "Cars" && currentAction == "Index" ? "active" : "")" 
-                       asp-area="Admin" asp-controller="Cars" asp-action="Index">
-                        <span class="d-flex align-items-center gap-2.5">
-                            <i class="bi bi-car-front-fill"></i> Quản lý đội xe
-                        </span>
+                    <!-- Quản lý đội xe -->
+                    <a class="nav-link @(isCars ? "active" : "")" 
+                       asp-area="Admin" asp-controller="Cars" asp-action="Index" title="Quản lý đội xe">
+                        <i class="bi bi-car-front-fill"></i>
+                        <span class="nav-label">Quản lý đội xe</span>
                     </a>
 
-                    <!-- 4. Đơn thuê xe -->
-                    <a class="nav-link @(currentController == "Orders" ? "active" : "")" 
-                       asp-area="Admin" asp-controller="Orders" asp-action="Index">
-                        <span class="d-flex align-items-center gap-2.5">
-                            <i class="bi bi-clipboard-check-fill"></i> Đơn thuê xe
-                        </span>
+                    <!-- Quản lý kiểu xe -->
+                    <a class="nav-link @(isCarTypes ? "active" : "")" 
+                       asp-area="Admin" asp-controller="CarTypes" asp-action="Index" title="Quản lý kiểu xe">
+                        <i class="bi bi-collection-fill"></i>
+                        <span class="nav-label">Quản lý kiểu xe</span>
                     </a>
 
-                    <!-- 5. Tài chính & đối soát -->
-                    <a class="nav-link @(currentController == "Finance" ? "active" : "")" 
-                       asp-area="Admin" asp-controller="Finance" asp-action="Index">
-                        <span class="d-flex align-items-center gap-2.5">
-                            <i class="bi bi-wallet2"></i> Tài chính & đối soát
-                        </span>
+                    <!-- Đơn thuê xe -->
+                    <a class="nav-link @(isOrders ? "active" : "")" 
+                       asp-area="Admin" asp-controller="Orders" asp-action="Index" title="Đơn thuê xe">
+                        <i class="bi bi-clipboard-check-fill"></i>
+                        <span class="nav-label">Đơn thuê xe</span>
                     </a>
 
-                    <!-- 6. Người dùng & đối tác -->
-                    <a class="nav-link @(currentController == "UserManagement" || currentController == "Customer" ? "active" : "")" 
-                       asp-area="Admin" asp-controller="UserManagement" asp-action="Index">
-                        <span class="d-flex align-items-center gap-2.5">
-                            <i class="bi bi-people-fill"></i> Người dùng & đối tác
-                        </span>
+                    <!-- Tài chính & đối soát -->
+                    <a class="nav-link @(isFinance ? "active" : "")" 
+                       asp-area="Admin" asp-controller="Finance" asp-action="Index" title="Tài chính & đối soát">
+                        <i class="bi bi-wallet2"></i>
+                        <span class="nav-label">Tài chính & đối soát</span>
                     </a>
 
-                    <!-- 7. Bài viết & tin tức -->
-                    <a class="nav-link @(currentController == "Blogs" ? "active" : "")" 
-                       asp-area="Admin" asp-controller="Blogs" asp-action="Index">
-                        <span class="d-flex align-items-center gap-2.5">
-                            <i class="bi bi-newspaper"></i> Bài viết & tin tức
-                        </span>
+                    <!-- NỘI DUNG & TƯƠNG TÁC -->
+                    <div class="sidebar-category-header">Nội dung & Tương tác</div>
+                    <!-- Bài viết & tin tức -->
+                    <a class="nav-link @(isBlogs ? "active" : "")" 
+                       asp-area="Admin" asp-controller="Blogs" asp-action="Index" title="Bài viết & tin tức">
+                        <i class="bi bi-newspaper"></i>
+                        <span class="nav-label">Bài viết & tin tức</span>
                     </a>
 
-                    <!-- 8. Cấu hình hệ thống -->
-                    <a class="nav-link @(currentController == "Settings" ? "active" : "")" 
-                       asp-area="Admin" asp-controller="Settings" asp-action="Index">
-                        <span class="d-flex align-items-center gap-2.5">
-                            <i class="bi bi-gear-fill"></i> Cấu hình hệ thống
-                        </span>
+                    <!-- Quản lý menu sàn -->
+                    <a class="nav-link @(isMenus ? "active" : "")" 
+                       asp-area="Admin" asp-controller="Menus" asp-action="Index" title="Quản lý Menu">
+                        <i class="bi bi-menu-button-wide-fill"></i>
+                        <span class="nav-label">Quản lý Menu</span>
+                    </a>
+
+                    <!-- Đánh giá & bình luận -->
+                    <a class="nav-link @(isReviews ? "active" : "")" 
+                       asp-area="Admin" asp-controller="Reviews" asp-action="Index" title="Đánh giá & Bình luận">
+                        <i class="bi bi-star-half"></i>
+                        <span class="nav-label">Đánh giá & Bình luận</span>
+                    </a>
+
+                    <!-- HỆ THỐNG -->
+                    <div class="sidebar-category-header">Hệ thống</div>
+                    <!-- Địa điểm nhận xe -->
+                    <a class="nav-link @(isLocations ? "active" : "")" 
+                       asp-area="Admin" asp-controller="Locations" asp-action="Index" title="Địa điểm nhận xe">
+                        <i class="bi bi-geo-alt-fill"></i>
+                        <span class="nav-label">Địa điểm nhận xe</span>
+                    </a>
+
+                    <!-- Người dùng & đối tác -->
+                    <a class="nav-link @(isUsers ? "active" : "")" 
+                       asp-area="Admin" asp-controller="UserManagement" asp-action="Index" title="Người dùng & đối tác">
+                        <i class="bi bi-people-fill"></i>
+                        <span class="nav-label">Người dùng & đối tác</span>
+                    </a>
+
+                    <!-- Cấu hình hệ thống -->
+                    <a class="nav-link @(isSettings ? "active" : "")" 
+                       asp-area="Admin" asp-controller="Settings" asp-action="Index" title="Cấu hình hệ thống">
+                        <i class="bi bi-gear-fill"></i>
+                        <span class="nav-label">Cấu hình hệ thống</span>
                     </a>
                 </nav>
             </div>
@@ -402,11 +571,11 @@
             <div class="pt-3 border-top" style="border-color: rgba(255, 255, 255, 0.08) !important;">
                 <a href="/" target="_blank" class="nav-link recar-nav-pills text-white-50 d-flex align-items-center gap-2 py-2 px-2 rounded mb-1 text-decoration-none">
                     <i class="bi bi-arrow-left-circle text-info"></i>
-                    <span class="small">Quay về sàn ReCar</span>
+                    <span class="small sidebar-footer-text">Quay về sàn ReCar</span>
                 </a>
                 <a asp-area="Admin" asp-controller="Home" asp-action="Logout" class="nav-link recar-nav-pills text-danger d-flex align-items-center gap-2 py-2 px-2 rounded text-decoration-none">
                     <i class="bi bi-box-arrow-left"></i>
-                    <span class="small fw-semibold">Đăng xuất</span>
+                    <span class="small fw-semibold sidebar-footer-text">Đăng xuất</span>
                 </a>
             </div>
         </aside>
@@ -416,8 +585,9 @@
             <!-- Topbar Header -->
             <header class="recar-topbar">
                 <div class="d-flex align-items-center gap-3">
-                    <button class="btn btn-sm btn-light d-lg-none" type="button" onclick="toggleSidebar()">
-                        <i class="bi bi-list fs-5"></i>
+                    <!-- Nút thu vào / bật ra Sidebar (dùng chung cho cả Desktop và Mobile) -->
+                    <button class="btn btn-sm btn-light border-0 shadow-none rounded-circle d-flex align-items-center justify-content-center" id="btnToggleSidebar" type="button" style="width: 38px; height: 38px; background: #f1f5f9; color: #334155;" title="Thu gọn / Mở rộng menu">
+                        <i class="bi bi-text-indent-left fs-5" id="sidebarToggleIcon"></i>
                     </button>
                     <!-- Breadcrumbs -->
                     <nav aria-label="breadcrumb">
@@ -437,14 +607,11 @@
 
                     <!-- Notification Bell Dropdown -->
                     <div class="dropdown">
-                        <button class="btn btn-light position-relative rounded-circle p-2" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <button class="btn btn-light position-relative rounded-circle p-2" type="button" data-bs-toggle="dropdown" aria-expanded="false" id="btnAdminBell">
                             <i class="bi bi-bell text-secondary"></i>
-                            @if (pendingCarsCount > 0)
-                            {
-                                <span class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle">
-                                    <span class="visually-hidden">Thông báo mới</span>
-                                </span>
-                            }
+                            <span id="adminNotificationDot" class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle" style="@(pendingCarsCount > 0 ? "" : "display:none;")">
+                                <span class="visually-hidden">Thông báo mới</span>
+                            </span>
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end shadow-sm p-2" style="width: 300px; border-radius: 12px;">
                             <li><h6 class="dropdown-header fw-bold text-dark">Thông báo hệ thống</h6></li>
@@ -520,11 +687,105 @@
     <!-- Scripts -->
     <script src="~/admin/assets/vendors/jquery/jquery.min.js"></script>
     <script src="~/admin/assets/js/bootstrap.bundle.min.js"></script>
+    <script src="~/assets/js/vendor/signalr.min.js"></script>
     <script>
+        window.RECAR_CURRENT_USER = {
+            accountId: @(Function.GetAccountId(Context.Session)),
+            role: 'Admin',
+            userName: '@(Function.GetUserName(Context.Session) ?? "Super Admin")'
+        };
+
         function toggleSidebar() {
-            document.getElementById('adminSidebar').classList.toggle('show');
+            if (window.innerWidth < 992) {
+                var sb = document.getElementById('adminSidebar');
+                if (sb) sb.classList.toggle('show');
+            } else {
+                // Bật class animating tạm thời trong 250ms để hiệu ứng co giãn mượt mà chỉ khi bấm nút
+                document.body.classList.add('sidebar-animating');
+
+                var isCurrentlyCollapsed = document.documentElement.classList.contains('sidebar-collapsed') || document.body.classList.contains('sidebar-collapsed');
+                var willCollapse = !isCurrentlyCollapsed;
+                
+                if (willCollapse) {
+                    document.documentElement.classList.add('sidebar-collapsed');
+                    document.body.classList.add('sidebar-collapsed');
+                    localStorage.setItem('recar_admin_sidebar_collapsed', 'true');
+                } else {
+                    document.documentElement.classList.remove('sidebar-collapsed');
+                    document.body.classList.remove('sidebar-collapsed');
+                    localStorage.setItem('recar_admin_sidebar_collapsed', 'false');
+                }
+                
+                var icon = document.getElementById('sidebarToggleIcon');
+                if (icon) {
+                    icon.className = willCollapse ? 'bi bi-text-indent-right fs-5' : 'bi bi-text-indent-left fs-5';
+                }
+
+                setTimeout(function() {
+                    document.body.classList.remove('sidebar-animating');
+                }, 250);
+            }
         }
+
+        // Khôi phục trạng thái thu gọn và icon từ localStorage
+        (function() {
+            var isSavedCollapsed = localStorage.getItem('recar_admin_sidebar_collapsed') === 'true';
+            if (isSavedCollapsed && window.innerWidth >= 992) {
+                document.documentElement.classList.add('sidebar-collapsed');
+                document.body.classList.add('sidebar-collapsed');
+                var icon = document.getElementById('sidebarToggleIcon');
+                if (icon) icon.className = 'bi bi-text-indent-right fs-5';
+            } else {
+                document.documentElement.classList.remove('sidebar-collapsed');
+                document.body.classList.remove('sidebar-collapsed');
+                var icon = document.getElementById('sidebarToggleIcon');
+                if (icon) icon.className = 'bi bi-text-indent-left fs-5';
+            }
+        })();
+
+        // Lưu & Khôi phục vị trí cuộn của Sidebar (giữ nguyên vị trí khi chọn các mục ở dưới, không bao giờ bị reset)
+        (function() {
+            var sb = document.getElementById('adminSidebar');
+            if (!sb) return;
+
+            // 1. Khôi phục vị trí cuộn đã lưu
+            var savedScroll = sessionStorage.getItem('recar_admin_sidebar_scroll');
+            if (savedScroll !== null) {
+                sb.scrollTop = parseInt(savedScroll, 10);
+            }
+
+            // 2. Đảm bảo mục đang active luôn xuất hiện rõ ràng trong khung nhìn (nếu đang bị khuất bên dưới)
+            var activeLink = sb.querySelector('.nav-link.active');
+            if (activeLink) {
+                var rect = activeLink.getBoundingClientRect();
+                var sbRect = sb.getBoundingClientRect();
+                if (rect.top < sbRect.top || rect.bottom > sbRect.bottom) {
+                    activeLink.scrollIntoView({ block: 'nearest', behavior: 'instant' });
+                }
+            }
+
+            // 3. Lắng nghe sự kiện cuộn để lưu vị trí
+            sb.addEventListener('scroll', function() {
+                sessionStorage.setItem('recar_admin_sidebar_scroll', sb.scrollTop);
+            }, { passive: true });
+
+            // 4. Lưu lại ngay lập tức khi click vào bất kỳ liên kết nào trong sidebar
+            sb.querySelectorAll('a').forEach(function(link) {
+                link.addEventListener('click', function() {
+                    sessionStorage.setItem('recar_admin_sidebar_scroll', sb.scrollTop);
+                });
+            });
+        })();
+
+        document.getElementById('btnToggleSidebar')?.addEventListener('click', toggleSidebar);
+
+        // Tắt chấm đỏ chuông khi Admin bấm xem
+        document.getElementById('btnAdminBell')?.addEventListener('click', function() {
+            var dot = document.getElementById('adminNotificationDot');
+            if (dot) dot.style.display = 'none';
+        });
     </script>
+    <script src="~/assets/js/recar-realtime.js"></script>
     @RenderSection("Scripts", required: false)
 </body>
 </html>

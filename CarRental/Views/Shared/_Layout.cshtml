@@ -42,7 +42,7 @@
             }
             <nav class="d-none d-md-flex align-items-center gap-1">
                 <a href="/" class="recar-nav-pill @(currentCtrl == "Home" && currentAct == "Index" ? "active" : "")">Trang chủ</a>
-                <a href="/Product" class="recar-nav-pill @(currentCtrl == "Product" ? "active" : "")">Thuê xe</a>
+                <a href="/Product" class="recar-nav-pill @(currentCtrl == "Product" && currentAct == "Index" ? "active" : "")">Thuê xe</a>
                 <a href="/Blog" class="recar-nav-pill @(currentCtrl == "Blog" ? "active" : "")">Cẩm nang</a>
                 <a href="/News" class="recar-nav-pill @(currentCtrl == "News" ? "active" : "")">Tin tức</a>
                 <a href="/Contact" class="recar-nav-pill @(currentCtrl == "Contact" ? "active" : "")">Liên hệ</a>
@@ -83,7 +83,7 @@
                     <div class="dropdown">
                         <button type="button" aria-label="Tin nhắn" class="btn btn-link position-relative p-2 text-decoration-none" id="btnHeaderChat" data-bs-toggle="dropdown" aria-expanded="false" style="color: var(--recar-navy);">
                             <i class="bi bi-chat-dots fs-5"></i>
-                            <span class="position-absolute bg-primary rounded-circle" style="top: 8px; right: 8px; width: 8px; height: 8px;"></span>
+                            <span id="chatNotificationDot" class="position-absolute bg-primary rounded-circle" style="top: 8px; right: 8px; width: 8px; height: 8px;"></span>
                         </button>
                         <div class="dropdown-menu dropdown-menu-end recar-chat-dropdown p-2" aria-labelledby="btnHeaderChat">
                             <div class="d-flex justify-content-between align-items-center px-2 py-2 border-bottom mb-1">
@@ -265,6 +265,10 @@
                 Chào bạn! Tôi là đối tác chủ xe trên ReCar. Bạn có thắc mắc gì về thủ tục nhận xe, thời gian hay cung đường di chuyển không?
             </div>
         </div>
+        <div id="chatTypingIndicator" style="display: none; padding: 5px 16px; font-size: 11px; color: #64748b; font-style: italic; background: #f8fafc; border-top: 1px dashed #e2e8f0;">
+            <span class="spinner-grow spinner-grow-sm text-primary me-1" style="width: 8px; height: 8px;" role="status"></span>
+            <span id="chatTypingText">Chủ xe đang soạn tin...</span>
+        </div>
         <div class="chat-footer">
             <input type="text" class="form-control form-control-sm rounded-pill border" id="chatInputText" placeholder="Nhập tin nhắn..." autocomplete="off">
             <button class="btn btn-primary btn-sm rounded-circle d-flex align-items-center justify-content-center" id="btnSendChat" style="width: 32px; height: 32px; flex-shrink: 0;">
@@ -277,6 +281,16 @@
     <script src="~/assets/js/vendor/jquery-3.6.0.min.js"></script>
     <script src="~/assets/js/vendor/bootstrap.bundle.min.js"></script>
     <script src="~/assets/js/plugins/swiper-bundle.min.js"></script>
+    <script src="~/assets/js/vendor/signalr.min.js"></script>
+    <script>
+        // Thiết lập thông tin người dùng hiện tại phục vụ kết nối SignalR
+        window.RECAR_CURRENT_USER = {
+            accountId: @(Function.GetAccountId(Context.Session) > 0 ? Function.GetAccountId(Context.Session).ToString() : "null"),
+            role: '@(Function.IsAdmin(Context.Session) ? "Admin" : (Function.GetCarOwnerAccountId(Context.Session) > 0 ? "CarOwner" : "Customer"))',
+            userName: '@(Function.GetUserName(Context.Session) ?? "Khách hàng")'
+        };
+    </script>
+    <script src="~/assets/js/recar-realtime.js"></script>
     
     <script>
         var currentChatCarId = null;
@@ -408,6 +422,64 @@
             });
         }
 
+        // --- XỬ LÝ SỰ KIỆN TỪ SIGNALR CHO CỬA SỔ CHAT ---
+        window.handleIncomingChatMessage = function(msg) {
+            // Kiểm tra xem tin nhắn có thuộc cuộc hội thoại đang mở không
+            var isCurrentConversation = false;
+            if (currentChatCarId && msg.carId == currentChatCarId) {
+                isCurrentConversation = true;
+            } else if (currentChatOwnerId && (msg.senderId == currentChatOwnerId || msg.receiverId == currentChatOwnerId)) {
+                isCurrentConversation = true;
+            }
+
+            if (isCurrentConversation && $('#recarChatWindow').hasClass('open')) {
+                // Ẩn typing indicator
+                $('#chatTypingIndicator').hide();
+
+                // Tạo bong bóng tin nhắn
+                var bubbleClass = msg.isFromOwner ? 'chat-bubble from-owner' : 'chat-bubble from-user';
+                var bubble = $('<div class="' + bubbleClass + '"></div>');
+                bubble.append($('<div class="fw-bold mb-1" style="font-size: 11px; opacity: 0.85;"></div>').text(msg.senderName + ' · ' + msg.sentAt));
+                bubble.append($('<div></div>').text(msg.messageText));
+                $('#chatMessages').append(bubble);
+                $('#chatMessages').scrollTop($('#chatMessages')[0].scrollHeight);
+                loadRecentChats();
+                return true; // Đã xử lý
+            }
+
+            loadRecentChats();
+            return false; // Chưa mở khung chat, để realtime.js hiện toast
+        };
+
+        window.handleIncomingTyping = function(data) {
+            var isCurrent = (currentChatCarId && data.carId == currentChatCarId);
+            if (isCurrent && $('#recarChatWindow').hasClass('open')) {
+                if (data.isTyping) {
+                    $('#chatTypingText').text((data.senderName || 'Đối tác') + ' đang soạn tin...');
+                    $('#chatTypingIndicator').stop(true, true).fadeIn(150);
+                    $('#chatMessages').scrollTop($('#chatMessages')[0].scrollHeight);
+                } else {
+                    $('#chatTypingIndicator').stop(true, true).fadeOut(150);
+                }
+            }
+        };
+
+        // Gửi trạng thái đang gõ phím khi người dùng nhập vào input
+        var typingTimer = null;
+        $('#chatInputText').on('input', function() {
+            if (!window.recarRealtimeHub || window.recarRealtimeHub.state !== 'Connected') return;
+
+            var myName = (window.RECAR_CURRENT_USER && window.RECAR_CURRENT_USER.userName) || 'Khách hàng';
+            window.recarRealtimeHub.invoke('SendTyping', currentChatCarId, currentChatOwnerId, myName, true).catch(function(){});
+
+            clearTimeout(typingTimer);
+            typingTimer = setTimeout(function() {
+                if (window.recarRealtimeHub && window.recarRealtimeHub.state === 'Connected') {
+                    window.recarRealtimeHub.invoke('SendTyping', currentChatCarId, currentChatOwnerId, myName, false).catch(function(){});
+                }
+            }, 2000);
+        });
+
         $(document).on('click', '.btn-open-owner-chat', function() {
             var owner = $(this).data('owner') || 'Đối tác Chủ xe ReCar';
             var car = $(this).data('car') || 'xe';
@@ -421,6 +493,11 @@
             if (e.which === 13) {
                 sendChatMessage();
             }
+        });
+
+        // Tắt chấm đỏ thông báo khi bấm mở dropdown chat
+        $('#btnHeaderChat').on('click', function() {
+            $('#chatNotificationDot').fadeOut();
         });
 
         $(document).ready(function() {

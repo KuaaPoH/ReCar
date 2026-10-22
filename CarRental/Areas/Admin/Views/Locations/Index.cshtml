@@ -1,0 +1,125 @@
+@model IEnumerable<CarRental.Models.Location>
+@{
+    ViewData["Title"] = "Quản lý địa điểm nhận xe";
+}
+
+<div class="container-fluid px-0">
+    <!-- Header -->
+    <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4">
+        <div>
+            <div class="d-flex align-items-center gap-2">
+                <h1 class="h3 fw-bold mb-0 text-dark tracking-tight">Quản lý địa điểm nhận xe</h1>
+                <span class="badge bg-light text-dark border rounded-pill fw-semibold px-2.5 py-1">@Model.Count() tỉnh thành</span>
+            </div>
+            <p class="text-muted small mb-0 mt-1">Danh mục các tỉnh, thành phố hiển thị ở thanh tìm kiếm xe và bộ lọc sàn ReCar.</p>
+        </div>
+        <div>
+            <a asp-action="Create" class="btn btn-primary btn-sm rounded-pill px-3.5 py-2 fw-semibold shadow-sm" style="background-color: var(--recar-primary); border: none;">
+                <i class="bi bi-geo-alt-fill me-1"></i> Thêm địa điểm mới
+            </a>
+        </div>
+    </div>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show rounded-3 small fw-medium mb-3" role="alert">
+            <i class="bi bi-check-circle-fill me-1"></i> @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <!-- Table -->
+    <div class="recar-panel mb-0">
+        <div class="table-responsive">
+            <table class="table recar-table align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th style="width: 70px;">Thứ tự</th>
+                        <th>Tên Tỉnh / Thành phố</th>
+                        <th>Khu vực miền</th>
+                        <th>Nổi bật</th>
+                        <th>Trạng thái</th>
+                        <th class="text-end">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!Model.Any())
+                    {
+                        <tr>
+                            <td colspan="6" class="text-center py-5 text-muted">
+                                <i class="bi bi-geo-alt fs-2 text-secondary d-block mb-2"></i>
+                                Chưa có địa điểm nào trong CSDL.
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        foreach (var item in Model)
+                        {
+                            <tr>
+                                <td class="fw-bold text-muted">@item.DisplayOrder</td>
+                                <td>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div style="width: 32px; height: 32px; border-radius: 8px; background: #e0f2fe; color: #0284c7; display: flex; align-items: center; justify-content: center; font-size: 14px;">
+                                            <i class="bi bi-geo-alt-fill"></i>
+                                        </div>
+                                        <div>
+                                            <div class="fw-bold text-dark">@item.CityName</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge bg-light text-dark border">
+                                        @(string.IsNullOrEmpty(item.Region) ? "Toàn quốc" : item.Region)
+                                    </span>
+                                </td>
+                                <td>
+                                    @if (item.IsPopular)
+                                    {
+                                        <span class="badge bg-warning-subtle text-warning border border-warning-subtle">
+                                            <i class="bi bi-star-fill me-1"></i> Phổ biến
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted small">Bình thường</span>
+                                    }
+                                </td>
+                                <td>
+                                    <form asp-action="ToggleStatus" asp-route-id="@item.LocationId" method="post" class="d-inline">
+                                        @Html.AntiForgeryToken()
+                                        @if (item.IsActive)
+                                        {
+                                            <button type="submit" class="status-badge badge-active border-0" title="Nhấp để tạm ẩn" style="cursor: pointer;">
+                                                Đang hiển thị
+                                            </button>
+                                        }
+                                        else
+                                        {
+                                            <button type="submit" class="status-badge badge-neutral border-0" title="Nhấp để hiển thị" style="cursor: pointer;">
+                                                Tạm ẩn
+                                            </button>
+                                        }
+                                    </form>
+                                </td>
+                                <td class="text-end">
+                                    <div class="d-inline-flex gap-1.5">
+                                        <a asp-action="Edit" asp-route-id="@item.LocationId" class="btn btn-sm btn-light border" title="Chỉnh sửa">
+                                            <i class="bi bi-pencil-square text-primary"></i> Sửa
+                                        </a>
+                                        <form asp-action="Delete" asp-route-id="@item.LocationId" method="post" class="d-inline" onsubmit="return confirm('Bạn có chắc chắn muốn xóa địa điểm \'@item.CityName\' khỏi CSDL không?');">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="btn btn-sm btn-light border text-danger" title="Xóa">
+                                                <i class="bi bi-trash"></i> Xóa
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

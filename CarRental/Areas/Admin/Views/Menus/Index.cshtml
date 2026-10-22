@@ -1,117 +1,109 @@
-﻿@model IEnumerable<CarRental.Models.Menu>
-
+@model IEnumerable<CarRental.Models.Menu>
 @{
-    ViewData["Title"] = "Index";
-    Layout = "~/Areas/Admin/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Quản lý Menu";
 }
 
-<div id="main">
-    <header class="mb-3">
-        <a href="#" class="burger-btn d-block d-xl-none">
-            <i class="bi bi-justify fs-3"></i>
-        </a>
-    </header>
-
-    <div class="page-heading">
-        <div class="page-title">
-            <div class="row">
-                <div class="col-12 col-md-6 order-md-1 order-last">
-                    <h3>Table</h3>
-                    <p class="text-subtitle text-muted">For user to check they list</p>
-                </div>
-                <div class="col-12 col-md-6 order-md-2 order-first">
-                    <nav aria-label="breadcrumb" class="breadcrumb-header float-start float-lg-end">
-                        <ol class="breadcrumb">
-                            <li class="breadcrumb-item"><a href="index.html">Dashboard</a></li>
-                            <li class="breadcrumb-item active" aria-current="page">Table</li>
-                        </ol>
-                    </nav>
-                </div>
+<div class="container-fluid px-0">
+    <!-- Header -->
+    <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4">
+        <div>
+            <div class="d-flex align-items-center gap-2">
+                <h1 class="h3 fw-bold mb-0 text-dark tracking-tight">Quản lý Menu sàn ReCar</h1>
+                <span class="badge bg-light text-dark border rounded-pill fw-semibold px-2.5 py-1">@Model.Count() mục</span>
             </div>
+            <p class="text-muted small mb-0 mt-1">Cấu hình hệ thống menu điều hướng trên thanh header, footer và các trang liên kết.</p>
         </div>
-
-        <!-- Hoverable rows start -->
-        <section class="section">
-            <div class="row" id="table-hover-row">
-                <div class="col-12">
-                    <div class="card">
-                        <div class="card-header">
-                            @* <h4 class="card-title">Hoverable rows</h4> *@
-                            <a asp-action="Create" class="btn btn-info">Thêm mới</a>
-                        </div>
-                        <div class="card-content">
-                            <div class="card-body">
-                                @*  <p>
-                                    Add <code class="highlighter-rouge">.table-hover</code> to enable a hover
-                                    state on table
-                                    rows
-                                    within a
-                                    <code class="highlighter-rouge">&lt;tbody&gt;</code>.
-                                </p> *@
-                            </div>
-                            <!-- table hover -->
-                            <div class="table-responsive">
-                                <table class="table table-hover mb-0">
-                                    <thead>
-                                        <tr>
-                                            <th>#</th>
-                                            <th>Tiêu đề</th>
-                                            <th>Alias</th>
-                                            <th>Mức</th>
-                                            <th>Vị trí</th>
-                                            <th>Hiện</th>
-                                            <th>Chức năng</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @{
-                                            int i = 0;
-                                        }
-                                        @foreach(var item in Model) {
-
-                                            <tr>
-                                                <td class="text-bold-500">@(i++)</td>
-                                                <td>@Html.DisplayFor(modeitem => item.Title)</td>
-                                                <td class="text-bold-500">@Html.DisplayFor(modeitem => item.Alias)</td>
-                                                <td>@Html.DisplayFor(modeitem => item.Levels)</td>
-                                                <td>@Html.DisplayFor(modeitem => item.Position)</td>
-                                                @* <td>@Html.DisplayFor(modeitem => item.IsActive)</td> *@
-                                                <td>
-                                                    <input type="checkbox" disabled="disabled" @(item.IsActive.HasValue && item.IsActive.Value ? "checked" : "") />
-
-                                                </td>
-
-                                                <td>
-                                                    <a asp-action="Edit" asp-route-id="@item.MenuId" class="btn btn-success">Sửa</a>
-                                                    <a asp-action="Delete" asp-route-id="@item.MenuId" class="btn btn-danger">Xoá</a>
-                                                </td>
-                                            </tr>
-                                        }
-                                        
-                                       
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
-        <!-- Hoverable rows end -->
-        <!-- Contextual classes start -->
-        
+        <div>
+            <a asp-action="Create" class="btn btn-primary btn-sm rounded-pill px-3.5 py-2 fw-semibold shadow-sm" style="background-color: var(--recar-primary); border: none;">
+                <i class="bi bi-plus-circle me-1"></i> Thêm menu mới
+            </a>
+        </div>
     </div>
 
-    <footer>
-        <div class="footer clearfix mb-0 text-muted">
-            <div class="float-start">
-                <p>2021 &copy; Mazer</p>
-            </div>
-            <div class="float-end">
-                <p>
-                    Crafted with <span class="text-danger"><i class="bi bi-heart"></i></span> by <a href="http://ahmadsaugi.com">A. Saugi</a>
-                </p>
-            </div>
+    <!-- Table Panel -->
+    <div class="recar-panel mb-0">
+        <div class="table-responsive">
+            <table class="table recar-table align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th style="width: 60px;">STT</th>
+                        <th>Tiêu đề Menu</th>
+                        <th>Alias (Đường dẫn)</th>
+                        <th>Cấp bậc</th>
+                        <th>Thứ tự</th>
+                        <th>Trạng thái</th>
+                        <th class="text-end">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!Model.Any())
+                    {
+                        <tr>
+                            <td colspan="7" class="text-center py-5 text-muted">
+                                <i class="bi bi-menu-button-wide fs-2 text-secondary d-block mb-2"></i>
+                                Chưa có menu nào trong hệ thống.
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        int index = 1;
+                        foreach (var item in Model.OrderBy(m => m.Position))
+                        {
+                            <tr>
+                                <td class="fw-bold text-muted">@(index++)</td>
+                                <td>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div style="width: 32px; height: 32px; border-radius: 8px; background: #e0f2fe; color: #0284c7; display: flex; align-items: center; justify-content: center; font-size: 14px;">
+                                            <i class="bi bi-link-45deg"></i>
+                                        </div>
+                                        <div>
+                                            <div class="fw-bold text-dark">@item.Title</div>
+                                            @if (!string.IsNullOrEmpty(item.Description))
+                                            {
+                                                <div class="text-muted small" style="font-size: 0.75rem;">@item.Description</div>
+                                            }
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <code class="bg-light px-2 py-1 rounded small border">@item.Alias</code>
+                                </td>
+                                <td>
+                                    <span class="badge bg-secondary-subtle text-secondary border">Cấp @item.Levels</span>
+                                </td>
+                                <td>
+                                    <span class="fw-semibold">@item.Position</span>
+                                </td>
+                                <td>
+                                    @if (item.IsActive.HasValue && item.IsActive.Value)
+                                    {
+                                        <span class="status-badge badge-active">
+                                            <i class="bi bi-check-circle-fill me-1"></i> Hiển thị
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="status-badge badge-neutral">
+                                            <i class="bi bi-eye-slash-fill me-1"></i> Tạm ẩn
+                                        </span>
+                                    }
+                                </td>
+                                <td class="text-end">
+                                    <div class="d-inline-flex gap-1">
+                                        <a asp-action="Edit" asp-route-id="@item.MenuId" class="btn btn-sm btn-light border" title="Chỉnh sửa">
+                                            <i class="bi bi-pencil-square text-primary"></i> Sửa
+                                        </a>
+                                        <a asp-action="Delete" asp-route-id="@item.MenuId" class="btn btn-sm btn-light border text-danger" title="Xóa menu" onclick="return confirm('Bạn có chắc chắn muốn xóa menu này không?');">
+                                            <i class="bi bi-trash"></i> Xóa
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
         </div>
-    </footer>
+    </div>
 </div>

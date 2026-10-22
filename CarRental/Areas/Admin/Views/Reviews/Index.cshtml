@@ -1,0 +1,231 @@
+@{
+    ViewData["Title"] = "Quản lý đánh giá & bình luận";
+    var activeTab = ViewBag.ActiveTab as string ?? "cars";
+    var carReviews = ViewBag.CarReviews as List<CarRental.Models.CarReview> ?? new List<CarRental.Models.CarReview>();
+    var blogComments = ViewBag.BlogComments as List<CarRental.Models.BlogComment> ?? new List<CarRental.Models.BlogComment>();
+}
+
+<div class="container-fluid px-0">
+    <!-- Header -->
+    <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4">
+        <div>
+            <div class="d-flex align-items-center gap-2">
+                <h1 class="h3 fw-bold mb-0 text-dark tracking-tight">Quản lý đánh giá & bình luận</h1>
+                <span class="badge bg-light text-dark border rounded-pill fw-semibold px-2.5 py-1">@(carReviews.Count + blogComments.Count) phản hồi</span>
+            </div>
+            <p class="text-muted small mb-0 mt-1">Duyệt, ẩn hoặc xóa các bình luận, đánh giá sao của khách hàng trên sàn ReCar.</p>
+        </div>
+    </div>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show rounded-3 small fw-medium mb-3" role="alert">
+            <i class="bi bi-check-circle-fill me-1"></i> @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <!-- Tabs chuyển đổi giữa Đánh giá xe và Bình luận tin tức -->
+    <ul class="nav nav-pills mb-3 gap-2" id="reviewTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link rounded-pill px-3 py-1.5 fw-semibold small @(activeTab == "cars" ? "active" : "bg-white border text-dark")" 
+                    id="cars-tab" data-bs-toggle="pill" data-bs-target="#cars-reviews" type="button" role="tab">
+                <i class="bi bi-star-fill text-warning me-1"></i> Đánh giá xe (@carReviews.Count)
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link rounded-pill px-3 py-1.5 fw-semibold small @(activeTab == "blogs" ? "active" : "bg-white border text-dark")" 
+                    id="blogs-tab" data-bs-toggle="pill" data-bs-target="#blogs-comments" type="button" role="tab">
+                <i class="bi bi-chat-left-text-fill text-primary me-1"></i> Bình luận bài viết (@blogComments.Count)
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content" id="reviewTabsContent">
+        <!-- 1. Đánh giá xe -->
+        <div class="tab-pane fade @(activeTab == "cars" ? "show active" : "")" id="cars-reviews" role="tabpanel">
+            <div class="recar-panel mb-0">
+                <div class="table-responsive">
+                    <table class="table recar-table align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>Khách hàng</th>
+                                <th>Xe được đánh giá</th>
+                                <th>Số sao</th>
+                                <th>Nội dung đánh giá</th>
+                                <th>Thời gian</th>
+                                <th>Trạng thái</th>
+                                <th class="text-end">Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (!carReviews.Any())
+                            {
+                                <tr>
+                                    <td colspan="7" class="text-center py-5 text-muted">
+                                        <i class="bi bi-chat-square-dots fs-2 text-secondary d-block mb-2"></i>
+                                        Chưa có đánh giá xe nào.
+                                    </td>
+                                </tr>
+                            }
+                            else
+                            {
+                                foreach (var r in carReviews)
+                                {
+                                    <tr>
+                                        <td>
+                                            <div class="fw-bold text-dark small">@r.Name</div>
+                                            <div class="text-muted" style="font-size: 0.75rem;">@r.Phone · @r.Email</div>
+                                        </td>
+                                        <td>
+                                            @if (r.Car != null)
+                                            {
+                                                <div class="fw-semibold text-primary small">@r.Car.CarName</div>
+                                                <div class="text-muted" style="font-size: 0.72rem;">Biển số: @r.Car.LicensePlate</div>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted small">Xe #@r.CarId</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center text-warning" style="font-size: 0.85rem;">
+                                                @for (int i = 1; i <= 5; i++)
+                                                {
+                                                    if (i <= (r.Star ?? 5))
+                                                    {
+                                                        <i class="bi bi-star-fill"></i>
+                                                    }
+                                                    else
+                                                    {
+                                                        <i class="bi bi-star text-muted"></i>
+                                                    }
+                                                }
+                                                <span class="ms-1.5 fw-bold text-dark small">(@(r.Star ?? 5)/5)</span>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="small text-dark" style="max-width: 320px;">@r.Detail</div>
+                                        </td>
+                                        <td>
+                                            <span class="text-muted small">@(r.CreatedDate.HasValue ? r.CreatedDate.Value.ToString("dd/MM/yyyy HH:mm") : "N/A")</span>
+                                        </td>
+                                        <td>
+                                            <form asp-action="ToggleCarReview" asp-route-id="@r.CarReviewId" method="post" class="d-inline">
+                                                @Html.AntiForgeryToken()
+                                                @if (r.IsActive.HasValue && r.IsActive.Value)
+                                                {
+                                                    <button type="submit" class="status-badge badge-active border-0" title="Nhấp để tạm ẩn" style="cursor: pointer;">
+                                                        Hiển thị
+                                                    </button>
+                                                }
+                                                else
+                                                {
+                                                    <button type="submit" class="status-badge badge-neutral border-0" title="Nhấp để duyệt hiển thị" style="cursor: pointer;">
+                                                        Tạm ẩn
+                                                    </button>
+                                                }
+                                            </form>
+                                        </td>
+                                        <td class="text-end">
+                                            <form asp-action="DeleteCarReview" asp-route-id="@r.CarReviewId" method="post" class="d-inline" onsubmit="return confirm('Bạn có chắc chắn muốn xóa đánh giá này?');">
+                                                @Html.AntiForgeryToken()
+                                                <button type="submit" class="btn btn-sm btn-light border text-danger" title="Xóa">
+                                                    <i class="bi bi-trash"></i> Xóa
+                                                </button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. Bình luận bài viết -->
+        <div class="tab-pane fade @(activeTab == "blogs" ? "show active" : "")" id="blogs-comments" role="tabpanel">
+            <div class="recar-panel mb-0">
+                <div class="table-responsive">
+                    <table class="table recar-table align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>Người bình luận</th>
+                                <th>Bài viết liên quan</th>
+                                <th>Nội dung bình luận</th>
+                                <th>Thời gian</th>
+                                <th>Trạng thái</th>
+                                <th class="text-end">Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (!blogComments.Any())
+                            {
+                                <tr>
+                                    <td colspan="6" class="text-center py-5 text-muted">
+                                        <i class="bi bi-chat-left-dots fs-2 text-secondary d-block mb-2"></i>
+                                        Chưa có bình luận bài viết nào.
+                                    </td>
+                                </tr>
+                            }
+                            else
+                            {
+                                foreach (var c in blogComments)
+                                {
+                                    <tr>
+                                        <td>
+                                            <div class="fw-bold text-dark small">@c.Name</div>
+                                            <div class="text-muted" style="font-size: 0.75rem;">@c.Phone · @c.Email</div>
+                                        </td>
+                                        <td>
+                                            @if (c.Blog != null)
+                                            {
+                                                <div class="fw-semibold text-primary small" style="max-width: 260px;">@c.Blog.Title</div>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted small">Bài viết #@c.BlogId</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            <div class="small text-dark" style="max-width: 320px;">@c.Detail</div>
+                                        </td>
+                                        <td>
+                                            <span class="text-muted small">@(c.CreatedDate.HasValue ? c.CreatedDate.Value.ToString("dd/MM/yyyy HH:mm") : "N/A")</span>
+                                        </td>
+                                        <td>
+                                            <form asp-action="ToggleBlogComment" asp-route-id="@c.CommentId" method="post" class="d-inline">
+                                                @Html.AntiForgeryToken()
+                                                @if (c.IsActive)
+                                                {
+                                                    <button type="submit" class="status-badge badge-active border-0" title="Nhấp để tạm ẩn" style="cursor: pointer;">
+                                                        Hiển thị
+                                                    </button>
+                                                }
+                                                else
+                                                {
+                                                    <button type="submit" class="status-badge badge-neutral border-0" title="Nhấp để duyệt hiển thị" style="cursor: pointer;">
+                                                        Tạm ẩn
+                                                    </button>
+                                                }
+                                            </form>
+                                        </td>
+                                        <td class="text-end">
+                                            <form asp-action="DeleteBlogComment" asp-route-id="@c.CommentId" method="post" class="d-inline" onsubmit="return confirm('Bạn có chắc chắn muốn xóa bình luận này?');">
+                                                @Html.AntiForgeryToken()
+                                                <button type="submit" class="btn btn-sm btn-light border text-danger" title="Xóa">
+                                                    <i class="bi bi-trash"></i> Xóa
+                                                </button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

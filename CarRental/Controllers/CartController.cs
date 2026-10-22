@@ -3,8 +3,10 @@ using CarRental.Models;
 using CarRental.Services;
 using CarRental.Utilities;
 using CarRental.ViewModels;
+using CarRental.Hubs;
 using Humanizer.Localisation;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.EntityFrameworkCore;
 
@@ -15,12 +17,14 @@ namespace CarRental.Controllers
         private readonly DbRenalCarContext _context;
         private readonly IVnpayServices _vnpayServices;
         private readonly IConfiguration _config;
+        private readonly IHubContext<ReCarHub> _hubContext;
 
-        public CartController(DbRenalCarContext context, IVnpayServices vnpayServices, IConfiguration config)
+        public CartController(DbRenalCarContext context, IVnpayServices vnpayServices, IConfiguration config, IHubContext<ReCarHub> hubContext)
         {
             _context = context;
             _vnpayServices = vnpayServices;
             _config = config;
+            _hubContext = hubContext;
         }
         string CART_KEY = "MYCART";
         public List<CartItemsVM> CART => HttpContext.Session.Get<List<CartItemsVM>>(CART_KEY) ?? new List<CartItemsVM> ();
@@ -318,6 +322,9 @@ namespace CarRental.Controllers
                                 order.Notes = (order.Notes ?? "") + " | [VNPay Test] Đã thanh toán đặt cọc 30% thành công";
                                 _context.SaveChanges();
 
+                                // Bắn thông báo thời gian thực tới Admin và Chủ xe
+                                _ = SendOrderNotificationAsync(order.OrderId);
+
                                 var ordersUrlMock = Url.Action("Index", "Accounts") + "?tab=orders";
                                 return Json(new 
                                 { 
@@ -341,6 +348,10 @@ namespace CarRental.Controllers
 
                             return Json(new { success = true, redirectUrl = paymentUrl, isVnpay = true });
                         }
+
+                        // Bắn thông báo thời gian thực tới Admin và Chủ xe
+                        _ = SendOrderNotificationAsync(order.OrderId);
+
                         // Trả về URL trang đơn hàng của khách
                         var ordersUrl = Url.Action("Index", "Accounts") + "?tab=orders";
                         return Json(new 
@@ -460,11 +471,64 @@ namespace CarRental.Controllers
                     order.StatusId = 3; // Trạng thái: Đã thanh toán / cọc thành công
                     order.Notes = (order.Notes ?? "") + $" | Đã thanh toán cọc qua VNPay (Mã GD: {response.TransactionId})";
                     _context.SaveChanges();
+
+                    // Bắn thông báo Realtime
+                    _ = SendOrderNotificationAsync(orderId);
                 }
             }
 
             TempData["Message"] = "Thanh toán đặt cọc qua VNPay thành công!";
             return RedirectToAction("Success", "Cart");
+        }
+
+        private async Task SendOrderNotificationAsync(int orderId)
+        {
+            try
+            {
+                var order = await _context.CarRentalOrders
+                    .Include(o => o.Customer)
+                    .Include(o => o.OrderDetails)
+                        .ThenInclude(od => od.Car)
+                    .FirstOrDefaultAsync(o => o.OrderId == orderId);
+
+                if (order == null) return;
+
+                var firstDetail = order.OrderDetails.FirstOrDefault();
+                string carName = firstDetail?.Car?.CarName ?? "Xe ô tô";
+                string customerName = order.Customer?.FullName ?? "Khách hàng";
+                decimal deposit = order.Deposit ?? 0;
+                string depositFormatted = deposit.ToString("N0") + "đ";
+
+                var notificationPayload = new
+                {
+                    orderId = order.OrderId,
+                    customerName = customerName,
+                    carName = carName,
+                    depositFormatted = depositFormatted,
+                    totalAmount = (order.Deposit ?? 0) + (order.Payment ?? 0),
+                    detailUrl = $"/CarOwner/Orders/Details/{order.OrderId}"
+                };
+
+                // 1. Gửi cho toàn bộ Admin
+                await _hubContext.Clients.Group("Role_Admin").SendAsync("ReceiveNewOrderNotification", notificationPayload);
+                await _hubContext.Clients.Group("Role_Quản trị viên").SendAsync("ReceiveNewOrderNotification", notificationPayload);
+
+                // 2. Gửi cho các Chủ xe của những chiếc xe trong đơn
+                var ownerIds = order.OrderDetails
+                    .Where(od => od.Car != null && od.Car.OwnerId.HasValue)
+                    .Select(od => od.Car.OwnerId.Value)
+                    .Distinct()
+                    .ToList();
+
+                foreach (var ownerId in ownerIds)
+                {
+                    await _hubContext.Clients.Group($"User_{ownerId}").SendAsync("ReceiveNewOrderNotification", notificationPayload);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"SignalR Order Notification Error: {ex.Message}");
+            }
         }
     }
     

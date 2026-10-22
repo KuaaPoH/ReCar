@@ -1,6 +1,8 @@
 using CarRental.Models;
 using CarRental.Utilities;
+using CarRental.Hubs;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Linq;
@@ -11,10 +13,12 @@ namespace CarRental.Areas.Admin.Controllers
     public class CarsController : Controller
     {
         private readonly DbRenalCarContext _context;
+        private readonly IHubContext<ReCarHub> _hubContext;
 
-        public CarsController(DbRenalCarContext context)
+        public CarsController(DbRenalCarContext context, IHubContext<ReCarHub> hubContext)
         {
             _context = context;
+            _hubContext = hubContext;
         }
 
         private bool CheckAdmin()
@@ -92,6 +96,26 @@ namespace CarRental.Areas.Admin.Controllers
             car.IsActive = true;
             _context.SaveChanges();
 
+            // Phát thông báo Realtime cho Chủ xe
+            if (car.OwnerId.HasValue && car.OwnerId.Value > 0)
+            {
+                try
+                {
+                    _ = _hubContext.Clients.Group($"User_{car.OwnerId.Value}").SendAsync("ReceiveCarModerationResult", new
+                    {
+                        carId = car.CarId,
+                        carName = car.CarName,
+                        licensePlate = car.LicensePlate,
+                        isApproved = true,
+                        reason = ""
+                    });
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"SignalR Approve Car Broadcast Error: {ex.Message}");
+                }
+            }
+
             return Json(new { success = true, message = $"Đã phê duyệt xe {car.CarName} ({car.LicensePlate}). Xe hiện đã hiển thị công khai trên sàn ReCar." });
         }
 
@@ -118,6 +142,26 @@ namespace CarRental.Areas.Admin.Controllers
             car.CarStatus = "Từ chối";
             car.Descriptions = $"Lý do từ chối: {reason.Trim()} (Cập nhật lúc {DateTime.Now:dd/MM/yyyy HH:mm})";
             _context.SaveChanges();
+
+            // Phát thông báo Realtime cho Chủ xe
+            if (car.OwnerId.HasValue && car.OwnerId.Value > 0)
+            {
+                try
+                {
+                    _ = _hubContext.Clients.Group($"User_{car.OwnerId.Value}").SendAsync("ReceiveCarModerationResult", new
+                    {
+                        carId = car.CarId,
+                        carName = car.CarName,
+                        licensePlate = car.LicensePlate,
+                        isApproved = false,
+                        reason = reason.Trim()
+                    });
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"SignalR Reject Car Broadcast Error: {ex.Message}");
+                }
+            }
 
             return Json(new { success = true, message = $"Đã từ chối duyệt xe {car.LicensePlate} và gửi thông báo yêu cầu chỉnh sửa đến chủ xe." });
         }

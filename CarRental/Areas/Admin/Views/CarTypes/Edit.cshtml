@@ -1,0 +1,56 @@
+@model CarRental.Models.CarType
+@{
+    ViewData["Title"] = "Chỉnh sửa kiểu xe";
+}
+
+<div class="container-fluid px-0" style="max-width: 800px;">
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <h1 class="h3 fw-bold mb-0 text-dark">Chỉnh sửa kiểu xe</h1>
+            <p class="text-muted small mb-0 mt-1">Cập nhật thông tin phân khúc xe #@Model.TypeId</p>
+        </div>
+        <a asp-action="Index" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+            <i class="bi bi-arrow-left me-1"></i> Quay lại
+        </a>
+    </div>
+
+    <div class="recar-panel p-4">
+        <form asp-action="Edit" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="TypeId" />
+            <div asp-validation-summary="ModelOnly" class="text-danger small mb-3"></div>
+
+            <div class="mb-3">
+                <label asp-for="CarTypeName" class="form-label fw-semibold small">Tên kiểu xe / phân khúc <span class="text-danger">*</span></label>
+                <input asp-for="CarTypeName" class="form-control" required />
+                <span asp-validation-for="CarTypeName" class="text-danger small"></span>
+            </div>
+
+            <div class="row g-3 mb-3">
+                <div class="col-md-6">
+                    <label asp-for="Seats" class="form-label fw-semibold small">Số chỗ ngồi tiêu chuẩn</label>
+                    <input asp-for="Seats" type="number" min="2" max="45" class="form-control" />
+                    <span asp-validation-for="Seats" class="text-danger small"></span>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="Manufacturer" class="form-label fw-semibold small">Hãng xe tiêu biểu</label>
+                    <input asp-for="Manufacturer" class="form-control" />
+                    <span asp-validation-for="Manufacturer" class="text-danger small"></span>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <label asp-for="Image" class="form-label fw-semibold small">Đường dẫn hình ảnh minh họa (URL)</label>
+                <input asp-for="Image" class="form-control" />
+                <span asp-validation-for="Image" class="text-danger small"></span>
+            </div>
+
+            <div class="d-flex justify-content-end gap-2">
+                <a asp-action="Index" class="btn btn-light border px-4">Hủy bỏ</a>
+                <button type="submit" class="btn btn-primary px-4 fw-semibold" style="background-color: var(--recar-primary); border: none;">
+                    <i class="bi bi-check2-circle me-1"></i> Cập nhật thay đổi
+                </button>
+            </div>
+        </form>
+    </div>
+</div>

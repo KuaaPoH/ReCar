@@ -24,7 +24,182 @@
         accent-color: var(--recar-primary);
         cursor: pointer;
     }
+
+    /* Styles cho Bản đồ Tương tác Leaflet */
+    #nearbyMapContainer {
+        width: 100%;
+        height: 560px;
+        border-radius: 12px;
+        z-index: 1;
+    }
+    .recar-map-marker-pill {
+        background: #ffffff;
+        color: #0f172a;
+        font-weight: 700;
+        font-size: 12px;
+        padding: 5px 10px;
+        border-radius: 9999px;
+        border: 2px solid #0284c7;
+        box-shadow: 0 4px 12px rgba(15, 23, 42, 0.25);
+        white-space: nowrap;
+        cursor: pointer;
+        transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        transform: translate(-50%, -50%);
+    }
+    .recar-map-marker-pill:hover, .recar-map-marker-pill.active {
+        background: #0f172a;
+        color: #ffffff;
+        border-color: #38bdf8;
+        transform: translate(-50%, -55%) scale(1.1);
+        z-index: 1000 !important;
+    }
+    .recar-user-pulse {
+        width: 16px;
+        height: 16px;
+        background: #0284c7;
+        border-radius: 50%;
+        border: 2px solid #ffffff;
+        box-shadow: 0 0 0 4px rgba(2, 132, 199, 0.35);
+        position: relative;
+        transform: translate(-50%, -50%);
+    }
+    .recar-user-pulse::after {
+        content: '';
+        position: absolute;
+        top: -8px;
+        left: -8px;
+        right: -8px;
+        bottom: -8px;
+        border-radius: 50%;
+        border: 2px solid #0284c7;
+        animation: recarPulse 2s infinite;
+    }
+    @@keyframes recarPulse {
+        0% { transform: scale(0.6); opacity: 1; }
+        100% { transform: scale(2.2); opacity: 0; }
+    }
+    .map-car-card {
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 10px 12px;
+        background: #ffffff;
+        cursor: pointer;
+        transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        margin-bottom: 10px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+        overflow: hidden;
+    }
+    .map-car-card:hover, .map-car-card.highlight {
+        border-color: #0284c7;
+        background-color: #f8fafc;
+        box-shadow: 0 4px 14px rgba(2, 132, 199, 0.14);
+        transform: translateY(-2px);
+    }
+    .map-car-img {
+        width: 76px;
+        height: 60px;
+        object-fit: cover;
+        border-radius: 8px;
+        flex-shrink: 0;
+        background: #f1f5f9;
+        border: 1px solid #e2e8f0;
+    }
+    .map-car-title {
+        font-size: 13px;
+        font-weight: 700;
+        color: #0f172a;
+        line-height: 1.3;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        min-width: 0;
+        flex: 1 1 auto;
+    }
+    .map-car-distance {
+        background: #f0fdf4;
+        color: #16a34a;
+        border: 1px solid #bbf7d0;
+        border-radius: 9999px;
+        font-size: 11px;
+        font-weight: 600;
+        padding: 1.5px 7px;
+        white-space: nowrap;
+        flex-shrink: 0;
+        margin-left: 6px;
+    }
+    .map-car-location {
+        font-size: 11px;
+        color: #64748b;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .map-car-price {
+        font-size: 13px;
+        font-weight: 800;
+        color: #0284c7;
+        white-space: nowrap;
+    }
+    .map-car-unit {
+        font-size: 10.5px;
+        font-weight: 400;
+        color: #94a3b8;
+        margin-left: 2px;
+    }
+    .btn-map-rent {
+        background: #0284c7;
+        color: #ffffff !important;
+        font-size: 11.5px;
+        font-weight: 600;
+        padding: 4px 12px;
+        border-radius: 9999px;
+        text-decoration: none;
+        border: none;
+        display: inline-block;
+        white-space: nowrap;
+        flex-shrink: 0;
+        transition: all 0.2s ease;
+        box-shadow: 0 2px 5px rgba(2, 132, 199, 0.25);
+    }
+    .btn-map-rent:hover {
+        background: #0369a1;
+        color: #ffffff !important;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 10px rgba(2, 132, 199, 0.35);
+    }
+    .map-cars-scroll-list {
+        max-height: 560px;
+        overflow-y: auto !important;
+        overflow-x: hidden !important;
+        padding-right: 4px;
+        padding-left: 2px;
+        scrollbar-width: thin;
+    }
+    .map-cars-scroll-list::-webkit-scrollbar {
+        width: 5px;
+        height: 0px !important;
+    }
+    .map-cars-scroll-list::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 4px;
+    }
+    .map-cars-scroll-list::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    .leaflet-popup-content-wrapper {
+        border-radius: 12px;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+        padding: 4px;
+    }
+    .leaflet-popup-content {
+        margin: 10px 12px;
+        line-height: 1.4;
+    }
 </style>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
 
 <!-- Page Header Banner (Pixel-perfect Ảnh 5) -->
 <div class="page-title-banner">
@@ -33,7 +208,7 @@
             <div>
                 <h1 class="fs-2 fw-bold m-0" style="color: var(--recar-navy);">Danh sách xe cho thuê</h1>
                 <p class="text-muted small m-0 mt-2">
-                    Tất cả khu vực · <b style="color: var(--recar-navy);" id="totalCarCount">8 xe phù hợp</b>
+                    <span id="selectedRegionBanner">Tất cả khu vực</span> · <b style="color: var(--recar-navy);" id="totalCarCount">Đang cập nhật...</b>
                 </p>
             </div>
             <a href="/" class="btn btn-outline-secondary btn-sm bg-white text-dark rounded-3 px-3 py-2 fw-medium text-decoration-none">
@@ -61,23 +236,45 @@
                     </div>
                 </div>
 
+                <!-- 0.5 Tỉnh thành / Khu vực nhận xe -->
+                <div class="filter-group-divider">
+                    <p class="filter-section-title">Địa điểm nhận xe</p>
+                    <select id="cityFilterSelect" class="form-select form-select-sm rounded-3 mt-1" style="font-size: 13px; border-color: var(--recar-border);">
+                        <option value="">Tất cả khu vực</option>
+                        @if (ViewBag.Locations != null)
+                        {
+                            foreach (var loc in (List<CarRental.Models.Location>)ViewBag.Locations)
+                            {
+                                if (ViewBag.SelectedCity != null && ViewBag.SelectedCity.ToString() == loc.CityName)
+                                {
+                                    <option value="@loc.CityName" selected>@loc.CityName</option>
+                                }
+                                else
+                                {
+                                    <option value="@loc.CityName">@loc.CityName</option>
+                                }
+                            }
+                        }
+                    </select>
+                </div>
+
                 <!-- 1. Khoảng giá kéo từ Min đến Max (Thẩm mỹ & chuẩn xác) -->
                 <div class="filter-group-divider">
                     <div class="d-flex justify-content-between align-items-center mb-1">
                         <p class="filter-section-title m-0">Khoảng giá thuê</p>
-                        <span class="badge bg-light text-primary border fw-semibold" id="priceRangeBadge" style="font-size: 11px;">500k - 5tr</span>
+                        <span class="badge bg-light text-primary border fw-semibold" id="priceRangeBadge" style="font-size: 11px;">0 - 5tr</span>
                     </div>
                     <p class="small fw-semibold mb-2" id="priceLabel" style="font-size: 12px; color: var(--recar-primary);">
-                        Từ 500.000đ đến 5.000.000đ/ngày
+                        Từ 0đ đến 5.000.000đ/ngày
                     </p>
                     <div class="range-sliders-box p-2 rounded-3 border bg-light">
                         <div class="d-flex align-items-center gap-2 mb-2">
                             <span class="small text-muted fw-medium" style="min-width: 32px; font-size: 11px;">Từ:</span>
-                            <input type="range" class="price-slider-input w-100" id="minPriceSlider" min="500000" max="3000000" step="50000" value="500000">
+                            <input type="range" class="price-slider-input w-100" id="minPriceSlider" min="0" max="3000000" step="50000" value="0">
                         </div>
                         <div class="d-flex align-items-center gap-2">
                             <span class="small text-muted fw-medium" style="min-width: 32px; font-size: 11px;">Đến:</span>
-                            <input type="range" class="price-slider-input w-100" id="maxPriceSlider" min="1000000" max="5000000" step="50000" value="5000000">
+                            <input type="range" class="price-slider-input w-100" id="maxPriceSlider" min="500000" max="5000000" step="50000" value="5000000">
                         </div>
                     </div>
                 </div>
@@ -141,19 +338,88 @@
 
         <!-- Car Listing Area (Cột danh sách xe bên phải - Ảnh 5) -->
         <div class="col-lg-9 col-md-8">
-            <!-- Dropdown sắp xếp bên phải -->
-            <div class="d-flex justify-content-end mb-4">
-                <select id="sortSelect" class="form-select form-select-sm rounded-3" style="width: auto; min-width: 140px; padding: 8px 12px; font-size: 14px; border: 1px solid var(--recar-border);">
-                    <option value="featured">Phổ biến</option>
-                    <option value="price-asc">Giá thấp đến cao</option>
-                    <option value="price-desc">Giá cao đến thấp</option>
-                    <option value="rating">Đánh giá cao</option>
-                </select>
+            <!-- Toolbar: Nút Bản đồ xe gần bạn & Dropdown sắp xếp -->
+            <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+                <div>
+                    <button type="button" class="btn btn-primary d-inline-flex align-items-center gap-2 rounded-3 px-3 py-2 fw-semibold shadow-sm" id="btnOpenNearbyMap" data-bs-toggle="modal" data-bs-target="#nearbyCarsModal">
+                        <i class="bi bi-geo-alt-fill text-warning"></i>
+                        <span>Bản đồ xe gần bạn</span>
+                        <span class="badge bg-white text-primary rounded-pill px-2 py-0.5 ms-1" style="font-size: 11px;">Mới</span>
+                    </button>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="small text-muted d-none d-sm-inline">Sắp xếp:</span>
+                    <select id="sortSelect" class="form-select form-select-sm rounded-3" style="width: auto; min-width: 140px; padding: 8px 12px; font-size: 14px; border: 1px solid var(--recar-border);">
+                        <option value="featured">Phổ biến</option>
+                        <option value="price-asc">Giá thấp đến cao</option>
+                        <option value="price-desc">Giá cao đến thấp</option>
+                        <option value="rating">Đánh giá cao</option>
+                    </select>
+                </div>
             </div>
 
             <!-- Grid Xe -->
             <div class="row g-4" id="carListContainer">
                 @await Component.InvokeAsync("Product")
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Bản đồ Điểm nhận xe ReCar quanh bạn -->
+<div class="modal fade" id="nearbyCarsModal" tabindex="-1" aria-labelledby="nearbyCarsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered" style="max-width: 1200px;">
+        <div class="modal-content rounded-4 border-0 shadow-lg overflow-hidden">
+            <!-- Header Modal -->
+            <div class="modal-header bg-white border-bottom py-3 px-4">
+                <div class="d-flex align-items-center gap-2">
+                    <div style="width: 36px; height: 36px; border-radius: 10px; background: #e0f2fe; color: #0284c7; display: flex; align-items: center; justify-content: center; font-size: 18px;">
+                        <i class="bi bi-geo-alt-fill"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title fw-bold text-dark mb-0" id="nearbyCarsModalLabel">Bản đồ Điểm nhận xe quanh bạn</h5>
+                        <div class="text-muted small" style="font-size: 12px;">Định vị bãi xe & điểm giao nhận cố định của đối tác chủ xe ReCar</div>
+                    </div>
+                </div>
+
+                <!-- Tools chọn vị trí & vùng quét -->
+                <div class="d-flex align-items-center gap-2 ms-auto me-3 flex-nowrap">
+                    <button type="button" class="btn btn-outline-primary btn-sm rounded-pill d-flex align-items-center gap-1.5 px-3 py-1.5 fw-semibold text-nowrap" id="btnGetLiveGps" title="Lấy vị trí GPS của bạn">
+                        <i class="bi bi-crosshair"></i> <span>Vị trí hiện tại</span>
+                    </button>
+
+                    <select id="selectRadiusKm" class="form-select form-select-sm rounded-pill fw-semibold text-nowrap" style="width: auto; min-width: 175px; padding: 6px 36px 6px 14px !important; font-size: 13px; cursor: pointer; border-color: #cbd5e1;">
+                        <option value="10">Bán kính: 10 km</option>
+                        <option value="25" selected>Bán kính: 25 km</option>
+                        <option value="50">Bán kính: 50 km</option>
+                        <option value="999999">Toàn quốc</option>
+                    </select>
+                </div>
+
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <!-- Body Modal (Split View: Cột Trái Danh Sách 42% - Cột Phải Bản Đồ 58%) -->
+            <div class="modal-body p-0">
+                <div class="row g-0">
+                    <!-- Cột Trái: Danh sách xe gần nhất (rộng rãi, không bị chèn lấn) -->
+                    <div class="col-lg-5 col-md-5 border-end bg-light p-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2 px-1">
+                            <span class="fw-bold text-dark small" id="nearbyCarsCountLabel">Tìm thấy xe khả dụng</span>
+                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill" style="font-size: 11px;">Gần nhất trước</span>
+                        </div>
+                        <div class="map-cars-scroll-list" id="mapCarsListContainer">
+                            <div class="text-center py-5 text-muted small">
+                                <div class="spinner-border spinner-border-sm text-primary me-1" role="status"></div> Đang tìm xe gần bạn...
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Cột Phải: Bản đồ Leaflet -->
+                    <div class="col-lg-7 col-md-7 p-0 position-relative">
+                        <div id="nearbyMapContainer"></div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -182,6 +448,8 @@
                 $('#priceRangeBadge').text(minK + ' - ' + maxK);
             }
 
+            var priceDebounceTimer = null;
+
             // Slider giá Min
             $('#minPriceSlider').on('input', function () {
                 minPrice = parseInt($(this).val());
@@ -190,9 +458,14 @@
                     $('#maxPriceSlider').val(maxPrice);
                 }
                 updatePriceUI();
+                clearTimeout(priceDebounceTimer);
+                priceDebounceTimer = setTimeout(function () {
+                    applyFilter();
+                }, 300);
             });
 
             $('#minPriceSlider').on('change', function () {
+                clearTimeout(priceDebounceTimer);
                 applyFilter();
             });
 
@@ -204,9 +477,14 @@
                     $('#minPriceSlider').val(minPrice);
                 }
                 updatePriceUI();
+                clearTimeout(priceDebounceTimer);
+                priceDebounceTimer = setTimeout(function () {
+                    applyFilter();
+                }, 300);
             });
 
             $('#maxPriceSlider').on('change', function () {
+                clearTimeout(priceDebounceTimer);
                 applyFilter();
             });
 
@@ -272,6 +550,8 @@
                 $('.chip-fuel[data-fuel=""]').addClass('active');
                 sortType = "featured";
                 $('#sortSelect').val("featured");
+                selectedCity = "";
+                $('#cityFilterSelect').val("");
                 applyFilter();
             });
 
@@ -298,6 +578,14 @@
                 }
             }
 
+            var selectedCity = "";
+
+            // Chọn địa điểm nhận xe
+            $('#cityFilterSelect').on('change', function () {
+                selectedCity = $(this).val();
+                applyFilter();
+            });
+
             // Gửi AJAX filter
             function applyFilter() {
                 let params = {
@@ -307,7 +595,8 @@
                     TypeId: selectedType,
                     seats: selectedSeat,
                     fuel: selectedFuel,
-                    sort: sortType
+                    sort: sortType,
+                    city: selectedCity
                 };
 
                 $.ajax({
@@ -321,6 +610,12 @@
                         $('#carListContainer').html(data);
                         $('#carListContainer').css('opacity', '1');
                         updateCardLinks();
+                        
+                        // Cập nhật số lượng xe thực tế sau khi lọc
+                        var count = $('#carListContainer .recar-car-card').length;
+                        $('#totalCarCount').text(count + ' xe phù hợp');
+                        var regionText = selectedCity ? selectedCity : 'Tất cả khu vực';
+                        $('#selectedRegionBanner').text(regionText);
                     },
                     error: function () {
                         $('#carListContainer').css('opacity', '1');
@@ -328,13 +623,19 @@
                 });
             }
 
-            // Nhận TypeId & driveMode từ query param nếu có (từ Trang chủ tìm kiếm)
+            // Nhận TypeId, city & driveMode từ query param nếu có (từ Trang chủ tìm kiếm)
             const urlParams = new URLSearchParams(window.location.search);
             const queryTypeId = urlParams.get('TypeId');
             if (queryTypeId) {
                 $('.chip-type').removeClass('active');
                 $(`.chip-type[data-type="${queryTypeId}"]`).addClass('active');
                 selectedType = queryTypeId;
+            }
+
+            const queryCity = urlParams.get('city');
+            if (queryCity) {
+                selectedCity = queryCity;
+                $('#cityFilterSelect').val(queryCity);
             }
 
             const queryDriveMode = urlParams.get('driveMode');
@@ -345,6 +646,314 @@
                 $('#driveModeActiveBadge').text(queryDriveMode);
                 updateCardLinks();
             }
+
+            // Cập nhật số lượng ban đầu khi mở trang
+            var initialCount = $('#carListContainer .recar-car-card').length;
+            if (initialCount > 0) {
+                $('#totalCarCount').text(initialCount + ' xe phù hợp');
+            }
+
+            // Nếu có lọc từ query param (TypeId hoặc City), tự kích hoạt lọc
+            if (queryTypeId || queryCity) {
+                applyFilter();
+            }
         });
+    </script>
+
+    <!-- Thư viện Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script>
+        // --- LOGIC BẢN ĐỒ TÌM XE GẦN BẠN (LEAFLET.JS) ---
+        var nearbyMap = null;
+        var userMarker = null;
+        var radiusCircle = null;
+        var carMarkersLayer = null;
+        var currentLat = 18.6737; // Mặc định TP. Vinh - Quảng trường Hồ Chí Minh
+        var currentLng = 105.6813;
+        var currentRadius = 25;
+        var nearbyCarsData = [];
+        var carMarkerMap = {}; // carId -> Leaflet marker
+        var liveGpsCoords = null; // Lưu vị trí GPS thực tế khi lấy được
+
+        function updateUserPosition(lat, lng, shouldPan, locationName) {
+            currentLat = lat;
+            currentLng = lng;
+
+            // Xóa marker cũ nếu có
+            if (userMarker) nearbyMap.removeLayer(userMarker);
+            if (radiusCircle) nearbyMap.removeLayer(radiusCircle);
+
+            // Icon phát sóng radar
+            var userIcon = L.divIcon({
+                className: '',
+                html: '<div class="recar-user-pulse" title="Vị trí của bạn"></div>',
+                iconSize: [20, 20],
+                iconAnchor: [10, 10]
+            });
+
+            // Gắn marker radar vị trí người dùng (chỉ gắn popup khi click, không tự động bung ra đè bản đồ)
+            userMarker = L.marker([lat, lng], { icon: userIcon }).addTo(nearbyMap);
+            userMarker.bindPopup('<div class="text-center fw-bold small text-primary p-1">Vị trí của bạn</div>');
+
+            // Vòng tròn bán kính tìm kiếm
+            if (currentRadius < 500) {
+                radiusCircle = L.circle([lat, lng], {
+                    radius: currentRadius * 1000,
+                    color: '#0284c7',
+                    fillColor: '#38bdf8',
+                    fillOpacity: 0.08,
+                    weight: 1.5,
+                    dashArray: '4, 4'
+                }).addTo(nearbyMap);
+            }
+
+            if (shouldPan) {
+                nearbyMap.setView([lat, lng], currentRadius <= 15 ? 13 : 12);
+            }
+
+            loadNearbyCars();
+        }
+
+        function loadNearbyCars() {
+            $('#mapCarsListContainer').html('<div class="text-center py-5 text-muted small"><div class="spinner-border spinner-border-sm text-primary me-1" role="status"></div> Đang tìm xe...</div>');
+
+            $.ajax({
+                url: '/Product/GetNearbyCars',
+                type: 'GET',
+                data: {
+                    userLat: currentLat,
+                    userLng: currentLng,
+                    radiusKm: currentRadius
+                },
+                success: function (res) {
+                    if (res && res.success) {
+                        nearbyCarsData = res.cars || [];
+                        renderCarsListAndMarkers(nearbyCarsData);
+                    } else {
+                        $('#mapCarsListContainer').html('<div class="text-center py-5 text-muted small">Không tìm thấy xe nào.</div>');
+                    }
+                },
+                error: function () {
+                    $('#mapCarsListContainer').html('<div class="text-center py-5 text-danger small">Lỗi tải dữ liệu xe.</div>');
+                }
+            });
+        }
+
+        function renderCarsListAndMarkers(cars) {
+            carMarkersLayer.clearLayers();
+            carMarkerMap = {};
+            var listContainer = $('#mapCarsListContainer');
+            listContainer.empty();
+
+            $('#nearbyCarsCountLabel').html('Tìm thấy <strong>' + cars.length + ' xe</strong> khả dụng');
+
+            if (!cars || cars.length === 0) {
+                listContainer.html(`
+                    <div class="text-center py-5">
+                        <p class="text-muted small mt-2 mb-2">Không có xe nào trong bán kính này.</p>
+                        <button type="button" class="btn btn-outline-primary btn-sm rounded-pill" onclick="$('#selectRadiusKm').val('999999').trigger('change');">
+                            Mở rộng toàn quốc
+                        </button>
+                    </div>
+                `);
+                return;
+            }
+
+            var bounds = [];
+            bounds.push([currentLat, currentLng]);
+
+            cars.forEach(function (car) {
+                bounds.push([car.lat, car.lng]);
+
+                // 1. Tạo Marker dạng Pill giá tiền trên bản đồ (phong cách Airbnb/Mioto)
+                var markerHtml = `
+                    <div class="recar-map-marker-pill" id="marker-pill-${car.carId}">
+                        <span>${car.priceFormatted}</span>
+                    </div>
+                `;
+
+                var carIcon = L.divIcon({
+                    className: '',
+                    html: markerHtml,
+                    iconSize: [100, 32],
+                    iconAnchor: [50, 16]
+                });
+
+                var marker = L.marker([car.lat, car.lng], { icon: carIcon }).addTo(carMarkersLayer);
+                carMarkerMap[car.carId] = marker;
+
+                // Popup xem nhanh xe: Nút Xem xe nổi bật, chữ trắng tinh tương phản cao, dễ nhìn
+                var popupContent = `
+                    <div style="width: 230px; font-family: 'Plus Jakarta Sans', sans-serif;">
+                        <img src="${car.image}" style="width: 100%; height: 120px; object-fit: cover; border-radius: 8px; margin-bottom: 8px; background: #f1f5f9;" onerror="this.src='/assets/images/cars/default.png'" />
+                        <div class="fw-bold text-dark text-truncate" style="font-size: 14px; margin-bottom: 2px;">${car.carName}</div>
+                        <div class="text-muted small text-truncate mb-2" style="font-size: 11.5px;"><i class="bi bi-geo-alt"></i> ${car.location} · <strong>${car.distanceKm} km</strong></div>
+                        <div class="d-flex align-items-center justify-content-between pt-2 border-top">
+                            <div>
+                                <span class="fw-bold" style="color: #0284c7; font-size: 14px;">${car.priceFormatted}</span>
+                                <span class="text-muted" style="font-size: 10px;">/ngày</span>
+                            </div>
+                            <a href="${car.detailUrl}" style="background-color: #0284c7; color: #ffffff !important; font-size: 12px; font-weight: 700; padding: 6px 14px; border-radius: 9999px; text-decoration: none; display: inline-flex; align-items: center; gap: 4px; border: none; box-shadow: 0 2px 6px rgba(2, 132, 199, 0.35);">
+                                Xem xe <i class="bi bi-chevron-right" style="font-size: 11px;"></i>
+                            </a>
+                        </div>
+                    </div>
+                `;
+                marker.bindPopup(popupContent);
+
+                // 2. Render Card ở cột bên trái: Bố cục cân đối, đẹp mắt
+                var card = $(`
+                    <div class="map-car-card" id="card-car-${car.carId}">
+                        <div class="d-flex align-items-center gap-2.5">
+                            <img src="${car.image}" class="map-car-img" onerror="this.src='/assets/images/cars/default.png'" />
+                            <div class="flex-grow-1" style="min-width: 0; overflow: hidden;">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <h6 class="map-car-title mb-0" title="${car.carName}">${car.carName}</h6>
+                                    <span class="map-car-distance">${car.distanceKm} km</span>
+                                </div>
+                                <div class="map-car-location mb-2">
+                                    <i class="bi bi-geo-alt"></i> ${car.location}
+                                </div>
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <div class="map-car-price">
+                                        ${car.priceFormatted}<span class="map-car-unit">/ngày</span>
+                                    </div>
+                                    <a href="${car.detailUrl}" class="btn-map-rent">Thuê ngay</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `);
+
+                // Tương tác 2 chiều: Khi hover vào Card ở bên trái -> Bản đồ pan tới và nảy marker
+                card.on('mouseenter', function () {
+                    $('.map-car-card').removeClass('highlight');
+                    $(this).addClass('highlight');
+                    $('.recar-map-marker-pill').removeClass('active');
+                    $('#marker-pill-' + car.carId).addClass('active');
+                });
+
+                card.on('click', function (e) {
+                    if ($(e.target).is('a')) return;
+                    nearbyMap.flyTo([car.lat, car.lng], 14, { duration: 0.8 });
+                    marker.openPopup();
+                });
+
+                listContainer.append(card);
+            });
+
+            // Tự động fit bounds nếu có xe
+            if (cars.length > 0 && currentRadius > 50) {
+                nearbyMap.fitBounds(bounds, { padding: [40, 40] });
+            }
+        }
+
+        function initNearbyMap() {
+            if (nearbyMap !== null) {
+                nearbyMap.invalidateSize();
+                return;
+            }
+
+            // Khởi tạo Leaflet Map
+            nearbyMap = L.map('nearbyMapContainer', {
+                center: [currentLat, currentLng],
+                zoom: 13,
+                zoomControl: true
+            });
+
+            // Google Maps Street Tiles: Tải cực nhanh tại Việt Nam, không bị chặn, 100% tiếng Việt
+            L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+                attribution: '&copy; Google Maps',
+                maxZoom: 20
+            }).addTo(nearbyMap);
+
+            carMarkersLayer = L.layerGroup().addTo(nearbyMap);
+
+            // Cho phép nhấp chuột lên bản đồ để di chuyển vị trí (nếu cần đổi điểm quét)
+            nearbyMap.on('click', function (e) {
+                var clickLat = e.latlng.lat;
+                var clickLng = e.latlng.lng;
+                liveGpsCoords = { lat: clickLat, lng: clickLng };
+                updateUserPosition(clickLat, clickLng, false);
+            });
+
+            updateUserPosition(currentLat, currentLng, true);
+        }
+
+        // Hàm yêu cầu tọa độ GPS thực tế từ trình duyệt
+        function requestBrowserLiveGps(silent) {
+            var btn = $('#btnGetLiveGps');
+            btn.removeClass('btn-outline-primary btn-success btn-outline-danger').addClass('btn-primary')
+               .html('<div class="spinner-border spinner-border-sm me-1" role="status"></div> <span>Đang định vị...</span>');
+
+            if (!("geolocation" in navigator)) {
+                handleGpsError(silent, "Trình duyệt không hỗ trợ Geolocation.");
+                return;
+            }
+
+            navigator.geolocation.getCurrentPosition(
+                function (position) {
+                    var lat = position.coords.latitude;
+                    var lng = position.coords.longitude;
+                    liveGpsCoords = { lat: lat, lng: lng };
+
+                    btn.removeClass('btn-outline-secondary btn-outline-primary btn-outline-danger btn-success')
+                       .addClass('btn-primary text-white')
+                       .html('<i class="bi bi-geo-alt-fill"></i> <span>Vị trí của bạn</span>');
+
+                    updateUserPosition(lat, lng, true);
+                },
+                function (error) {
+                    handleGpsError(silent, "Không thể xác định vị trí. Vui lòng cấp quyền truy cập vị trí trên trình duyệt và thử lại.");
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 15000,
+                    maximumAge: 0
+                }
+            );
+        }
+
+        function handleGpsError(silent, message) {
+            var btn = $('#btnGetLiveGps');
+            btn.removeClass('btn-primary btn-success').addClass('btn-outline-danger')
+               .html('<i class="bi bi-exclamation-circle"></i> <span>Chưa có vị trí</span>');
+
+            if (!silent) {
+                alert(message);
+            }
+        }
+
+        // Sự kiện khi Modal Bản Đồ mở lên
+        $('#nearbyCarsModal').on('shown.bs.modal', function () {
+            initNearbyMap();
+            setTimeout(function() {
+                if (nearbyMap) {
+                    nearbyMap.invalidateSize();
+                }
+            }, 250);
+
+            // Tự động định vị GPS thực tế ngay khi mở modal
+            requestBrowserLiveGps(true);
+        });
+
+        // Thay đổi bán kính tìm kiếm
+        $('#selectRadiusKm').on('change', function () {
+            currentRadius = parseFloat($(this).val()) || 25;
+            updateUserPosition(currentLat, currentLng, false);
+        });
+
+        // Bấm nút lấy vị trí thực tế từ GPS thủ công
+        $('#btnGetLiveGps').on('click', function () {
+            requestBrowserLiveGps(false);
+        });
+
+        // Tự động mở Modal bản đồ nếu vào từ link navbar ?openMap=true
+        if (urlParams.get('openMap') === 'true') {
+            setTimeout(function() {
+                var modal = new bootstrap.Modal(document.getElementById('nearbyCarsModal'));
+                modal.show();
+            }, 300);
+        }
     </script>
 }

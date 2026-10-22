@@ -8,6 +8,7 @@
         ownerName = "Đối tác Chủ xe";
     }
     var ownerInitials = ownerName.Length >= 2 ? ownerName.Substring(0, 2).ToUpper() : "CX";
+    var ownerAccountId = Function.GetCarOwnerAccountId(Context.Session) > 0 ? Function.GetCarOwnerAccountId(Context.Session) : Function.GetAccountId(Context.Session);
 }
 <!DOCTYPE html>
 <html lang="vi">
@@ -451,6 +452,21 @@
                         <i class="bi bi-stars"></i> Đối tác ReCar
                     </span>
 
+                    <!-- Chuông thông báo Real-time cho Chủ xe -->
+                    <div class="dropdown">
+                        <button class="btn btn-light position-relative rounded-circle p-2 border shadow-sm" type="button" data-bs-toggle="dropdown" aria-expanded="false" id="btnOwnerBell" style="width: 38px; height: 38px;">
+                            <i class="bi bi-bell text-secondary"></i>
+                            <span id="ownerNotificationDot" class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle" style="display: none;">
+                                <span class="visually-hidden">Thông báo mới</span>
+                            </span>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end shadow-sm p-2" style="width: 320px; border-radius: 12px;">
+                            <li><h6 class="dropdown-header fw-bold text-dark"><i class="bi bi-bell-fill text-primary me-1"></i> Thông báo đối tác</h6></li>
+                            <li id="ownerNotificationEmpty" class="text-center py-3 text-muted small">Chưa có thông báo mới</li>
+                            <div id="ownerNotificationList"></div>
+                        </ul>
+                    </div>
+
                     <div class="d-flex align-items-center gap-2 bg-white px-3 py-1.5 rounded-pill border shadow-sm">
                         <div class="user-avatar-circle" style="width: 32px; height: 32px; font-size: 13px; font-weight: 700; background: linear-gradient(135deg, #0ea5e9, #0284c7); color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
                             @ownerInitials
@@ -467,6 +483,46 @@
     <!-- Scripts -->
     <script src="~/assets/js/vendor/jquery-3.6.0.min.js"></script>
     <script src="~/assets/js/vendor/bootstrap.bundle.min.js"></script>
+    <script src="~/assets/js/vendor/signalr.min.js"></script>
+    <script>
+        window.RECAR_CURRENT_USER = {
+            accountId: @(ownerAccountId > 0 ? ownerAccountId.ToString() : "null"),
+            role: 'CarOwner',
+            userName: '@ownerName'
+        };
+
+        // Bật chấm đỏ thông báo khi có đơn mới
+        if (window.recarRealtimeHub) {
+            window.recarRealtimeHub.on("ReceiveNewOrderNotification", function(data) {
+                var dot = document.getElementById('ownerNotificationDot');
+                if (dot) dot.style.display = 'inline-block';
+
+                var empty = document.getElementById('ownerNotificationEmpty');
+                if (empty) empty.style.display = 'none';
+
+                var list = document.getElementById('ownerNotificationList');
+                if (list) {
+                    var item = document.createElement('li');
+                    item.innerHTML = `
+                        <a class="dropdown-item rounded py-2 small d-flex gap-2" href="${data.detailUrl || '/CarOwner/Orders/Index'}">
+                            <i class="bi bi-bag-check text-success fs-5"></i>
+                            <div>
+                                <p class="mb-0 fw-semibold">Đơn mới #${data.orderId}: ${data.carName}</p>
+                                <span class="text-muted" style="font-size: 0.72rem;">Khách: ${data.customerName} · Cọc: ${data.depositFormatted}</span>
+                            </div>
+                        </a>
+                    `;
+                    list.insertBefore(item, list.firstChild);
+                }
+            });
+        }
+
+        document.getElementById('btnOwnerBell')?.addEventListener('click', function() {
+            var dot = document.getElementById('ownerNotificationDot');
+            if (dot) dot.style.display = 'none';
+        });
+    </script>
+    <script src="~/assets/js/recar-realtime.js"></script>
     @RenderSection("Scripts", required: false)
 </body>
 </html>

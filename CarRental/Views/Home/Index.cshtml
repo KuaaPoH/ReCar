@@ -70,10 +70,33 @@
         padding: 0 16px;
     }
 
+    /* Grid tìm kiếm xe chuẩn tỉ lệ cân đối, giờ nhận/trả không bao giờ bị cắt */
+    .recar-search-grid {
+        display: grid;
+        grid-template-columns: 2.2fr 1.6fr 1.3fr 1.6fr 1.3fr 1.8fr;
+        gap: 12px;
+        align-items: end;
+    }
+
+    .recar-search-grid .recar-field-input {
+        width: 100%;
+        padding: 9px 8px;
+        font-size: 13.5px;
+    }
+
+    @@media (max-width: 1100px) {
+        .recar-search-grid {
+            grid-template-columns: 1fr 1fr 1fr;
+        }
+    }
+
     @@media (max-width: 768px) {
         .hero-main-title { font-size: 32px; }
         .hero-container { padding: 50px 16px 100px 16px; }
         .search-box-float { margin-top: -50px; }
+        .recar-search-grid {
+            grid-template-columns: 1fr;
+        }
     }
 </style>
 
@@ -99,40 +122,55 @@
                 <input type="hidden" name="driveMode" id="driveModeInput" value="Tự lái" />
             </div>
 
-            <!-- Form inputs grid -->
-            <div class="row g-3 align-items-end">
-                <div class="col-md-3">
+            <!-- Form inputs grid: Tỉ lệ cân đối, rộng rãi cho cả ngày và giờ -->
+            <div class="recar-search-grid">
+                <div>
                     <label class="recar-field-label">Địa điểm nhận xe</label>
                     <select class="recar-field-input" name="city">
-                        <option value="Hà Nội" selected>Hà Nội</option>
-                        <option value="TP. Hồ Chí Minh">TP. Hồ Chí Minh</option>
-                        <option value="Đà Nẵng">Đà Nẵng</option>
-                        <option value="Nha Trang">Nha Trang</option>
-                        <option value="Đà Lạt">Đà Lạt</option>
+                        @{
+                            var locations = ViewBag.Locations as List<CarRental.Models.Location>;
+                            if (locations != null && locations.Any())
+                            {
+                                foreach (var loc in locations)
+                                {
+                                    <option value="@loc.CityName">@loc.CityName</option>
+                                }
+                            }
+                            else
+                            {
+                                <option value="Hà Nội" selected>Hà Nội</option>
+                                <option value="TP. Hồ Chí Minh">TP. Hồ Chí Minh</option>
+                                <option value="TP. Vinh (Nghệ An)">TP. Vinh (Nghệ An)</option>
+                                <option value="Đà Nẵng">Đà Nẵng</option>
+                                <option value="Hải Phòng">Hải Phòng</option>
+                                <option value="Nha Trang">Nha Trang</option>
+                                <option value="Đà Lạt">Đà Lạt</option>
+                            }
+                        }
                     </select>
                 </div>
 
-                <div class="col-md-2">
+                <div>
                     <label class="recar-field-label">Ngày nhận xe</label>
                     <input type="date" class="recar-field-input" name="pickupDate" min="@todayStr" value="@todayStr" required />
                 </div>
 
-                <div class="col-md-2">
+                <div>
                     <label class="recar-field-label">Giờ nhận</label>
                     <input type="time" class="recar-field-input" name="pickupTime" value="08:00" required />
                 </div>
 
-                <div class="col-md-2">
+                <div>
                     <label class="recar-field-label">Ngày trả xe</label>
                     <input type="date" class="recar-field-input" name="returnDate" min="@todayStr" value="@nextDayStr" required />
                 </div>
 
-                <div class="col-md-1">
+                <div>
                     <label class="recar-field-label">Giờ trả</label>
                     <input type="time" class="recar-field-input" name="returnTime" value="08:00" required />
                 </div>
 
-                <div class="col-md-2">
+                <div>
                     <button type="submit" class="btn-recar-search w-100">
                         <i class="bi bi-search"></i> Tìm kiếm xe
                     </button>

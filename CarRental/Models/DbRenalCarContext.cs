@@ -61,6 +61,8 @@ public partial class DbRenalCarContext : DbContext
 
     public virtual DbSet<User> Users { get; set; }
 
+    public virtual DbSet<Location> Locations { get; set; }
+
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -434,6 +436,19 @@ public partial class DbRenalCarContext : DbContext
             entity.HasOne(d => d.Receiver).WithMany()
                 .HasForeignKey(d => d.ReceiverId)
                 .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<Location>(entity =>
+        {
+            entity.HasKey(e => e.LocationId);
+            entity.ToTable("locations");
+
+            entity.Property(e => e.LocationId).HasColumnName("LocationID");
+            entity.Property(e => e.CityName).HasMaxLength(100);
+            entity.Property(e => e.Region).HasMaxLength(50);
+            entity.Property(e => e.IsPopular).HasDefaultValue(true);
+            entity.Property(e => e.DisplayOrder).HasDefaultValue(0);
+            entity.Property(e => e.IsActive).HasDefaultValue(true);
         });
 
         OnModelCreatingPartial(modelBuilder);

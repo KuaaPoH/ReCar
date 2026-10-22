@@ -1,7 +1,9 @@
 using CarRental.Models;
 using CarRental.Utilities;
+using CarRental.Hubs;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 
 namespace CarRental.Areas.CarOwner.Controllers
@@ -10,10 +12,12 @@ namespace CarRental.Areas.CarOwner.Controllers
     public class CarsController : Controller
     {
         private readonly DbRenalCarContext _context;
+        private readonly IHubContext<ReCarHub> _hubContext;
 
-        public CarsController(DbRenalCarContext context)
+        public CarsController(DbRenalCarContext context, IHubContext<ReCarHub> hubContext)
         {
             _context = context;
+            _hubContext = hubContext;
         }
 
         // Kiểm tra quyền chủ xe
@@ -122,6 +126,30 @@ namespace CarRental.Areas.CarOwner.Controllers
                 }
 
                 Function.SetMessage(HttpContext.Session, "Thêm xe thành công! Hồ sơ xe đang ở trạng thái 'Chờ duyệt' để Ban quản trị ReCar kiểm tra trước khi công khai lên sàn.");
+
+                // Phát tín hiệu thời gian thực cho Admin
+                try
+                {
+                    _ = _hubContext.Clients.Group("Role_Admin").SendAsync("ReceiveNewCarPendingNotification", new
+                    {
+                        carId = car.CarId,
+                        carName = car.CarName,
+                        licensePlate = car.LicensePlate,
+                        ownerName = currentOwner?.FullName ?? "Đối tác Chủ xe"
+                    });
+                    _ = _hubContext.Clients.Group("Role_Quản trị viên").SendAsync("ReceiveNewCarPendingNotification", new
+                    {
+                        carId = car.CarId,
+                        carName = car.CarName,
+                        licensePlate = car.LicensePlate,
+                        ownerName = currentOwner?.FullName ?? "Đối tác Chủ xe"
+                    });
+                }
+                catch (Exception sigEx)
+                {
+                    Console.WriteLine($"SignalR New Car Broadcast Error: {sigEx.Message}");
+                }
+
                 return RedirectToAction("Index");
             }
 

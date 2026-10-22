@@ -1,0 +1,110 @@
+@model IEnumerable<CarRental.Models.CarType>
+@{
+    ViewData["Title"] = "Quản lý kiểu xe";
+}
+
+<div class="container-fluid px-0">
+    <!-- Header -->
+    <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4">
+        <div>
+            <div class="d-flex align-items-center gap-2">
+                <h1 class="h3 fw-bold mb-0 text-dark tracking-tight">Quản lý kiểu xe & phân khúc</h1>
+                <span class="badge bg-light text-dark border rounded-pill fw-semibold px-2.5 py-1">@Model.Count() kiểu xe</span>
+            </div>
+            <p class="text-muted small mb-0 mt-1">Quản lý danh mục các dòng xe (Sedan, SUV, Crossover, MPV, Bán tải,...) hiển thị trên hệ thống tìm kiếm xe.</p>
+        </div>
+        <div>
+            <a asp-action="Create" class="btn btn-primary btn-sm rounded-pill px-3.5 py-2 fw-semibold shadow-sm" style="background-color: var(--recar-primary); border: none;">
+                <i class="bi bi-plus-circle me-1"></i> Thêm kiểu xe mới
+            </a>
+        </div>
+    </div>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show rounded-3 small fw-medium mb-3" role="alert">
+            <i class="bi bi-check-circle-fill me-1"></i> @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show rounded-3 small fw-medium mb-3" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-1"></i> @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <!-- Table -->
+    <div class="recar-panel mb-0">
+        <div class="table-responsive">
+            <table class="table recar-table align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th style="width: 70px;">Mã loại</th>
+                        <th style="width: 80px;">Hình ảnh</th>
+                        <th>Tên kiểu xe</th>
+                        <th>Số chỗ ngồi</th>
+                        <th>Hãng đại diện</th>
+                        <th>Số lượng xe sàn</th>
+                        <th class="text-end">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!Model.Any())
+                    {
+                        <tr>
+                            <td colspan="7" class="text-center py-5 text-muted">
+                                <i class="bi bi-car-front fs-2 text-secondary d-block mb-2"></i>
+                                Chưa có kiểu xe nào. Bấm nút Thêm kiểu xe mới để khởi tạo.
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        foreach (var item in Model)
+                        {
+                            <tr>
+                                <td class="fw-bold text-muted">#@item.TypeId</td>
+                                <td>
+                                    <img src="@(string.IsNullOrEmpty(item.Image) ? "/images/cars/hero.jpg" : item.Image)" 
+                                         alt="@item.CarTypeName" class="rounded object-fit-cover border" style="width: 58px; height: 38px;" />
+                                </td>
+                                <td>
+                                    <div class="fw-bold text-dark">@item.CarTypeName</div>
+                                </td>
+                                <td>
+                                    <span class="badge bg-light text-dark border">
+                                        <i class="bi bi-people me-1"></i> @(item.Seats.HasValue ? item.Seats.Value.ToString() + " chỗ" : "Đa dạng")
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="text-muted small">@(string.IsNullOrEmpty(item.Manufacturer) ? "Đa dạng" : item.Manufacturer)</span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1">
+                                        @(item.Cars?.Count ?? 0) xe đang mở thuê
+                                    </span>
+                                </td>
+                                <td class="text-end">
+                                    <div class="d-inline-flex gap-1.5">
+                                        <a asp-action="Edit" asp-route-id="@item.TypeId" class="btn btn-sm btn-light border" title="Chỉnh sửa">
+                                            <i class="bi bi-pencil-square text-primary"></i> Sửa
+                                        </a>
+                                        <form asp-action="Delete" asp-route-id="@item.TypeId" method="post" class="d-inline" onsubmit="return confirm('Bạn có chắc chắn muốn xóa kiểu xe \'@item.CarTypeName\' này không?');">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="btn btn-sm btn-light border text-danger" title="Xóa">
+                                                <i class="bi bi-trash"></i> Xóa
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

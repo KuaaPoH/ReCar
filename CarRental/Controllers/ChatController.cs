@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.SignalR;
 using CarRental.Models;
+using CarRental.Hubs;
 using System.Text.Json;
 
 namespace CarRental.Controllers
@@ -8,10 +10,12 @@ namespace CarRental.Controllers
     public class ChatController : Controller
     {
         private readonly DbRenalCarContext _context;
+        private readonly IHubContext<ReCarHub> _hubContext;
 
-        public ChatController(DbRenalCarContext context)
+        public ChatController(DbRenalCarContext context, IHubContext<ReCarHub> hubContext)
         {
             _context = context;
+            _hubContext = hubContext;
         }
 
         public class SendMessageRequest
@@ -92,6 +96,63 @@ namespace CarRental.Controllers
             _context.ChatMessages.Add(ownerReplyMsg);
             await _context.SaveChangesAsync();
 
+            // 5. Phát tín hiệu thời gian thực qua SignalR
+            try
+            {
+                var payloadCustomerMsg = new
+                {
+                    messageId = customerMsg.MessageId,
+                    carId = customerMsg.CarId,
+                    senderId = customerMsg.SenderId,
+                    senderName = customerMsg.SenderName,
+                    senderRole = customerMsg.SenderRole,
+                    receiverId = customerMsg.ReceiverId,
+                    receiverName = customerMsg.ReceiverName,
+                    messageText = customerMsg.MessageText,
+                    sentAt = customerMsg.SentAt.ToString("HH:mm - dd/MM"),
+                    isFromOwner = false
+                };
+
+                var payloadOwnerReply = new
+                {
+                    messageId = ownerReplyMsg.MessageId,
+                    carId = ownerReplyMsg.CarId,
+                    senderId = ownerReplyMsg.SenderId,
+                    senderName = ownerReplyMsg.SenderName,
+                    senderRole = ownerReplyMsg.SenderRole,
+                    receiverId = ownerReplyMsg.ReceiverId,
+                    receiverName = ownerReplyMsg.ReceiverName,
+                    messageText = ownerReplyMsg.MessageText,
+                    sentAt = ownerReplyMsg.SentAt.ToString("HH:mm - dd/MM"),
+                    isFromOwner = true
+                };
+
+                // Gửi tin nhắn của khách cho Chủ xe
+                if (req.OwnerId.HasValue && req.OwnerId.Value > 0)
+                {
+                    await _hubContext.Clients.Group($"User_{req.OwnerId.Value}").SendAsync("ReceiveChatMessage", payloadCustomerMsg);
+                }
+                if (req.CarId.HasValue && req.CarId.Value > 0)
+                {
+                    await _hubContext.Clients.Group($"Car_{req.CarId.Value}").SendAsync("ReceiveChatMessage", payloadCustomerMsg);
+                }
+
+                // Gửi tin phản hồi của chủ xe cho khách hàng
+                if (senderId.HasValue && senderId.Value > 0)
+                {
+                    await _hubContext.Clients.Group($"User_{senderId.Value}").SendAsync("ReceiveChatMessage", payloadOwnerReply);
+                }
+                else if (req.CarId.HasValue && req.CarId.Value > 0)
+                {
+                    await _hubContext.Clients.Group($"Car_{req.CarId.Value}").SendAsync("ReceiveChatMessage", payloadOwnerReply);
+                }
+            }
+            catch (Exception hubEx)
+            {
+                // SignalR broadcast không làm gián đoạn luồng chính
+                Console.WriteLine($"SignalR Chat Broadcast Error: {hubEx.Message}");
+            }
+
             return Json(new
             {
                 success = true,
@@ -110,6 +171,47 @@ namespace CarRental.Controllers
                     sentAt = ownerReplyMsg.SentAt.ToString("HH:mm")
                 }
             });
+        }
+
+        public class TypingRequest
+        {
+            public int? CarId { get; set; }
+            public int? ReceiverId { get; set; }
+            public string SenderName { get; set; } = string.Empty;
+            public bool IsTyping { get; set; }
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> SendRealtimeTyping([FromBody] TypingRequest req)
+        {
+            if (req == null) return Json(new { success = false });
+
+            try
+            {
+                if (req.ReceiverId.HasValue && req.ReceiverId.Value > 0)
+                {
+                    await _hubContext.Clients.Group($"User_{req.ReceiverId.Value}").SendAsync("UserTyping", new
+                    {
+                        carId = req.CarId,
+                        senderName = req.SenderName,
+                        isTyping = req.IsTyping
+                    });
+                }
+                else if (req.CarId.HasValue && req.CarId.Value > 0)
+                {
+                    await _hubContext.Clients.Group($"Car_{req.CarId.Value}").SendAsync("UserTyping", new
+                    {
+                        carId = req.CarId,
+                        senderName = req.SenderName,
+                        isTyping = req.IsTyping
+                    });
+                }
+                return Json(new { success = true });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, error = ex.Message });
+            }
         }
 
         [HttpGet]

@@ -32,6 +32,7 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
     });
 
 builder.Services.AddSingleton<IVnpayServices,VnPayService>();
+builder.Services.AddSignalR();
 var app = builder.Build();
 
 // Tự động tạo database và các bảng nếu chưa tồn tại (chỉ trong Development)
@@ -399,7 +400,6 @@ app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
 
-
-
+app.MapHub<CarRental.Hubs.ReCarHub>("/recarHub");
 
 app.Run();

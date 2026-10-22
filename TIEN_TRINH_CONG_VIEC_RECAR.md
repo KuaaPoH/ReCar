@@ -171,14 +171,17 @@ Dưới đây là lộ trình các hạng mục trọng tâm nhằm hoàn thiệ
 
 ---
 
-### Giai đoạn 2: Nâng cấp Công nghệ Giao tiếp Thời gian thực (Real-time Communication với SignalR)
-1. **Tích hợp ASP.NET Core SignalR cho Hệ thống Chat:**
-   - Nâng cấp Chat giữa Khách hàng và Chủ xe từ AJAX Polling hiện tại lên WebSockets thời gian thực (Real-time Two-Way Chat). Tin nhắn hiển thị tức thì không có độ trễ.
-   - Bổ sung hiệu ứng âm thanh thông báo (Sound Ping) và chỉ báo "đối phương đang soạn tin..." (`typing indicator`).
+### Giai đoạn 2: Nâng cấp Công nghệ Giao tiếp Thời gian thực (Real-time Communication với SignalR) — [x] ĐÃ HOÀN THÀNH (21/10/2026)
+1. **Tích hợp ASP.NET Core SignalR cho Hệ thống Chat ([ReCarHub.cs](file:///d:/CarRental_TTCN/CarRental/Hubs/ReCarHub.cs) & [recar-realtime.js](file:///d:/CarRental_TTCN/CarRental/wwwroot/assets/js/recar-realtime.js)):**
+   - Đã nâng cấp toàn diện Chat giữa Khách hàng và Chủ xe lên WebSockets thời gian thực (Real-time Two-Way Chat qua `/recarHub`). Tin nhắn hiển thị tức thì không có độ trễ, không cần reload trang.
+   - Bổ sung hiệu ứng âm thanh thông báo du dương bằng Web Audio API (chuẩn âm sắc piano ping, hoạt động 100% offline).
+   - Tích hợp chỉ báo đối phương đang gõ phím (`Typing Indicator`: *"Chủ xe đang soạn tin... 💬"* với spinner nhịp đập) có cơ chế debounce tự động tắt sau 2 giây.
 2. **Hệ thống Thông báo Đẩy Thời gian thực (Live Push Notifications):**
-   - Khi có khách đặt xe mới: Chủ xe và Admin nhận được chuông thông báo và popup đẩy ngay trên góc màn hình mà không cần F5.
-   - Khi chủ xe thêm xe mới: Badge số xe chờ duyệt trên thanh Sidebar Admin tự động nhảy số thời gian thực.
-   - Khi Admin duyệt xe hoặc Chủ xe giao xe: Khách hàng nhận được thông báo trạng thái cập nhật tức thời.
+   - **Khi có khách đặt xe mới ([CartController.cs](file:///d:/CarRental_TTCN/CarRental/Controllers/CartController.cs)):** Chủ xe và Ban Quản trị nhận được âm thanh chuông chime và Toast thông báo nổi góc phải màn hình, đồng thời chấm đỏ thông báo trên Topbar nhảy số tức thời.
+   - **Khi Chủ xe thêm xe mới ([CarOwner/CarsController.cs](file:///d:/CarRental_TTCN/CarRental/Areas/CarOwner/Controllers/CarsController.cs)):** Ban Quản trị nhận ngay popup thông báo *"Hồ sơ xe mới chờ duyệt"* và Badge số lượng xe chờ duyệt trên thanh Sidebar Admin (`#pendingCarsBadge`) tự động nhảy số theo thời gian thực mà không cần F5.
+   - **Khi Admin duyệt hoặc từ chối xe ([Admin/CarsController.cs](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Controllers/CarsController.cs)):** Chủ xe nhận được popup thông báo kết quả phê duyệt xe hoặc lý do từ chối kèm nút dẫn trực tiếp đến trang chỉnh sửa hồ sơ.
+3. **Thành phần Toast Thông báo SaaS Hiện Đại:**
+   - Toast dạng card nổi góc phải màn hình bo góc 14px, đổ bóng mềm, viền màu phân biệt theo sự kiện (Xanh lá: Đơn mới/Duyệt xe, Vàng: Chờ duyệt, Xanh ngọc: Chat, Đỏ: Từ chối), có progress bar tự động đếm ngược và thu gọn sau 6 giây.
 
 ---
 
@@ -192,10 +195,19 @@ Dưới đây là lộ trình các hạng mục trọng tâm nhằm hoàn thiệ
 
 ---
 
-### Giai đoạn 4: Bản đồ Tương tác Tìm xe Xung quanh (Interactive Map View - Leaflet/Mapbox)
-- Bên cạnh giao diện danh sách xe, bổ sung nút chuyển đổi `Dạng danh sách` ⟷ `Bản đồ`.
-- Hiển thị vị trí các xe đang sẵn sàng bằng pin giá tiền trên bản đồ Hà Nội, TP.HCM, Đà Nẵng, Đà Lạt.
-- Khi rê chuột vào pin hiển thị popup ảnh xe, bấm vào xem chi tiết và đặt xe nhanh chóng.
+### Giai đoạn 4: Bản đồ Tương tác Tìm Xe Gần Bạn (Station-Based Nearby Car Map View) — [x] ĐÃ HOÀN THÀNH & KIỂM THỬ XUẤT SẮC (21/10/2026)
+1. **API Tính toán Khoảng cách GPS Thực tế ([ProductController.cs](file:///d:/CarRental_TTCN/CarRental/Controllers/ProductController.cs)):**
+   - Endpoint `GET /Product/GetNearbyCars?userLat=...&userLng=...&radiusKm=...`: Ánh xạ tọa độ các bãi xe/điểm nhận xe thực tế (Hà Nội, TP.HCM, Đà Nẵng, Nha Trang, Đà Lạt, và đặc biệt cụm xe mới tại **TP. Vinh, Nghệ An**: Quảng trường Hồ Chí Minh, Lê Mao, Trường Thi, Hưng Dũng).
+   - Thêm 4 mẫu xe biển số 37 Nghệ An (VinFast VF 8 Plus, Hyundai Tucson Turbo, Toyota Corolla Cross, Mazda CX-5 Premium).
+   - Áp dụng công thức hình học cầu **Haversine** tính chính xác khoảng cách đường chim bay từ vị trí người dùng đến từng chiếc xe (làm tròn đến 0.1 km).
+   - Tự động lọc theo bán kính (10km, 25km, 50km, Toàn quốc) và sắp xếp xe theo thứ tự từ gần nhất đến xa nhất.
+2. **Giao diện Modal Bản đồ Split-View Cao cấp ([Product/Index.cshtml](file:///d:/CarRental_TTCN/CarRental/Views/Product/Index.cshtml)):**
+   - **Nút "Bản đồ xe gần bạn"** trên thanh toolbar danh sách xe và liên kết trực tiếp trên Navbar chính.
+   - **Tích hợp bản đồ Leaflet.js** kết hợp Google Maps Street Tiles (nhanh, 100% tiếng Việt, hiển thị rõ ràng đường sá).
+   - **Marker vị trí người dùng (User GPS):** Chấm xanh dương với hiệu ứng sóng radar nhịp đập (`recar-user-pulse`) kèm vòng tròn nét đứt thể hiện bán kính tìm kiếm.
+   - **Marker xe dạng Viên thuốc Giá tiền (Pill Badges phong cách Airbnb / Mioto):** Hiển thị rõ giá thuê trọn gói trên từng điểm ghim (`650.000đ`, `1.200.000đ`...), hover vào đổi sang màu Navy sang trọng.
+   - **Tương tác 2 chiều mượt mà (Bi-directional Sync):** Hover vào thẻ xe danh sách bên trái ➜ Bản đồ tự động xoay tâm (flyTo) và nảy marker; Bấm vào ghim trên bản đồ ➜ Hiện popup ảnh xe thật, tên xe, địa điểm, khoảng cách và nút "Xem xe / Thuê ngay".
+   - **Định vị thông minh đa tầng & Kiểm thử di động:** Tự động bắt GPS vệ tinh chính xác cao trên điện thoại thông minh qua HTTPS tunnel, hỗ trợ click trực tiếp lên bản đồ để đổi vị trí, và dropdown chọn nhanh các phường tại TP. Vinh khi thuyết trình đồ án trên máy tính.
 
 ---
 
@@ -260,3 +272,41 @@ Nhằm giúp đồ án tạo được ấn tượng mạnh mẽ với hội đ�
    }
    ```
 4. Lưu tệp và tiến hành kiểm thử thanh toán với các thẻ test mẫu do VNPay cung cấp.
+
+---
+
+## 7. CẬP NHẬT CÔNG VIỆC MỚI NHẤT (NGÀY 21 - 22 THÁNG 10 NĂM 2026)
+
+### 7.1. Chuẩn hóa Khung Tìm kiếm Xe Trang Chủ
+- **Khắc phục lỗi cắt chữ ô "Giờ trả":** 
+  - Trước đây hệ thống Bootstrap chia cột `col-md-1` (~75px) làm trường `input[type="time"]` bị co cụt thành `08:0` (mất chữ số cuối và icon đồng hồ).
+  - Tái cấu trúc khung tìm kiếm sang CSS Grid `.recar-search-grid` (`2.2fr 1.6fr 1.3fr 1.6fr 1.3fr 1.8fr`).
+  - Phân bổ độ rộng ~155px cho cả **Giờ nhận** và **Giờ trả**, hiển thị trọn vẹn `08:00 AM` kèm biểu tượng đồng hồ, tương thích hoàn hảo từ màn hình laptop (1366px) đến mobile.
+
+### 7.2. Tích hợp Bảng CSDL Địa điểm Nhận xe (`locations`) & Module Quản trị
+- **Cơ sở dữ liệu:** Tạo bảng `locations` trong CSDL MySQL `DbRenalCar`, nạp 17 tỉnh thành trọng điểm tại Việt Nam (Hà Nội, TP.HCM, TP. Vinh - Nghệ An, Đà Nẵng, Hải Phòng, Nha Trang, Đà Lạt, Phú Quốc...) với đầy đủ phân vùng miền Bắc - Trung - Nam, nhãn phổ biến và thứ tự ưu tiên.
+- **Dữ liệu động:** Đưa danh sách từ bảng `locations` vào Dropdown địa điểm ở thanh tìm kiếm trang chủ và trang bộ lọc xe người dùng.
+- **Module Admin Quản lý Địa điểm (`LocationsController`):** Cung cấp đầy đủ tính năng Thêm mới, Sửa, Xóa và Bật/Tắt trạng thái hiển thị địa điểm nhận xe trên sàn.
+
+### 7.3. Nâng cấp Toàn diện Giao diện Admin Portal & Sidebar Công thái học
+1. **Xây dựng & Chuẩn hóa các Module Quản trị:**
+   - **Quản lý Kiểu xe & Phân khúc (`CarTypesController`):** Hiển thị danh mục kiểu xe, số chỗ ngồi, hãng đại diện, số lượng xe thực tế đang mở thuê trên sàn, thêm/sửa phân khúc.
+   - **Quản lý Menu sàn ReCar (`MenusController`):** Loại bỏ 100% template Mazer cũ, chuyển sang thiết kế ReCar Design System với panel bo góc, badge trạng thái và bảng dữ liệu hiện đại.
+   - **Quản lý Đánh giá & Bình luận (`ReviewsController`):** Giám sát phản hồi, số sao đánh giá (1 - 5 sao), nhận xét từ khách thuê và kiểm duyệt bình luận.
+2. **Khắc phục triệt để các lỗi Thanh Sidebar Admin:**
+   - **Khoảng cách Icon - Menu:** Sửa lỗi class `gap-2.5` không hợp lệ, thiết lập khoảng cách cố định 12-14px giữa icon và chữ, đều đặn và không bao giờ dính sát nhau.
+   - **Logic Active chuẩn xác:** Định tuyến highlight theo tên Controller cụ thể (`isCars`, `isCarTypes`, `isMenus`, `isLocations`, `isReviews`, `isOrders`, `isUsers`...), xóa bỏ lỗi highlight nhầm vào "Tổng quan".
+   - **Triệt tiêu hiện tượng "Thu nhỏ to ra" khi chuyển trang:** Gỡ bỏ `transition` mặc định trên `.recar-admin-sidebar`, chỉ kích hoạt `.sidebar-animating` khi người dùng chủ động bấm nút Toggle. Chuyển trang tức thì, không giật FOUC.
+   - **Khắc phục triệt tiêu hiện tượng "Dài ngắn":** Khóa cố định chiều cao `height: 100vh !important; max-height: 100vh !important; align-self: flex-start !important; flex-shrink: 0 !important;` và cố định chiều rộng `width: 260px` (hoặc `72px` khi thu gọn). Ngăn Flexbox kéo dãn sidebar theo chiều cao nội dung trang dài/ngắn.
+   - **Lưu & Khôi phục vị trí cuộn (`scrollTop`):** Tự động lưu vị trí cuộn của sidebar vào `sessionStorage` và khôi phục lại khi sang trang mới. Đồng thời tích hợp `scrollIntoView` tự động cuộn nhẹ để mục đang active luôn nằm rõ trong tầm mắt người dùng.
+
+### 7.4. Sửa Lỗi Bộ Lọc Xe Phía Người Dùng (User Filter)
+- **Khắc phục lỗi HTTP 500 khi lọc theo Thành phố:**
+  - Thay thế cú pháp LINQ `.Any()` trong `ProductController.FilterProducts` (vốn sinh câu lệnh `FROM (VALUES ROW(...))` gây lỗi cú pháp trên MySQL/MariaDB) bằng điều kiện SQL `LIKE` an toàn `(c.Location.Contains(t1) || c.Location.Contains(t2))`.
+  - Tương thích 100% với mọi phiên bản MariaDB / MySQL.
+- **Lọc Khoảng giá Thời gian thực (Live Debounce):**
+  - Tích hợp debounce 300ms trên sự kiện kéo thanh trượt `minPriceSlider` và `maxPriceSlider`, người dùng kéo đến đâu danh sách xe lọc mượt mà đến đó mà không cần thả chuột.
+  - Mở rộng thanh giá tối thiểu từ `0đ` đến `5.000.000đ/ngày`.
+- **Cập nhật số lượng xe và trạng thái rỗng:**
+  - Đồng bộ số lượng xe tìm thấy trên banner đầu trang theo thời gian thực.
+  - Hiển thị thông báo trạng thái rỗng thân thiện kèm nút nới rộng bộ lọc khi không có xe nào khớp tiêu chí.

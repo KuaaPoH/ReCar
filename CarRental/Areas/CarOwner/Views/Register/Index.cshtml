@@ -1,102 +1,369 @@
-@using CarRental.Utilities
-@model CarRental.Models.Account
+@model CarRental.ViewModels.CarOwnerRegistrationVM
 @{
-    ViewData["Title"] = "Đăng ký - Chủ xe";
+    ViewData["Title"] = "Đăng ký Đối tác Chủ xe ReCar";
     Layout = "~/Views/Shared/_Layout.cshtml";
+    string? rejectReason = ViewBag.RejectReason as string;
+    var banks = ViewBag.Banks as List<CarRental.Models.Bank>;
 }
 
-<!-- Breadcrumb Area Start Here -->
-<div class="breadcrumbs-area position-relative">
-    <div class="container">
-        <div class="row">
-            <div class="col-12 text-center">
-                <div class="breadcrumb-content position-relative section-content">
-                    <h3 class="title-3">Đăng ký Chủ xe</h3>
-                    <ul>
-                        <li><a asp-controller="Home" asp-action="Index" asp-area="">Trang chủ</a></li>
-                        <li>Đăng ký Chủ xe</li>
-                    </ul>
-                </div>
-            </div>
-        </div>
+<style>
+    .recar-reg-container {
+        max-width: 960px;
+        margin: 0 auto;
+    }
+    .recar-reg-card {
+        background: #ffffff;
+        border-radius: 18px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+        padding: 2.25rem;
+        margin-bottom: 2rem;
+    }
+    .recar-reg-section-title {
+        font-size: 1.15rem;
+        font-weight: 700;
+        color: #0f172a;
+        display: flex;
+        align-items: center;
+        gap: 0.65rem;
+        padding-bottom: 0.85rem;
+        border-bottom: 2px solid #f1f5f9;
+        margin-bottom: 1.5rem;
+    }
+    .recar-reg-section-title i {
+        color: #0284c7;
+        font-size: 1.35rem;
+    }
+    .recar-form-label {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #334155;
+        margin-bottom: 0.4rem;
+    }
+    .recar-input-control {
+        border-radius: 10px;
+        border: 1.5px solid #cbd5e1;
+        padding: 0.65rem 0.95rem;
+        font-size: 0.9rem;
+        transition: all 0.2s ease;
+    }
+    .recar-input-control:focus {
+        border-color: #0284c7;
+        box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
+    }
+    .recar-upload-box {
+        border: 2px dashed #cbd5e1;
+        border-radius: 12px;
+        padding: 1.25rem;
+        text-align: center;
+        background-color: #f8fafc;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        position: relative;
+    }
+    .recar-upload-box:hover {
+        border-color: #0284c7;
+        background-color: #f0f9ff;
+    }
+    .recar-upload-preview {
+        max-height: 120px;
+        border-radius: 8px;
+        object-fit: cover;
+        margin-top: 0.5rem;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    .recar-steps-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 14px;
+        background: #f1f5f9;
+        border-radius: 999px;
+        font-size: 13px;
+        font-weight: 600;
+        color: #475569;
+    }
+    .recar-steps-pill.active {
+        background: #e0f2fe;
+        color: #0284c7;
+    }
+</style>
+
+<!-- Hero Banner Header -->
+<div class="py-5" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: #ffffff;">
+    <div class="container text-center">
+        <span class="badge px-3 py-2 rounded-pill mb-3" style="background: rgba(2, 132, 199, 0.2); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); font-weight: 600;">
+            <i class="bi bi-shield-check me-1"></i> Chương trình Đối tác ReCar Host
+        </span>
+        <h1 class="fw-bold mb-2" style="font-size: 2.25rem; letter-spacing: -0.5px;">Hồ sơ Đăng ký Đối tác Chủ xe</h1>
+        <p class="text-white-50 mx-auto mb-0" style="max-width: 650px; font-size: 1rem;">
+            Hoàn tất thủ tục định danh pháp lý và thông tin tài khoản ngân hàng để bắt đầu tạo thu nhập thụ động cùng nền tảng ReCar.
+        </p>
     </div>
 </div>
-<!-- Breadcrumb Area End Here -->
 
-<!-- Register Area Start Here -->
-<div class="login-register-area mt-no-text" style="margin-bottom:200px">
-    <div class="container container-default-2 custom-area">
-        <div class="row">
-            <div class="col-lg-6 offset-lg-3 col-md-8 offset-md-2 col-custom">
-                <div class="login-register-wrapper">
-                    <div class="section-content text-center mb-5">
-                        <h2 class="title-4 mb-2">Đăng ký tài khoản Chủ xe</h2>
-                        <p class="desc-content">Đăng ký để trở thành chủ xe và cho thuê xe của bạn trên hệ thống.</p>
+<div class="py-5 bg-light">
+    <div class="container recar-reg-container">
+
+        <!-- Thông báo nếu hồ sơ từng bị từ chối cần gửi lại -->
+        @if (!string.IsNullOrEmpty(rejectReason))
+        {
+            <div class="alert alert-warning border-0 rounded-4 shadow-sm p-4 mb-4 d-flex align-items-start gap-3">
+                <i class="bi bi-exclamation-triangle-fill fs-2 text-warning flex-shrink-0"></i>
+                <div>
+                    <h5 class="fw-bold text-dark mb-1">Hồ sơ trước đó chưa được duyệt</h5>
+                    <p class="mb-1 text-muted small">Lý do từ Ban Quản trị: <strong>@rejectReason</strong></p>
+                    <p class="mb-0 text-muted small">Vui lòng kiểm tra lại thông tin, cập nhật ảnh rõ nét và bấm <strong>Gửi lại hồ sơ</strong> để được xét duyệt.</p>
+                </div>
+            </div>
+        }
+
+        <!-- Thông báo nếu đang ở chế độ Chỉnh sửa / Bổ sung hồ sơ đang chờ duyệt -->
+        @if (ViewBag.IsEditingPending == true)
+        {
+            <div class="alert alert-primary border-0 rounded-4 shadow-sm p-4 mb-4 d-flex align-items-center justify-content-between flex-wrap gap-3" style="background-color: #eff6ff; border-left: 5px solid #0284c7 !important;">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center text-white flex-shrink-0" style="width: 48px; height: 48px; background-color: #0284c7;">
+                        <i class="bi bi-pencil-square fs-4"></i>
+                    </div>
+                    <div>
+                        <h6 class="fw-bold text-dark mb-1">Bạn đang chỉnh sửa / bổ sung hồ sơ đã gửi</h6>
+                        <p class="mb-0 text-muted small">Hồ sơ của bạn đang ở trạng thái Chờ duyệt. Bạn có thể sửa đổi thông tin hoặc cập nhật lại ảnh giấy tờ, sau đó bấm Lưu để Admin xét duyệt bản mới nhất.</p>
+                    </div>
+                </div>
+                <a asp-action="Pending" class="btn btn-outline-secondary rounded-pill px-3 py-2 small fw-semibold">
+                    <i class="bi bi-arrow-left me-1"></i> Về trang chờ duyệt
+                </a>
+            </div>
+        }
+
+        <form asp-action="Index" method="post" enctype="multipart/form-data">
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="CustomerId" />
+            <input type="hidden" asp-for="ExistingIdCardFrontImage" />
+            <input type="hidden" asp-for="ExistingIdCardBackImage" />
+            <input type="hidden" asp-for="ExistingLicenseImage" />
+
+            <!-- Khối 1: Thông tin cá nhân & Liên hệ -->
+            <div class="recar-reg-card">
+                <div class="recar-reg-section-title">
+                    <i class="bi bi-person-bounding-box"></i>
+                    <span>1. Thông tin Cá nhân & Địa chỉ Bàn giao xe</span>
+                </div>
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label asp-for="FullName" class="recar-form-label">Họ và tên thật *</label>
+                        <input asp-for="FullName" class="form-control recar-input-control" placeholder="Ví dụ: Nguyễn Văn A" required />
+                        <span asp-validation-for="FullName" class="text-danger small"></span>
                     </div>
 
-                    @if (!string.IsNullOrEmpty(Function._Message))
-                    {
-                        <div class="alert alert-danger">@Function._Message</div>
-                    }
+                    <div class="col-md-6">
+                        <label asp-for="Phone" class="recar-form-label">Số điện thoại liên hệ *</label>
+                        <input asp-for="Phone" class="form-control recar-input-control" placeholder="Ví dụ: 0912 345 678" required />
+                        <span asp-validation-for="Phone" class="text-danger small"></span>
+                    </div>
 
-                    <form asp-controller="Register" asp-action="Index" asp-area="CarOwner" method="post">
-                        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+                    <div class="col-md-6">
+                        <label asp-for="Email" class="recar-form-label">Email tài khoản *</label>
+                        <input asp-for="Email" class="form-control recar-input-control" placeholder="email@gmail.com" readonly style="background-color: #f8fafc;" />
+                        <span asp-validation-for="Email" class="text-danger small"></span>
+                    </div>
 
-                        <div class="single-input-item mb-3">
-                            <label asp-for="Username">Tên đăng nhập *</label>
-                            <input type="text" asp-for="Username" class="form-control" placeholder="Nhập tên đăng nhập" required />
-                            <span asp-validation-for="Username" class="text-danger"></span>
-                        </div>
-
-                        <div class="single-input-item mb-3">
-                            <label asp-for="Email">Email *</label>
-                            <input type="email" asp-for="Email" class="form-control" placeholder="Nhập email" required />
-                            <span asp-validation-for="Email" class="text-danger"></span>
-                        </div>
-
-                        <div class="single-input-item mb-3">
-                            <label asp-for="Password">Mật khẩu *</label>
-                            <input type="password" asp-for="Password" class="form-control" placeholder="Nhập mật khẩu" required />
-                            <span asp-validation-for="Password" class="text-danger"></span>
-                        </div>
-
-                        <div class="single-input-item mb-3">
-                            <label asp-for="FullName">Họ và tên</label>
-                            <input type="text" asp-for="FullName" class="form-control" placeholder="Nhập họ và tên" />
-                            <span asp-validation-for="FullName" class="text-danger"></span>
-                        </div>
-
-                        <div class="single-input-item mb-3">
-                            <label asp-for="Phone">Số điện thoại</label>
-                            <input type="text" asp-for="Phone" class="form-control" placeholder="Nhập số điện thoại" />
-                            <span asp-validation-for="Phone" class="text-danger"></span>
-                        </div>
-
-                        <div class="single-input-item mb-3">
-                            <div class="login-reg-form-meta d-flex align-items-center justify-content-between">
-                                <div class="remember-meta mb-3">
-                                    <div class="custom-control custom-checkbox">
-                                        <label class="custom-control-label">
-                                            Bạn đã có tài khoản? 
-                                            <a asp-controller="Accounts" asp-action="Index" style="color:#E72463">Vào trang tài khoản</a>
-                                        </label>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="single-input-item mb-3">
-                            <button type="submit" class="btn flosun-button secondary-btn theme-color rounded-0 w-100">Đăng ký</button>
-                        </div>
-                    </form>
+                    <div class="col-md-6">
+                        <label asp-for="Address" class="recar-form-label">Địa chỉ thường trú / Điểm giao xe *</label>
+                        <input asp-for="Address" class="form-control recar-input-control" placeholder="Số nhà, đường, phường/xã, quận/huyện, tỉnh/thành" required />
+                        <span asp-validation-for="Address" class="text-danger small"></span>
+                    </div>
                 </div>
             </div>
-        </div>
+
+            <!-- Khối 2: Định danh cá nhân & Pháp lý (KYC) -->
+            <div class="recar-reg-card">
+                <div class="recar-reg-section-title">
+                    <i class="bi bi-card-heading"></i>
+                    <span>2. Định danh Cá nhân & Giấy tờ Pháp lý (KYC Bắt buộc)</span>
+                </div>
+
+                <div class="row g-3 mb-4">
+                    <div class="col-md-4">
+                        <label asp-for="IdCard" class="recar-form-label">Số Căn cước công dân (CCCD) *</label>
+                        <input asp-for="IdCard" class="form-control recar-input-control" placeholder="12 chữ số trên thẻ CCCD" required />
+                        <span asp-validation-for="IdCard" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="IdCardIssueDate" class="recar-form-label">Ngày cấp CCCD</label>
+                        <input asp-for="IdCardIssueDate" type="date" class="form-control recar-input-control" />
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="IdCardIssuePlace" class="recar-form-label">Nơi cấp CCCD</label>
+                        <input asp-for="IdCardIssuePlace" class="form-control recar-input-control" placeholder="Cục CS QLHC về TTXH" />
+                    </div>
+                </div>
+
+                <div class="row g-3 mb-4">
+                    <div class="col-md-6">
+                        <label class="recar-form-label">Ảnh mặt trước CCCD</label>
+                        <div class="recar-upload-box" onclick="document.getElementById('inputFrontCCCD').click()">
+                            <i class="bi bi-camera fs-3 text-muted"></i>
+                            <div class="small fw-semibold text-primary mt-1">Bấm để tải ảnh mặt trước CCCD</div>
+                            <div class="text-muted" style="font-size: 11px;">Hỗ trợ JPG, PNG (tối đa 5MB)</div>
+                            <input type="file" asp-for="IdCardFrontFile" id="inputFrontCCCD" accept="image/*" class="d-none" onchange="previewImg(this, 'previewFrontCCCD')" />
+                            <img id="previewFrontCCCD" src="@(!string.IsNullOrEmpty(Model.ExistingIdCardFrontImage) ? "/files/KYC/" + Model.ExistingIdCardFrontImage : "")" class="recar-upload-preview @(string.IsNullOrEmpty(Model.ExistingIdCardFrontImage) ? "d-none" : "")" alt="Mặt trước CCCD" />
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="recar-form-label">Ảnh mặt sau CCCD</label>
+                        <div class="recar-upload-box" onclick="document.getElementById('inputBackCCCD').click()">
+                            <i class="bi bi-camera fs-3 text-muted"></i>
+                            <div class="small fw-semibold text-primary mt-1">Bấm để tải ảnh mặt sau CCCD</div>
+                            <div class="text-muted" style="font-size: 11px;">Hỗ trợ JPG, PNG (tối đa 5MB)</div>
+                            <input type="file" asp-for="IdCardBackFile" id="inputBackCCCD" accept="image/*" class="d-none" onchange="previewImg(this, 'previewBackCCCD')" />
+                            <img id="previewBackCCCD" src="@(!string.IsNullOrEmpty(Model.ExistingIdCardBackImage) ? "/files/KYC/" + Model.ExistingIdCardBackImage : "")" class="recar-upload-preview @(string.IsNullOrEmpty(Model.ExistingIdCardBackImage) ? "d-none" : "")" alt="Mặt sau CCCD" />
+                        </div>
+                    </div>
+                </div>
+
+                <hr class="my-4" style="border-color: #e2e8f0;">
+
+                <div class="row g-3 mb-4">
+                    <div class="col-md-4">
+                        <label asp-for="LicenseNumber" class="recar-form-label">Số Giấy phép lái xe (GPLX) *</label>
+                        <input asp-for="LicenseNumber" class="form-control recar-input-control" placeholder="Số GPLX (12 số)" required />
+                        <span asp-validation-for="LicenseNumber" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="LicenseClass" class="recar-form-label">Hạng GPLX *</label>
+                        <select asp-for="LicenseClass" class="form-select recar-input-control">
+                            <option value="B1">Hạng B1 (Số tự động)</option>
+                            <option value="B2" selected>Hạng B2 (Ô tô dưới 9 chỗ / Tải dưới 3.5T)</option>
+                            <option value="C">Hạng C (Xe tải)</option>
+                            <option value="D">Hạng D</option>
+                            <option value="E">Hạng E</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="LicenseExpiryDate" class="recar-form-label">Ngày hết hạn GPLX</label>
+                        <input asp-for="LicenseExpiryDate" type="date" class="form-control recar-input-control" />
+                    </div>
+                </div>
+
+                <div class="row g-3">
+                    <div class="col-12">
+                        <label class="recar-form-label">Ảnh chụp Giấy phép lái xe (mặt trước có ảnh & thông tin)</label>
+                        <div class="recar-upload-box" onclick="document.getElementById('inputLicense').click()">
+                            <i class="bi bi-person-vcard fs-3 text-muted"></i>
+                            <div class="small fw-semibold text-primary mt-1">Bấm để tải ảnh Giấy phép lái xe</div>
+                            <div class="text-muted" style="font-size: 11px;">Rõ số hiệu, họ tên, hạng bằng và ngày hết hạn</div>
+                            <input type="file" asp-for="LicenseImageFile" id="inputLicense" accept="image/*" class="d-none" onchange="previewImg(this, 'previewLicense')" />
+                            <img id="previewLicense" src="@(!string.IsNullOrEmpty(Model.ExistingLicenseImage) ? "/files/KYC/" + Model.ExistingLicenseImage : "")" class="recar-upload-preview @(string.IsNullOrEmpty(Model.ExistingLicenseImage) ? "d-none" : "")" alt="GPLX" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Khối 3: Thông tin Tài khoản Ngân hàng (Payout Details) -->
+            <div class="recar-reg-card">
+                <div class="recar-reg-section-title">
+                    <i class="bi bi-bank2"></i>
+                    <span>3. Thông tin Tài khoản Ngân hàng nhận Doanh thu (Payout)</span>
+                </div>
+                <div class="p-3 bg-light rounded-3 mb-3 border">
+                    <div class="d-flex align-items-center gap-2 text-dark small">
+                        <i class="bi bi-info-circle-fill text-primary"></i>
+                        <span>Sàn ReCar sẽ thực hiện đối soát và tự động chuyển <strong>90% tiền thuê xe</strong> trực tiếp vào số tài khoản này sau khi chuyến đi hoàn tất.</span>
+                    </div>
+                </div>
+
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label asp-for="BankName" class="recar-form-label">Ngân hàng thụ hưởng *</label>
+                        <select asp-for="BankName" class="form-select recar-input-control" required>
+                            <option value="">-- Chọn ngân hàng thụ hưởng --</option>
+                            @if (banks != null && banks.Any())
+                            {
+                                foreach (var b in banks)
+                                {
+                                    <option value="@b.ShortName (@b.BankCode)">@b.ShortName (@b.BankCode) - @b.BankName</option>
+                                }
+                            }
+                            else
+                            {
+                                <option value="Vietcombank (VCB)">Vietcombank (VCB)</option>
+                                <option value="MB Bank (MB)">MB Bank (MB)</option>
+                                <option value="Techcombank (TCB)">Techcombank (TCB)</option>
+                                <option value="BIDV">BIDV</option>
+                                <option value="VietinBank (CTG)">VietinBank (CTG)</option>
+                                <option value="VPBank (VPB)">VPBank (VPB)</option>
+                                <option value="ACB">ACB</option>
+                                <option value="TPBank (TPB)">TPBank (TPB)</option>
+                                <option value="Sacombank (STB)">Sacombank (STB)</option>
+                                <option value="HDBank (HDB)">HDBank (HDB)</option>
+                                <option value="Agribank (VBA)">Agribank (VBA)</option>
+                                <option value="VIB">VIB</option>
+                            }
+                        </select>
+                        <span asp-validation-for="BankName" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label asp-for="AccountNumber" class="recar-form-label">Số tài khoản ngân hàng *</label>
+                        <input asp-for="AccountNumber" class="form-control recar-input-control font-monospace" placeholder="Ví dụ: 0353675457" required />
+                        <span asp-validation-for="AccountNumber" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label asp-for="AccountHolder" class="recar-form-label">Tên chủ tài khoản (IN HOA) *</label>
+                        <input asp-for="AccountHolder" class="form-control recar-input-control text-uppercase font-monospace" placeholder="NGUYEN VAN A" required />
+                        <span asp-validation-for="AccountHolder" class="text-danger small"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Khối 4: Cam kết & Xác nhận gửi -->
+            <div class="recar-reg-card">
+                <div class="form-check mb-4">
+                    <input class="form-check-input" type="checkbox" asp-for="AcceptTerms" id="checkTerms" required />
+                    <label class="form-check-label text-secondary small" for="checkTerms">
+                        Tôi cam kết mọi thông tin khai báo định danh cá nhân, bằng lái xe và tài khoản ngân hàng trên là chính xác 100%. Tôi đồng ý với <strong>Quy chế hoạt động & Điều khoản hợp tác Chủ xe của Sàn ReCar</strong>.
+                    </label>
+                </div>
+
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+                    @if (ViewBag.IsEditingPending == true)
+                    {
+                        <a asp-action="Pending" class="btn btn-outline-secondary rounded-pill px-4 py-2.5 small fw-semibold">
+                            <i class="bi bi-arrow-left me-1"></i> Quay lại trang chờ duyệt
+                        </a>
+                    }
+                    else
+                    {
+                        <a href="/" class="btn btn-outline-secondary rounded-pill px-4 py-2.5 small fw-semibold">
+                            <i class="bi bi-arrow-left me-1"></i> Quay về Trang chủ
+                        </a>
+                    }
+
+                    <button type="submit" class="btn btn-primary rounded-pill px-5 py-2.5 fw-bold shadow-sm" style="background-color: #0284c7; border: none; font-size: 1rem;">
+                        <i class="bi bi-send-fill me-1"></i>
+                        @(ViewBag.IsEditingPending == true ? "Lưu và cập nhật hồ sơ xét duyệt" : "Gửi hồ sơ đăng ký xét duyệt")
+                    </button>
+                </div>
+            </div>
+        </form>
     </div>
 </div>
-<!-- Register Area End Here -->
 
-@section Scripts {
-    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
-}
-
+<script>
+    function previewImg(input, targetImgId) {
+        if (input.files && input.files[0]) {
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                var img = document.getElementById(targetImgId);
+                img.src = e.target.result;
+                img.classList.remove('d-none');
+            }
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+</script>

@@ -2,6 +2,7 @@ using CarRental.Models;
 using CarRental.Utilities;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Linq;
 
 namespace CarRental.Areas.CarOwner.Controllers
 {
@@ -18,8 +19,13 @@ namespace CarRental.Areas.CarOwner.Controllers
         [HttpGet]
         public IActionResult Index(string? ReturnUrl = null)
         {
-            // Redirect về trang tài khoản để đăng ký chủ xe
-            return RedirectToAction("Index", "Accounts", new { area = "" });
+            if (Function.IsCarOwnerLogin(HttpContext.Session))
+            {
+                return RedirectToAction("Index", "Home");
+            }
+
+            ViewData["ReturnUrl"] = ReturnUrl;
+            return View();
         }
 
         [HttpPost]
@@ -30,53 +36,40 @@ namespace CarRental.Areas.CarOwner.Controllers
                 return NotFound();
             }
 
-            if (ModelState.IsValid)
+            // Mã hóa mật khẩu trước khi kiểm tra
+            string p = Function.MD5Password(account.Password);
+
+            // Kiểm tra tài khoản có tồn tại và là chủ xe (RoleId = 3)
+            var check = _context.Accounts
+                .Include(a => a.Role)
+                .Where(m => (m.Email == account.Email || m.Username == account.Email) && 
+                            m.Password == p && 
+                            m.RoleId == 3) // RoleId 3 = Chủ xe
+                .FirstOrDefault();
+
+            if (check == null)
             {
-                // Mã hóa mật khẩu trước khi kiểm tra
-                string p = Function.MD5Password(account.Password);
-
-                // Kiểm tra tài khoản có tồn tại và là chủ xe (RoleId = 3)
-                var check = _context.Accounts
-                    .Include(a => a.Role)
-                    .Where(m => (m.Email == account.Email || m.Username == account.Email) && 
-                                m.Password == p && 
-                                m.RoleId == 3) // RoleId 3 = Chủ xe
-                    .FirstOrDefault();
-
-                if (check == null)
-                {
-                    Function.SetMessage(HttpContext.Session, "Sai thông tin đăng nhập hoặc bạn không phải chủ xe");
-                    return RedirectToAction("Index", "Login");
-                }
-
-                // Kiểm tra tài khoản có bị khóa không
-                if (check.IsActive == false)
-                {
-                    Function.SetMessage(HttpContext.Session, "LOCKED");
-                    return RedirectToAction("Index", "Accounts", new { area = "" });
-                }
-
-                // Đăng nhập thành công - lưu vào Session
-                Function.SetMessage(HttpContext.Session, string.Empty);
-                Function.SetAccountId(HttpContext.Session, check.AccountId);
-                Function.SetCarOwnerAccountId(HttpContext.Session, check.AccountId);
-                Function.SetUserName(HttpContext.Session, string.IsNullOrEmpty(check.Username) ? string.Empty : check.Username);
-                Function.SetEmail(HttpContext.Session, string.IsNullOrEmpty(check.Email) ? string.Empty : check.Email);
-
-                // Check if the ReturnUrl is not null and is a local URL
-                if (!string.IsNullOrEmpty(ReturnUrl) && Url.IsLocalUrl(ReturnUrl))
-                {
-                    return Redirect(ReturnUrl);
-                }
-                else
-                {
-                    // Redirect to CarOwner dashboard
-                    return RedirectToAction("Index", "Home");
-                }
+                Function.SetMessage(HttpContext.Session, "Sai thông tin đăng nhập hoặc tài khoản của bạn chưa được cấp quyền Chủ xe.");
+                return View(account);
             }
 
-            return View();
+            // Kiểm tra tài khoản có bị khóa không
+            if (check.IsActive == false)
+            {
+                Function.SetMessage(HttpContext.Session, "Tài khoản đối tác của bạn đang bị tạm khóa hoặc chờ phê duyệt.");
+                return View(account);
+            }
+
+            // Đăng nhập thành công - lưu độc lập vào CarOwner Session
+            Function.SetMessage(HttpContext.Session, string.Empty);
+            Function.SetCarOwnerSession(HttpContext.Session, check.AccountId, check.Username ?? string.Empty, check.Email ?? string.Empty, check.FullName ?? string.Empty);
+
+            if (!string.IsNullOrEmpty(ReturnUrl) && Url.IsLocalUrl(ReturnUrl))
+            {
+                return Redirect(ReturnUrl);
+            }
+
+            return RedirectToAction("Index", "Home");
         }
     }
 }
-

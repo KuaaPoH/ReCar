@@ -236,6 +236,48 @@ static void EnsureAllTablesExist(DbRenalCarContext context, ILogger logger)
                 `Email` VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL,
                 `Password` VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL,
                 PRIMARY KEY (`UserID`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;" },
+            
+            { "carowner_registrations", @"CREATE TABLE IF NOT EXISTS `carowner_registrations` (
+                `Id` INT NOT NULL AUTO_INCREMENT,
+                `CustomerId` INT NOT NULL,
+                `FullName` VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+                `Phone` VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+                `Email` VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+                `Address` VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL,
+                `IdCard` VARCHAR(25) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+                `IdCardIssueDate` DATETIME NULL,
+                `IdCardIssuePlace` VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL,
+                `IdCardFrontImage` VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL,
+                `IdCardBackImage` VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL,
+                `LicenseNumber` VARCHAR(25) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+                `LicenseClass` VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT 'B2',
+                `LicenseExpiryDate` DATETIME NULL,
+                `LicenseImage` VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL,
+                `BankName` VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+                `AccountNumber` VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+                `AccountHolder` VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+                `Status` VARCHAR(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'Pending',
+                `RejectReason` LONGTEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL,
+                `CreatedAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                `ApprovedAt` DATETIME NULL,
+                `ApprovedBy` VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL,
+                PRIMARY KEY (`Id`),
+                INDEX `idx_reg_customer` (`CustomerId`),
+                INDEX `idx_reg_status` (`Status`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;" },
+
+            { "banks", @"CREATE TABLE IF NOT EXISTS `banks` (
+                `BankId` INT NOT NULL AUTO_INCREMENT,
+                `BankCode` VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+                `BankName` VARCHAR(150) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+                `ShortName` VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+                `Bin` VARCHAR(10) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL,
+                `Logo` VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL,
+                `DisplayOrder` INT NOT NULL DEFAULT 0,
+                `IsActive` TINYINT(1) NOT NULL DEFAULT 1,
+                PRIMARY KEY (`BankId`),
+                INDEX `idx_bank_code` (`BankCode`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;" }
         };
         
@@ -262,6 +304,44 @@ static void EnsureAllTablesExist(DbRenalCarContext context, ILogger logger)
             {
                 logger.LogWarning(ex, $"Error checking/creating table {table.Key}: {ex.Message}");
             }
+        }
+
+        // Tự động Seed danh sách ngân hàng nếu bảng banks chưa có dữ liệu
+        try
+        {
+            if (!context.Banks.Any())
+            {
+                logger.LogInformation("Seeding default Vietnam recipient banks...");
+                context.Banks.AddRange(new[]
+                {
+                    new Bank { BankCode = "VCB", ShortName = "Vietcombank", BankName = "Ngân hàng TMCP Ngoại thương Việt Nam", Bin = "970436", DisplayOrder = 1, IsActive = true },
+                    new Bank { BankCode = "MB", ShortName = "MB Bank", BankName = "Ngân hàng TMCP Quân đội", Bin = "970422", DisplayOrder = 2, IsActive = true },
+                    new Bank { BankCode = "TCB", ShortName = "Techcombank", BankName = "Ngân hàng TMCP Kỹ thương Việt Nam", Bin = "970407", DisplayOrder = 3, IsActive = true },
+                    new Bank { BankCode = "BIDV", ShortName = "BIDV", BankName = "Ngân hàng TMCP Đầu tư và Phát triển Việt Nam", Bin = "970418", DisplayOrder = 4, IsActive = true },
+                    new Bank { BankCode = "CTG", ShortName = "VietinBank", BankName = "Ngân hàng TMCP Công thương Việt Nam", Bin = "970415", DisplayOrder = 5, IsActive = true },
+                    new Bank { BankCode = "VPB", ShortName = "VPBank", BankName = "Ngân hàng TMCP Việt Nam Thịnh Vượng", Bin = "970432", DisplayOrder = 6, IsActive = true },
+                    new Bank { BankCode = "ACB", ShortName = "ACB", BankName = "Ngân hàng TMCP Á Châu", Bin = "970416", DisplayOrder = 7, IsActive = true },
+                    new Bank { BankCode = "TPB", ShortName = "TPBank", BankName = "Ngân hàng TMCP Tiên Phong", Bin = "970423", DisplayOrder = 8, IsActive = true },
+                    new Bank { BankCode = "STB", ShortName = "Sacombank", BankName = "Ngân hàng TMCP Sài Gòn Thương Tín", Bin = "970403", DisplayOrder = 9, IsActive = true },
+                    new Bank { BankCode = "HDB", ShortName = "HDBank", BankName = "Ngân hàng TMCP Phát triển TP.HCM", Bin = "970437", DisplayOrder = 10, IsActive = true },
+                    new Bank { BankCode = "VBA", ShortName = "Agribank", BankName = "Ngân hàng Nông nghiệp & PTNT Việt Nam", Bin = "970405", DisplayOrder = 11, IsActive = true },
+                    new Bank { BankCode = "VIB", ShortName = "VIB", BankName = "Ngân hàng TMCP Quốc tế Việt Nam", Bin = "970441", DisplayOrder = 12, IsActive = true },
+                    new Bank { BankCode = "SHB", ShortName = "SHB", BankName = "Ngân hàng TMCP Sài Gòn - Hà Nội", Bin = "970443", DisplayOrder = 13, IsActive = true },
+                    new Bank { BankCode = "MSB", ShortName = "MSB", BankName = "Ngân hàng TMCP Hàng Hải Việt Nam", Bin = "970426", DisplayOrder = 14, IsActive = true },
+                    new Bank { BankCode = "OCB", ShortName = "OCB", BankName = "Ngân hàng TMCP Phương Đông", Bin = "970448", DisplayOrder = 15, IsActive = true },
+                    new Bank { BankCode = "SSB", ShortName = "SeABank", BankName = "Ngân hàng TMCP Đông Nam Á", Bin = "970440", DisplayOrder = 16, IsActive = true },
+                    new Bank { BankCode = "LPB", ShortName = "LPBank", BankName = "Ngân hàng TMCP Lộc Phát Việt Nam", Bin = "970449", DisplayOrder = 17, IsActive = true },
+                    new Bank { BankCode = "NAB", ShortName = "Nam A Bank", BankName = "Ngân hàng TMCP Nam Á", Bin = "970428", DisplayOrder = 18, IsActive = true },
+                    new Bank { BankCode = "BVB", ShortName = "BVBank", BankName = "Ngân hàng TMCP Bản Việt", Bin = "970454", DisplayOrder = 19, IsActive = true },
+                    new Bank { BankCode = "BAB", ShortName = "Bac A Bank", BankName = "Ngân hàng TMCP Bắc Á", Bin = "970409", DisplayOrder = 20, IsActive = true }
+                });
+                context.SaveChanges();
+                logger.LogInformation("Banks seeded successfully.");
+            }
+        }
+        catch (Exception bankEx)
+        {
+            logger.LogWarning(bankEx, "Could not seed banks: {Message}", bankEx.Message);
         }
     }
     catch (Exception ex)

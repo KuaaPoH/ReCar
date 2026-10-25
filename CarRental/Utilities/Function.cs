@@ -1,4 +1,4 @@
-﻿using elFinder.NetCore;
+using elFinder.NetCore;
 using SlugGenerator;
 using System.Security.Cryptography;
 using System.Text;
@@ -19,6 +19,17 @@ namespace CarRental.Utilities
         private const string SESSION_PICKUP_DATE = "PickupDate";
         private const string SESSION_RETURN_DATE = "ReturnDate";
 
+        // Admin Scoped Keys
+        private const string SESSION_ADMIN_ACCOUNT_ID = "Admin_AccountId";
+        private const string SESSION_ADMIN_USER_NAME = "Admin_UserName";
+        private const string SESSION_ADMIN_EMAIL = "Admin_Email";
+
+        // CarOwner Scoped Keys
+        private const string SESSION_CAROWNER_ID = "CarOwner_Id";
+        private const string SESSION_CAROWNER_USER_NAME = "CarOwner_UserName";
+        private const string SESSION_CAROWNER_EMAIL = "CarOwner_Email";
+        private const string SESSION_CAROWNER_FULLNAME = "CarOwner_FullName";
+
         // Static variables for backward compatibility (deprecated - use Session instead)
         public static int _AccountId = 0;
         public static int _CarOwnerAccountId = 0; // AccountId của chủ xe (nếu Customer có Account với RoleId=3)
@@ -31,11 +42,11 @@ namespace CarRental.Utilities
         public static string _pickupDate = String.Empty;
         public static string _returnDate = String.Empty;
 
-        // Session helper methods
+        // --- CUSTOMER / GENERAL SESSION METHODS ---
         public static void SetAccountId(ISession session, int accountId)
         {
             session.SetInt32(SESSION_ACCOUNT_ID, accountId);
-            _AccountId = accountId; // Keep for backward compatibility
+            _AccountId = accountId;
         }
 
         public static int GetAccountId(ISession session)
@@ -46,18 +57,19 @@ namespace CarRental.Utilities
         public static void SetCarOwnerAccountId(ISession session, int accountId)
         {
             session.SetInt32(SESSION_CAR_OWNER_ACCOUNT_ID, accountId);
-            _CarOwnerAccountId = accountId; // Keep for backward compatibility
+            session.SetInt32(SESSION_CAROWNER_ID, accountId);
+            _CarOwnerAccountId = accountId;
         }
 
         public static int GetCarOwnerAccountId(ISession session)
         {
-            return session.GetInt32(SESSION_CAR_OWNER_ACCOUNT_ID) ?? 0;
+            return session.GetInt32(SESSION_CAROWNER_ID) ?? session.GetInt32(SESSION_CAR_OWNER_ACCOUNT_ID) ?? 0;
         }
 
         public static void SetUserName(ISession session, string userName)
         {
             session.SetString(SESSION_USER_NAME, userName ?? string.Empty);
-            _UserName = userName ?? string.Empty; // Keep for backward compatibility
+            _UserName = userName ?? string.Empty;
         }
 
         public static string GetUserName(ISession session)
@@ -68,7 +80,7 @@ namespace CarRental.Utilities
         public static void SetEmail(ISession session, string email)
         {
             session.SetString(SESSION_EMAIL, email ?? string.Empty);
-            _Email = email ?? string.Empty; // Keep for backward compatibility
+            _Email = email ?? string.Empty;
         }
 
         public static string GetEmail(ISession session)
@@ -79,7 +91,7 @@ namespace CarRental.Utilities
         public static void SetAddress(ISession session, string address)
         {
             session.SetString(SESSION_ADDRESS, address ?? string.Empty);
-            _address = address ?? string.Empty; // Keep for backward compatibility
+            _address = address ?? string.Empty;
         }
 
         public static string GetAddress(ISession session)
@@ -90,7 +102,7 @@ namespace CarRental.Utilities
         public static void SetPhone(ISession session, string phone)
         {
             session.SetString(SESSION_PHONE, phone ?? string.Empty);
-            _Phone = phone ?? string.Empty; // Keep for backward compatibility
+            _Phone = phone ?? string.Empty;
         }
 
         public static string GetPhone(ISession session)
@@ -98,20 +110,112 @@ namespace CarRental.Utilities
             return session.GetString(SESSION_PHONE) ?? string.Empty;
         }
 
-        /// <summary>
-        /// Kiểm tra tài khoản hiện tại trong Session có phải là Admin hay không.
-        /// Dùng cho khu vực Admin để chặn truy cập trái phép.
-        /// </summary>
+        // --- ADMIN SCOPED METHODS ---
+        public static void SetAdminSession(ISession session, int accountId, string userName, string email)
+        {
+            session.SetInt32(SESSION_ADMIN_ACCOUNT_ID, accountId);
+            session.SetString(SESSION_ADMIN_USER_NAME, userName ?? string.Empty);
+            session.SetString(SESSION_ADMIN_EMAIL, email ?? string.Empty);
+            // Đồng thời set fallback cho code cũ
+            SetAccountId(session, accountId);
+            SetUserName(session, userName ?? string.Empty);
+            SetEmail(session, email ?? string.Empty);
+        }
+
+        public static int GetAdminAccountId(ISession session)
+        {
+            return session.GetInt32(SESSION_ADMIN_ACCOUNT_ID) ?? (IsAdmin(session) ? GetAccountId(session) : 0);
+        }
+
+        public static string GetAdminUserName(ISession session)
+        {
+            return session.GetString(SESSION_ADMIN_USER_NAME) ?? (IsAdmin(session) ? GetUserName(session) : string.Empty);
+        }
+
         public static bool IsAdmin(ISession session)
         {
+            var adminId = session.GetInt32(SESSION_ADMIN_ACCOUNT_ID) ?? 0;
+            if (adminId > 0) return true;
+
             var userName = GetUserName(session);
             return !string.IsNullOrEmpty(userName) && userName.Equals("Admin", StringComparison.OrdinalIgnoreCase);
+        }
+
+        public static void ClearAdminSession(ISession session)
+        {
+            session.Remove(SESSION_ADMIN_ACCOUNT_ID);
+            session.Remove(SESSION_ADMIN_USER_NAME);
+            session.Remove(SESSION_ADMIN_EMAIL);
+            // Nếu session chung đang là Admin thì dọn luôn
+            if (GetUserName(session).Equals("Admin", StringComparison.OrdinalIgnoreCase))
+            {
+                session.Remove(SESSION_ACCOUNT_ID);
+                session.Remove(SESSION_USER_NAME);
+                session.Remove(SESSION_EMAIL);
+            }
+        }
+
+        // --- CAR OWNER SCOPED METHODS ---
+        public static void SetCarOwnerSession(ISession session, int accountId, string userName, string email, string fullName = "")
+        {
+            session.SetInt32(SESSION_CAROWNER_ID, accountId);
+            session.SetString(SESSION_CAROWNER_USER_NAME, userName ?? string.Empty);
+            session.SetString(SESSION_CAROWNER_EMAIL, email ?? string.Empty);
+            session.SetString(SESSION_CAROWNER_FULLNAME, fullName ?? string.Empty);
+            session.SetInt32(SESSION_CAR_OWNER_ACCOUNT_ID, accountId);
+        }
+
+        public static string GetCarOwnerUserName(ISession session)
+        {
+            return session.GetString(SESSION_CAROWNER_USER_NAME) ?? string.Empty;
+        }
+
+        public static string GetCarOwnerFullName(ISession session)
+        {
+            var fullName = session.GetString(SESSION_CAROWNER_FULLNAME);
+            return !string.IsNullOrEmpty(fullName) ? fullName : GetCarOwnerUserName(session);
+        }
+
+        public static string GetCarOwnerEmail(ISession session)
+        {
+            return session.GetString(SESSION_CAROWNER_EMAIL) ?? string.Empty;
+        }
+
+        public static bool IsCarOwnerLogin(ISession session)
+        {
+            return GetCarOwnerAccountId(session) > 0;
+        }
+
+        public static void ClearCarOwnerSession(ISession session)
+        {
+            session.Remove(SESSION_CAROWNER_ID);
+            session.Remove(SESSION_CAROWNER_USER_NAME);
+            session.Remove(SESSION_CAROWNER_EMAIL);
+            session.Remove(SESSION_CAROWNER_FULLNAME);
+            session.Remove(SESSION_CAR_OWNER_ACCOUNT_ID);
+            _CarOwnerAccountId = 0;
+        }
+
+        public static void ClearCustomerSession(ISession session)
+        {
+            session.Remove(SESSION_ACCOUNT_ID);
+            session.Remove(SESSION_USER_NAME);
+            session.Remove(SESSION_EMAIL);
+            session.Remove(SESSION_ADDRESS);
+            session.Remove(SESSION_PHONE);
+            session.Remove(SESSION_MESSAGE);
+            session.Remove(SESSION_MESSAGE_EMAIL);
+            session.Remove(SESSION_PICKUP_DATE);
+            session.Remove(SESSION_RETURN_DATE);
+            _AccountId = 0;
+            _UserName = string.Empty;
+            _Email = string.Empty;
         }
 
         public static void SetMessage(ISession session, string message)
         {
             session.SetString(SESSION_MESSAGE, message ?? string.Empty);
-            _Message = message ?? string.Empty; // Keep for backward compatibility
+            _Message = message ?? string.Empty;
         }
 
         public static string GetMessage(ISession session)

@@ -46,7 +46,7 @@ namespace CarRental.Areas.CarOwner.Controllers
             if (owner == null || owner.RoleId != 3)
             {
                 Function.SetMessage(HttpContext.Session, "Bạn không có quyền truy cập");
-                return RedirectToAction("Index", "Login", new { area = "" });
+                return RedirectToAction("Index", "Home", new { area = "CarOwner" });
             }
 
             var ownerId = owner.AccountId;

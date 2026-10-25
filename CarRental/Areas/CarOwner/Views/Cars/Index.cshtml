@@ -1,136 +1,450 @@
 @model IList<CarRental.Models.Car>
 @using CarRental.Utilities
 @{
-    ViewData["Title"] = "Quản lý xe";
+    ViewData["Title"] = "Quản lý Đội xe của tôi";
     Layout = "~/Areas/CarOwner/Views/Shared/_Layout.cshtml";
+
+    int totalCars = Model?.Count ?? 0;
+    int readyCars = Model?.Count(c => c.CarStatus == "Sẵn sàng") ?? 0;
+    int busyCars = Model?.Count(c => c.CarStatus == "Đang bận" || c.CarStatus == "Đang có khách") ?? 0;
+    int pendingCars = Model?.Count(c => c.CarStatus == "Chờ duyệt") ?? 0;
 }
 
-<div class="space-y-4">
-    <!-- Panel Quản lý xe của tôi (Pixel-Perfect Template) -->
-    <div class="recar-panel">
-        <div class="recar-panel-header flex-wrap gap-2">
+<style>
+    .car-fleet-card {
+        background: #ffffff;
+        border-radius: 18px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.05);
+        overflow: hidden;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+    }
+    .car-fleet-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 30px -4px rgba(15, 23, 42, 0.12);
+        border-color: #cbd5e1;
+    }
+    .car-card-img-wrap {
+        position: relative;
+        height: 190px;
+        background-color: #f1f5f9;
+        overflow: hidden;
+    }
+    .car-card-img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.35s ease;
+    }
+    .car-fleet-card:hover .car-card-img {
+        transform: scale(1.05);
+    }
+    .car-card-status-badge {
+        position: absolute;
+        top: 12px;
+        left: 12px;
+        z-index: 2;
+    }
+    .car-card-plate-badge {
+        position: absolute;
+        bottom: 12px;
+        right: 12px;
+        background: rgba(15, 23, 42, 0.85);
+        backdrop-filter: blur(6px);
+        color: #ffffff;
+        padding: 0.25rem 0.65rem;
+        border-radius: 8px;
+        font-family: monospace;
+        font-weight: 700;
+        font-size: 0.78rem;
+        letter-spacing: 0.5px;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+    }
+    .car-card-body {
+        padding: 1.25rem;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+    .car-card-title {
+        font-size: 1.1rem;
+        font-weight: 800;
+        color: #0f172a;
+        margin-bottom: 0.35rem;
+        line-height: 1.3;
+    }
+    .car-card-spec-item {
+        font-size: 0.78rem;
+        color: #64748b;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        background: #f8fafc;
+        border: 1px solid #f1f5f9;
+        padding: 0.25rem 0.6rem;
+        border-radius: 8px;
+        font-weight: 600;
+    }
+    .car-card-price {
+        font-size: 1.25rem;
+        font-weight: 800;
+        color: #0284c7;
+        letter-spacing: -0.3px;
+    }
+</style>
+
+<!-- Thông báo nếu vừa thêm xe thành công -->
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success border-0 rounded-4 shadow-sm p-3 mb-4 d-flex align-items-center justify-content-between flex-wrap gap-2" style="background-color: #ecfdf5; border-left: 5px solid #10b981 !important;">
+        <div class="d-flex align-items-center gap-2.5">
+            <i class="bi bi-check-circle-fill text-success fs-4"></i>
             <div>
-                <h2 class="recar-panel-title">Danh sách xe của tôi</h2>
-                <div class="text-muted small mt-1">Quản lý phương tiện, tình trạng sẵn sàng đón khách và giá niêm yết theo ngày.</div>
+                <strong class="text-dark">Thành công!</strong>
+                <span class="text-muted small ms-1">@TempData["SuccessMessage"]</span>
             </div>
-            <a href="/CarOwner/Cars/Create" class="btn-recar-primary">
-                <i class="bi bi-plus-lg"></i> Thêm xe mới
-            </a>
         </div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
 
-        <div class="table-responsive">
-            <table class="recar-table">
-                <thead>
-                    <tr>
-                        <th>Phương tiện</th>
-                        <th>Biển số xe</th>
-                        <th>Khu vực nhận xe</th>
-                        <th>Thông số</th>
-                        <th>Giá thuê / ngày</th>
-                        <th>Trạng thái</th>
-                        <th class="text-end">Thao tác</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @if (Model != null && Model.Any())
-                    {
-                        foreach (var car in Model)
-                        {
-                            string statusClass = "status-ready";
-                            string statusText = "Sẵn sàng";
-                            if (car.CarStatus == "Đang bận")
-                            {
-                                statusClass = "status-busy";
-                                statusText = "Đang có khách";
-                            }
-                            else if (car.CarStatus == "Bảo trì")
-                            {
-                                statusClass = "status-maintenance";
-                                statusText = "Đang bảo trì";
-                            }
+<!-- Top Header with 4 Stats -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="p-3 bg-white rounded-4 border shadow-sm d-flex align-items-center gap-3">
+            <div class="rounded-3 bg-primary bg-opacity-10 text-primary p-3 flex-shrink-0">
+                <i class="bi bi-speedometer2 fs-4"></i>
+            </div>
+            <div>
+                <div class="text-muted small fw-semibold">Tổng số xe</div>
+                <div class="fs-4 fw-bold text-dark">@totalCars <span class="fs-6 fw-normal text-muted">chiếc</span></div>
+            </div>
+        </div>
+    </div>
 
-                            <tr>
-                                <td>
-                                    <div class="d-flex align-items-center gap-3">
-                                        <img src="@(string.IsNullOrEmpty(car.Image) ? "/images/cars/car-sedan.jpg" : car.Image)" 
-                                             alt="@car.CarName" 
-                                             class="rounded-3 border shadow-sm" 
-                                             style="width: 64px; height: 46px; object-fit: cover;" />
-                                        <div>
-                                            <div class="fw-bold text-dark fs-6">@car.CarName</div>
-                                            <div class="text-muted small">@car.CarBrand · @(car.Type?.CarTypeName ?? "Ô tô")</div>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td>
-                                    <span class="badge bg-light text-dark border px-2.5 py-1.5 font-monospace fw-bold" style="font-size: 0.8rem;">
-                                        @(string.IsNullOrEmpty(car.LicensePlate) ? "Chưa cấp" : car.LicensePlate)
-                                    </span>
-                                </td>
-                                <td>
-                                    <div class="d-flex align-items-center gap-1 text-dark small">
-                                        <i class="bi bi-geo-alt-fill text-danger"></i>
-                                        <span>@(string.IsNullOrEmpty(car.Location) ? "Toàn quốc" : car.Location)</span>
-                                    </div>
-                                </td>
-                                <td>
-                                    <div class="small text-muted">
-                                        <span><i class="bi bi-people-fill text-secondary me-1"></i>@car.Seat chỗ</span> · 
-                                        <span>@car.Transmission</span>
-                                    </div>
-                                    <div class="small text-muted">
-                                        <i class="bi bi-fuel-pump-fill text-secondary me-1"></i>@car.Fuel
-                                    </div>
-                                </td>
-                                <td>
-                                    <div class="fw-bold text-primary fs-6">
-                                        @((car.Price ?? 0).ToString("N0"))đ
-                                    </div>
-                                    @if (car.IsSale && car.SalePrice.HasValue && car.SalePrice > 0 && car.SalePrice < car.Price)
-                                    {
-                                        <div class="text-danger small" style="font-size: 0.75rem;">
-                                            Ưu đãi: @car.SalePrice.Value.ToString("N0")đ
-                                        </div>
-                                    }
-                                </td>
-                                <td>
-                                    <span class="recar-status-badge @statusClass">
-                                        @statusText
-                                    </span>
-                                </td>
-                                <td class="text-end">
-                                    <div class="d-inline-flex gap-1">
-                                        <a href="/CarOwner/Cars/Edit/@car.CarId" class="btn btn-outline-primary btn-sm rounded-pill px-3 py-1 fw-semibold" title="Chỉnh sửa xe">
-                                            <i class="bi bi-pencil-square me-1"></i>Sửa
-                                        </a>
-                                        <a href="/product/@(car.Alias)-@(car.CarId).html" target="_blank" class="btn btn-light btn-sm rounded-pill px-2.5 py-1 text-muted border" title="Xem trên sàn ReCar">
-                                            <i class="bi bi-box-arrow-up-right"></i>
-                                        </a>
-                                        <a href="/CarOwner/Cars/Delete/@car.CarId" class="btn btn-outline-danger btn-sm rounded-pill px-2.5 py-1" onclick="return confirm('Bạn có chắc muốn tạm dừng hoạt động chiếc xe này?');" title="Xóa / Dừng">
-                                            <i class="bi bi-trash"></i>
-                                        </a>
-                                    </div>
-                                </td>
-                            </tr>
-                        }
-                    }
-                    else
-                    {
-                        <tr>
-                            <td colspan="7" class="text-center py-5 text-muted">
-                                <div class="mb-3">
-                                    <i class="bi bi-car-front fs-1 text-secondary opacity-50"></i>
-                                </div>
-                                <h5>Chưa có xe nào trong danh sách</h5>
-                                <p class="small text-muted">Đăng ký chiếc xe đầu tiên của bạn để tiếp cận hàng nghìn khách hàng thuê xe trên ReCar.</p>
-                                <a href="/CarOwner/Cars/Create" class="btn-recar-primary mt-2">
-                                    <i class="bi bi-plus-lg"></i> Thêm xe ngay
-                                </a>
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
+    <div class="col-6 col-md-3">
+        <div class="p-3 bg-white rounded-4 border shadow-sm d-flex align-items-center gap-3">
+            <div class="rounded-3 bg-success bg-opacity-10 text-success p-3 flex-shrink-0">
+                <i class="bi bi-check2-circle fs-4"></i>
+            </div>
+            <div>
+                <div class="text-muted small fw-semibold">Sẵn sàng cho thuê</div>
+                <div class="fs-4 fw-bold text-success">@readyCars <span class="fs-6 fw-normal text-muted">chiếc</span></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-6 col-md-3">
+        <div class="p-3 bg-white rounded-4 border shadow-sm d-flex align-items-center gap-3">
+            <div class="rounded-3 bg-info bg-opacity-10 text-primary p-3 flex-shrink-0">
+                <i class="bi bi-car-front-fill fs-4"></i>
+            </div>
+            <div>
+                <div class="text-muted small fw-semibold">Đang có khách</div>
+                <div class="fs-4 fw-bold text-primary">@busyCars <span class="fs-6 fw-normal text-muted">chiếc</span></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-6 col-md-3">
+        <div class="p-3 bg-white rounded-4 border shadow-sm d-flex align-items-center gap-3">
+            <div class="rounded-3 bg-warning bg-opacity-10 text-warning p-3 flex-shrink-0">
+                <i class="bi bi-clock-history fs-4"></i>
+            </div>
+            <div>
+                <div class="text-muted small fw-semibold">Chờ duyệt hồ sơ</div>
+                <div class="fs-4 fw-bold text-warning">@pendingCars <span class="fs-6 fw-normal text-muted">chiếc</span></div>
+            </div>
         </div>
     </div>
 </div>
+
+<!-- Controls & Filter Toolbar -->
+<div class="recar-panel mb-4">
+    <div class="p-3 p-md-4 d-flex align-items-center justify-content-between flex-wrap gap-3">
+        <!-- Search & Filter Controls -->
+        <div class="d-flex align-items-center gap-2 flex-wrap flex-grow-1">
+            <div class="input-group" style="max-width: 320px;">
+                <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-search"></i></span>
+                <input type="text" id="carSearchInput" class="form-control bg-light border-start-0 small" placeholder="Tìm theo tên xe, biển số..." onkeyup="filterCars()" />
+            </div>
+
+            <div class="d-flex align-items-center gap-1 bg-light p-1 rounded-pill border">
+                <button type="button" class="btn btn-sm rounded-pill px-3 fw-bold filter-btn active" data-filter="all" onclick="setCarFilter('all', this)">Tất cả</button>
+                <button type="button" class="btn btn-sm rounded-pill px-3 fw-bold filter-btn" data-filter="Sẵn sàng" onclick="setCarFilter('Sẵn sàng', this)">Sẵn sàng</button>
+                <button type="button" class="btn btn-sm rounded-pill px-3 fw-bold filter-btn" data-filter="Chờ duyệt" onclick="setCarFilter('Chờ duyệt', this)">Chờ duyệt</button>
+                <button type="button" class="btn btn-sm rounded-pill px-3 fw-bold filter-btn" data-filter="Đang bận" onclick="setCarFilter('Đang bận', this)">Đang bận</button>
+            </div>
+        </div>
+
+        <!-- Add Car & View Mode Toggles -->
+        <div class="d-flex align-items-center gap-2">
+            <div class="btn-group border rounded-pill p-1 bg-light" role="group">
+                <button type="button" class="btn btn-sm rounded-pill px-2.5 active" id="btnViewGrid" onclick="switchView('grid')">
+                    <i class="bi bi-grid-fill"></i>
+                </button>
+                <button type="button" class="btn btn-sm rounded-pill px-2.5" id="btnViewTable" onclick="switchView('table')">
+                    <i class="bi bi-list-ul"></i>
+                </button>
+            </div>
+
+            <a href="/CarOwner/Cars/Create" class="btn-recar-action">
+                <i class="bi bi-plus-circle-fill"></i>
+                <span>Đăng xe mới</span>
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- View 1: Grid Mode (Thẻ xe sắc nét kiểu Airbnb / Mioto) -->
+<div id="gridCarContainer" class="row g-4 mb-4">
+    @if (Model != null && Model.Any())
+    {
+        foreach (var car in Model)
+        {
+            string statusClass = "status-ready";
+            string statusText = "Sẵn sàng";
+            if (car.CarStatus == "Đang bận" || car.CarStatus == "Đang có khách")
+            {
+                statusClass = "status-busy";
+                statusText = "Đang có khách";
+            }
+            else if (car.CarStatus == "Chờ duyệt")
+            {
+                statusClass = "status-pending";
+                statusText = "Chờ duyệt";
+            }
+            else if (car.CarStatus == "Bảo trì")
+            {
+                statusClass = "status-maintenance";
+                statusText = "Đang bảo dưỡng";
+            }
+
+            <div class="col-12 col-md-6 col-xl-4 car-item-wrapper" data-status="@car.CarStatus" data-name="@(car.CarName?.ToLower())" data-plate="@(car.LicensePlate?.ToLower())">
+                <div class="car-fleet-card">
+                    <div class="car-card-img-wrap">
+                        <span class="recar-status-badge @statusClass car-card-status-badge shadow-sm">
+                            @statusText
+                        </span>
+                        
+                        <span class="car-card-plate-badge">
+                            @(string.IsNullOrEmpty(car.LicensePlate) ? "CHƯA CẤP" : car.LicensePlate)
+                        </span>
+
+                        <img src="@(string.IsNullOrEmpty(car.Image) ? "/images/cars/car-sedan.jpg" : car.Image)" 
+                             alt="@car.CarName" 
+                             class="car-card-img" />
+                    </div>
+
+                    <div class="car-card-body">
+                        <div>
+                            <div class="d-flex align-items-center justify-content-between text-muted small mb-1">
+                                <span><i class="bi bi-geo-alt-fill text-danger me-1"></i>@(string.IsNullOrEmpty(car.Location) ? "Toàn quốc" : car.Location)</span>
+                                <span><i class="bi bi-calendar3 me-1"></i>@(car.Model > 0 ? $"Đời {car.Model}" : "Mới")</span>
+                            </div>
+
+                            <h4 class="car-card-title text-truncate" title="@car.CarName">@car.CarName</h4>
+
+                            <div class="d-flex flex-wrap gap-1.5 mb-3">
+                                <span class="car-card-spec-item"><i class="bi bi-people-fill text-primary"></i>@car.Seat chỗ</span>
+                                <span class="car-card-spec-item"><i class="bi bi-gear-fill text-secondary"></i>@car.Transmission</span>
+                                <span class="car-card-spec-item"><i class="bi bi-fuel-pump-fill text-warning"></i>@car.Fuel</span>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="d-flex align-items-baseline justify-content-between pt-2 border-top">
+                                <div>
+                                    <span class="car-card-price">@((car.Price ?? 0).ToString("N0"))đ</span>
+                                    <span class="text-muted small">/ngày</span>
+                                </div>
+                                <div class="small text-muted">
+                                    <i class="bi bi-star-fill text-warning"></i> 5.0 (0 chuyến)
+                                </div>
+                            </div>
+
+                            <div class="d-flex align-items-center gap-1.5 mt-3 pt-2">
+                                <a href="/CarOwner/Cars/Edit/@car.CarId" class="btn btn-outline-primary btn-sm rounded-pill flex-grow-1 fw-bold py-1.5">
+                                    <i class="bi bi-pencil-square me-1"></i> Chỉnh sửa
+                                </a>
+                                <a href="/product/@(car.Alias)-@(car.CarId).html" target="_blank" class="btn btn-light border btn-sm rounded-pill px-3 py-1.5 text-muted" title="Xem trên sàn ReCar">
+                                    <i class="bi bi-box-arrow-up-right"></i>
+                                </a>
+                                <a href="/CarOwner/Cars/Delete/@car.CarId" class="btn btn-light border btn-sm rounded-pill px-3 py-1.5 text-danger" onclick="return confirm('Bạn có chắc muốn tạm dừng hoặc xóa xe này?');" title="Xóa xe">
+                                    <i class="bi bi-trash"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    }
+    else
+    {
+        <div class="col-12 text-center py-5">
+            <div class="p-5 bg-white rounded-4 border shadow-sm">
+                <i class="bi bi-car-front fs-1 text-muted opacity-50 mb-3 d-block"></i>
+                <h5 class="fw-bold text-dark">Bạn chưa đăng ký chiếc xe nào</h5>
+                <p class="text-muted small mx-auto" style="max-width: 450px;">
+                    Hãy bắt đầu tạo thu nhập thụ động ngay hôm nay bằng cách đăng tải chiếc xe đầu tiên của bạn lên Sàn ReCar.
+                </p>
+                <a href="/CarOwner/Cars/Create" class="btn-recar-action mt-2">
+                    <i class="bi bi-plus-circle-fill"></i> Đăng xe cho thuê ngay
+                </a>
+            </div>
+        </div>
+    }
+</div>
+
+<!-- View 2: Table Mode (Bảng chi tiết) -->
+<div id="tableCarContainer" class="recar-panel d-none">
+    <div class="table-responsive">
+        <table class="recar-table">
+            <thead>
+                <tr>
+                    <th style="min-width: 250px;">Phương tiện</th>
+                    <th style="min-width: 130px;">Biển số</th>
+                    <th style="min-width: 170px;">Địa điểm</th>
+                    <th style="min-width: 170px;">Thông số</th>
+                    <th style="min-width: 140px;">Giá niêm yết</th>
+                    <th style="min-width: 150px;">Trạng thái</th>
+                    <th class="text-end" style="min-width: 160px;">Thao tác</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model != null && Model.Any())
+                {
+                    foreach (var car in Model)
+                    {
+                        string statusClass = "status-ready";
+                        string statusText = "Sẵn sàng";
+                        if (car.CarStatus == "Đang bận" || car.CarStatus == "Đang có khách")
+                        {
+                            statusClass = "status-busy";
+                            statusText = "Đang có khách";
+                        }
+                        else if (car.CarStatus == "Chờ duyệt")
+                        {
+                            statusClass = "status-pending";
+                            statusText = "Chờ duyệt";
+                        }
+                        else if (car.CarStatus == "Bảo trì")
+                        {
+                            statusClass = "status-maintenance";
+                            statusText = "Đang bảo dưỡng";
+                        }
+
+                        <tr class="car-item-wrapper" data-status="@car.CarStatus" data-name="@(car.CarName?.ToLower())" data-plate="@(car.LicensePlate?.ToLower())">
+                            <td>
+                                <div class="d-flex align-items-center gap-3">
+                                    <img src="@(string.IsNullOrEmpty(car.Image) ? "/images/cars/car-sedan.jpg" : car.Image)" 
+                                         alt="@car.CarName" 
+                                         class="rounded-3 border shadow-sm flex-shrink-0" 
+                                         style="width: 72px; height: 50px; object-fit: cover;" />
+                                    <div class="overflow-hidden">
+                                        <div class="fw-bold text-dark text-truncate" title="@car.CarName">@car.CarName</div>
+                                        <div class="text-muted small">@car.CarBrand · Đời @(car.Model > 0 ? car.Model.ToString() : "Mới")</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge bg-light text-dark border px-2.5 py-1.5 font-monospace fw-bold shadow-xs">
+                                    @(string.IsNullOrEmpty(car.LicensePlate) ? "Chưa cấp" : car.LicensePlate)
+                                </span>
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center gap-1.5 small text-muted">
+                                    <i class="bi bi-geo-alt-fill text-danger flex-shrink-0"></i>
+                                    <span class="text-dark fw-medium text-truncate" style="max-width: 180px;" title="@car.Location">
+                                        @(string.IsNullOrEmpty(car.Location) ? "Toàn quốc" : car.Location)
+                                    </span>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="fw-semibold text-dark small">@car.Seat chỗ · @car.Transmission</div>
+                                <div class="text-muted" style="font-size: 0.78rem;">@car.Fuel</div>
+                            </td>
+                            <td>
+                                <div class="fw-bold text-primary">@((car.Price ?? 0).ToString("N0"))đ</div>
+                                <div class="text-muted" style="font-size: 0.72rem;">/ngày</div>
+                            </td>
+                            <td>
+                                <span class="recar-status-badge @statusClass">
+                                    @statusText
+                                </span>
+                            </td>
+                            <td class="text-end">
+                                <div class="d-inline-flex align-items-center gap-1.5">
+                                    <a href="/CarOwner/Cars/Edit/@car.CarId" class="btn btn-outline-primary btn-sm rounded-pill px-3 py-1 fw-semibold d-inline-flex align-items-center gap-1" title="Chỉnh sửa xe">
+                                        <i class="bi bi-pencil-square"></i> Sửa
+                                    </a>
+                                    <a href="/product/@(car.Alias)-@(car.CarId).html" target="_blank" class="btn btn-light btn-sm rounded-pill px-2.5 py-1 text-muted border" title="Xem trên sàn">
+                                        <i class="bi bi-box-arrow-up-right"></i>
+                                    </a>
+                                    <a href="/CarOwner/Cars/Delete/@car.CarId" class="btn btn-outline-danger btn-sm rounded-pill px-2.5 py-1" onclick="return confirm('Bạn có chắc muốn tạm dừng xe này?');" title="Xóa">
+                                        <i class="bi bi-trash"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    let currentFilter = 'all';
+
+    function switchView(mode) {
+        const grid = document.getElementById('gridCarContainer');
+        const table = document.getElementById('tableCarContainer');
+        const btnGrid = document.getElementById('btnViewGrid');
+        const btnTable = document.getElementById('btnViewTable');
+
+        if (mode === 'grid') {
+            grid.classList.remove('d-none');
+            table.classList.add('d-none');
+            btnGrid.classList.add('active');
+            btnTable.classList.remove('active');
+        } else {
+            grid.classList.add('d-none');
+            table.classList.remove('d-none');
+            btnTable.classList.add('active');
+            btnGrid.classList.remove('active');
+        }
+    }
+
+    function setCarFilter(status, btnElement) {
+        currentFilter = status;
+        document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active', 'btn-primary'));
+        btnElement.classList.add('active');
+        filterCars();
+    }
+
+    function filterCars() {
+        const query = document.getElementById('carSearchInput').value.toLowerCase().trim();
+        const items = document.querySelectorAll('.car-item-wrapper');
+
+        items.forEach(item => {
+            const status = item.getAttribute('data-status') || '';
+            const name = item.getAttribute('data-name') || '';
+            const plate = item.getAttribute('data-plate') || '';
+
+            const matchesStatus = (currentFilter === 'all') || (status === currentFilter);
+            const matchesQuery = !query || name.includes(query) || plate.includes(query);
+
+            if (matchesStatus && matchesQuery) {
+                item.style.display = '';
+            } else {
+                item.style.display = 'none';
+            }
+        });
+    }
+</script>

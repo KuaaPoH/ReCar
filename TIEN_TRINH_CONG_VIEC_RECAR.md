@@ -310,3 +310,64 @@ Nhằm giúp đồ án tạo được ấn tượng mạnh mẽ với hội đ�
 - **Cập nhật số lượng xe và trạng thái rỗng:**
   - Đồng bộ số lượng xe tìm thấy trên banner đầu trang theo thời gian thực.
   - Hiển thị thông báo trạng thái rỗng thân thiện kèm nút nới rộng bộ lọc khi không có xe nào khớp tiêu chí.
+
+---
+
+## 8. CẬP NHẬT TIẾN TRÌNH PHIÊN LÀM VIỆC (NGÀY 25 - 26 THÁNG 10 NĂM 2026)
+
+### 8.1. Hoàn Thiện Quy Trình Đăng Ký Đối Tác Chủ Xe (KYC & Ngân Hàng)
+1. **Mở rộng Cơ sở dữ liệu:**
+   - Tạo bảng `car_owner_registrations`: Lưu trữ thông tin đăng ký đối tác chủ xe gồm họ tên, số điện thoại, email, địa chỉ, ảnh CCCD mặt trước/sau, ảnh chân dung cầm CCCD, thông tin ngân hàng nhận tiền (`BankName`, `AccountNumber`, `AccountHolder`), lý do từ chối và trạng thái (`pending`, `approved`, `rejected`).
+   - Tạo bảng `banks`: Danh mục 35+ ngân hàng thương mại tại Việt Nam (Vietcombank, MBBank, Techcombank, BIDV, VPBank, TPBank...) hỗ trợ nạp tự động vào dropdown.
+   - Tạo bảng `car_brands`: Danh mục các hãng xe hơi phổ biến (Toyota, Hyundai, VinFast, Honda, Mazda, Kia, Ford, BMW, Mercedes...).
+2. **Luồng người dùng phía Chủ xe (`/CarOwner/Register`):**
+   - Hỗ trợ quay lại chỉnh sửa và bổ sung hồ sơ khi bị từ chối mà không làm mất thông tin cũ.
+   - Giao diện đăng ký KYC chuẩn chỉnh, upload CCCD và liên kết ngân hàng thông suốt.
+3. **Module Phê duyệt Hồ sơ Chủ xe phía Admin (`/Admin/CarOwners`):**
+   - Admin kiểm tra hồ sơ, xem ảnh CCCD phóng to (Lightbox Zoom), duyệt hoặc từ chối kèm lý do phản hồi cho chủ xe.
+
+### 8.2. Nâng Cấp Luồng Đăng Xe & Giấy Tờ Pháp Lý Xe Hơi
+1. **Bổ sung 3 Giấy tờ Bắt buộc vào CSDL (`cars`):**
+   - `RegistrationImage`: Giấy đăng ký xe (Cà vẹt xe).
+   - `InspectionImage`: Giấy chứng nhận kiểm định an toàn kỹ thuật & bảo vệ môi trường (Đăng kiểm).
+   - `InsuranceImage`: Bảo hiểm TNDS bắt buộc của chủ xe cơ giới.
+2. **Biểu mẫu Thêm xe mới (`/CarOwner/Cars/Create`) & Sửa xe (`/CarOwner/Cars/Edit`):**
+   - Nạp hãng xe động từ CSDL `car_brands`.
+   - Cho phép nhập màu sắc xe tự do.
+   - Bổ sung 3 trường upload tài liệu pháp lý xe, lưu trữ tại thư mục `/wwwroot/files/cars/`.
+   - **Bảo mật trạng thái:** Khóa quyền sửa trạng thái xe của chủ xe tại trang `Edit`. Chủ xe không thể tự ý chuyển xe sang "Sẵn sàng" khi chưa được Admin duyệt. Nếu xe bị từ chối sửa lại sẽ tự động chuyển về "Chờ duyệt".
+
+### 8.3. Tái Thiết Kế Trang Phê Duyệt Xe Admin Chuẩn Mẫu 100% Pixel-Perfect
+1. **Đồng bộ hóa tuyệt đối với Template Shadcn/Tailwind (`pixel-perfect-replica-7564`):**
+   - Căn lề chuẩn `px-4 pb-6` (16px), loại bỏ hiện tượng co cụm hoặc tràn viền.
+   - 4 ảnh xe tỷ lệ chuẩn `aspect-ratio: 4/3`, bo góc `8px`, hiệu ứng hover zoom. Đã xóa bỏ toàn bộ nhãn góc text theo đúng yêu cầu người dùng.
+   - Bảng thông số 2 cột `<dl class="sheet-spec-grid">`: Nền trắng tinh `#ffffff`, viền mỏng xám `#e2e8f0`, nhãn xám 12px `sheet-field-dt`, giá trị đen 14px `font-weight: 500` `sheet-field-dd` thanh thoát, biển số badge mono, giá tiền có gạch chân `<u>đ</u>`.
+   - Khối Giấy tờ xác minh: Tích hợp icon vector **SVG Lucide `FileCheck2`** xanh lá nét mảnh và `FileWarning` chuẩn từng pixel của template mẫu.
+2. **Giải quyết triệt để vấn đề Thanh nút che nội dung (Sticky Footer):**
+   - Di chuyển 2 nút **"Từ chối"** (viền xám chữ đỏ icon Lucide `XCircle`) và **"Phê duyệt"** (nền xanh ReCar chữ trắng icon Lucide `CheckCircle2`) vào thẳng bên trong luồng cuộn nội dung, đặt ngay sau khối Giấy tờ xe.
+   - Xóa bỏ hoàn toàn thanh footer dính ở đáy, giúp toàn bộ Drawer cuộn mượt mà từ trên xuống dưới tự nhiên, không che khuất bất kỳ thông số nào.
+
+### 8.4. Khắc Phục Lỗi Dính Chữ Trong Bảng Quản Lý Xe Của Chủ Xe
+- Trong giao diện Dạng bảng (`#tableCarContainer table.recar-table`) tại `/CarOwner/Cars/Index`:
+  - Trước đây thiếu CSS cho `.recar-table` dẫn đến trình duyệt render table mặc định, các cột dính sát vào nhau (*Địa điểm Thông số*, *30H7271141📍 abc*...).
+  - Đã bổ sung toàn diện hệ thống CSS `.recar-table` trong `CarOwner/Views/Shared/_Layout.cshtml` với `padding: 1.1rem 1.25rem`, `border-collapse: separate`, hiệu ứng hover hàng và thiết lập `min-width` tối thiểu rõ ràng cho cả 7 cột: Phương tiện (250px), Biển số (130px), Địa điểm (170px), Thông số (170px), Giá niêm yết (140px), Trạng thái (150px), Thao tác (160px). Bảng hiển thị rộng rãi, chuyên nghiệp.
+
+---
+
+## 9. ĐỀ XUẤT ĐỘT PHÁ CHO CÁC PHIÊN LÀM VIỆC TIẾP THEO
+
+### 1. Triển khai Toàn diện Thiết kế Mới Phân hệ Chủ xe (ReCar Host Pro)
+- Tham chiếu trực tiếp tài liệu hướng dẫn và prompt chi tiết tại [PROMPT_DESIGN_CAR_OWNER.md](file:///d:/CarRental_TTCN/PROMPT_DESIGN_CAR_OWNER.md).
+- Áp dụng Multi-step Form Wizard cho trang Thêm xe mới (`Cars/Create.cshtml`).
+- Nâng cấp Dashboard Chủ xe với biểu đồ doanh thu tương tác cao cấp.
+
+### 2. Tự Động Hóa Thông Báo Thời Gian Thực (SignalR / Webhook)
+- **Thông báo duyệt xe:** Khi Admin duyệt hoặc từ chối hồ sơ xe/chủ xe, gửi thông báo tức thì (In-app Notification + Toast Popup) tới tài khoản Chủ xe mà không cần tải lại trang.
+- **Thông báo đơn đặt:** Khi có khách đặt xe mới và thanh toán cọc thành công, đổ chuông thông báo cho chủ xe để chuẩn bị bàn giao.
+
+### 3. Tích Hợp OCR Quét Tự Động Giấy Tờ Xe & Bằng Lái
+- Tích hợp thư viện Tesseract OCR hoặc Google Cloud Vision API để tự động đọc Biển số xe, Số khung, Số máy từ ảnh Cà vẹt xe và Số GPLX từ ảnh Bằng lái của khách thuê, giúp giảm 80% thời gian nhập liệu thủ công.
+
+### 4. Hệ Thống Đánh Giá & Phản Hồi 2 Chiều
+- Cho phép Chủ xe đánh giá ngược lại Khách thuê (về mức độ giữ gìn xe, trả xe đúng giờ, thái độ) sau khi kết thúc chuyến đi, xây dựng cộng đồng cho thuê xe văn minh và an toàn.
+

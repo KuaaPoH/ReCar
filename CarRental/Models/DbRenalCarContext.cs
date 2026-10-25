@@ -63,6 +63,12 @@ public partial class DbRenalCarContext : DbContext
 
     public virtual DbSet<Location> Locations { get; set; }
 
+    public virtual DbSet<CarOwnerRegistration> CarOwnerRegistrations { get; set; }
+
+    public virtual DbSet<Bank> Banks { get; set; }
+
+    public virtual DbSet<CarBrand> CarBrands { get; set; }
+
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

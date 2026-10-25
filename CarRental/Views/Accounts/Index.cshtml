@@ -6,6 +6,7 @@
     Layout = "~/Views/Shared/_Layout.cshtml";
     List<CarRentalOrder> carRentalOrders = ViewBag.Order;
     Account existingCarOwnerAccount = ViewBag.ExistingCarOwnerAccount;
+    CarOwnerRegistration existingCarOwnerReg = ViewBag.ExistingCarOwnerReg;
     var totalOrders = carRentalOrders?.Count ?? 0;
     var totalSpent = carRentalOrders?.Where(o => o.StatusId == 3).Sum(o => o.Payment) ?? 0;
     var pendingOrders = carRentalOrders?.Count(o => o.StatusId == 1) ?? 0;
@@ -483,65 +484,72 @@
                                     </div>
                                     <h5 class="fw-bold text-success mb-2">Bạn đã là Đối tác Chủ xe chính thức!</h5>
                                     <p class="text-muted small mb-3">Tài khoản chủ xe: <strong>@existingCarOwnerAccount.Username</strong> (@existingCarOwnerAccount.Email)</p>
-                                    <a asp-controller="Accounts" asp-action="GoToCarOwner" class="btn btn-success rounded-pill px-4 py-2 fw-bold shadow-sm">
+                                    <a href="/CarOwner/Home/Index" class="btn btn-success rounded-pill px-4 py-2 fw-bold shadow-sm">
                                         <i class="bi bi-speedometer me-1"></i> Truy cập Trung tâm Quản lý Chủ xe
+                                    </a>
+                                </div>
+                            }
+                            else if (existingCarOwnerReg != null && existingCarOwnerReg.Status == "Pending")
+                            {
+                                <div class="p-4 bg-warning-subtle rounded-4 text-center border border-warning-subtle">
+                                    <div class="fs-1 text-warning mb-2">
+                                        <i class="bi bi-hourglass-split"></i>
+                                    </div>
+                                    <h5 class="fw-bold text-dark mb-2">Hồ sơ đối tác Chủ xe của bạn đang chờ xét duyệt</h5>
+                                    <p class="text-muted small mb-3">Ban Quản trị ReCar đang thẩm định thông tin CCCD, GPLX và tài khoản ngân hàng của bạn (Mã hồ sơ: <strong>#DKCX-@existingCarOwnerReg.Id</strong>).</p>
+                                    <a href="/CarOwner/Register/Pending" class="btn btn-warning rounded-pill px-4 py-2 fw-bold shadow-sm">
+                                        <i class="bi bi-clock-history me-1"></i> Xem chi tiết trạng thái hồ sơ
+                                    </a>
+                                </div>
+                            }
+                            else if (existingCarOwnerReg != null && existingCarOwnerReg.Status == "Rejected")
+                            {
+                                <div class="p-4 bg-danger-subtle rounded-4 text-center border border-danger-subtle">
+                                    <div class="fs-1 text-danger mb-2">
+                                        <i class="bi bi-x-circle-fill"></i>
+                                    </div>
+                                    <h5 class="fw-bold text-danger mb-2">Hồ sơ chưa được phê duyệt</h5>
+                                    <p class="text-muted small mb-3">Lý do: <strong>@existingCarOwnerReg.RejectReason</strong></p>
+                                    <a href="/CarOwner/Register" class="btn btn-danger rounded-pill px-4 py-2 fw-bold shadow-sm">
+                                        <i class="bi bi-pencil-square me-1"></i> Chỉnh sửa & Gửi lại hồ sơ
                                     </a>
                                 </div>
                             }
                             else
                             {
-                                @if (string.IsNullOrEmpty(Model.LicenseNumber))
-                                {
-                                    <div class="p-4 bg-warning-subtle rounded-4 text-center border border-warning-subtle">
-                                        <div class="fs-1 text-warning mb-2">
-                                            <i class="bi bi-exclamation-triangle-fill"></i>
-                                        </div>
-                                        <h5 class="fw-bold text-dark mb-2">Cần cập nhật Giấy phép lái xe</h5>
-                                        <p class="text-muted small mb-3">Để trở thành đối tác chủ xe uy tín trên ReCar, bạn cần cập nhật thông tin GPLX và CCCD trước.</p>
-                                        <a href="#download" data-bs-toggle="tab" class="btn btn-warning rounded-pill px-4 py-2 fw-bold text-dark" onclick="activateLicenseTab()">
-                                            <i class="bi bi-arrow-right-circle me-1"></i> Cập nhật GPLX ngay
-                                        </a>
-                                    </div>
-                                }
-                                else
-                                {
-                                    <div class="row g-3 mb-4">
-                                        <div class="col-md-4">
-                                            <div class="p-3 bg-light rounded-3 text-center">
-                                                <i class="bi bi-cash-coin fs-2 text-primary mb-2 d-block"></i>
-                                                <h6 class="fw-bold text-dark mb-1">Thu nhập ổn định</h6>
-                                                <div class="text-muted small">Nhận tiền thuê trực tiếp theo chu kỳ thanh toán</div>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-4">
-                                            <div class="p-3 bg-light rounded-3 text-center">
-                                                <i class="bi bi-shield-check fs-2 text-success mb-2 d-block"></i>
-                                                <h6 class="fw-bold text-dark mb-1">Bảo hiểm 100%</h6>
-                                                <div class="text-muted small">Phương tiện được bảo vệ toàn diện với bảo hiểm 2 chiều</div>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-4">
-                                            <div class="p-3 bg-light rounded-3 text-center">
-                                                <i class="bi bi-sliders fs-2 text-info mb-2 d-block"></i>
-                                                <h6 class="fw-bold text-dark mb-1">Tự chủ lịch trình</h6>
-                                                <div class="text-muted small">Tùy ý bật/tắt lịch cho thuê linh hoạt theo ý muốn</div>
-                                            </div>
+                                <div class="row g-3 mb-4">
+                                    <div class="col-md-4">
+                                        <div class="p-3 bg-light rounded-3 text-center">
+                                            <i class="bi bi-cash-coin fs-2 text-primary mb-2 d-block"></i>
+                                            <h6 class="fw-bold text-dark mb-1">Thu nhập ổn định</h6>
+                                            <div class="text-muted small">Nhận tiền thuê trực tiếp theo chu kỳ thanh toán</div>
                                         </div>
                                     </div>
+                                    <div class="col-md-4">
+                                        <div class="p-3 bg-light rounded-3 text-center">
+                                            <i class="bi bi-shield-check fs-2 text-success mb-2 d-block"></i>
+                                            <h6 class="fw-bold text-dark mb-1">Bảo hiểm 100%</h6>
+                                            <div class="text-muted small">Phương tiện được bảo vệ toàn diện với bảo hiểm 2 chiều</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="p-3 bg-light rounded-3 text-center">
+                                            <i class="bi bi-sliders fs-2 text-info mb-2 d-block"></i>
+                                            <h6 class="fw-bold text-dark mb-1">Tự chủ lịch trình</h6>
+                                            <div class="text-muted small">Tùy ý bật/tắt lịch cho thuê linh hoạt theo ý muốn</div>
+                                        </div>
+                                    </div>
+                                </div>
 
-                                    <form asp-controller="Accounts" asp-action="RegisterCarOwner" method="post">
-                                        @Html.AntiForgeryToken()
-                                        <div class="d-flex align-items-center justify-content-between p-3 bg-primary-subtle rounded-3 mb-3">
-                                            <div>
-                                                <div class="fw-bold text-primary">Tài khoản đối tác sẽ được liên kết trực tiếp:</div>
-                                                <div class="small text-muted">@Model.Email (@Model.PhoneNumber)</div>
-                                            </div>
-                                            <button type="submit" class="btn btn-primary rounded-pill px-4 py-2 fw-bold shadow-sm">
-                                                <i class="bi bi-check2-circle me-1"></i> Đăng ký trở thành Chủ xe ngay
-                                            </button>
-                                        </div>
-                                    </form>
-                                }
+                                <div class="p-4 bg-primary-subtle rounded-3 d-flex align-items-center justify-content-between flex-wrap gap-3">
+                                    <div>
+                                        <h6 class="fw-bold text-primary mb-1">Đăng ký trở thành Đối tác Chủ xe ReCar</h6>
+                                        <div class="small text-muted">Yêu cầu hoàn tất định danh cá nhân (CCCD), giấy phép lái xe và thông tin tài khoản ngân hàng nhận tiền.</div>
+                                    </div>
+                                    <a href="/CarOwner/Register" class="btn btn-primary rounded-pill px-4 py-2 fw-bold shadow-sm" style="background-color: #0284c7; border: none;">
+                                        <i class="bi bi-card-checklist me-1"></i> Điền hồ sơ Đăng ký Chủ xe ngay
+                                    </a>
+                                </div>
                             }
                         </div>
                     </div>

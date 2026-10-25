@@ -3,213 +3,725 @@
     ViewData["Title"] = "Phê duyệt xe";
     var brands = ViewBag.Brands as List<string> ?? new List<string>();
     var cities = ViewBag.Cities as string[] ?? new string[0];
+    var recentRejected = ViewBag.RecentRejected as List<CarRental.Models.Car> ?? new List<CarRental.Models.Car>();
+    var carImagesDict = ViewBag.CarImagesDict as Dictionary<int, List<string>> ?? new Dictionary<int, List<string>>();
+
+    string filterQ = ViewBag.FilterQ as string ?? "";
+    string filterBrand = ViewBag.FilterBrand as string ?? "__all";
+    string filterCity = ViewBag.FilterCity as string ?? "__all";
+    string filterOwner = ViewBag.FilterOwner as string ?? "";
+    string filterDate = ViewBag.FilterDate as string ?? "";
 }
 
+<style>
+    /* Design Tokens từ Template pixel-perfect-replica-7564 */
+    :root {
+        --plate-bg: #f1f5f9;
+        --plate-border: #e2e8f0;
+        --card-border: #e2e8f0;
+        --card-bg: #ffffff;
+        --muted-bg: #f8fafc;
+        --muted-text: #64748b;
+        --text-main: #0f172a;
+        --color-primary: #0284c7;
+        --color-primary-hover: #0369a1;
+        --color-destructive: #ef4444;
+        --color-destructive-hover: #dc2626;
+        --success-soft: #ecfdf5;
+        --success-text: #059669;
+        --warning-soft: #fffbeb;
+        --warning-text: #d97706;
+        --danger-soft: #fef2f2;
+        --danger-text: #dc2626;
+        --info-soft: #eff6ff;
+        --info-text: #2563eb;
+    }
+
+    .plate {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.75rem;
+        letter-spacing: 0.02em;
+        padding: 0.15rem 0.5rem;
+        border-radius: 0.375rem;
+        border: 1px solid var(--plate-border);
+        background: var(--plate-bg);
+        color: #1e293b;
+        font-weight: 700;
+        white-space: nowrap;
+        display: inline-block;
+    }
+
+    .panel-card {
+        border-radius: 0.75rem;
+        border: 1px solid var(--card-border);
+        background-color: var(--card-bg);
+        box-shadow: 0 1px 2px 0 rgba(15, 23, 42, 0.04), 0 1px 3px 0 rgba(15, 23, 42, 0.06);
+    }
+
+    .panel-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.5rem;
+        border-bottom: 1px solid var(--card-border);
+        padding: 0.875rem 1.25rem;
+    }
+
+    .status-badge-custom {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+        white-space: nowrap;
+        border-radius: 9999px;
+        padding: 0.2rem 0.65rem;
+        font-size: 0.75rem;
+        font-weight: 500;
+        line-height: 1;
+    }
+    .status-badge-custom .dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background-color: currentColor;
+    }
+    .badge-verified {
+        background-color: var(--success-soft);
+        color: var(--success-text);
+    }
+    .badge-pending {
+        background-color: var(--warning-soft);
+        color: var(--warning-text);
+    }
+    .badge-rejected {
+        background-color: var(--danger-soft);
+        color: var(--danger-text);
+    }
+
+    /* Toggle Group */
+    .toggle-group-custom {
+        display: inline-flex;
+        border-radius: 0.5rem;
+        border: 1px solid var(--card-border);
+        background-color: #ffffff;
+        padding: 2px;
+    }
+    .toggle-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 36px;
+        border-radius: 0.375rem;
+        border: none;
+        background: transparent;
+        color: var(--muted-text);
+        cursor: pointer;
+        transition: all 0.15s ease;
+    }
+    .toggle-btn:hover {
+        background-color: var(--muted-bg);
+        color: var(--text-main);
+    }
+    .toggle-btn.active {
+        background-color: #f1f5f9;
+        color: var(--text-main);
+        font-weight: 600;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    }
+
+    /* Car Card */
+    .car-card-article {
+        overflow: hidden;
+        border-radius: 0.75rem;
+        border: 1px solid var(--card-border);
+        background-color: var(--card-bg);
+        box-shadow: 0 1px 2px 0 rgba(15, 23, 42, 0.04), 0 1px 3px 0 rgba(15, 23, 42, 0.06);
+        display: flex;
+        flex-direction: column;
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .car-card-article:hover {
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+    }
+    .car-img-btn {
+        display: block;
+        width: 100%;
+        padding: 0;
+        border: none;
+        background: transparent;
+        cursor: pointer;
+        text-align: left;
+    }
+    .car-img-aspect {
+        aspect-ratio: 16 / 10;
+        width: 100%;
+        object-fit: cover;
+        display: block;
+    }
+
+    /* Button styles */
+    .btn-admin-primary {
+        background-color: var(--color-primary);
+        color: #ffffff;
+        border: 1px solid var(--color-primary);
+        font-weight: 500;
+        border-radius: 0.5rem;
+        transition: background-color 0.15s;
+    }
+    .btn-admin-primary:hover {
+        background-color: var(--color-primary-hover);
+        color: #ffffff;
+    }
+    .btn-admin-destructive {
+        background-color: transparent;
+        color: var(--color-destructive);
+        border: 1px solid var(--card-border);
+        font-weight: 500;
+        border-radius: 0.5rem;
+        transition: all 0.15s;
+    }
+    .btn-admin-destructive:hover {
+        background-color: var(--danger-soft);
+        border-color: #fca5a5;
+        color: var(--color-destructive-hover);
+    }
+    .btn-admin-outline {
+        background-color: #ffffff;
+        color: var(--text-main);
+        border: 1px solid var(--card-border);
+        font-weight: 500;
+        border-radius: 0.5rem;
+        transition: all 0.15s;
+    }
+    .btn-admin-outline:hover {
+        background-color: var(--muted-bg);
+        color: var(--text-main);
+    }
+
+    /* Offcanvas Sheet */
+    .recar-sheet {
+        position: fixed;
+        top: 0;
+        right: -640px;
+        width: 100%;
+        max-width: 580px;
+        height: 100vh;
+        background-color: #ffffff;
+        box-shadow: -8px 0 35px rgba(0, 0, 0, 0.2);
+        z-index: 1060;
+        transition: right 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+    .recar-sheet.show {
+        right: 0;
+    }
+    .recar-sheet-body {
+        flex: 1 1 0%;
+        min-height: 0;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+    }
+    .recar-sheet-body::-webkit-scrollbar {
+        width: 6px;
+    }
+    .recar-sheet-body::-webkit-scrollbar-track {
+        background: #f8fafc;
+    }
+    .recar-sheet-body::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 4px;
+    }
+    .recar-sheet-body::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
+    }
+
+    /* Exact Template Replica for Drawer Sheet */
+    .sheet-spec-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 1rem;
+        border-radius: 0.5rem;
+        border: 1px solid var(--card-border);
+        padding: 1rem;
+        background-color: #ffffff;
+        margin-bottom: 1.25rem;
+    }
+    .sheet-field-dt {
+        font-size: 0.75rem;
+        color: #64748b;
+        margin-bottom: 0.125rem;
+        font-weight: 400;
+        line-height: 1rem;
+    }
+    .sheet-field-dd {
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #0f172a;
+        margin-bottom: 0;
+        line-height: 1.25rem;
+    }
+    .sheet-doc-item {
+        display: flex;
+        width: 100%;
+        align-items: center;
+        justify-content: space-between;
+        border-radius: 0.5rem;
+        border: 1px solid var(--card-border);
+        padding: 0.625rem 0.75rem;
+        background-color: #ffffff;
+        font-size: 0.875rem;
+        transition: background-color 0.15s;
+        text-align: left;
+        border: 1px solid #e2e8f0;
+    }
+    .sheet-doc-item:hover {
+        background-color: #f8fafc;
+    }
+    .sheet-btn-reject {
+        flex: 1;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        border-radius: 0.5rem;
+        border: 1px solid #e2e8f0;
+        background-color: #ffffff;
+        padding: 0.5rem 1rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #ef4444;
+        transition: all 0.15s;
+        text-decoration: none;
+    }
+    .sheet-btn-reject:hover {
+        background-color: #fef2f2;
+        border-color: #fca5a5;
+        color: #dc2626;
+    }
+    .sheet-btn-approve {
+        flex: 1;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        border-radius: 0.5rem;
+        border: none;
+        background-color: #0284c7;
+        padding: 0.5rem 1rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #ffffff;
+        transition: all 0.15s;
+        text-decoration: none;
+    }
+    .sheet-btn-approve:hover {
+        background-color: #0369a1;
+        color: #ffffff;
+    }
+    .sheet-gallery-btn {
+        position: relative;
+        overflow: hidden;
+        border-radius: 0.5rem;
+        border: none;
+        padding: 0;
+        background: transparent;
+        width: 100%;
+        aspect-ratio: 4 / 3;
+        display: block;
+        cursor: pointer;
+    }
+    .sheet-gallery-img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.2s ease;
+    }
+    .sheet-gallery-btn:hover .sheet-gallery-img {
+        transform: scale(1.05);
+    }
+    .sheet-gallery-zoom {
+        position: absolute;
+        top: 0.5rem;
+        right: 0.5rem;
+        color: #ffffff;
+        opacity: 0;
+        transition: opacity 0.2s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 24px;
+        height: 24px;
+        border-radius: 4px;
+        background: rgba(0, 0, 0, 0.4);
+    }
+    .sheet-gallery-btn:hover .sheet-gallery-zoom {
+        opacity: 1;
+    }
+    .sheet-overlay {
+        position: fixed;
+        inset: 0;
+        background-color: rgba(15, 23, 42, 0.4);
+        backdrop-filter: blur(2px);
+        z-index: 1055;
+        display: none;
+    }
+    .sheet-overlay.show {
+        display: block;
+    }
+
+    /* Zoom Lightbox */
+    .zoom-lightbox {
+        position: fixed;
+        inset: 0;
+        background-color: rgba(0, 0, 0, 0.85);
+        z-index: 1090;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem;
+    }
+    .zoom-lightbox.show {
+        display: flex;
+    }
+    .zoom-lightbox img {
+        max-width: 90vw;
+        max-height: 85vh;
+        border-radius: 0.75rem;
+        object-fit: contain;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    }
+
+    /* Modal styling */
+    .recar-modal-dialog {
+        max-width: 480px;
+    }
+    .recar-modal-content {
+        border-radius: 0.75rem;
+        border: 1px solid var(--card-border);
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+    }
+</style>
+
 <div class="container-fluid px-0">
-    <!-- Page Header -->
-    <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4">
+    <!-- Page Header (Chuẩn Template) -->
+    <div class="mb-4 d-flex flex-column flex-sm-row sm-items-end justify-content-between gap-3">
         <div>
-            <div class="d-flex align-items-center gap-2">
-                <h1 class="h3 fw-bold mb-0 text-dark tracking-tight">Phê duyệt xe mới</h1>
-                <span class="badge bg-warning text-dark rounded-pill fw-bold px-2.5 py-1">@Model.Count hồ sơ chờ duyệt</span>
-            </div>
-            <p class="text-muted small mb-0 mt-1">Kiểm duyệt hồ sơ đăng kiểm và giấy tờ xe do chủ xe gửi lên. Xe chưa duyệt sẽ không xuất hiện công khai trên sàn ReCar.</p>
+            <h1 class="h3 fw-bold tracking-tight mb-1 text-dark" style="font-size: 1.5rem;">Phê duyệt xe</h1>
+            <p class="text-muted small mb-0">@Model.Count hồ sơ đang chờ kiểm tra. Xe chưa duyệt không xuất hiện công khai.</p>
         </div>
         <div class="d-flex align-items-center gap-2">
-            <div class="btn-group btn-group-sm" role="group">
-                <button type="button" class="btn btn-outline-secondary active" id="btnViewGrid" onclick="switchView('grid')">
-                    <i class="bi bi-grid-fill"></i> Dạng thẻ
+            <div class="toggle-group-custom" role="group" aria-label="Kiểu hiển thị">
+                <button type="button" class="toggle-btn active" id="btnToggleGrid" onclick="switchView('grid')" title="Dạng thẻ" aria-label="Dạng thẻ">
+                    <i class="bi bi-grid-fill fs-6"></i>
                 </button>
-                <button type="button" class="btn btn-outline-secondary" id="btnViewTable" onclick="switchView('table')">
-                    <i class="bi bi-list-ul"></i> Dạng bảng
+                <button type="button" class="toggle-btn" id="btnToggleTable" onclick="switchView('table')" title="Dạng bảng" aria-label="Dạng bảng">
+                    <i class="bi bi-list-ul fs-5"></i>
                 </button>
             </div>
         </div>
     </div>
 
-    <!-- Filter Bar Panel -->
-    <div class="recar-panel mb-4 p-3">
-        <form method="get" asp-area="Admin" asp-controller="Cars" asp-action="Pending" class="row g-2 align-items-center">
-            <div class="col-12 col-md-3">
-                <div class="position-relative">
-                    <i class="bi bi-search position-absolute text-muted" style="left: 12px; top: 10px; font-size: 0.85rem;"></i>
-                    <input type="text" name="q" value="@ViewBag.FilterQ" class="form-control form-control-sm ps-5 rounded-3" placeholder="Tên xe hoặc biển số..." />
+    <!-- Filter Panel (Chuẩn 5 cột grid của Template) -->
+    <div class="panel-card mb-4">
+        <form method="get" asp-area="Admin" asp-controller="Cars" asp-action="Pending" id="filterForm" class="p-3">
+            <div class="row g-2">
+                <!-- 1. Tên xe hoặc biển số -->
+                <div class="col-12 col-md-6 col-xl">
+                    <div class="position-relative">
+                        <i class="bi bi-search position-absolute text-muted" style="left: 12px; top: 50%; transform: translateY(-50%); font-size: 0.85rem;"></i>
+                        <input type="text" name="q" value="@filterQ" class="form-control form-control-sm ps-5 rounded-2" placeholder="Tên xe hoặc biển số" />
+                    </div>
                 </div>
-            </div>
-            <div class="col-6 col-md-2">
-                <select name="brand" class="form-select form-select-sm rounded-3">
-                    <option value="__all">Tất cả hãng xe</option>
-                    @foreach (var b in brands)
+                <!-- 2. Tất cả hãng -->
+                <div class="col-6 col-md-6 col-xl">
+                    <select name="brand" class="form-select form-select-sm rounded-2" onchange="document.getElementById('filterForm').submit()">
+                        <option value="__all">Tất cả hãng</option>
+                        @foreach (var b in brands)
+                        {
+                            <option value="@b" selected="@(filterBrand == b)">@b</option>
+                        }
+                    </select>
+                </div>
+                <!-- 3. Tất cả thành phố -->
+                <div class="col-6 col-md-6 col-xl">
+                    <select name="city" class="form-select form-select-sm rounded-2" onchange="document.getElementById('filterForm').submit()">
+                        <option value="__all">Tất cả thành phố</option>
+                        @foreach (var c in cities)
+                        {
+                            <option value="@c" selected="@(filterCity == c)">@c</option>
+                        }
+                    </select>
+                </div>
+                <!-- 4. Ngày gửi duyệt -->
+                <div class="col-6 col-md-6 col-xl">
+                    <input type="date" name="date" value="@filterDate" class="form-control form-control-sm rounded-2" aria-label="Ngày gửi duyệt" onchange="document.getElementById('filterForm').submit()" />
+                </div>
+                <!-- 5. Tên / SĐT chủ xe -->
+                <div class="col-6 col-md-12 col-xl d-flex gap-2">
+                    <input type="text" name="owner" value="@filterOwner" class="form-control form-control-sm rounded-2" placeholder="Tên / SĐT chủ xe" />
+                    <button type="submit" class="btn btn-admin-primary btn-sm px-3 rounded-2" title="Tìm kiếm">
+                        <i class="bi bi-arrow-right"></i>
+                    </button>
+                    @if (!string.IsNullOrEmpty(filterQ) || filterBrand != "__all" || filterCity != "__all" || !string.IsNullOrEmpty(filterOwner) || !string.IsNullOrEmpty(filterDate))
                     {
-                        <option value="@b" selected="@(ViewBag.FilterBrand == b)">@b</option>
+                        <a asp-area="Admin" asp-controller="Cars" asp-action="Pending" class="btn btn-admin-outline btn-sm px-2 rounded-2" title="Đặt lại bộ lọc">
+                            <i class="bi bi-arrow-counterclockwise"></i>
+                        </a>
                     }
-                </select>
-            </div>
-            <div class="col-6 col-md-2">
-                <select name="city" class="form-select form-select-sm rounded-3">
-                    <option value="__all">Tất cả thành phố</option>
-                    @foreach (var c in cities)
-                    {
-                        <option value="@c" selected="@(ViewBag.FilterCity == c)">@c</option>
-                    }
-                </select>
-            </div>
-            <div class="col-12 col-md-3">
-                <input type="text" name="owner" value="@ViewBag.FilterOwner" class="form-control form-control-sm rounded-3" placeholder="Tên hoặc SĐT chủ xe..." />
-            </div>
-            <div class="col-12 col-md-2 d-flex gap-2">
-                <button type="submit" class="btn btn-primary btn-sm rounded-3 flex-grow-1" style="background-color: var(--recar-primary); border: none;">
-                    <i class="bi bi-funnel"></i> Lọc hồ sơ
-                </button>
-                <a asp-area="Admin" asp-controller="Cars" asp-action="Pending" class="btn btn-light btn-sm rounded-3 border" title="Đặt lại bộ lọc">
-                    <i class="bi bi-arrow-counterclockwise"></i>
-                </a>
+                </div>
             </div>
         </form>
     </div>
 
-    <!-- Content: Empty or List -->
+    <!-- Empty State -->
     @if (Model == null || Model.Count == 0)
     {
-        <div class="recar-panel text-center py-5">
-            <div class="rounded-circle bg-light d-inline-flex align-items-center justify-content-center mb-3" style="width: 64px; height: 64px;">
-                <i class="bi bi-check2-circle text-success fs-1"></i>
+        <div class="panel-card p-5 text-center my-4">
+            <div class="rounded-circle bg-light d-inline-flex align-items-center justify-content-center mb-3" style="width: 48px; height: 48px;">
+                <i class="bi bi-inbox text-muted fs-4"></i>
             </div>
-            <h5 class="fw-bold text-dark">Đã xử lý hết hồ sơ phê duyệt</h5>
-            <p class="text-muted small mb-0">Hiện tại không còn chiếc xe nào đang chờ duyệt trên toàn sàn ReCar.</p>
+            <p class="fw-semibold text-dark mb-1">
+                @((!string.IsNullOrEmpty(filterQ) || filterBrand != "__all" || filterCity != "__all" || !string.IsNullOrEmpty(filterOwner) || !string.IsNullOrEmpty(filterDate)) ? "Không có hồ sơ phù hợp" : "Đã xử lý hết hồ sơ")
+            </p>
+            <p class="text-muted small mb-0">
+                @((!string.IsNullOrEmpty(filterQ) || filterBrand != "__all" || filterCity != "__all" || !string.IsNullOrEmpty(filterOwner) || !string.IsNullOrEmpty(filterDate)) ? "Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm." : "Không còn xe nào chờ phê duyệt.")
+            </p>
         </div>
     }
     else
     {
-        <!-- Grid View Mode -->
-        <div id="pendingGridView" class="row g-4">
+        <!-- 1. GRID VIEW MODE -->
+        <div id="viewGrid" class="row g-4">
             @foreach (var car in Model)
             {
+                var mainImg = !string.IsNullOrEmpty(car.Image) ? car.Image : "/images/cars/car-sedan.jpg";
+                var ownerName = car.Owner?.FullName ?? "Chủ xe ReCar";
+                var ownerPhone = car.Owner?.Phone ?? "09xx.xxx.xxx";
+                var brandYear = $"{car.CarBrand ?? "Xe"} · {car.Model ?? 2023} · {car.Type?.CarTypeName ?? "Sedan"}";
+                var specs = $"{car.Seat ?? 5} chỗ · {car.Transmission ?? "Tự động"} · {car.Fuel ?? "Xăng"}";
+                var handover = !string.IsNullOrEmpty(car.Location) ? car.Location : "Toàn quốc";
+                var dateStr = DateTime.Now.ToString("dd/MM/yyyy HH:mm");
+                
+                // Lấy 4 ảnh xe cho gallery
+                List<string> gallery = new List<string> { mainImg };
+                if (carImagesDict.ContainsKey(car.CarId) && carImagesDict[car.CarId].Any())
+                {
+                    gallery.AddRange(carImagesDict[car.CarId]);
+                }
+                while (gallery.Count < 4)
+                {
+                    gallery.Add(mainImg);
+                }
+                bool hasFullDocs = !string.IsNullOrEmpty(car.RegistrationImage) && !string.IsNullOrEmpty(car.InspectionImage);
+
+                var carDetailData = new {
+                    id = car.CarId,
+                    name = car.CarName ?? "Phương tiện",
+                    plate = car.LicensePlate ?? "",
+                    brandYear = $"{car.CarBrand ?? "Xe"} · {car.Model ?? 2023}",
+                    segment = car.Type?.CarTypeName ?? "Sedan",
+                    seats = $"{car.Seat ?? 5}",
+                    gearbox = car.Transmission ?? "Số tự động",
+                    fuel = car.Fuel ?? "Xăng",
+                    price = car.Price ?? 0,
+                    driverFee = car.SalePrice ?? 0,
+                    owner = ownerName,
+                    phone = ownerPhone,
+                    handover = handover,
+                    city = !string.IsNullOrEmpty(car.Location) && car.Location.Contains(",") ? car.Location.Split(',').Last().Trim() : (car.Location ?? "TP. Hồ Chí Minh"),
+                    dateStr = dateStr,
+                    gallery = gallery.Take(4).ToList(),
+                    docReg = car.RegistrationImage ?? "",
+                    docInsp = car.InspectionImage ?? "",
+                    docIns = car.InsuranceImage ?? ""
+                };
+                var carDetailJson = System.Text.Json.JsonSerializer.Serialize(carDetailData);
+
                 <div class="col-12 col-md-6 col-xl-4" id="car-card-@car.CarId">
-                    <div class="recar-panel h-100 d-flex flex-column mb-0">
-                        <!-- Car Image Box -->
-                        <div class="position-relative overflow-hidden" style="height: 190px;">
-                            <img src="@(string.IsNullOrEmpty(car.Image) ? "/images/cars/car-sedan.jpg" : car.Image)" 
-                                 alt="@car.CarName" 
-                                 class="w-100 h-100 object-fit-cover" />
-                            <span class="position-absolute top-0 start-0 m-2 status-badge badge-pending shadow-sm">
-                                Chờ duyệt
-                            </span>
-                            <span class="position-absolute bottom-0 end-0 m-2 badge bg-dark text-white rounded-pill px-2.5 py-1 small" style="opacity: 0.9;">
-                                @(car.Seat ?? 5) chỗ · @(car.Transmission ?? "Tự động")
-                            </span>
-                        </div>
-
-                        <!-- Card Body Details -->
-                        <div class="p-3.5 flex-grow-1 d-flex flex-column justify-content-between">
+                    <article class="car-card-article h-100">
+                        <button type="button" class="car-img-btn" onclick='openCarDetailSheet(@Html.Raw(carDetailJson))'>
+                            <img src="@mainImg" alt="@car.CarName" loading="lazy" class="car-img-aspect" />
+                        </button>
+                        <div class="p-3 d-flex flex-column justify-content-between flex-grow-1" style="gap: 0.75rem;">
                             <div>
-                                <div class="d-flex align-items-start justify-content-between gap-2 mb-1.5">
-                                    <h5 class="fw-bold text-dark mb-0 fs-6">@car.CarName</h5>
-                                    <span class="font-mono-plate">@car.LicensePlate</span>
-                                </div>
-
-                                <div class="text-muted small mb-2 d-flex align-items-center gap-1">
-                                    <i class="bi bi-geo-alt text-danger"></i> @(car.Location ?? "Toàn quốc")
-                                </div>
-
-                                <!-- Owner Info Box -->
-                                <div class="p-2.5 rounded-3 mb-3" style="background-color: #f8fafc; border: 1px solid #e2e8f0;">
-                                    <div class="d-flex align-items-center justify-content-between mb-1">
-                                        <span class="text-muted small" style="font-size: 0.75rem;">Chủ xe đối tác:</span>
-                                        <span class="fw-bold small text-dark">@(car.Owner?.FullName ?? "Chủ xe ReCar")</span>
-                                    </div>
-                                    <div class="d-flex align-items-center justify-content-between text-muted" style="font-size: 0.75rem;">
-                                        <span><i class="bi bi-telephone text-primary me-1"></i>@(car.Owner?.Phone ?? "09xx.xxx.xxx")</span>
-                                        <span><i class="bi bi-calendar3 me-1"></i>Đời xe @(car.Model ?? 2023)</span>
-                                    </div>
-                                </div>
-
-                                <!-- Price & Verification -->
-                                <div class="d-flex align-items-center justify-content-between mb-3">
+                                <div class="d-flex align-items-start justify-content-between gap-2 mb-1">
                                     <div>
-                                        <span class="text-muted small" style="font-size: 0.72rem;">Giá đề xuất:</span>
-                                        <div class="fw-bold text-primary fs-6">@((car.Price ?? 0).ToString("N0")) đ<span class="text-muted fw-normal" style="font-size: 0.75rem;">/ngày</span></div>
+                                        <h3 class="fw-semibold text-dark mb-0 fs-6">@car.CarName</h3>
+                                        <p class="text-muted small mb-0" style="font-size: 0.75rem;">@brandYear</p>
                                     </div>
-                                    <div class="text-end">
-                                        <span class="badge bg-light text-success border border-success-subtle rounded-pill small">
-                                            <i class="bi bi-check-circle-fill me-1"></i> Đăng kiểm hợp lệ
-                                        </span>
-                                    </div>
+                                    <span class="plate">@car.LicensePlate</span>
+                                </div>
+                                <p class="text-muted small mb-2" style="font-size: 0.75rem;">@specs</p>
+
+                                <div class="d-flex align-items-baseline justify-content-between mb-3">
+                                    <span class="fs-5 fw-bold text-primary">
+                                        @((car.Price ?? 0).ToString("N0")) đ<span class="text-muted fw-normal" style="font-size: 0.75rem;">/ngày</span>
+                                    </span>
+                                    @if (car.SalePrice.HasValue && car.SalePrice.Value > 0)
+                                    {
+                                        <span class="text-muted small" style="font-size: 0.75rem;">Tài xế +@((car.SalePrice.Value).ToString("N0")) đ</span>
+                                    }
+                                </div>
+
+                                <div class="border-top pt-2.5 space-y-1 text-muted" style="font-size: 0.75rem; line-height: 1.5;">
+                                    <p class="fw-medium text-dark mb-1">@ownerName</p>
+                                    <p class="mb-1 d-flex align-items-center gap-1.5"><i class="bi bi-telephone text-muted"></i> @ownerPhone</p>
+                                    <p class="mb-1 d-flex align-items-center gap-1.5"><i class="bi bi-geo-alt text-muted"></i> @handover</p>
+                                    <p class="mb-0 d-flex align-items-center gap-1.5"><i class="bi bi-clock text-muted"></i> Gửi lúc @dateStr</p>
                                 </div>
                             </div>
 
-                            <!-- Action Buttons -->
-                            <div class="d-flex gap-2 pt-2 border-top">
-                                <button type="button" class="btn btn-outline-danger btn-sm flex-grow-1 rounded-pill fw-semibold" 
-                                        onclick="openRejectModal(@car.CarId, '@car.CarName', '@car.LicensePlate')">
-                                    <i class="bi bi-x-circle me-1"></i> Từ chối
-                                </button>
-                                <button type="button" class="btn btn-success btn-sm flex-grow-1 rounded-pill fw-semibold text-white shadow-sm" 
-                                        onclick="approveCar(@car.CarId, '@car.CarName', '@car.LicensePlate')">
-                                    <i class="bi bi-check2-circle me-1"></i> Phê duyệt
-                                </button>
+                            <div>
+                                <div class="mb-3">
+                                    @if (hasFullDocs)
+                                    {
+                                        <span class="status-badge-custom badge-verified">
+                                            <span class="dot"></span> Giấy tờ đầy đủ
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="status-badge-custom badge-pending">
+                                            <span class="dot"></span> Giấy tờ cần bổ sung
+                                        </span>
+                                    }
+                                </div>
+
+                                <div class="row g-2 pt-1">
+                                    <div class="col-4">
+                                        <button type="button" class="btn btn-admin-outline btn-sm w-100 py-1.5 text-nowrap" 
+                                                onclick='openCarDetailSheet(@Html.Raw(carDetailJson))'>
+                                            Chi tiết
+                                        </button>
+                                    </div>
+                                    <div class="col-4">
+                                        <button type="button" class="btn btn-admin-destructive btn-sm w-100 py-1.5 text-nowrap" 
+                                                onclick="openRejectDialog(@car.CarId, '@car.LicensePlate')">
+                                            Từ chối
+                                        </button>
+                                    </div>
+                                    <div class="col-4">
+                                        <button type="button" class="btn btn-admin-primary btn-sm w-100 py-1.5 text-nowrap" 
+                                                onclick="openApproveDialog(@car.CarId, '@car.CarName', '@car.LicensePlate')">
+                                            Duyệt
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                    </div>
+                    </article>
                 </div>
             }
         </div>
 
-        <!-- Table View Mode (Hidden by default) -->
-        <div id="pendingTableView" class="recar-panel d-none mb-0">
+        <!-- 2. TABLE VIEW MODE -->
+        <div id="viewTable" class="panel-card d-none">
             <div class="table-responsive">
-                <table class="table recar-table align-middle mb-0">
-                    <thead>
+                <table class="table align-middle mb-0" style="font-size: 0.875rem;">
+                    <thead class="bg-light text-muted" style="border-bottom: 1px solid var(--card-border);">
                         <tr>
-                            <th>Ảnh xe</th>
-                            <th>Tên xe & Đời</th>
-                            <th>Biển số</th>
-                            <th>Chủ xe</th>
-                            <th>Khu vực</th>
-                            <th>Giá thuê/ngày</th>
-                            <th>Hồ sơ giấy tờ</th>
-                            <th class="text-end">Thao tác</th>
+                            <th class="ps-4 py-3 fw-semibold">Xe</th>
+                            <th class="py-3 fw-semibold">Biển số</th>
+                            <th class="py-3 fw-semibold">Thông số</th>
+                            <th class="py-3 fw-semibold">Giá/ngày</th>
+                            <th class="py-3 fw-semibold">Chủ xe</th>
+                            <th class="py-3 fw-semibold">Gửi lúc</th>
+                            <th class="py-3 fw-semibold">Giấy tờ</th>
+                            <th class="pe-4 py-3 fw-semibold text-end">Thao tác</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody class="divide-y">
                         @foreach (var car in Model)
                         {
+                            var mainImg = !string.IsNullOrEmpty(car.Image) ? car.Image : "/images/cars/car-sedan.jpg";
+                            var ownerName = car.Owner?.FullName ?? "Chủ xe ReCar";
+                            var ownerPhone = car.Owner?.Phone ?? "09xx.xxx.xxx";
+                            var brandYear = $"{car.CarBrand ?? "Xe"} · {car.Model ?? 2023}";
+                            var specs = $"{car.Type?.CarTypeName ?? "Sedan"} · {car.Seat ?? 5} chỗ · {car.Transmission ?? "Tự động"}";
+                            var handover = !string.IsNullOrEmpty(car.Location) ? car.Location : "Toàn quốc";
+                            var dateStr = DateTime.Now.ToString("dd/MM/yyyy HH:mm");
+
+                            List<string> gallery = new List<string> { mainImg };
+                            if (carImagesDict.ContainsKey(car.CarId) && carImagesDict[car.CarId].Any())
+                            {
+                                gallery.AddRange(carImagesDict[car.CarId]);
+                            }
+                            while (gallery.Count < 4)
+                            {
+                                gallery.Add(mainImg);
+                            }
+                            bool hasFullDocsRow = !string.IsNullOrEmpty(car.RegistrationImage) && !string.IsNullOrEmpty(car.InspectionImage);
+
+                            var carDetailDataRow = new {
+                                id = car.CarId,
+                                name = car.CarName ?? "Phương tiện",
+                                plate = car.LicensePlate ?? "",
+                                brandYear = $"{car.CarBrand ?? "Xe"} · {car.Model ?? 2023}",
+                                segment = car.Type?.CarTypeName ?? "Sedan",
+                                seats = $"{car.Seat ?? 5}",
+                                gearbox = car.Transmission ?? "Số tự động",
+                                fuel = car.Fuel ?? "Xăng",
+                                price = car.Price ?? 0,
+                                driverFee = car.SalePrice ?? 0,
+                                owner = ownerName,
+                                phone = ownerPhone,
+                                handover = handover,
+                                city = !string.IsNullOrEmpty(car.Location) && car.Location.Contains(",") ? car.Location.Split(',').Last().Trim() : (car.Location ?? "TP. Hồ Chí Minh"),
+                                dateStr = dateStr,
+                                gallery = gallery.Take(4).ToList(),
+                                docReg = car.RegistrationImage ?? "",
+                                docInsp = car.InspectionImage ?? "",
+                                docIns = car.InsuranceImage ?? ""
+                            };
+                            var carDetailJsonRow = System.Text.Json.JsonSerializer.Serialize(carDetailDataRow);
+
                             <tr id="car-row-@car.CarId">
-                                <td style="width: 70px;">
-                                    <img src="@(string.IsNullOrEmpty(car.Image) ? "/images/cars/car-sedan.jpg" : car.Image)" 
-                                         alt="@car.CarName" class="rounded object-fit-cover" style="width: 60px; height: 42px;" />
+                                <td class="ps-4 py-3">
+                                    <div class="d-flex align-items-center gap-3">
+                                        <img src="@mainImg" alt="@car.CarName" class="rounded object-fit-cover" style="width: 56px; height: 40px;" />
+                                        <div>
+                                            <p class="fw-semibold text-dark mb-0">@car.CarName</p>
+                                            <p class="text-muted small mb-0" style="font-size: 0.75rem;">@brandYear</p>
+                                        </div>
+                                    </div>
                                 </td>
-                                <td>
-                                    <div class="fw-bold text-dark small">@car.CarName</div>
-                                    <div class="text-muted" style="font-size: 0.72rem;">@car.CarBrand · Đời @(car.Model ?? 2023)</div>
+                                <td class="py-3"><span class="plate">@car.LicensePlate</span></td>
+                                <td class="py-3 text-muted small">@specs</td>
+                                <td class="py-3 text-nowrap fw-semibold text-primary">@((car.Price ?? 0).ToString("N0")) đ</td>
+                                <td class="py-3">
+                                    <p class="mb-0 fw-medium text-dark text-nowrap">@ownerName</p>
+                                    <p class="mb-0 text-muted small" style="font-size: 0.75rem;">@ownerPhone</p>
                                 </td>
-                                <td>
-                                    <span class="font-mono-plate">@car.LicensePlate</span>
+                                <td class="py-3 text-nowrap small text-muted">@dateStr</td>
+                                <td class="py-3">
+                                    @if (hasFullDocsRow)
+                                    {
+                                        <span class="status-badge-custom badge-verified">
+                                            <span class="dot"></span> Giấy tờ đầy đủ
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="status-badge-custom badge-pending">
+                                            <span class="dot"></span> Giấy tờ cần bổ sung
+                                        </span>
+                                    }
                                 </td>
-                                <td>
-                                    <div class="fw-semibold small">@(car.Owner?.FullName ?? "Chủ xe ReCar")</div>
-                                    <div class="text-muted" style="font-size: 0.72rem;">@(car.Owner?.Phone ?? "09xx.xxx.xxx")</div>
-                                </td>
-                                <td class="small text-muted">
-                                    <i class="bi bi-geo-alt text-danger me-1"></i>@(car.Location ?? "Hà Nội")
-                                </td>
-                                <td>
-                                    <span class="fw-bold text-primary small">@((car.Price ?? 0).ToString("N0")) đ</span>
-                                </td>
-                                <td>
-                                    <span class="badge bg-light text-success border border-success-subtle rounded-pill" style="font-size: 0.72rem;">
-                                        <i class="bi bi-check-circle-fill me-1"></i> Đầy đủ giấy tờ
-                                    </span>
-                                </td>
-                                <td class="text-end">
+                                <td class="pe-4 py-3 text-end">
                                     <div class="d-inline-flex gap-1.5">
-                                        <button type="button" class="btn btn-outline-danger btn-sm rounded-pill px-2.5 py-1" style="font-size: 0.75rem;"
-                                                onclick="openRejectModal(@car.CarId, '@car.CarName', '@car.LicensePlate')">
+                                        <button type="button" class="btn btn-sm btn-light border py-1 px-2.5 rounded-2" 
+                                                onclick='openCarDetailSheet(@Html.Raw(carDetailJsonRow))'>
+                                            Chi tiết
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-outline-danger py-1 px-2.5 rounded-2" 
+                                                onclick="openRejectDialog(@car.CarId, '@car.LicensePlate')">
                                             Từ chối
                                         </button>
-                                        <button type="button" class="btn btn-success btn-sm rounded-pill px-2.5 py-1 text-white shadow-sm" style="font-size: 0.75rem;"
-                                                onclick="approveCar(@car.CarId, '@car.CarName', '@car.LicensePlate')">
-                                            Phê duyệt
+                                        <button type="button" class="btn btn-sm btn-admin-primary py-1 px-2.5 rounded-2" 
+                                                onclick="openApproveDialog(@car.CarId, '@car.CarName', '@car.LicensePlate')">
+                                            Duyệt
                                         </button>
                                     </div>
                                 </td>
@@ -220,153 +732,456 @@
             </div>
         </div>
     }
+
+    <!-- Panel "Hồ sơ đã từ chối / yêu cầu chỉnh sửa" (Chuẩn Template) -->
+    @if (recentRejected != null && recentRejected.Count > 0)
+    {
+        <div class="panel-card mt-5">
+            <div class="panel-header">
+                <h2 class="fs-6 fw-semibold text-dark mb-0">Hồ sơ đã từ chối / yêu cầu chỉnh sửa</h2>
+            </div>
+            <ul class="list-group list-group-flush rounded-bottom-3" style="font-size: 0.875rem;">
+                @foreach (var r in recentRejected)
+                {
+                    <li class="list-group-item d-flex flex-wrap align-items-center justify-content-between gap-2 px-4 py-3 bg-transparent">
+                        <span class="d-flex align-items-center gap-2">
+                            <span class="plate">@r.LicensePlate</span>
+                            <span class="fw-medium text-dark">@r.CarName</span>
+                        </span>
+                        <span class="text-muted small" style="font-size: 0.8rem;">
+                            @(string.IsNullOrEmpty(r.Descriptions) ? "Chưa có lý do chi tiết" : r.Descriptions)
+                        </span>
+                        <span class="status-badge-custom badge-rejected">
+                            <span class="dot"></span> Yêu cầu chỉnh sửa
+                        </span>
+                    </li>
+                }
+            </ul>
+        </div>
+    }
 </div>
 
-<!-- Modal Từ Chối Duyệt Xe -->
-<div class="modal fade" id="rejectModal" tabindex="-1" aria-labelledby="rejectModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content rounded-4 border-0 shadow">
-            <div class="modal-header border-bottom py-3">
-                <h5 class="modal-title fw-bold text-dark fs-6" id="rejectModalLabel">
-                    <i class="bi bi-x-circle-fill text-danger me-1"></i> Từ chối duyệt hồ sơ xe
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body py-3">
-                <input type="hidden" id="rejectCarId" />
-                <div class="mb-3">
-                    <label class="form-label small text-muted mb-1">Xe đang xử lý:</label>
-                    <div class="fw-bold text-dark p-2 rounded-3 bg-light border" id="rejectCarInfo"></div>
-                </div>
+<!-- ==================== SHEET (OFFCANVAS) CHI TIẾT XE ==================== -->
+<div class="sheet-overlay" id="sheetOverlay" onclick="closeCarDetailSheet()"></div>
 
-                <div class="mb-3">
-                    <label for="rejectReason" class="form-label small fw-bold text-dark">Lý do từ chối hồ sơ <span class="text-danger">*</span></label>
-                    <textarea class="form-control rounded-3" id="rejectReason" rows="3" placeholder="Nhập lý do cụ thể (VD: Ảnh chụp mờ, thông tin biển số không trùng khớp với giấy đăng kiểm, yêu cầu tải lại ảnh 4 góc xe...)"></textarea>
-                    <div class="text-muted" style="font-size: 0.72rem; margin-top: 4px;">Nội dung này sẽ được thông báo trực tiếp đến Chủ xe để tiến hành sửa lại hồ sơ.</div>
-                </div>
+<div class="recar-sheet" id="carDetailSheet">
+    <!-- Sheet Header -->
+    <div class="px-4 py-3.5 border-bottom d-flex align-items-start justify-content-between">
+        <div>
+            <h3 class="fw-semibold text-dark fs-5 mb-0" id="sheetCarTitle">Tên xe</h3>
+            <p class="text-muted small mb-0 mt-0.5" id="sheetCarSubtitle" style="font-size: 0.875rem;">Hồ sơ gửi lúc ...</p>
+        </div>
+        <button type="button" class="btn btn-sm btn-light border-0 rounded-circle" style="width: 32px; height: 32px;" onclick="closeCarDetailSheet()">
+            <i class="bi bi-x-lg" style="font-size: 13px;"></i>
+        </button>
+    </div>
 
-                <div class="form-check">
-                    <input class="form-check-input" type="checkbox" id="chkNotifyOwner" checked />
-                    <label class="form-check-label small text-dark" for="chkNotifyOwner">
-                        Gửi thông báo yêu cầu chỉnh sửa hồ sơ qua hệ thống tới chủ xe
-                    </label>
-                </div>
+    <!-- Sheet Body (Scrollable exactly like Template) -->
+    <div class="px-4 py-4 recar-sheet-body" id="sheetScrollBody">
+        <!-- Thư viện 4 ảnh 2x2 grid (Aspect 4/3, không nhãn) -->
+        <div class="row g-2 mb-4" id="sheetGalleryGrid">
+            <!-- 4 ảnh sẽ được render từ JS -->
+        </div>
+
+        <!-- Bảng thông số 2 cột (Template Replica dl.sheet-spec-grid) -->
+        <dl class="sheet-spec-grid">
+            <div>
+                <dt class="sheet-field-dt">Hãng / Đời</dt>
+                <dd class="sheet-field-dd" id="sheetParamBrandYear">Toyota · 2025</dd>
             </div>
-            <div class="modal-footer border-top py-2.5">
-                <button type="button" class="btn btn-light btn-sm rounded-pill px-3" data-bs-dismiss="modal">Hủy bỏ</button>
-                <button type="button" class="btn btn-danger btn-sm rounded-pill px-3 fw-semibold" onclick="confirmReject()">
-                    <i class="bi bi-x-circle me-1"></i> Xác nhận từ chối
-                </button>
+            <div>
+                <dt class="sheet-field-dt">Biển số</dt>
+                <dd class="sheet-field-dd"><span class="plate" id="sheetParamPlate">51K-660.35</span></dd>
+            </div>
+            <div>
+                <dt class="sheet-field-dt">Phân khúc</dt>
+                <dd class="sheet-field-dd" id="sheetParamSegment">Sedan</dd>
+            </div>
+            <div>
+                <dt class="sheet-field-dt">Số chỗ</dt>
+                <dd class="sheet-field-dd" id="sheetParamSeats">5</dd>
+            </div>
+            <div>
+                <dt class="sheet-field-dt">Hộp số</dt>
+                <dd class="sheet-field-dd" id="sheetParamGearbox">Số tự động</dd>
+            </div>
+            <div>
+                <dt class="sheet-field-dt">Nhiên liệu</dt>
+                <dd class="sheet-field-dd" id="sheetParamFuel">Xăng</dd>
+            </div>
+            <div>
+                <dt class="sheet-field-dt">Giá thuê/ngày</dt>
+                <dd class="sheet-field-dd" id="sheetParamPrice">850.000 <u>đ</u></dd>
+            </div>
+            <div>
+                <dt class="sheet-field-dt">Phụ phí tài xế</dt>
+                <dd class="sheet-field-dd" id="sheetParamDriverFee">Không</dd>
+            </div>
+            <div>
+                <dt class="sheet-field-dt">Chủ xe</dt>
+                <dd class="sheet-field-dd" id="sheetParamOwner">Lê Quốc Bảo</dd>
+            </div>
+            <div>
+                <dt class="sheet-field-dt">Điện thoại</dt>
+                <dd class="sheet-field-dd" id="sheetParamPhone">0988 112 667</dd>
+            </div>
+            <div>
+                <dt class="sheet-field-dt">Khu vực bàn giao</dt>
+                <dd class="sheet-field-dd" id="sheetParamHandover">Bình Thạnh, TP.HCM</dd>
+            </div>
+            <div>
+                <dt class="sheet-field-dt">Thành phố</dt>
+                <dd class="sheet-field-dd" id="sheetParamCity">TP. Hồ Chí Minh</dd>
+            </div>
+        </dl>
+
+        <!-- Khối Giấy tờ xác minh -->
+        <div class="mb-4">
+            <p class="mb-2 text-dark" style="font-size: 0.875rem; font-weight: 600;">Giấy tờ xác minh</p>
+            <div id="sheetDocsContainer" class="d-flex flex-column" style="gap: 0.5rem;">
+                <!-- render qua JS -->
+            </div>
+        </div>
+
+        <!-- Hai nút Từ chối & Phê duyệt (Chuẩn template) -->
+        <div class="d-flex gap-2" style="margin-top: 1.25rem; margin-bottom: 0.5rem;">
+            <button type="button" class="sheet-btn-reject" id="btnSheetReject">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>
+                Từ chối
+            </button>
+            <button type="button" class="sheet-btn-approve" id="btnSheetApprove">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
+                Phê duyệt
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== MODAL PHÓNG TO ẢNH (LIGHTBOX) ==================== -->
+<div class="zoom-lightbox" id="zoomLightbox" onclick="closeLightbox()">
+    <img src="" id="zoomLightboxImg" alt="Phóng to" onclick="event.stopPropagation()" />
+</div>
+
+<!-- ==================== MODAL CONFIRM PHÊ DUYỆT ==================== -->
+<div class="modal fade" id="approveModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered recar-modal-dialog">
+        <div class="modal-content recar-modal-content border-0 p-3">
+            <div class="modal-body p-3">
+                <h5 class="fw-bold text-dark mb-2">Phê duyệt hồ sơ xe?</h5>
+                <p class="text-muted small mb-0" id="approveModalDesc">
+                    Xe sẽ chuyển sang trạng thái <strong>Sẵn sàng</strong> và được hiển thị công khai trên sàn ReCar.
+                </p>
+            </div>
+            <div class="modal-footer border-0 p-3 pt-0 d-flex justify-content-end gap-2">
+                <button type="button" class="btn btn-admin-outline btn-sm px-3 rounded-2" data-bs-dismiss="modal">Hủy</button>
+                <button type="button" class="btn btn-admin-primary btn-sm px-4 rounded-2" id="btnConfirmApprove" onclick="executeApprove()">Phê duyệt</button>
             </div>
         </div>
     </div>
 </div>
 
-@section Scripts {
+<!-- ==================== MODAL CONFIRM TỪ CHỐI ==================== -->
+<div class="modal fade" id="rejectModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered recar-modal-dialog">
+        <div class="modal-content recar-modal-content border-0 p-3">
+            <div class="modal-body p-3">
+                <h5 class="fw-bold text-danger mb-2">Từ chối duyệt xe</h5>
+                <p class="text-muted small mb-3" id="rejectModalDesc">
+                    Hồ sơ sẽ chuyển sang trạng thái <strong>Yêu cầu chỉnh sửa</strong>.
+                </p>
+                <div class="mb-3">
+                    <label class="form-label text-dark small fw-semibold">Lý do từ chối / nội dung cần chỉnh sửa <span class="text-danger">*</span></label>
+                    <textarea class="form-control rounded-2" id="rejectReasonInput" rows="3" placeholder="Ví dụ: Ảnh giấy đăng kiểm bị mờ góc dưới, yêu cầu chủ xe chụp lại rõ nét..."></textarea>
+                    <div class="text-danger small mt-1 d-none" id="rejectReasonError">Vui lòng nhập lý do từ chối.</div>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="notifyOwnerCheckbox" checked />
+                    <label class="form-check-label text-dark small" for="notifyOwnerCheckbox">
+                        Gửi thông báo cho chủ xe
+                    </label>
+                </div>
+            </div>
+            <div class="modal-footer border-0 p-3 pt-0 d-flex justify-content-end gap-2">
+                <button type="button" class="btn btn-admin-outline btn-sm px-3 rounded-2" data-bs-dismiss="modal">Hủy</button>
+                <button type="button" class="btn btn-danger btn-sm px-4 rounded-2" id="btnConfirmReject" onclick="executeReject()">Từ chối hồ sơ</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
-    function switchView(view) {
-        if (view === 'grid') {
-            document.getElementById('pendingGridView').classList.remove('d-none');
-            document.getElementById('pendingTableView').classList.add('d-none');
-            document.getElementById('btnViewGrid').classList.add('active');
-            document.getElementById('btnViewTable').classList.remove('active');
+    // Trạng thái view hiện tại (lưu localStorage)
+    let currentViewMode = localStorage.getItem('recar_admin_cars_view') || 'grid';
+    let currentCarId = 0;
+    let currentCarGallery = [];
+    let currentCarPlate = '';
+    let currentCarName = '';
+
+    // Khởi tạo hiển thị
+    document.addEventListener("DOMContentLoaded", function () {
+        switchView(currentViewMode, false);
+    });
+
+    // Chuyển đổi Dạng thẻ / Dạng bảng
+    function switchView(mode, save = true) {
+        currentViewMode = mode;
+        if (save) localStorage.setItem('recar_admin_cars_view', mode);
+
+        const btnGrid = document.getElementById('btnToggleGrid');
+        const btnTable = document.getElementById('btnToggleTable');
+        const viewGrid = document.getElementById('viewGrid');
+        const viewTable = document.getElementById('viewTable');
+
+        if (mode === 'grid') {
+            btnGrid.classList.add('active');
+            btnTable.classList.remove('active');
+            if (viewGrid) viewGrid.classList.remove('d-none');
+            if (viewTable) viewTable.classList.add('d-none');
         } else {
-            document.getElementById('pendingGridView').classList.add('d-none');
-            document.getElementById('pendingTableView').classList.remove('d-none');
-            document.getElementById('btnViewGrid').classList.remove('active');
-            document.getElementById('btnViewTable').classList.add('active');
+            btnTable.classList.add('active');
+            btnGrid.classList.remove('active');
+            if (viewGrid) viewGrid.classList.add('d-none');
+            if (viewTable) viewTable.classList.remove('d-none');
         }
     }
 
-    function approveCar(carId, carName, plate) {
-        Swal.fire({
-            title: 'Phê duyệt xe này?',
-            html: `Xác nhận phê duyệt xe <strong>${carName}</strong> (${plate})?<br><span class="text-muted small">Sau khi duyệt, xe sẽ lập tức chuyển sang trạng thái <strong>Sẵn sàng</strong> và xuất hiện công khai trên sàn ReCar.</span>`,
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonColor: '#10b981',
-            cancelButtonColor: '#94a3b8',
-            confirmButtonText: 'Đồng ý phê duyệt',
-            cancelButtonText: 'Hủy bỏ',
-            customClass: { popup: 'rounded-4' }
-        }).then((result) => {
-            if (result.isConfirmed) {
-                $.ajax({
-                    url: '/Admin/Cars/Approve',
-                    type: 'POST',
-                    data: { id: carId },
-                    success: function (res) {
-                        if (res.success) {
-                            Swal.fire({
-                                title: 'Thành công!',
-                                text: res.message,
-                                icon: 'success',
-                                timer: 2000,
-                                showConfirmButton: false,
-                                customClass: { popup: 'rounded-4' }
-                            });
-                            // Xóa thẻ khỏi giao diện
-                            $('#car-card-' + carId).fadeOut(400, function() { $(this).remove(); });
-                            $('#car-row-' + carId).fadeOut(400, function() { $(this).remove(); });
-                        } else {
-                            Swal.fire('Thất bại', res.message, 'error');
-                        }
-                    },
-                    error: function () {
-                        Swal.fire('Lỗi kết nối', 'Không thể kết nối đến máy chủ.', 'error');
-                    }
+    // Mở Sheet chi tiết
+    function openCarDetailSheet(data) {
+        currentCarId = data.id;
+        currentCarName = data.name;
+        currentCarPlate = data.plate;
+        currentCarGallery = data.gallery || [];
+
+        document.getElementById('sheetCarTitle').innerText = data.name;
+        document.getElementById('sheetCarSubtitle').innerText = 'Hồ sơ gửi lúc ' + data.dateStr;
+        document.getElementById('sheetParamBrandYear').innerText = data.brandYear;
+        document.getElementById('sheetParamPlate').innerText = data.plate;
+        document.getElementById('sheetParamSegment').innerText = data.segment;
+        document.getElementById('sheetParamSeats').innerText = data.seats;
+        document.getElementById('sheetParamGearbox').innerText = data.gearbox;
+        document.getElementById('sheetParamFuel').innerText = data.fuel;
+        document.getElementById('sheetParamPrice').innerHTML = Number(data.price).toLocaleString('vi-VN') + ' <u style="text-decoration: underline;">đ</u>';
+        document.getElementById('sheetParamDriverFee').innerText = data.driverFee > 0 ? (Number(data.driverFee).toLocaleString('vi-VN') + ' đ') : 'Không';
+        document.getElementById('sheetParamOwner').innerText = data.owner;
+        document.getElementById('sheetParamPhone').innerText = data.phone;
+        document.getElementById('sheetParamHandover').innerText = data.handover;
+        document.getElementById('sheetParamCity').innerText = data.city;
+
+        // Render 4 ảnh sạch sẽ chuẩn template (aspect 4/3, ĐÃ BỎ TOÀN BỘ NHÃN GÓC theo yêu cầu)
+        let galleryHtml = '';
+        for (let i = 0; i < 4; i++) {
+            const imgUrl = currentCarGallery[i] || currentCarGallery[0] || '/images/cars/car-sedan.jpg';
+            galleryHtml += `
+                <div class="col-6">
+                    <button type="button" class="sheet-gallery-btn" onclick="zoomImage('${imgUrl}')">
+                        <img src="${imgUrl}" alt="Ảnh xe ${i + 1}" class="sheet-gallery-img" />
+                        <span class="sheet-gallery-zoom">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" x2="16.65" y1="21" y2="16.65"/><line x1="11" x2="11" y1="8" y2="14"/><line x1="8" x2="14" y1="11" y2="11"/></svg>
+                        </span>
+                    </button>
+                </div>
+            `;
+        }
+        document.getElementById('sheetGalleryGrid').innerHTML = galleryHtml;
+
+        // Render danh sách Giấy tờ xác minh thực tế (icon Lucide FileCheck2 chuẩn template)
+        const docs = [
+            { title: "Giấy đăng ký xe (cà vẹt)", url: data.docReg },
+            { title: "Giấy chứng nhận đăng kiểm", url: data.docInsp },
+            { title: "Bảo hiểm TNDS bắt buộc", url: data.docIns }
+        ];
+
+        const iconOkSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-file-check-2"><path d="M4 22h14a2 2 0 0 0 2-2V7l-5-5H6a2 2 0 0 0-2 2v4"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="m3 15 2 2 4-4"/></svg>`;
+        const iconWarnSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-file-warning"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>`;
+
+        let docsHtml = '';
+        docs.forEach(doc => {
+            if (doc.url && doc.url.trim() !== '') {
+                docsHtml += `
+                    <button type="button" class="sheet-doc-item" onclick="zoomImage('${doc.url}')">
+                        <span class="d-flex align-items-center gap-2">
+                            ${iconOkSvg}
+                            <span class="text-dark" style="font-size: 0.875rem;">${doc.title}</span>
+                        </span>
+                        <span style="font-size: 0.75rem; color: #64748b;">Đã tải lên · Xem</span>
+                    </button>
+                `;
+            } else {
+                docsHtml += `
+                    <div class="sheet-doc-item" style="background-color: #fafafa;">
+                        <span class="d-flex align-items-center gap-2">
+                            ${iconWarnSvg}
+                            <span class="text-muted" style="font-size: 0.875rem;">${doc.title}</span>
+                        </span>
+                        <span style="font-size: 0.75rem; color: #d97706;">Thiếu / mờ</span>
+                    </div>
+                `;
+            }
+        });
+        document.getElementById('sheetDocsContainer').innerHTML = docsHtml;
+
+        // Gắn nút hành động trong sheet
+        document.getElementById('btnSheetReject').onclick = function () {
+            closeCarDetailSheet();
+            openRejectDialog(data.id, data.plate);
+        };
+        document.getElementById('btnSheetApprove').onclick = function () {
+            closeCarDetailSheet();
+            openApproveDialog(data.id, data.name, data.plate);
+        };
+
+        // Khóa cuộn trang nền và reset cuộn sheet lên đầu
+        document.body.style.overflow = 'hidden';
+        const scrollBody = document.getElementById('sheetScrollBody');
+        if (scrollBody) scrollBody.scrollTop = 0;
+
+        // Mở Sheet
+        document.getElementById('sheetOverlay').classList.add('show');
+        document.getElementById('carDetailSheet').classList.add('show');
+    }
+
+    function closeCarDetailSheet() {
+        document.body.style.overflow = '';
+        document.getElementById('sheetOverlay').classList.remove('show');
+        document.getElementById('carDetailSheet').classList.remove('show');
+    }
+
+    // Phóng to ảnh (Lightbox Zoom)
+    function zoomImage(url) {
+        document.getElementById('zoomLightboxImg').src = url;
+        document.getElementById('zoomLightbox').classList.add('show');
+    }
+
+    function zoomDocImage(index) {
+        const url = (currentCarGallery && currentCarGallery.length > index) ? currentCarGallery[index] : (currentCarGallery[0] || '/images/cars/car-sedan.jpg');
+        zoomImage(url);
+    }
+
+    function closeLightbox() {
+        document.getElementById('zoomLightbox').classList.remove('show');
+    }
+
+    // Modal Phê duyệt
+    function openApproveDialog(id, name, plate) {
+        currentCarId = id;
+        currentCarName = name;
+        currentCarPlate = plate;
+        document.getElementById('approveModalDesc').innerHTML = `Xe <b>${name}</b> (<span class="font-mono">${plate}</span>) sẽ chuyển sang trạng thái <b>Sẵn sàng</b> và được hiển thị công khai.`;
+        const modal = new bootstrap.Modal(document.getElementById('approveModal'));
+        modal.show();
+    }
+
+    function executeApprove() {
+        const btn = document.getElementById('btnConfirmApprove');
+        btn.disabled = true;
+        btn.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span> Đang duyệt...`;
+
+        fetch('/Admin/Cars/Approve', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: `id=${currentCarId}`
+        })
+        .then(res => res.json())
+        .then(data => {
+            btn.disabled = false;
+            btn.innerText = 'Phê duyệt';
+            bootstrap.Modal.getInstance(document.getElementById('approveModal')).hide();
+
+            if (data.success) {
+                // Xóa khỏi DOM grid & table
+                const card = document.getElementById(`car-card-${currentCarId}`);
+                if (card) card.remove();
+                const row = document.getElementById(`car-row-${currentCarId}`);
+                if (row) row.remove();
+
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Đã phê duyệt!',
+                    text: data.message,
+                    timer: 3000,
+                    showConfirmButton: false
+                });
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Lỗi',
+                    text: data.message
                 });
             }
+        })
+        .catch(err => {
+            btn.disabled = false;
+            btn.innerText = 'Phê duyệt';
+            Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Không thể kết nối máy chủ.' });
         });
     }
 
-    function openRejectModal(carId, carName, plate) {
-        $('#rejectCarId').val(carId);
-        $('#rejectCarInfo').html(`${carName} <span class="font-mono-plate ms-1">${plate}</span>`);
-        $('#rejectReason').val('');
+    // Modal Từ chối
+    function openRejectDialog(id, plate) {
+        currentCarId = id;
+        currentCarPlate = plate;
+        document.getElementById('rejectModalDesc').innerHTML = `Hồ sơ <span class="font-mono">${plate}</span> sẽ chuyển sang trạng thái <b>Yêu cầu chỉnh sửa</b>.`;
+        document.getElementById('rejectReasonInput').value = '';
+        document.getElementById('rejectReasonError').classList.add('d-none');
         const modal = new bootstrap.Modal(document.getElementById('rejectModal'));
         modal.show();
     }
 
-    function confirmReject() {
-        const carId = $('#rejectCarId').val();
-        const reason = $('#rejectReason').val().trim();
+    function executeReject() {
+        const reason = document.getElementById('rejectReasonInput').value.trim();
+        const notify = document.getElementById('notifyOwnerCheckbox').checked;
 
         if (!reason) {
-            Swal.fire({
-                title: 'Thiếu lý do!',
-                text: 'Vui lòng nhập lý do từ chối để chủ xe biết cần chỉnh sửa mục nào.',
-                icon: 'warning',
-                customClass: { popup: 'rounded-4' }
-            });
+            document.getElementById('rejectReasonError').classList.remove('d-none');
             return;
         }
+        document.getElementById('rejectReasonError').classList.add('d-none');
 
-        $.ajax({
-            url: '/Admin/Cars/Reject',
-            type: 'POST',
-            data: { id: carId, reason: reason },
-            success: function (res) {
-                if (res.success) {
-                    bootstrap.Modal.getInstance(document.getElementById('rejectModal')).hide();
-                    Swal.fire({
-                        title: 'Đã từ chối hồ sơ',
-                        text: res.message,
-                        icon: 'info',
-                        timer: 2000,
-                        showConfirmButton: false,
-                        customClass: { popup: 'rounded-4' }
-                    });
-                    $('#car-card-' + carId).fadeOut(400, function() { $(this).remove(); });
-                    $('#car-row-' + carId).fadeOut(400, function() { $(this).remove(); });
-                } else {
-                    Swal.fire('Thất bại', res.message, 'error');
-                }
+        const btn = document.getElementById('btnConfirmReject');
+        btn.disabled = true;
+        btn.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span> Đang xử lý...`;
+
+        fetch('/Admin/Cars/Reject', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
             },
-            error: function () {
-                Swal.fire('Lỗi kết nối', 'Không thể kết nối đến máy chủ.', 'error');
+            body: `id=${currentCarId}&reason=${encodeURIComponent(reason)}&notify=${notify}`
+        })
+        .then(res => res.json())
+        .then(data => {
+            btn.disabled = false;
+            btn.innerText = 'Từ chối hồ sơ';
+            bootstrap.Modal.getInstance(document.getElementById('rejectModal')).hide();
+
+            if (data.success) {
+                // Xóa khỏi DOM grid & table
+                const card = document.getElementById(`car-card-${currentCarId}`);
+                if (card) card.remove();
+                const row = document.getElementById(`car-row-${currentCarId}`);
+                if (row) row.remove();
+
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Đã từ chối!',
+                    text: data.message,
+                    timer: 3000,
+                    showConfirmButton: false
+                });
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Lỗi',
+                    text: data.message
+                });
             }
+        })
+        .catch(err => {
+            btn.disabled = false;
+            btn.innerText = 'Từ chối hồ sơ';
+            Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Không thể kết nối máy chủ.' });
         });
     }
 </script>
-}

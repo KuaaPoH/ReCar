@@ -1,5 +1,6 @@
 using CarRental.Models;
 using CarRental.Utilities;
+using CarRental.ViewModels;
 using CarRental.Hubs;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
@@ -51,7 +52,7 @@ namespace CarRental.Areas.CarOwner.Controllers
             if (owner == null || owner.RoleId != 3)
             {
                 Function.SetMessage(HttpContext.Session, "Bạn không có quyền truy cập");
-                return RedirectToAction("Index", "Login", new { area = "" });
+                return RedirectToAction("Index", "Home", new { area = "CarOwner" });
             }
 
             var ownerId = owner.AccountId;
@@ -64,34 +65,44 @@ namespace CarRental.Areas.CarOwner.Controllers
             return View(cars);
         }
 
+        [HttpGet]
         public IActionResult Create()
         {
             if (!CheckCarOwnerPermission())
             {
-                Function._Message = "Bạn không có quyền truy cập";
+                Function.SetMessage(HttpContext.Session, "Bạn không có quyền truy cập");
                 return RedirectToAction("Index", "Login", new { area = "" });
             }
 
-            var carTypes = _context.CarTypes
+            ViewBag.CarBrands = _context.CarBrands
+                .Where(b => b.IsActive)
+                .OrderBy(b => b.DisplayOrder)
+                .ToList();
+
+            ViewBag.CarTypes = _context.CarTypes
                 .Select(c => new SelectListItem
                 {
                     Text = c.CarTypeName,
                     Value = c.TypeId.ToString()
                 }).ToList();
 
-            carTypes.Insert(0, new SelectListItem
+            // Khởi tạo model mặc định (để trống các lựa chọn để người dùng tự chọn/nhập)
+            var model = new CarCreateVM
             {
-                Text = "--Chọn hạng xe--",
-                Value = "0"
-            });
+                Price = 850000,
+                MileageLimit = 350,
+                ExtraFeePerKm = 3000,
+                DeliverySupported = true,
+                DeliveryFee = 100000,
+                Features = new List<string>()
+            };
 
-            ViewBag.CarTypes = carTypes;
-            return View();
+            return View(model);
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult Create(Car car, string filePaths)
+        public IActionResult Create(CarCreateVM model)
         {
             if (!CheckCarOwnerPermission())
             {
@@ -102,42 +113,108 @@ namespace CarRental.Areas.CarOwner.Controllers
             if (ModelState.IsValid)
             {
                 var currentOwner = GetCurrentCarOwner();
-                car.OwnerId = currentOwner?.AccountId ?? Function.GetAccountId(HttpContext.Session); // Gán chủ xe hiện tại
-                car.Alias = Function.TitleSlugGenerationAlias(car.CarName ?? "");
-                car.CarStatus = "Chờ duyệt"; // Xe mới cần Admin phê duyệt trước khi công khai
+                int ownerId = currentOwner?.AccountId ?? Function.GetAccountId(HttpContext.Session);
+
+                // Xử lý upload ảnh đại diện
+                string avatarPath = "/images/cars/car-sedan.jpg";
+                if (model.ImageFile != null && model.ImageFile.Length > 0)
+                {
+                    string uploadedName = Function.UploadImage(model.ImageFile, "cars");
+                    avatarPath = "/files/cars/" + uploadedName;
+                }
+                else if (!string.IsNullOrEmpty(model.ImageUrl))
+                {
+                    avatarPath = model.ImageUrl.Trim();
+                }
+
+                // Xây dựng chuỗi tiện nghi & mô tả
+                var featuresStr = model.Features != null && model.Features.Any()
+                    ? string.Join(", ", model.Features)
+                    : "Đang cập nhật";
+
+                var fullDetails = $"[Tiện nghi]: {featuresStr}\n" +
+                                  $"[Quy định quãng đường]: Tối đa {model.MileageLimit} km/ngày (Phụ phí vượt: {model.ExtraFeePerKm:N0}đ/km)\n" +
+                                  $"[Giao nhận xe]: {(model.DeliverySupported ? $"Có hỗ trợ giao xe tận nơi (Phí: {model.DeliveryFee:N0}đ)" : "Nhận xe trực tiếp tại bãi")}\n" +
+                                  $"[Mô tả bổ sung]: {model.Details}";
+
+                // Xử lý upload ảnh giấy tờ pháp lý của xe
+                string? regDocPath = null;
+                if (model.RegistrationImageFile != null && model.RegistrationImageFile.Length > 0)
+                {
+                    string uploaded = Function.UploadImage(model.RegistrationImageFile, "cars");
+                    regDocPath = "/files/cars/" + uploaded;
+                }
+
+                string? inspDocPath = null;
+                if (model.InspectionImageFile != null && model.InspectionImageFile.Length > 0)
+                {
+                    string uploaded = Function.UploadImage(model.InspectionImageFile, "cars");
+                    inspDocPath = "/files/cars/" + uploaded;
+                }
+
+                string? insDocPath = null;
+                if (model.InsuranceImageFile != null && model.InsuranceImageFile.Length > 0)
+                {
+                    string uploaded = Function.UploadImage(model.InsuranceImageFile, "cars");
+                    insDocPath = "/files/cars/" + uploaded;
+                }
+
+                var car = new Car
+                {
+                    CarName = model.CarName.Trim(),
+                    CarBrand = model.CarBrand.Trim(),
+                    TypeId = model.TypeId,
+                    Model = model.ModelYear,
+                    LicensePlate = model.LicensePlate.Trim().ToUpper(),
+                    Color = model.Color.Trim(),
+                    Seat = model.Seat,
+                    Transmission = model.Transmission,
+                    Fuel = model.Fuel,
+                    Price = model.Price,
+                    SalePrice = (model.SalePrice.HasValue && model.SalePrice.Value > 0) ? model.SalePrice : null,
+                    IsSale = (model.SalePrice.HasValue && model.SalePrice.Value > 0 && model.SalePrice < model.Price),
+                    Location = model.Location.Trim(),
+                    Image = avatarPath,
+                    RegistrationImage = regDocPath,
+                    InspectionImage = inspDocPath,
+                    InsuranceImage = insDocPath,
+                    Details = fullDetails,
+                    Descriptions = !string.IsNullOrEmpty(model.FuelConsumption) ? $"Tiêu hao: {model.FuelConsumption} · {featuresStr}" : featuresStr,
+                    CarStatus = "Chờ duyệt",
+                    IsActive = false,
+                    OwnerId = ownerId,
+                    Trips = 0,
+                    Rate = 5.0,
+                    Alias = Function.TitleSlugGenerationAlias(model.CarName)
+                };
 
                 _context.Cars.Add(car);
                 _context.SaveChanges();
 
-                // Xử lý ảnh xe
-                if (!string.IsNullOrEmpty(filePaths))
+                // Lưu các ảnh chi tiết vào CarImage
+                if (model.DetailImages != null && model.DetailImages.Any())
                 {
-                    var filePathList = filePaths.Split(',', StringSplitOptions.RemoveEmptyEntries);
-                    foreach (var filePath in filePathList)
+                    foreach (var imgFile in model.DetailImages)
                     {
-                        var carImage = new CarImage
+                        if (imgFile.Length > 0)
                         {
-                            CarId = car.CarId,
-                            Image1 = filePath.Trim()
-                        };
-                        _context.CarImages.Add(carImage);
+                            string detailName = Function.UploadImage(imgFile, "cars");
+                            _context.CarImages.Add(new CarImage
+                            {
+                                CarId = car.CarId,
+                                Image1 = "/files/cars/" + detailName
+                            });
+                        }
                     }
                     _context.SaveChanges();
                 }
 
-                Function.SetMessage(HttpContext.Session, "Thêm xe thành công! Hồ sơ xe đang ở trạng thái 'Chờ duyệt' để Ban quản trị ReCar kiểm tra trước khi công khai lên sàn.");
+                Function.SetMessage(HttpContext.Session, $"Đăng ký xe '{car.CarName}' thành công! Hồ sơ đang ở trạng thái 'Chờ duyệt' để Ban Quản trị ReCar phê duyệt.");
 
-                // Phát tín hiệu thời gian thực cho Admin
+                // Bắn thông báo Realtime SignalR cho Admin
                 try
                 {
-                    _ = _hubContext.Clients.Group("Role_Admin").SendAsync("ReceiveNewCarPendingNotification", new
-                    {
-                        carId = car.CarId,
-                        carName = car.CarName,
-                        licensePlate = car.LicensePlate,
-                        ownerName = currentOwner?.FullName ?? "Đối tác Chủ xe"
-                    });
-                    _ = _hubContext.Clients.Group("Role_Quản trị viên").SendAsync("ReceiveNewCarPendingNotification", new
+                    _ = _hubContext.Clients.All.SendAsync("ReceiveNewCarPendingNotification", new
                     {
                         carId = car.CarId,
                         carName = car.CarName,
@@ -150,26 +227,26 @@ namespace CarRental.Areas.CarOwner.Controllers
                     Console.WriteLine($"SignalR New Car Broadcast Error: {sigEx.Message}");
                 }
 
+                TempData["SuccessMessage"] = $"Đăng ký xe {car.CarName} ({car.LicensePlate}) thành công! Xe đang được chuyển tới Ban Quản trị ReCar thẩm định.";
                 return RedirectToAction("Index");
             }
 
-            var carTypes = _context.CarTypes
+            ViewBag.CarBrands = _context.CarBrands
+                .Where(b => b.IsActive)
+                .OrderBy(b => b.DisplayOrder)
+                .ToList();
+
+            ViewBag.CarTypes = _context.CarTypes
                 .Select(c => new SelectListItem
                 {
                     Text = c.CarTypeName,
                     Value = c.TypeId.ToString()
                 }).ToList();
 
-            carTypes.Insert(0, new SelectListItem
-            {
-                Text = "--Chọn hạng xe--",
-                Value = "0"
-            });
-
-            ViewBag.CarTypes = carTypes;
-            return View(car);
+            return View(model);
         }
 
+        [HttpGet]
         public IActionResult Edit(int? id)
         {
             if (!CheckCarOwnerPermission())
@@ -183,7 +260,8 @@ namespace CarRental.Areas.CarOwner.Controllers
                 return NotFound();
             }
 
-            var ownerId = Function.GetAccountId(HttpContext.Session);
+            var currentOwner = GetCurrentCarOwner();
+            var ownerId = currentOwner?.AccountId ?? Function.GetAccountId(HttpContext.Session);
             var car = _context.Cars.FirstOrDefault(c => c.CarId == id && c.OwnerId == ownerId);
             if (car == null)
             {
@@ -191,7 +269,12 @@ namespace CarRental.Areas.CarOwner.Controllers
                 return RedirectToAction("Index");
             }
 
-            var carTypes = _context.CarTypes
+            ViewBag.CarBrands = _context.CarBrands
+                .Where(b => b.IsActive)
+                .OrderBy(b => b.DisplayOrder)
+                .ToList();
+
+            ViewBag.CarTypes = _context.CarTypes
                 .Select(c => new SelectListItem
                 {
                     Text = c.CarTypeName,
@@ -199,19 +282,58 @@ namespace CarRental.Areas.CarOwner.Controllers
                     Selected = c.TypeId == car.TypeId
                 }).ToList();
 
-            carTypes.Insert(0, new SelectListItem
+            // Trích xuất danh sách tiện nghi từ Details nếu có
+            var featuresList = new List<string>();
+            var allKnownFeatures = new[]
             {
-                Text = "--Chọn hạng xe--",
-                Value = "0"
-            });
+                "Bản đồ dẫn đường GPS", "Camera lùi / Camera 360", "Camera hành trình", "Cảm biến áp suất lốp",
+                "Apple CarPlay & Android Auto", "Cửa sổ trời Panorama", "Thu phí tự động ETC", "Ghế da cao cấp chỉnh điện",
+                "Ghế trẻ em ISOFIX", "Sạc không dây Qi", "Cảm biến va chạm trước/sau", "Cảnh báo điểm mù BSM",
+                "Khóa thông minh SmartKey", "Cốp điện thông minh"
+            };
 
-            ViewBag.CarTypes = carTypes;
-            return View(car);
+            if (!string.IsNullOrEmpty(car.Details))
+            {
+                foreach (var f in allKnownFeatures)
+                {
+                    if (car.Details.Contains(f, StringComparison.OrdinalIgnoreCase))
+                    {
+                        featuresList.Add(f);
+                    }
+                }
+            }
+
+            var model = new CarEditVM
+            {
+                CarId = car.CarId,
+                CarName = car.CarName ?? string.Empty,
+                CarStatus = car.CarStatus ?? "Sẵn sàng",
+                CarBrand = car.CarBrand ?? string.Empty,
+                TypeId = car.TypeId ?? 0,
+                ModelYear = car.Model,
+                LicensePlate = car.LicensePlate ?? string.Empty,
+                Color = car.Color ?? string.Empty,
+                Seat = car.Seat,
+                Transmission = car.Transmission,
+                Fuel = car.Fuel,
+                Price = car.Price ?? 0,
+                SalePrice = car.SalePrice,
+                Location = car.Location ?? string.Empty,
+                ExistingImage = car.Image,
+                Details = car.Details,
+                Features = featuresList,
+                Alias = car.Alias,
+                RegistrationImage = car.RegistrationImage,
+                InspectionImage = car.InspectionImage,
+                InsuranceImage = car.InsuranceImage
+            };
+
+            return View(model);
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult Edit(Car car, string filePaths)
+        public IActionResult Edit(CarEditVM model)
         {
             if (!CheckCarOwnerPermission())
             {
@@ -219,126 +341,102 @@ namespace CarRental.Areas.CarOwner.Controllers
                 return RedirectToAction("Index", "Login", new { area = "" });
             }
 
-            var ownerId = Function.GetAccountId(HttpContext.Session);
-            var existingCar = _context.Cars.FirstOrDefault(c => c.CarId == car.CarId && c.OwnerId == ownerId);
+            var currentOwner = GetCurrentCarOwner();
+            var ownerId = currentOwner?.AccountId ?? Function.GetAccountId(HttpContext.Session);
+            var existingCar = _context.Cars.FirstOrDefault(c => c.CarId == model.CarId && c.OwnerId == ownerId);
             if (existingCar == null)
             {
-                Function._Message = "Không tìm thấy xe hoặc bạn không có quyền chỉnh sửa";
+                Function.SetMessage(HttpContext.Session, "Không tìm thấy xe hoặc bạn không có quyền chỉnh sửa");
                 return RedirectToAction("Index");
             }
 
-            try
+            if (ModelState.IsValid)
             {
-                // Xóa validation error cho filePaths vì nó không bắt buộc khi edit
-                if (ModelState.ContainsKey("filePaths"))
+                // Cập nhật thông tin cơ bản
+                existingCar.CarName = model.CarName.Trim();
+                existingCar.CarBrand = model.CarBrand.Trim();
+                existingCar.TypeId = model.TypeId;
+                existingCar.Model = model.ModelYear;
+                existingCar.LicensePlate = model.LicensePlate.Trim().ToUpper();
+                existingCar.Color = model.Color.Trim();
+                existingCar.Seat = model.Seat;
+                existingCar.Transmission = model.Transmission;
+                existingCar.Fuel = model.Fuel;
+                existingCar.Price = model.Price;
+                existingCar.SalePrice = (model.SalePrice.HasValue && model.SalePrice.Value > 0) ? model.SalePrice : null;
+                existingCar.IsSale = (model.SalePrice.HasValue && model.SalePrice.Value > 0 && model.SalePrice < model.Price);
+                existingCar.Location = model.Location.Trim();
+                
+                // Nếu xe đang ở trạng thái 'Từ chối' thì khi chủ xe cập nhật bổ sung sẽ tự động chuyển về 'Chờ duyệt'
+                if (existingCar.CarStatus == "Từ chối" || existingCar.CarStatus == "rejected")
                 {
-                    ModelState["filePaths"].Errors.Clear();
+                    existingCar.CarStatus = "Chờ duyệt";
                 }
                 
-                // Xóa tất cả các key liên quan đến filePaths
-                var keysToRemove = ModelState.Keys.Where(k => k.Contains("filePaths", StringComparison.OrdinalIgnoreCase)).ToList();
-                foreach (var key in keysToRemove)
+                existingCar.Alias = Function.TitleSlugGenerationAlias(model.CarName);
+
+                // Cập nhật ảnh đại diện nếu có tải file mới
+                if (model.ImageFile != null && model.ImageFile.Length > 0)
                 {
-                    ModelState.Remove(key);
+                    string uploadedName = Function.UploadImage(model.ImageFile, "cars");
+                    existingCar.Image = "/files/cars/" + uploadedName;
                 }
-                
-                if (ModelState.IsValid)
+                else if (!string.IsNullOrEmpty(model.ImageUrl))
                 {
-                    existingCar.TypeId = car.TypeId;
-
-                    existingCar.CarName = car.CarName;
-                    existingCar.Seat = car.Seat;
-                    existingCar.LicensePlate = car.LicensePlate;
-                    existingCar.Price = car.Price;
-                    existingCar.Color = car.Color;
-                    existingCar.Model = car.Model;
-                    existingCar.Rate = car.Rate;
-                    existingCar.CarBrand = car.CarBrand;
-                    existingCar.Image = car.Image;
-                    existingCar.SalePrice = car.SalePrice;
-                    existingCar.Alias = Function.TitleSlugGenerationAlias(car.CarName ?? "");
-                    existingCar.IsSale = car.IsSale;
-                    existingCar.IsActive = car.IsActive;
-                    existingCar.Details = car.Details;
-                    existingCar.Descriptions = car.Descriptions;
-
-                    _context.Cars.Update(existingCar);
-                    _context.SaveChanges();
-
-                    // Xử lý ảnh xe nếu có thay đổi
-                    if (!string.IsNullOrEmpty(filePaths))
-                    {
-                        // Xóa các ảnh cũ
-                        var oldImages = _context.CarImages.Where(ci => ci.CarId == car.CarId).ToList();
-                        _context.CarImages.RemoveRange(oldImages);
-                        _context.SaveChanges();
-
-                        // Thêm ảnh mới
-                        var filePathList = filePaths.Split(',', StringSplitOptions.RemoveEmptyEntries);
-                        foreach (var filePath in filePathList)
-                        {
-                            var carImage = new CarImage
-                            {
-                                CarId = car.CarId,
-                                Image1 = filePath.Trim()
-                            };
-                            _context.CarImages.Add(carImage);
-                        }
-                        _context.SaveChanges();
-                    }
-
-                    TempData["SuccessMessage"] = "Cập nhật xe thành công";
-                    return RedirectToAction("Index", new { success = true });
+                    existingCar.Image = model.ImageUrl.Trim();
                 }
-                else
+
+                // Cập nhật ảnh giấy tờ nếu có tải file mới
+                if (model.RegistrationImageFile != null && model.RegistrationImageFile.Length > 0)
                 {
-                    // Có lỗi validation - thu thập tất cả lỗi
-                    var errors = new List<string>();
-                    foreach (var modelError in ModelState)
-                    {
-                        var fieldName = modelError.Key;
-                        foreach (var error in modelError.Value.Errors)
-                        {
-                            if (!string.IsNullOrEmpty(error.ErrorMessage))
-                            {
-                                errors.Add($"{fieldName}: {error.ErrorMessage}");
-                            }
-                            else if (!string.IsNullOrEmpty(error.Exception?.Message))
-                            {
-                                errors.Add($"{fieldName}: {error.Exception.Message}");
-                            }
-                        }
-                    }
-                    
-                    var errorMessage = errors.Count > 0 
-                        ? string.Join("<br>", errors) 
-                        : "Có lỗi xảy ra khi cập nhật xe. Vui lòng kiểm tra lại thông tin.";
-                    
-                    TempData["ErrorMessage"] = errorMessage;
+                    string uploaded = Function.UploadImage(model.RegistrationImageFile, "cars");
+                    existingCar.RegistrationImage = "/files/cars/" + uploaded;
                 }
-            }
-            catch (Exception ex)
-            {
-                TempData["ErrorMessage"] = "Lỗi khi cập nhật xe: " + ex.Message;
+                if (model.InspectionImageFile != null && model.InspectionImageFile.Length > 0)
+                {
+                    string uploaded = Function.UploadImage(model.InspectionImageFile, "cars");
+                    existingCar.InspectionImage = "/files/cars/" + uploaded;
+                }
+                if (model.InsuranceImageFile != null && model.InsuranceImageFile.Length > 0)
+                {
+                    string uploaded = Function.UploadImage(model.InsuranceImageFile, "cars");
+                    existingCar.InsuranceImage = "/files/cars/" + uploaded;
+                }
+
+                // Xây dựng chuỗi tiện nghi & mô tả
+                var featuresStr = model.Features != null && model.Features.Any()
+                    ? string.Join(", ", model.Features)
+                    : "Đang cập nhật";
+
+                existingCar.Details = $"[Tiện nghi]: {featuresStr}\n" +
+                                      $"[Quy định quãng đường]: Tối đa {model.MileageLimit} km/ngày (Phụ phí vượt: {model.ExtraFeePerKm:N0}đ/km)\n" +
+                                      $"[Giao nhận xe]: {(model.DeliverySupported ? $"Có hỗ trợ giao xe tận nơi (Phí: {model.DeliveryFee:N0}đ)" : "Nhận xe trực tiếp tại bãi")}\n" +
+                                      $"[Mô tả bổ sung]: {model.Details}";
+
+                existingCar.Descriptions = !string.IsNullOrEmpty(model.FuelConsumption) ? $"Tiêu hao: {model.FuelConsumption} · {featuresStr}" : featuresStr;
+
+                _context.Cars.Update(existingCar);
+                _context.SaveChanges();
+
+                TempData["SuccessMessage"] = $"Cập nhật thông tin phương tiện '{existingCar.CarName}' thành công!";
                 return RedirectToAction("Index");
             }
 
-            var carTypes = _context.CarTypes
+            ViewBag.CarBrands = _context.CarBrands
+                .Where(b => b.IsActive)
+                .OrderBy(b => b.DisplayOrder)
+                .ToList();
+
+            ViewBag.CarTypes = _context.CarTypes
                 .Select(c => new SelectListItem
                 {
                     Text = c.CarTypeName,
                     Value = c.TypeId.ToString(),
-                    Selected = c.TypeId == car.TypeId
+                    Selected = c.TypeId == model.TypeId
                 }).ToList();
 
-            carTypes.Insert(0, new SelectListItem
-            {
-                Text = "--Chọn hạng xe--",
-                Value = "0"
-            });
-
-            ViewBag.CarTypes = carTypes;
-            return View(car);
+            model.ExistingImage = existingCar.Image;
+            return View(model);
         }
 
         public IActionResult Delete(int? id)

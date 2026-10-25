@@ -1,160 +1,611 @@
-@model CarRental.Models.Car
-@using CarRental.Utilities
+@model CarRental.ViewModels.CarEditVM
 @using Microsoft.AspNetCore.Mvc.Rendering
 @{
     ViewData["Title"] = $"Chỉnh sửa xe: {Model.CarName}";
     Layout = "~/Areas/CarOwner/Views/Shared/_Layout.cshtml";
     var carTypes = ViewBag.CarTypes as List<SelectListItem> ?? new List<SelectListItem>();
+    var carBrands = ViewBag.CarBrands as List<CarRental.Models.CarBrand>;
 }
 
-<div class="row justify-content-center">
-    <div class="col-12 col-xl-10">
-        <!-- Panel Chỉnh sửa xe (Pixel-Perfect Template) -->
-        <div class="recar-panel">
-            <div class="recar-panel-header">
-                <div>
-                    <h2 class="recar-panel-title">Chỉnh sửa thông tin phương tiện</h2>
-                    <div class="text-muted small mt-1">Cập nhật giá thuê, trạng thái sẵn sàng đón khách và các tiện nghi của xe.</div>
+<style>
+    .recar-form-card {
+        background: #ffffff;
+        border-radius: 18px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.05);
+        padding: 2rem 2.25rem;
+        margin-bottom: 2rem;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    .recar-form-card:hover {
+        border-color: #cbd5e1;
+        box-shadow: 0 8px 30px -4px rgba(15, 23, 42, 0.08);
+    }
+    .recar-card-header {
+        display: flex;
+        align-items: center;
+        gap: 0.85rem;
+        padding-bottom: 1.15rem;
+        border-bottom: 2px solid #f1f5f9;
+        margin-bottom: 1.75rem;
+    }
+    .recar-card-step-badge {
+        width: 38px;
+        height: 38px;
+        border-radius: 10px;
+        background: linear-gradient(135deg, #0284c7 0%, #38bdf8 100%);
+        color: #fff;
+        font-weight: 800;
+        font-size: 1.05rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        box-shadow: 0 4px 12px rgba(2, 132, 199, 0.35);
+    }
+    .recar-card-title {
+        font-size: 1.2rem;
+        font-weight: 800;
+        color: #0f172a;
+        margin: 0;
+        letter-spacing: -0.3px;
+    }
+    .recar-card-subtitle {
+        font-size: 0.82rem;
+        color: #64748b;
+        margin-top: 2px;
+    }
+
+    .form-control-custom, .form-select-custom {
+        border-radius: 12px;
+        border: 1.5px solid #e2e8f0;
+        padding: 0.75rem 1rem;
+        font-size: 0.92rem;
+        color: #0f172a;
+        background-color: #f8fafc;
+        transition: all 0.2s ease;
+    }
+    .form-control-custom:focus, .form-select-custom:focus {
+        background-color: #ffffff;
+        border-color: #0284c7;
+        box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
+        outline: none;
+    }
+    .form-label-custom {
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: #1e293b;
+        margin-bottom: 0.45rem;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    /* Amenities Feature Pill Card */
+    .feature-item-card {
+        border: 1.5px solid #e2e8f0;
+        background-color: #f8fafc;
+        border-radius: 12px;
+        padding: 0.75rem 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        cursor: pointer;
+        user-select: none;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .feature-item-card:hover {
+        background-color: #f0f9ff;
+        border-color: #38bdf8;
+        transform: translateY(-2px);
+    }
+    .feature-item-card.active {
+        background-color: #eff6ff;
+        border-color: #0284c7;
+        box-shadow: 0 4px 14px rgba(2, 132, 199, 0.2);
+    }
+    .feature-item-card.active i {
+        color: #0284c7 !important;
+    }
+    .feature-item-card.active span {
+        color: #0284c7;
+        font-weight: 700;
+    }
+
+    /* Image Upload Box */
+    .recar-image-dropzone {
+        border: 2px dashed #cbd5e1;
+        border-radius: 16px;
+        padding: 1.75rem 1.25rem;
+        text-align: center;
+        background: #f8fafc;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        position: relative;
+    }
+    .recar-image-dropzone:hover {
+        border-color: #0284c7;
+        background-color: #f0f9ff;
+    }
+    .preview-box-main {
+        max-height: 220px;
+        border-radius: 12px;
+        object-fit: cover;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    }
+</style>
+
+<!-- Hero Title Header -->
+<div class="mb-4 d-flex align-items-center justify-content-between flex-wrap gap-3">
+    <div>
+        <div class="d-inline-flex align-items-center gap-2 px-3 py-1.5 rounded-pill mb-2" style="background: rgba(2, 132, 199, 0.1); color: #0284c7; font-size: 0.8rem; font-weight: 700;">
+            <i class="bi bi-pencil-square"></i> Cập nhật thông số phương tiện ReCar
+        </div>
+        <h2 class="fw-bold text-dark mb-1" style="font-size: 1.85rem; letter-spacing: -0.5px;">Chỉnh sửa xe: @Model.CarName</h2>
+        <p class="text-muted small mb-0">Cập nhật giá thuê, trạng thái sẵn sàng đón khách và các tiện nghi của xe.</p>
+    </div>
+
+    <div class="d-flex align-items-center gap-2">
+        <a href="/product/@(Model.Alias)-@(Model.CarId).html" target="_blank" class="btn btn-outline-primary rounded-pill px-3.5 py-2 small fw-semibold">
+            <i class="bi bi-box-arrow-up-right me-1"></i> Xem trên sàn ReCar
+        </a>
+        <a href="/CarOwner/Cars/Index" class="btn btn-light border rounded-pill px-4 py-2 small fw-semibold text-secondary shadow-sm">
+            <i class="bi bi-arrow-left me-1"></i> Quay lại
+        </a>
+    </div>
+</div>
+
+<form asp-action="Edit" method="post" enctype="multipart/form-data" id="formEditCar">
+    @Html.AntiForgeryToken()
+    <input type="hidden" asp-for="CarId" />
+    <input type="hidden" asp-for="Alias" />
+    <input type="hidden" asp-for="ExistingImage" />
+
+    <div class="row g-4">
+        <!-- Cột Trái: Thông số kỹ thuật & Bảng giá -->
+        <div class="col-12 col-xl-8">
+
+            <!-- Khối 1: Thông tin cơ bản & Định danh xe -->
+            <div class="recar-form-card">
+                <div class="recar-card-header">
+                    <div class="recar-card-step-badge">1</div>
+                    <div>
+                        <h3 class="recar-card-title">Thông tin cơ bản & Định danh xe</h3>
+                        <div class="recar-card-subtitle">Tên phương tiện, hãng sản xuất, phân khúc và biển số kiểm định</div>
+                    </div>
                 </div>
-                <div class="d-flex align-items-center gap-2">
-                    <a href="/product/@(Model.Alias)-@(Model.CarId).html" target="_blank" class="btn btn-outline-primary btn-sm rounded-pill px-3">
-                        <i class="bi bi-box-arrow-up-right me-1"></i> Xem trên sàn
-                    </a>
-                    <a href="/CarOwner/Cars/Index" class="btn btn-light btn-sm rounded-pill px-3 border text-secondary">
-                        <i class="bi bi-arrow-left me-1"></i> Quay lại
-                    </a>
-                </div>
-            </div>
 
-            <div class="p-4 p-md-5">
-                <form asp-action="Edit" method="post" enctype="multipart/form-data">
-                    @Html.AntiForgeryToken()
-                    <input type="hidden" asp-for="CarId" />
-                    <input type="hidden" asp-for="OwnerId" />
-                    <input type="hidden" asp-for="Alias" />
+                <div class="row g-3">
+                    <div class="col-md-7">
+                        <label asp-for="CarName" class="form-label-custom">Tên phương tiện <span class="text-danger">*</span></label>
+                        <input asp-for="CarName" class="form-control form-control-custom" required />
+                        <span asp-validation-for="CarName" class="text-danger small"></span>
+                    </div>
 
-                    <div class="row g-4">
-                        <!-- Tên xe -->
-                        <div class="col-12 col-md-6">
-                            <label class="form-label fw-bold text-dark small">Tên phương tiện <span class="text-danger">*</span></label>
-                            <input asp-for="CarName" class="recar-input" required />
-                            <span asp-validation-for="CarName" class="text-danger small"></span>
-                        </div>
-
-                        <!-- Trạng thái xe -->
-                        <div class="col-12 col-md-6">
-                            <label class="form-label fw-bold text-dark small">Trạng thái xe hiện tại <span class="text-danger">*</span></label>
-                            <select asp-for="CarStatus" class="recar-input fw-semibold" required>
-                                <option value="Sẵn sàng" selected="@(Model.CarStatus == "Sẵn sàng")">🟢 Sẵn sàng (Bình thường)</option>
-                                <option value="Đang bận" selected="@(Model.CarStatus == "Đang bận")">🟡 Đang bận (Đang có khách thuê)</option>
-                                <option value="Bảo trì" selected="@(Model.CarStatus == "Bảo trì")">🔴 Bảo trì (Bảo dưỡng định kỳ)</option>
-                            </select>
-                            <span asp-validation-for="CarStatus" class="text-danger small"></span>
-                        </div>
-
-                        <!-- Hãng xe -->
-                        <div class="col-12 col-md-6">
-                            <label class="form-label fw-bold text-dark small">Hãng sản xuất <span class="text-danger">*</span></label>
-                            <select asp-for="CarBrand" class="recar-input" required>
+                    <div class="col-md-5">
+                        <label asp-for="CarBrand" class="form-label-custom">Hãng sản xuất <span class="text-danger">*</span></label>
+                        <select asp-for="CarBrand" class="form-select form-select-custom" required>
+                            <option value="">-- Chọn hãng sản xuất --</option>
+                            @if (carBrands != null && carBrands.Any())
+                            {
+                                foreach (var brand in carBrands)
+                                {
+                                    <option value="@brand.BrandName" selected="@(brand.BrandName == Model.CarBrand)">@brand.BrandName</option>
+                                }
+                            }
+                            else
+                            {
                                 <option value="VinFast">VinFast</option>
                                 <option value="Toyota">Toyota</option>
                                 <option value="Hyundai">Hyundai</option>
-                                <option value="Mazda">Mazda</option>
                                 <option value="Kia">Kia</option>
-                                <option value="Ford">Ford</option>
+                                <option value="Mazda">Mazda</option>
                                 <option value="Honda">Honda</option>
+                                <option value="Ford">Ford</option>
                                 <option value="Mitsubishi">Mitsubishi</option>
-                            </select>
-                        </div>
-
-                        <!-- Phân khúc -->
-                        <div class="col-12 col-md-6">
-                            <label class="form-label fw-bold text-dark small">Phân khúc xe <span class="text-danger">*</span></label>
-                            <select asp-for="TypeId" class="recar-input" asp-items="carTypes" required>
-                            </select>
-                        </div>
-
-                        <!-- Biển số xe -->
-                        <div class="col-12 col-md-6">
-                            <label class="form-label fw-bold text-dark small">Biển số xe kiểm định <span class="text-danger">*</span></label>
-                            <input asp-for="LicensePlate" class="recar-input font-monospace text-uppercase fw-bold" required />
-                        </div>
-
-                        <!-- Giá thuê ngày -->
-                        <div class="col-12 col-md-6">
-                            <label class="form-label fw-bold text-dark small">Giá thuê niêm yết (VNĐ/ngày) <span class="text-danger">*</span></label>
-                            <div class="input-group">
-                                <input asp-for="Price" type="number" min="300000" step="50000" class="recar-input rounded-start fw-bold text-primary" required />
-                                <span class="input-group-text bg-light text-muted small border-start-0" style="border-radius: 0 10px 10px 0;">đ/ngày</span>
-                            </div>
-                        </div>
-
-                        <!-- Số chỗ ngồi -->
-                        <div class="col-12 col-md-4">
-                            <label class="form-label fw-bold text-dark small">Số chỗ ngồi <span class="text-danger">*</span></label>
-                            <select asp-for="Seat" class="recar-input" required>
-                                <option value="4">4 chỗ</option>
-                                <option value="5">5 chỗ</option>
-                                <option value="7">7 chỗ</option>
-                                <option value="8">8 chỗ</option>
-                            </select>
-                        </div>
-
-                        <!-- Hộp số -->
-                        <div class="col-12 col-md-4">
-                            <label class="form-label fw-bold text-dark small">Hộp số <span class="text-danger">*</span></label>
-                            <select asp-for="Transmission" class="recar-input" required>
-                                <option value="Tự động">Tự động</option>
-                                <option value="Số sàn">Số sàn</option>
-                            </select>
-                        </div>
-
-                        <!-- Nhiên liệu -->
-                        <div class="col-12 col-md-4">
-                            <label class="form-label fw-bold text-dark small">Nhiên liệu <span class="text-danger">*</span></label>
-                            <select asp-for="Fuel" class="recar-input" required>
-                                <option value="Xăng">Xăng</option>
-                                <option value="Dầu">Dầu (Diesel)</option>
-                                <option value="Điện">Điện (EV)</option>
-                            </select>
-                        </div>
-
-                        <!-- Địa điểm nhận xe -->
-                        <div class="col-12">
-                            <label class="form-label fw-bold text-dark small">Địa điểm bàn giao xe <span class="text-danger">*</span></label>
-                            <input asp-for="Location" class="recar-input" required />
-                        </div>
-
-                        <!-- Hình ảnh -->
-                        <div class="col-12">
-                            <label class="form-label fw-bold text-dark small">Hình ảnh đại diện của xe (URL) <span class="text-danger">*</span></label>
-                            <input asp-for="Image" class="recar-input" required />
-                            @if (!string.IsNullOrEmpty(Model.Image))
-                            {
-                                <div class="mt-2">
-                                    <img src="@Model.Image" alt="@Model.CarName" class="rounded-3 border shadow-sm" style="max-height: 120px; object-fit: cover;" />
-                                </div>
+                                <option value="Mercedes-Benz">Mercedes-Benz</option>
+                                <option value="BMW">BMW</option>
                             }
-                        </div>
+                        </select>
+                        <span asp-validation-for="CarBrand" class="text-danger small"></span>
+                    </div>
 
-                        <!-- Mô tả chi tiết -->
-                        <div class="col-12">
-                            <label class="form-label fw-bold text-dark small">Mô tả tiện nghi xe</label>
-                            <textarea asp-for="Details" rows="4" class="recar-input"></textarea>
-                        </div>
+                    <div class="col-md-4">
+                        <label asp-for="TypeId" class="form-label-custom">Phân khúc / Dáng xe <span class="text-danger">*</span></label>
+                        <select asp-for="TypeId" class="form-select form-select-custom" asp-items="carTypes" required>
+                            <option value="">-- Chọn dáng xe --</option>
+                        </select>
+                        <span asp-validation-for="TypeId" class="text-danger small"></span>
+                    </div>
 
-                        <!-- Nút lưu -->
-                        <div class="col-12 pt-3 border-top">
-                            <button type="submit" class="btn-recar-primary px-5 py-2.5 shadow-sm">
-                                <i class="bi bi-floppy-fill me-1"></i> Lưu thay đổi
-                            </button>
-                            <a href="/CarOwner/Cars/Index" class="btn btn-light rounded-pill px-4 py-2.5 border ms-2 text-secondary fw-semibold">
-                                Hủy bỏ
-                            </a>
+                    <div class="col-md-4">
+                        <label asp-for="ModelYear" class="form-label-custom">Năm sản xuất <span class="text-danger">*</span></label>
+                        <select asp-for="ModelYear" class="form-select form-select-custom" required>
+                            <option value="" selected disabled hidden>-- Chọn năm --</option>
+                            @for (int y = DateTime.Now.Year; y >= 2017; y--)
+                            {
+                                <option value="@y" selected="@(y == Model.ModelYear)">Năm @y</option>
+                            }
+                        </select>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label asp-for="LicensePlate" class="form-label-custom">Biển số xe kiểm định <span class="text-danger">*</span></label>
+                        <input asp-for="LicensePlate" class="form-control form-control-custom text-uppercase font-monospace fw-bold" required />
+                        <span asp-validation-for="LicensePlate" class="text-danger small"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Khối 2: Thông số vận hành & Động cơ -->
+            <div class="recar-form-card">
+                <div class="recar-card-header">
+                    <div class="recar-card-step-badge">2</div>
+                    <div>
+                        <h3 class="recar-card-title">Thông số vận hành & Tiêu hao</h3>
+                        <div class="recar-card-subtitle">Chỗ ngồi, hộp số truyền động, loại năng lượng và màu sắc xe</div>
+                    </div>
+                </div>
+
+                <div class="row g-3">
+                    <div class="col-6 col-md-4 col-lg-3">
+                        <label asp-for="Seat" class="form-label-custom">Số chỗ ngồi <span class="text-danger">*</span></label>
+                        <select asp-for="Seat" class="form-select form-select-custom" required>
+                            <option value="" selected disabled hidden>-- Chọn số chỗ --</option>
+                            <option value="4" selected="@(Model.Seat == 4)">4 chỗ</option>
+                            <option value="5" selected="@(Model.Seat == 5)">5 chỗ</option>
+                            <option value="7" selected="@(Model.Seat == 7)">7 chỗ</option>
+                            <option value="8" selected="@(Model.Seat == 8)">8 chỗ</option>
+                            <option value="16" selected="@(Model.Seat == 16)">16 chỗ</option>
+                        </select>
+                        <span asp-validation-for="Seat" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-6 col-md-4 col-lg-3">
+                        <label asp-for="Transmission" class="form-label-custom">Hộp số <span class="text-danger">*</span></label>
+                        <select asp-for="Transmission" class="form-select form-select-custom" required>
+                            <option value="" selected disabled hidden>-- Chọn hộp số --</option>
+                            <option value="Tự động" selected="@(Model.Transmission == "Tự động")">Tự động</option>
+                            <option value="Số sàn" selected="@(Model.Transmission == "Số sàn")">Số sàn</option>
+                        </select>
+                        <span asp-validation-for="Transmission" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-6 col-md-4 col-lg-3">
+                        <label asp-for="Fuel" class="form-label-custom">Nhiên liệu <span class="text-danger">*</span></label>
+                        <select asp-for="Fuel" class="form-select form-select-custom" required>
+                            <option value="" selected disabled hidden>-- Chọn nhiên liệu --</option>
+                            <option value="Xăng" selected="@(Model.Fuel == "Xăng")">Xăng</option>
+                            <option value="Dầu" selected="@(Model.Fuel == "Dầu")">Dầu (Diesel)</option>
+                            <option value="Điện" selected="@(Model.Fuel == "Điện")">Thuần điện (EV)</option>
+                            <option value="Hybrid" selected="@(Model.Fuel == "Hybrid")">Hybrid</option>
+                        </select>
+                        <span asp-validation-for="Fuel" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-6 col-md-4 col-lg-3">
+                        <label asp-for="Color" class="form-label-custom">Màu sắc xe <span class="text-danger">*</span></label>
+                        <input asp-for="Color" class="form-control form-control-custom" placeholder="Trắng, Đen, Xám..." required />
+                        <span asp-validation-for="Color" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label asp-for="FuelConsumption" class="form-label-custom">Mức tiêu hao năng lượng trung bình</label>
+                        <input asp-for="FuelConsumption" class="form-control form-control-custom" placeholder="Ví dụ: 6.5L/100km hoặc 14 kWh/100km" />
+                    </div>
+
+                    <div class="col-md-6">
+                        <label asp-for="Location" class="form-label-custom">Địa chỉ nhận xe cố định <span class="text-danger">*</span></label>
+                        <input asp-for="Location" class="form-control form-control-custom" placeholder="Ví dụ: Số 18 Phạm Hùng, Mỹ Đình, Nam Từ Liêm, Hà Nội" required />
+                        <span asp-validation-for="Location" class="text-danger small"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Khối 3: Bảng giá thuê & Quy định quãng đường -->
+            <div class="recar-form-card">
+                <input type="hidden" asp-for="CarStatus" />
+                <div class="recar-card-header">
+                    <div class="recar-card-step-badge">3</div>
+                    <div>
+                        <h3 class="recar-card-title">Bảng giá thuê & Quy định quãng đường</h3>
+                        <div class="recar-card-subtitle">Cập nhật đơn giá niêm yết theo ngày và các chính sách phụ phí</div>
+                    </div>
+                </div>
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label asp-for="Price" class="form-label-custom">Giá niêm yết (VNĐ/ngày) <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <input asp-for="Price" type="number" min="300000" step="50000" class="form-control form-control-custom" id="inputPrice" required />
+                            <span class="input-group-text bg-white border-start-0 text-muted small fw-semibold" style="border-radius: 0 12px 12px 0;">đ/ngày</span>
+                        </div>
+                        <div class="text-primary small fw-semibold mt-1" id="priceFormattedText">@Model.Price.ToString("N0") VNĐ / ngày</div>
+                        <span asp-validation-for="Price" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label asp-for="SalePrice" class="form-label-custom">Giá ưu đãi khuyến mãi (nếu có)</label>
+                        <div class="input-group">
+                            <input asp-for="SalePrice" type="number" min="0" step="50000" class="form-control form-control-custom" placeholder="Để trống nếu không giảm giá" />
+                            <span class="input-group-text bg-white border-start-0 text-muted small fw-semibold" style="border-radius: 0 12px 12px 0;">đ/ngày</span>
+                        </div>
+                        <div class="text-muted small mt-1">Giúp xe nổi bật với nhãn giảm giá và thu hút khách hơn</div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label asp-for="MileageLimit" class="form-label-custom">Giới hạn quãng đường trong ngày</label>
+                        <div class="input-group">
+                            <input asp-for="MileageLimit" type="number" min="100" max="1000" step="50" class="form-control form-control-custom" />
+                            <span class="input-group-text bg-white border-start-0 text-muted small fw-semibold" style="border-radius: 0 12px 12px 0;">km/ngày</span>
                         </div>
                     </div>
-                </form>
+
+                    <div class="col-md-6">
+                        <label asp-for="ExtraFeePerKm" class="form-label-custom">Phụ phí vượt quãng đường</label>
+                        <div class="input-group">
+                            <input asp-for="ExtraFeePerKm" type="number" min="1000" max="20000" step="500" class="form-control form-control-custom" />
+                            <span class="input-group-text bg-white border-start-0 text-muted small fw-semibold" style="border-radius: 0 12px 12px 0;">đ/km</span>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label-custom">Hỗ trợ giao xe tận nơi cho khách</label>
+                        <div class="d-flex align-items-center gap-3 pt-2">
+                            <div class="form-check form-switch">
+                                <input asp-for="DeliverySupported" class="form-check-input" type="checkbox" id="checkDelivery" checked style="width: 2.5em; height: 1.3em;">
+                                <label class="form-check-label small fw-bold text-dark ms-2" for="checkDelivery">Có giao xe tận nơi</label>
+                            </div>
+                            <div class="input-group input-group-sm" style="max-width: 170px;">
+                                <input asp-for="DeliveryFee" type="number" step="10000" class="form-control form-control-custom py-1" />
+                                <span class="input-group-text bg-white small">đ/lượt</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
+
+            <!-- Khối 4: Trang bị & Tiện nghi xe (Interactive Grid) -->
+            <div class="recar-form-card">
+                <div class="recar-card-header">
+                    <div class="recar-card-step-badge">4</div>
+                    <div>
+                        <h3 class="recar-card-title">Tiện nghi & Trang bị trên xe</h3>
+                        <div class="recar-card-subtitle">Nhấp chọn các tính năng thực tế có trên phương tiện</div>
+                    </div>
+                </div>
+
+                @{
+                    var amenitiesList = new[]
+                    {
+                        ("Bản đồ dẫn đường GPS", "bi-geo-alt-fill", "text-danger"),
+                        ("Camera lùi / Camera 360", "bi-camera-video-fill", "text-primary"),
+                        ("Camera hành trình", "bi-record-circle-fill", "text-danger"),
+                        ("Cảm biến áp suất lốp", "bi-speedometer2", "text-warning"),
+                        ("Apple CarPlay & Android Auto", "bi-phone-fill", "text-info"),
+                        ("Cửa sổ trời Panorama", "bi-brightness-high-fill", "text-warning"),
+                        ("Thu phí tự động ETC", "bi-credit-card-2-front-fill", "text-success"),
+                        ("Ghế da cao cấp chỉnh điện", "bi-award-fill", "text-primary"),
+                        ("Ghế trẻ em ISOFIX", "bi-person-heart", "text-danger"),
+                        ("Sạc không dây Qi", "bi-lightning-charge-fill", "text-warning"),
+                        ("Cảm biến va chạm trước/sau", "bi-shield-check", "text-success"),
+                        ("Cảnh báo điểm mù BSM", "bi-eye-fill", "text-secondary"),
+                        ("Khóa thông minh SmartKey", "bi-key-fill", "text-primary"),
+                        ("Cốp điện thông minh", "bi-box-seam-fill", "text-secondary")
+                    };
+                }
+
+                <div class="row g-2.5">
+                    @foreach (var item in amenitiesList)
+                    {
+                        bool isChecked = Model.Features != null && Model.Features.Contains(item.Item1);
+                        <div class="col-6 col-md-4">
+                            <label class="feature-item-card @(isChecked ? "active" : "")" onclick="toggleFeature(this)">
+                                <input type="checkbox" name="Features" value="@item.Item1" class="d-none" @(isChecked ? "checked" : "") />
+                                <i class="bi @item.Item2 @item.Item3 fs-5"></i>
+                                <span class="small">@item.Item1</span>
+                            </label>
+                        </div>
+                    }
+                </div>
+
+                <div class="mt-4">
+                    <label asp-for="Details" class="form-label-custom">Mô tả chi tiết & Nội quy trên xe</label>
+                    <textarea asp-for="Details" rows="4" class="form-control form-control-custom" placeholder="Giới thiệu về trải nghiệm lái, tình trạng bảo dưỡng xe, quy định cấm hút thuốc, cấm chở thú cưng..."></textarea>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Cột Phải: Hình ảnh xe & Nút Lưu -->
+        <div class="col-12 col-xl-4">
+
+            <!-- Card Ảnh đại diện xe -->
+            <div class="recar-form-card">
+                <div class="recar-card-header">
+                    <div class="recar-card-step-badge">5</div>
+                    <div>
+                        <h3 class="recar-card-title">Hình ảnh xe</h3>
+                        <div class="recar-card-subtitle">Ảnh đại diện đang hiển thị trên sàn</div>
+                    </div>
+                </div>
+
+                <div class="text-center mb-3">
+                    <div class="small fw-bold text-muted mb-2 text-start">Ảnh hiện tại:</div>
+                    <img id="currentImagePreview" src="@(string.IsNullOrEmpty(Model.ExistingImage) ? "/images/cars/car-sedan.jpg" : Model.ExistingImage)" 
+                         alt="@Model.CarName" 
+                         class="preview-box-main w-100 border" />
+                </div>
+
+                <div class="recar-image-dropzone py-3" onclick="document.getElementById('fileMainImage').click()">
+                    <input type="file" asp-for="ImageFile" id="fileMainImage" accept="image/*" class="d-none" onchange="previewNewImage(this)" />
+                    <i class="bi bi-camera-fill text-primary fs-3"></i>
+                    <div class="fw-bold text-dark small mt-1">Bấm để thay ảnh mới</div>
+                    <div class="text-muted" style="font-size: 11px;">Hỗ trợ JPG, PNG, WEBP (tối đa 10MB)</div>
+                </div>
+
+                <div class="mt-3">
+                    <label asp-for="ImageUrl" class="form-label-custom small text-muted">Hoặc đổi URL hình ảnh trực tuyến</label>
+                    <input asp-for="ImageUrl" class="form-control form-control-custom py-1.5 small" placeholder="https://..." oninput="updateImageUrlPreview(this.value)" />
+                </div>
+            </div>
+
+            <!-- Card Tải Giấy tờ pháp lý của xe -->
+            <div class="recar-form-card" style="border-left: 4px solid #10b981;">
+                <div class="recar-card-header">
+                    <div class="recar-card-step-badge" style="background: #10b981; color: white;"><i class="bi bi-file-earmark-check-fill" style="font-size: 1rem;"></i></div>
+                    <div>
+                        <h3 class="recar-card-title">Giấy tờ pháp lý phương tiện</h3>
+                        <div class="recar-card-subtitle">Cập nhật hồ sơ kiểm duyệt xe</div>
+                    </div>
+                </div>
+
+                <!-- 1. Cà vẹt xe -->
+                <div class="mb-3">
+                    <label class="form-label-custom small fw-bold text-dark d-flex align-items-center justify-content-between">
+                        <span>1. Giấy đăng ký xe (Cà vẹt)</span>
+                        <span class="badge @(!string.IsNullOrEmpty(Model.RegistrationImage) ? "bg-success-subtle text-success border border-success" : "bg-light text-muted border")" style="font-size: 10px;">
+                            @(!string.IsNullOrEmpty(Model.RegistrationImage) ? "Đã có ảnh" : "Chưa tải")
+                        </span>
+                    </label>
+                    <div class="recar-image-dropzone py-2.5 px-3 d-flex align-items-center justify-content-between rounded-3 border" onclick="document.getElementById('fileRegDoc').click()" style="cursor: pointer; background-color: #f8fafc;">
+                        <input type="file" asp-for="RegistrationImageFile" id="fileRegDoc" accept="image/*" class="d-none" onchange="previewSingleDoc(this, 'previewRegDoc', 'placeholderRegDoc')" />
+                        <div class="d-flex align-items-center gap-2 @(!string.IsNullOrEmpty(Model.RegistrationImage) ? "d-none" : "")" id="placeholderRegDoc">
+                            <i class="bi bi-file-earmark-arrow-up-fill text-primary fs-4"></i>
+                            <div class="text-start">
+                                <div class="small fw-semibold text-dark">Tải ảnh Cà vẹt mới</div>
+                                <div class="text-muted" style="font-size: 11px;">Nhấp để thay đổi</div>
+                            </div>
+                        </div>
+                        <img id="previewRegDoc" src="@(Model.RegistrationImage ?? "")" class="@(!string.IsNullOrEmpty(Model.RegistrationImage) ? "" : "d-none") rounded-2 object-fit-cover shadow-sm" style="width: 50px; height: 38px;" alt="Cà vẹt" />
+                        <span class="btn btn-sm btn-outline-primary py-1 px-2.5 rounded-pill" style="font-size: 11px;">Đổi ảnh</span>
+                    </div>
+                </div>
+
+                <!-- 2. Giấy chứng nhận đăng kiểm -->
+                <div class="mb-3">
+                    <label class="form-label-custom small fw-bold text-dark d-flex align-items-center justify-content-between">
+                        <span>2. Giấy chứng nhận đăng kiểm</span>
+                        <span class="badge @(!string.IsNullOrEmpty(Model.InspectionImage) ? "bg-success-subtle text-success border border-success" : "bg-light text-muted border")" style="font-size: 10px;">
+                            @(!string.IsNullOrEmpty(Model.InspectionImage) ? "Đã có ảnh" : "Chưa tải")
+                        </span>
+                    </label>
+                    <div class="recar-image-dropzone py-2.5 px-3 d-flex align-items-center justify-content-between rounded-3 border" onclick="document.getElementById('fileInspDoc').click()" style="cursor: pointer; background-color: #f8fafc;">
+                        <input type="file" asp-for="InspectionImageFile" id="fileInspDoc" accept="image/*" class="d-none" onchange="previewSingleDoc(this, 'previewInspDoc', 'placeholderInspDoc')" />
+                        <div class="d-flex align-items-center gap-2 @(!string.IsNullOrEmpty(Model.InspectionImage) ? "d-none" : "")" id="placeholderInspDoc">
+                            <i class="bi bi-file-earmark-arrow-up-fill text-success fs-4"></i>
+                            <div class="text-start">
+                                <div class="small fw-semibold text-dark">Tải ảnh Đăng kiểm mới</div>
+                                <div class="text-muted" style="font-size: 11px;">Nhấp để thay đổi</div>
+                            </div>
+                        </div>
+                        <img id="previewInspDoc" src="@(Model.InspectionImage ?? "")" class="@(!string.IsNullOrEmpty(Model.InspectionImage) ? "" : "d-none") rounded-2 object-fit-cover shadow-sm" style="width: 50px; height: 38px;" alt="Đăng kiểm" />
+                        <span class="btn btn-sm btn-outline-success py-1 px-2.5 rounded-pill" style="font-size: 11px;">Đổi ảnh</span>
+                    </div>
+                </div>
+
+                <!-- 3. Bảo hiểm TNDS bắt buộc -->
+                <div class="mb-2">
+                    <label class="form-label-custom small fw-bold text-dark d-flex align-items-center justify-content-between">
+                        <span>3. Bảo hiểm TNDS bắt buộc</span>
+                        <span class="badge @(!string.IsNullOrEmpty(Model.InsuranceImage) ? "bg-success-subtle text-success border border-success" : "bg-light text-muted border")" style="font-size: 10px;">
+                            @(!string.IsNullOrEmpty(Model.InsuranceImage) ? "Đã có ảnh" : "Chưa tải")
+                        </span>
+                    </label>
+                    <div class="recar-image-dropzone py-2.5 px-3 d-flex align-items-center justify-content-between rounded-3 border" onclick="document.getElementById('fileInsDoc').click()" style="cursor: pointer; background-color: #f8fafc;">
+                        <input type="file" asp-for="InsuranceImageFile" id="fileInsDoc" accept="image/*" class="d-none" onchange="previewSingleDoc(this, 'previewInsDoc', 'placeholderInsDoc')" />
+                        <div class="d-flex align-items-center gap-2 @(!string.IsNullOrEmpty(Model.InsuranceImage) ? "d-none" : "")" id="placeholderInsDoc">
+                            <i class="bi bi-shield-earmark-check-fill text-info fs-4"></i>
+                            <div class="text-start">
+                                <div class="small fw-semibold text-dark">Tải ảnh Bảo hiểm mới</div>
+                                <div class="text-muted" style="font-size: 11px;">Nhấp để thay đổi</div>
+                            </div>
+                        </div>
+                        <img id="previewInsDoc" src="@(Model.InsuranceImage ?? "")" class="@(!string.IsNullOrEmpty(Model.InsuranceImage) ? "" : "d-none") rounded-2 object-fit-cover shadow-sm" style="width: 50px; height: 38px;" alt="Bảo hiểm" />
+                        <span class="btn btn-sm btn-outline-info py-1 px-2.5 rounded-pill" style="font-size: 11px;">Đổi ảnh</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card Lưu thay đổi -->
+            <div class="recar-form-card" style="border-top: 4px solid #0284c7;">
+                <h5 class="fw-bold text-dark mb-2">Cập nhật thông tin</h5>
+                <p class="text-muted small mb-3" style="line-height: 1.5;">
+                    Các thay đổi về giá thuê, tiện nghi và mô tả sẽ được áp dụng ngay lập tức cho các khách hàng đặt xe sau thời điểm này.
+                </p>
+
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-primary rounded-pill py-3 fw-bold shadow-sm d-flex align-items-center justify-content-center gap-2" style="background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); border: none; font-size: 1rem;">
+                        <i class="bi bi-floppy-fill fs-5"></i>
+                        <span>Lưu thay đổi phương tiện</span>
+                    </button>
+
+                    <a href="/CarOwner/Cars/Index" class="btn btn-light rounded-pill py-2.5 border text-secondary fw-semibold small text-center">
+                        Hủy và quay lại
+                    </a>
+                </div>
+            </div>
+
         </div>
     </div>
-</div>
+</form>
+
+<script>
+    // Format hiển thị giá tiền real-time
+    const inputPrice = document.getElementById('inputPrice');
+    const priceFormattedText = document.getElementById('priceFormattedText');
+    if (inputPrice && priceFormattedText) {
+        inputPrice.addEventListener('input', function() {
+            const val = parseInt(this.value) || 0;
+            priceFormattedText.innerText = val.toLocaleString('vi-VN') + ' VNĐ / ngày';
+        });
+    }
+
+    // Toggle tiện nghi
+    function toggleFeature(element) {
+        const checkbox = element.querySelector('input[type="checkbox"]');
+        if (checkbox) {
+            checkbox.checked = !checkbox.checked;
+            if (checkbox.checked) {
+                element.classList.add('active');
+            } else {
+                element.classList.remove('active');
+            }
+        }
+    }
+
+    // Xem trước ảnh mới khi chọn file
+    function previewNewImage(input) {
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = document.getElementById('currentImagePreview');
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+
+    // Cập nhật khi dán link ảnh URL
+    function updateImageUrlPreview(url) {
+        if (url && url.length > 5) {
+            const img = document.getElementById('currentImagePreview');
+            img.src = url;
+        }
+    }
+
+    // Xem trước ảnh từng loại giấy tờ xe
+    function previewSingleDoc(input, previewId, placeholderId) {
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = document.getElementById(previewId);
+                const placeholder = document.getElementById(placeholderId);
+                img.src = e.target.result;
+                img.classList.remove('d-none');
+                if (placeholder) placeholder.classList.add('d-none');
+            };
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+</script>

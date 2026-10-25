@@ -36,9 +36,29 @@ namespace CarRental.Areas.CarOwner.Controllers
 
             if (account == null || account.RoleId != 3) // RoleId 3 = Chủ xe
             {
-                Function.SetMessage(HttpContext.Session, "Bạn không có quyền truy cập trang này");
-                return RedirectToAction("Index", "Home", new { area = "" });
+                // Kiểm tra xem đã nộp hồ sơ đăng ký chủ xe chưa
+                var reg = _context.CarOwnerRegistrations
+                    .OrderByDescending(r => r.CreatedAt)
+                    .FirstOrDefault(r => r.CustomerId == accountId || (!string.IsNullOrEmpty(userEmail) && r.Email == userEmail));
+
+                if (reg != null)
+                {
+                    if (reg.Status == "Pending")
+                    {
+                        return RedirectToAction("Pending", "Register", new { area = "CarOwner" });
+                    }
+                    if (reg.Status == "Rejected")
+                    {
+                        return RedirectToAction("Rejected", "Register", new { area = "CarOwner" });
+                    }
+                }
+
+                // Nếu chưa nộp hồ sơ đăng ký -> chuyển đến trang đăng ký chủ xe
+                return RedirectToAction("Index", "Register", new { area = "CarOwner" });
             }
+
+            // Đảm bảo phiên CarOwner được lưu độc lập
+            Function.SetCarOwnerSession(HttpContext.Session, account.AccountId, account.Username ?? string.Empty, account.Email ?? string.Empty, account.FullName ?? string.Empty);
 
             var ownerId = account.AccountId;
             var totalCars = _context.Cars.Count(c => c.OwnerId == ownerId);
@@ -85,7 +105,7 @@ namespace CarRental.Areas.CarOwner.Controllers
 
         public IActionResult Logout()
         {
-            Function.ClearSession(HttpContext.Session);
+            Function.ClearCarOwnerSession(HttpContext.Session);
             return RedirectToAction("Index", "Home", new { area = "" });
         }
     }

@@ -95,7 +95,7 @@ namespace CarRental.Areas.Admin.Controllers
 
         public IActionResult Logout()
         {
-            Function.ClearSession(HttpContext.Session);
+            Function.ClearAdminSession(HttpContext.Session);
             return RedirectToAction("Index", "Login", new { area = "Admin" });
         }
     }

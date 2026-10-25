@@ -6,6 +6,7 @@
 
     bool isHome = ctrl == "home";
     bool isPendingCars = ctrl == "cars" && act == "pending";
+    bool isPendingOwners = ctrl == "carowners";
     bool isCars = ctrl == "cars" && act != "pending";
     bool isCarTypes = ctrl == "cartypes";
     bool isOrders = ctrl == "orders";
@@ -24,10 +25,12 @@
     }
     var adminInitials = adminName.Length >= 2 ? adminName.Substring(0, 2).ToUpper() : "AD";
     
-    // Đếm số lượng xe đang chờ duyệt thực tế từ CSDL
+    // Đếm số lượng xe và hồ sơ chủ xe đang chờ duyệt thực tế từ CSDL
     int pendingCarsCount = 0;
+    int pendingOwnersCount = 0;
     try {
         pendingCarsCount = _db.Cars.Count(c => c.CarStatus == "Chờ duyệt");
+        pendingOwnersCount = _db.CarOwnerRegistrations.Count(r => r.Status == "Pending");
     } catch { }
 
     // Breadcrumb text mapping
@@ -489,6 +492,14 @@
                         <i class="bi bi-shield-check"></i>
                         <span class="nav-label">Phê duyệt xe</span>
                         <span id="pendingCarsBadge" class="badge bg-warning text-dark fw-bold rounded-pill ms-auto" style="font-size: 0.72rem; @(pendingCarsCount > 0 ? "" : "display:none;")">@pendingCarsCount</span>
+                    </a>
+
+                    <!-- Duyệt hồ sơ Chủ xe -->
+                    <a class="nav-link @(isPendingOwners ? "active" : "")" 
+                       asp-area="Admin" asp-controller="CarOwners" asp-action="Pending" title="Duyệt hồ sơ Chủ xe">
+                        <i class="bi bi-person-check-fill"></i>
+                        <span class="nav-label">Duyệt hồ sơ Chủ xe</span>
+                        <span id="pendingOwnersBadge" class="badge bg-warning text-dark fw-bold rounded-pill ms-auto" style="font-size: 0.72rem; @(pendingOwnersCount > 0 ? "" : "display:none;")">@pendingOwnersCount</span>
                     </a>
 
                     <!-- Quản lý đội xe -->

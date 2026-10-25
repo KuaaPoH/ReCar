@@ -27,7 +27,7 @@ namespace CarRental.Areas.Admin.Controllers
         }
 
         // GET: /Admin/Cars/Pending (Phê duyệt xe mới)
-        public IActionResult Pending(string? q, string? brand, string? city, string? owner)
+        public IActionResult Pending(string? q, string? brand, string? city, string? owner, string? date)
         {
             if (!CheckAdmin())
             {
@@ -65,14 +65,38 @@ namespace CarRental.Areas.Admin.Controllers
             }
 
             var pendingCars = query.OrderByDescending(c => c.CarId).ToList();
+            var pendingIds = pendingCars.Select(c => c.CarId).ToList();
 
-            // Lấy danh sách hãng và thành phố cho filter
+            // Nạp thư viện ảnh phụ cho từng xe
+            var carImagesList = _context.CarImages.Where(ci => ci.CarId.HasValue && pendingIds.Contains(ci.CarId.Value)).ToList();
+            var carImagesDict = carImagesList
+                .GroupBy(ci => ci.CarId!.Value)
+                .ToDictionary(
+                    g => g.Key,
+                    g => g.SelectMany(x => new[] { x.Image1, x.Image2, x.Image3, x.Image4 })
+                          .Where(img => !string.IsNullOrEmpty(img))
+                          .Select(img => img!)
+                          .ToList()
+                );
+            ViewBag.CarImagesDict = carImagesDict;
+
+            // Danh sách hồ sơ đã từ chối gần đây
+            var recentRejected = _context.Cars
+                .Include(c => c.Owner)
+                .Where(c => c.CarStatus == "Từ chối" || c.CarStatus == "rejected")
+                .OrderByDescending(c => c.CarId)
+                .Take(10)
+                .ToList();
+            ViewBag.RecentRejected = recentRejected;
+
+            // Danh sách hãng và thành phố cho filter
             ViewBag.Brands = _context.Cars.Where(c => !string.IsNullOrEmpty(c.CarBrand)).Select(c => c.CarBrand!).Distinct().ToList();
-            ViewBag.Cities = new[] { "Hà Nội", "TP. Hồ Chí Minh", "Đà Nẵng", "Đà Lạt", "Nha Trang" };
+            ViewBag.Cities = new[] { "Hà Nội", "TP. Hồ Chí Minh", "Đà Nẵng", "Đà Lạt", "Nha Trang", "Cần Thơ", "Hải Phòng", "Bình Dương" };
             ViewBag.FilterQ = q;
             ViewBag.FilterBrand = brand;
             ViewBag.FilterCity = city;
             ViewBag.FilterOwner = owner;
+            ViewBag.FilterDate = date;
 
             return View(pendingCars);
         }
@@ -116,12 +140,12 @@ namespace CarRental.Areas.Admin.Controllers
                 }
             }
 
-            return Json(new { success = true, message = $"Đã phê duyệt xe {car.CarName} ({car.LicensePlate}). Xe hiện đã hiển thị công khai trên sàn ReCar." });
+            return Json(new { success = true, message = $"Đã phê duyệt {car.CarName} ({car.LicensePlate}). Xe sẽ hiển thị công khai khi đủ điều kiện hoạt động." });
         }
 
         // POST: /Admin/Cars/Reject (Từ chối duyệt xe)
         [HttpPost]
-        public IActionResult Reject(int id, string reason)
+        public IActionResult Reject(int id, string reason, bool notify = true)
         {
             if (!CheckAdmin())
             {
@@ -143,8 +167,8 @@ namespace CarRental.Areas.Admin.Controllers
             car.Descriptions = $"Lý do từ chối: {reason.Trim()} (Cập nhật lúc {DateTime.Now:dd/MM/yyyy HH:mm})";
             _context.SaveChanges();
 
-            // Phát thông báo Realtime cho Chủ xe
-            if (car.OwnerId.HasValue && car.OwnerId.Value > 0)
+            // Phát thông báo Realtime cho Chủ xe nếu được yêu cầu
+            if (notify && car.OwnerId.HasValue && car.OwnerId.Value > 0)
             {
                 try
                 {
@@ -163,7 +187,8 @@ namespace CarRental.Areas.Admin.Controllers
                 }
             }
 
-            return Json(new { success = true, message = $"Đã từ chối duyệt xe {car.LicensePlate} và gửi thông báo yêu cầu chỉnh sửa đến chủ xe." });
+            string notifyText = notify ? " và gửi thông báo yêu cầu chỉnh sửa tới chủ xe" : "";
+            return Json(new { success = true, message = $"Đã từ chối hồ sơ {car.LicensePlate}{notifyText}." });
         }
 
         // GET: /Admin/Cars (Quản lý toàn bộ đội xe)

@@ -12,7 +12,11 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
+import { Route as AdminFinanceRouteImport } from './routes/admin.finance'
+import { Route as AdminCarsIndexRouteImport } from './routes/admin.cars.index'
 import { Route as AdminCarsPendingRouteImport } from './routes/admin.cars.pending'
+import { Route as AdminOrdersIndexRouteImport } from './routes/admin.orders.index'
+import { Route as AdminOrdersIdRouteImport } from './routes/admin.orders.$id'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -29,36 +33,92 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminFinanceRoute = AdminFinanceRouteImport.update({
+  id: '/finance',
+  path: '/finance',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminCarsIndexRoute = AdminCarsIndexRouteImport.update({
+  id: '/cars/',
+  path: '/cars/',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminCarsPendingRoute = AdminCarsPendingRouteImport.update({
   id: '/cars/pending',
   path: '/cars/pending',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminOrdersIndexRoute = AdminOrdersIndexRouteImport.update({
+  id: '/orders/',
+  path: '/orders/',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminOrdersIdRoute = AdminOrdersIdRouteImport.update({
+  id: '/orders/$id',
+  path: '/orders/$id',
   getParentRoute: () => AdminRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
+  '/admin/finance': typeof AdminFinanceRoute
   '/admin/': typeof AdminIndexRoute
   '/admin/cars/pending': typeof AdminCarsPendingRoute
+  '/admin/orders/$id': typeof AdminOrdersIdRoute
+  '/admin/cars/': typeof AdminCarsIndexRoute
+  '/admin/orders/': typeof AdminOrdersIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/admin/finance': typeof AdminFinanceRoute
   '/admin': typeof AdminIndexRoute
   '/admin/cars/pending': typeof AdminCarsPendingRoute
+  '/admin/orders/$id': typeof AdminOrdersIdRoute
+  '/admin/cars': typeof AdminCarsIndexRoute
+  '/admin/orders': typeof AdminOrdersIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
+  '/admin/finance': typeof AdminFinanceRoute
   '/admin/': typeof AdminIndexRoute
   '/admin/cars/pending': typeof AdminCarsPendingRoute
+  '/admin/orders/$id': typeof AdminOrdersIdRoute
+  '/admin/cars/': typeof AdminCarsIndexRoute
+  '/admin/orders/': typeof AdminOrdersIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/admin' | '/admin/' | '/admin/cars/pending'
+  fullPaths:
+    | '/'
+    | '/admin'
+    | '/admin/finance'
+    | '/admin/'
+    | '/admin/cars/pending'
+    | '/admin/orders/$id'
+    | '/admin/cars/'
+    | '/admin/orders/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/admin' | '/admin/cars/pending'
-  id: '__root__' | '/' | '/admin' | '/admin/' | '/admin/cars/pending'
+  to:
+    | '/'
+    | '/admin/finance'
+    | '/admin'
+    | '/admin/cars/pending'
+    | '/admin/orders/$id'
+    | '/admin/cars'
+    | '/admin/orders'
+  id:
+    | '__root__'
+    | '/'
+    | '/admin'
+    | '/admin/finance'
+    | '/admin/'
+    | '/admin/cars/pending'
+    | '/admin/orders/$id'
+    | '/admin/cars/'
+    | '/admin/orders/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -89,6 +149,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminIndexRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/finance': {
+      id: '/admin/finance'
+      path: '/finance'
+      fullPath: '/admin/finance'
+      preLoaderRoute: typeof AdminFinanceRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/cars/': {
+      id: '/admin/cars/'
+      path: '/cars'
+      fullPath: '/admin/cars/'
+      preLoaderRoute: typeof AdminCarsIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/cars/pending': {
       id: '/admin/cars/pending'
       path: '/cars/pending'
@@ -96,17 +170,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminCarsPendingRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/orders/': {
+      id: '/admin/orders/'
+      path: '/orders'
+      fullPath: '/admin/orders/'
+      preLoaderRoute: typeof AdminOrdersIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/orders/$id': {
+      id: '/admin/orders/$id'
+      path: '/orders/$id'
+      fullPath: '/admin/orders/$id'
+      preLoaderRoute: typeof AdminOrdersIdRouteImport
+      parentRoute: typeof AdminRoute
+    }
   }
 }
 
 interface AdminRouteChildren {
+  AdminFinanceRoute: typeof AdminFinanceRoute
   AdminIndexRoute: typeof AdminIndexRoute
   AdminCarsPendingRoute: typeof AdminCarsPendingRoute
+  AdminOrdersIdRoute: typeof AdminOrdersIdRoute
+  AdminCarsIndexRoute: typeof AdminCarsIndexRoute
+  AdminOrdersIndexRoute: typeof AdminOrdersIndexRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
+  AdminFinanceRoute: AdminFinanceRoute,
   AdminIndexRoute: AdminIndexRoute,
   AdminCarsPendingRoute: AdminCarsPendingRoute,
+  AdminOrdersIdRoute: AdminOrdersIdRoute,
+  AdminCarsIndexRoute: AdminCarsIndexRoute,
+  AdminOrdersIndexRoute: AdminOrdersIndexRoute,
 }
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)

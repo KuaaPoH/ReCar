@@ -42,8 +42,13 @@ namespace CarRental.Controllers
             
             // Kiểm tra xem customer đã có Account với RoleId = 3 (Chủ xe) chưa
             var existingCarOwnerAccount = _context.Accounts
-                .FirstOrDefault(a => a.Email == customer.Email && a.RoleId == 3);
+                .FirstOrDefault(a => a.Email == customer.Email && a.RoleId == 3 && a.IsActive == true);
             ViewBag.ExistingCarOwnerAccount = existingCarOwnerAccount;
+
+            var existingCarOwnerReg = _context.CarOwnerRegistrations
+                .OrderByDescending(r => r.CreatedAt)
+                .FirstOrDefault(r => r.CustomerId == customerId || r.Email == customer.Email);
+            ViewBag.ExistingCarOwnerReg = existingCarOwnerReg;
             
             // Lưu returnUrl vào ViewBag nếu có
             if (!string.IsNullOrEmpty(returnUrl))
@@ -524,33 +529,8 @@ namespace CarRental.Controllers
         {
             if (!Function.IsLogin(HttpContext.Session))
             {
-                return RedirectToAction("Index", "Login", new { area = "" });
+                return RedirectToAction("Index", "Login", new { area = "", ReturnUrl = "/CarOwner/Home/Index" });
             }
-
-            // Kiểm tra xem Customer có Account với RoleId=3 không
-            var customerId = Function.GetAccountId(HttpContext.Session);
-            var customer = _context.Customers.FirstOrDefault(c => c.CustomerId == customerId);
-
-            if (customer == null)
-            {
-                Function.SetMessage(HttpContext.Session, "Không tìm thấy thông tin khách hàng.");
-                return RedirectToAction("Index");
-            }
-
-            var carOwnerAccount = _context.Accounts
-                .FirstOrDefault(a => a.Email == customer.Email && a.RoleId == 3);
-
-            if (carOwnerAccount == null)
-            {
-                Function.SetMessage(HttpContext.Session, "Bạn chưa đăng ký làm chủ xe.");
-                return RedirectToAction("Index");
-            }
-
-            // Chuyển sang đăng nhập với tài khoản chủ xe - lưu vào Session
-            Function.SetAccountId(HttpContext.Session, carOwnerAccount.AccountId);
-            Function.SetUserName(HttpContext.Session, string.IsNullOrEmpty(carOwnerAccount.Username) ? string.Empty : carOwnerAccount.Username);
-            Function.SetEmail(HttpContext.Session, string.IsNullOrEmpty(carOwnerAccount.Email) ? string.Empty : carOwnerAccount.Email);
-            Function.SetCarOwnerAccountId(HttpContext.Session, carOwnerAccount.AccountId);
 
             return RedirectToAction("Index", "Home", new { area = "CarOwner" });
         }

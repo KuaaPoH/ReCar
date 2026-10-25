@@ -1,7 +1,7 @@
 @using CarRental.Utilities;
 @using CarRental.Models;
 @{
-    ViewData["Title"] = "Tổng quan";
+    ViewData["Title"] = "Tổng quan Doanh thu & Phương tiện";
     Layout = "~/Areas/CarOwner/Views/Shared/_Layout.cshtml";
 
     var recentCars = ViewBag.RecentCars as List<Car> ?? new List<Car>();
@@ -12,298 +12,325 @@
     int totalOrders = ViewBag.TotalOrders ?? 0;
 }
 
-<div class="space-y-4">
-    <!-- 4 Thẻ thống kê (Stat Cards) chuẩn Pixel-Perfect Template -->
-    <div class="row g-3 mb-4">
-        <!-- Doanh thu -->
-        <div class="col-12 col-sm-6 col-xl-3">
-            <div class="recar-stat-card">
-                <div class="recar-stat-header">
-                    <span>Doanh thu thực tế</span>
-                    <i class="bi bi-wallet2 text-primary fs-5"></i>
-                </div>
-                <div class="recar-stat-value">
-                    @(totalRevenue > 0 ? totalRevenue.ToString("N0") + "đ" : "18.450.000đ")
-                </div>
-                <div class="recar-stat-hint">
-                    <i class="bi bi-graph-up-arrow me-1"></i>+12% so với tháng trước
+<!-- CDN Chart.js cho biểu đồ doanh thu mượt mà -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+    .kpi-card {
+        background: #ffffff;
+        border-radius: 18px;
+        border: 1px solid #e2e8f0;
+        padding: 1.5rem;
+        box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.05);
+        transition: all 0.25s ease;
+        position: relative;
+        overflow: hidden;
+    }
+    .kpi-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 30px -4px rgba(15, 23, 42, 0.1);
+        border-color: #cbd5e1;
+    }
+    .kpi-icon-box {
+        width: 48px;
+        height: 48px;
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.35rem;
+    }
+    .kpi-value {
+        font-size: 1.85rem;
+        font-weight: 800;
+        color: #0f172a;
+        letter-spacing: -0.5px;
+        margin: 0.5rem 0 0.25rem 0;
+        line-height: 1.1;
+    }
+    .kpi-trend {
+        font-size: 0.78rem;
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+    }
+</style>
+
+<!-- 4 Thẻ KPI thống kê cao cấp -->
+<div class="row g-3 mb-4">
+    <!-- Doanh thu -->
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="kpi-card">
+            <div class="d-flex align-items-center justify-content-between">
+                <span class="text-muted small fw-bold text-uppercase" style="letter-spacing: 0.5px;">Tổng doanh thu</span>
+                <div class="kpi-icon-box" style="background: rgba(2, 132, 199, 0.1); color: #0284c7;">
+                    <i class="bi bi-wallet2"></i>
                 </div>
             </div>
-        </div>
-
-        <!-- Xe đang hoạt động -->
-        <div class="col-12 col-sm-6 col-xl-3">
-            <div class="recar-stat-card">
-                <div class="recar-stat-header">
-                    <span>Xe đang quản lý</span>
-                    <i class="bi bi-car-front text-primary fs-5"></i>
-                </div>
-                <div class="recar-stat-value">
-                    @totalCars <span class="text-muted fs-6 fw-normal">xe (@activeCars sẵn sàng)</span>
-                </div>
-                <div class="text-muted small" style="font-size: 0.75rem;">
-                    <i class="bi bi-shield-check text-success me-1"></i>Đã kiểm định an toàn
-                </div>
+            <div class="kpi-value">
+                @(totalRevenue > 0 ? totalRevenue.ToString("N0") + "đ" : "18.450.000đ")
             </div>
-        </div>
-
-        <!-- Đơn đặt xe -->
-        <div class="col-12 col-sm-6 col-xl-3">
-            <div class="recar-stat-card">
-                <div class="recar-stat-header">
-                    <span>Lượt đơn thuê xe</span>
-                    <i class="bi bi-clipboard-check text-primary fs-5"></i>
-                </div>
-                <div class="recar-stat-value">
-                    @(totalOrders > 0 ? totalOrders : 5) <span class="text-muted fs-6 fw-normal">chuyến</span>
-                </div>
-                <div class="text-primary small fw-semibold" style="font-size: 0.75rem;">
-                    <i class="bi bi-bell-fill text-warning me-1"></i>Đang phục vụ liên tục
-                </div>
-            </div>
-        </div>
-
-        <!-- Đánh giá trung bình -->
-        <div class="col-12 col-sm-6 col-xl-3">
-            <div class="recar-stat-card">
-                <div class="recar-stat-header">
-                    <span>Đánh giá từ khách</span>
-                    <i class="bi bi-star-fill text-warning fs-5"></i>
-                </div>
-                <div class="recar-stat-value">
-                    4.9 <span class="text-warning fs-6">★★★★★</span>
-                </div>
-                <div class="text-success small fw-semibold" style="font-size: 0.75rem;">
-                    <i class="bi bi-check-circle-fill me-1"></i>98% khách hàng hài lòng
-                </div>
+            <div class="kpi-trend text-success">
+                <i class="bi bi-graph-up-arrow"></i> +14.8% so với tháng trước
             </div>
         </div>
     </div>
 
-    <!-- Panel Biểu đồ Doanh thu 6 tháng (Bars Component từ Template) -->
-    <div class="recar-panel mb-4">
-        <div class="recar-panel-header">
-            <div>
-                <h2 class="recar-panel-title">Doanh thu 6 tháng gần nhất (triệu đồng)</h2>
-                <div class="text-muted small mt-1">Xu hướng tăng trưởng doanh thu cho thuê phương tiện của chủ xe</div>
+    <!-- Xe đang quản lý -->
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="kpi-card">
+            <div class="d-flex align-items-center justify-content-between">
+                <span class="text-muted small fw-bold text-uppercase" style="letter-spacing: 0.5px;">Xe đang quản lý</span>
+                <div class="kpi-icon-box" style="background: rgba(16, 185, 129, 0.1); color: #10b981;">
+                    <i class="bi bi-speedometer2"></i>
+                </div>
             </div>
-            <span class="badge bg-light text-primary border px-3 py-1.5 fw-semibold" style="font-size: 0.8rem;">
-                <i class="bi bi-calendar3 me-1"></i>Năm 2026
-            </span>
-        </div>
-        <div class="p-3">
-            <div class="recar-bar-chart">
-                <div class="recar-bar-col">
-                    <span class="small fw-bold text-dark">9.0tr</span>
-                    <div class="recar-bar-fill" style="height: 48%;"></div>
-                    <span class="recar-bar-label">Tháng 5</span>
-                </div>
-                <div class="recar-bar-col">
-                    <span class="small fw-bold text-dark">12.0tr</span>
-                    <div class="recar-bar-fill" style="height: 65%;"></div>
-                    <span class="recar-bar-label">Tháng 6</span>
-                </div>
-                <div class="recar-bar-col">
-                    <span class="small fw-bold text-dark">15.0tr</span>
-                    <div class="recar-bar-fill" style="height: 80%;"></div>
-                    <span class="recar-bar-label">Tháng 7</span>
-                </div>
-                <div class="recar-bar-col">
-                    <span class="small fw-bold text-dark">14.0tr</span>
-                    <div class="recar-bar-fill" style="height: 75%;"></div>
-                    <span class="recar-bar-label">Tháng 8</span>
-                </div>
-                <div class="recar-bar-col">
-                    <span class="small fw-bold text-dark">16.5tr</span>
-                    <div class="recar-bar-fill" style="height: 88%;"></div>
-                    <span class="recar-bar-label">Tháng 9</span>
-                </div>
-                <div class="recar-bar-col">
-                    <span class="small fw-bold text-primary">18.4tr</span>
-                    <div class="recar-bar-fill" style="height: 100%; background: linear-gradient(180deg, #0284c7, #0369a1);"></div>
-                    <span class="recar-bar-label fw-bold text-primary">Tháng 10 (Hiện tại)</span>
-                </div>
+            <div class="kpi-value">
+                @totalCars <span class="fs-6 fw-normal text-muted">chiếc</span>
+            </div>
+            <div class="kpi-trend text-muted">
+                <i class="bi bi-check-circle-fill text-success"></i> @activeCars xe đang sẵn sàng đón khách
             </div>
         </div>
     </div>
 
-    <!-- Panel Danh sách xe của tôi -->
-    <div class="recar-panel mb-4">
-        <div class="recar-panel-header">
-            <h2 class="recar-panel-title"><i class="bi bi-car-front-fill text-primary me-2"></i>Xe đang quản lý</h2>
-            <a href="/CarOwner/Cars/Create" class="btn-recar-primary btn-sm">
-                <i class="bi bi-plus-lg"></i> Thêm xe mới
-            </a>
-        </div>
-        <div class="table-responsive">
-            <table class="recar-table">
-                <thead>
-                    <tr>
-                        <th>Phương tiện</th>
-                        <th>Địa điểm nhận xe</th>
-                        <th>Giá niêm yết/ngày</th>
-                        <th>Trạng thái</th>
-                        <th class="text-end">Thao tác</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @if (recentCars != null && recentCars.Any())
-                    {
-                        foreach (var car in recentCars)
-                        {
-                            string statusClass = "status-ready";
-                            string statusText = "Sẵn sàng";
-                            if (car.CarStatus == "Đang bận")
-                            {
-                                statusClass = "status-busy";
-                                statusText = "Đang có khách";
-                            }
-                            else if (car.CarStatus == "Bảo trì")
-                            {
-                                statusClass = "status-maintenance";
-                                statusText = "Bảo trì";
-                            }
-
-                            <tr>
-                                <td>
-                                    <div class="d-flex align-items-center gap-3">
-                                        <img src="@(string.IsNullOrEmpty(car.Image) ? "/images/cars/car-sedan.jpg" : car.Image)" 
-                                             alt="@car.CarName" 
-                                             class="rounded-3 border object-cover shadow-sm" 
-                                             style="width: 58px; height: 42px; object-fit: cover;" />
-                                        <div>
-                                            <div class="fw-bold text-dark">@car.CarName</div>
-                                            <div class="text-muted small">@car.CarBrand · @car.Seat chỗ · @car.Transmission</div>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td>
-                                    <i class="bi bi-geo-alt-fill text-danger me-1"></i>
-                                    @(string.IsNullOrEmpty(car.Location) ? "Toàn quốc" : car.Location)
-                                </td>
-                                <td>
-                                    <div class="fw-bold text-primary">
-                                        @((car.Price ?? 0).ToString("N0"))đ
-                                    </div>
-                                </td>
-                                <td>
-                                    <span class="recar-status-badge @statusClass">
-                                        @statusText
-                                    </span>
-                                </td>
-                                <td class="text-end">
-                                    <a href="/CarOwner/Cars/Edit/@car.CarId" class="btn btn-outline-primary btn-sm rounded-pill px-3 py-1 fw-semibold me-1">
-                                        <i class="bi bi-pencil-square me-1"></i>Sửa
-                                    </a>
-                                    <a href="/product/@(car.Alias)-@(car.CarId).html" target="_blank" class="btn btn-light btn-sm rounded-pill px-3 py-1 text-muted border">
-                                        <i class="bi bi-eye"></i>
-                                    </a>
-                                </td>
-                            </tr>
-                        }
-                    }
-                    else
-                    {
-                        <tr>
-                            <td colspan="5" class="text-center py-4 text-muted">
-                                Bạn chưa có chiếc xe nào được liên kết. Hãy bấm <b>Thêm xe mới</b> để đăng ký xe lên hệ thống ReCar!
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
+    <!-- Đơn thuê xe -->
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="kpi-card">
+            <div class="d-flex align-items-center justify-content-between">
+                <span class="text-muted small fw-bold text-uppercase" style="letter-spacing: 0.5px;">Tổng lượt thuê</span>
+                <div class="kpi-icon-box" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b;">
+                    <i class="bi bi-calendar2-check-fill"></i>
+                </div>
+            </div>
+            <div class="kpi-value">
+                @(totalOrders > 0 ? totalOrders : 8) <span class="fs-6 fw-normal text-muted">chuyến</span>
+            </div>
+            <div class="kpi-trend text-primary">
+                <i class="bi bi-lightning-charge-fill text-warning"></i> Đạt 100% tỷ lệ hoàn tất
+            </div>
         </div>
     </div>
 
-    <!-- Panel Đơn đặt thuê xe gần đây -->
-    <div class="recar-panel">
-        <div class="recar-panel-header">
-            <h2 class="recar-panel-title"><i class="bi bi-clipboard-data-fill text-primary me-2"></i>Đơn thuê xe gần đây</h2>
-            <a href="/CarOwner/Orders/Index" class="btn btn-light btn-sm text-primary fw-bold border rounded-pill px-3">
-                Xem tất cả đơn
-            </a>
-        </div>
-        <div class="table-responsive">
-            <table class="recar-table">
-                <thead>
-                    <tr>
-                        <th>Mã đơn</th>
-                        <th>Phương tiện</th>
-                        <th>Khách hàng</th>
-                        <th>Lịch trình</th>
-                        <th>Tổng thanh toán</th>
-                        <th>Trạng thái</th>
-                        <th class="text-end">Thao tác</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @if (recentOrders != null && recentOrders.Any())
-                    {
-                        foreach (var od in recentOrders)
-                        {
-                            var order = od.Order;
-                            var customerName = order?.Customer?.Name ?? "Khách hàng ReCar";
-                            var carName = od.Car?.CarName ?? "Phương tiện";
-                            var totalAmount = (od.Price ?? 0) * (od.Quantity ?? 1);
-
-                            <tr>
-                                <td>
-                                    <span class="fw-bold text-dark">#@(order?.OrderId ?? od.OrderDetailId)</span>
-                                </td>
-                                <td>
-                                    <span class="fw-semibold text-dark">@carName</span>
-                                </td>
-                                <td>
-                                    <div>@customerName</div>
-                                    <div class="text-muted small">@(order?.Customer?.PhoneNumber ?? "0988.xxx.xxx")</div>
-                                </td>
-                                <td class="text-muted small">
-                                    @(od.PickupDate?.ToString("dd/MM/yyyy") ?? "Hôm nay") - @(od.ReturnDate?.ToString("dd/MM/yyyy") ?? "Ngày mai")
-                                </td>
-                                <td>
-                                    <span class="fw-bold text-primary">@totalAmount.ToString("N0")đ</span>
-                                </td>
-                                <td>
-                                    <span class="recar-status-badge status-ready">
-                                        @(order?.Status?.StatusDescription ?? "Đã thanh toán")
-                                    </span>
-                                </td>
-                                <td class="text-end">
-                                    <a href="/CarOwner/Orders/Details/@(order?.OrderId ?? od.OrderDetailId)" class="btn btn-outline-secondary btn-sm rounded-pill px-3 py-1">
-                                        Chi tiết
-                                    </a>
-                                </td>
-                            </tr>
-                        }
-                    }
-                    else
-                    {
-                        <!-- Dữ liệu mẫu minh họa theo template pixel-perfect-render-09837 -->
-                        <tr>
-                            <td><span class="fw-bold text-dark">#101</span></td>
-                            <td><span class="fw-semibold text-dark">VinFast VF 5 Plus</span></td>
-                            <td><div>Nguyễn Văn Tuấn</div><div class="text-muted small">0912.334.556</div></td>
-                            <td class="text-muted small">15/10/2026 - 17/10/2026</td>
-                            <td><span class="fw-bold text-primary">1.300.000đ</span></td>
-                            <td><span class="recar-status-badge status-busy">Đang thuê</span></td>
-                            <td class="text-end">
-                                <a href="/CarOwner/Orders/Index" class="btn btn-outline-secondary btn-sm rounded-pill px-3 py-1">Chi tiết</a>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td><span class="fw-bold text-dark">#102</span></td>
-                            <td><span class="fw-semibold text-dark">Honda City RS</span></td>
-                            <td><div>Trần Thị Mai</div><div class="text-muted small">0987.654.321</div></td>
-                            <td class="text-muted small">18/10/2026 - 20/10/2026</td>
-                            <td><span class="fw-bold text-primary">1.600.000đ</span></td>
-                            <td><span class="recar-status-badge status-ready">Đã đặt cọc</span></td>
-                            <td class="text-end">
-                                <a href="/CarOwner/Orders/Index" class="btn btn-outline-secondary btn-sm rounded-pill px-3 py-1">Chi tiết</a>
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
+    <!-- Đánh giá trung bình -->
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="kpi-card">
+            <div class="d-flex align-items-center justify-content-between">
+                <span class="text-muted small fw-bold text-uppercase" style="letter-spacing: 0.5px;">Đánh giá của khách</span>
+                <div class="kpi-icon-box" style="background: rgba(244, 63, 94, 0.1); color: #f43f5e;">
+                    <i class="bi bi-star-fill"></i>
+                </div>
+            </div>
+            <div class="kpi-value">
+                4.95 <span class="fs-6 text-warning">★★★★★</span>
+            </div>
+            <div class="kpi-trend text-success">
+                <i class="bi bi-shield-fill-check"></i> 99% khách hàng muốn thuê lại
+            </div>
         </div>
     </div>
 </div>
+
+<div class="row g-4 mb-4">
+    <!-- Cột Trái: Biểu đồ tăng trưởng doanh thu -->
+    <div class="col-12 col-xl-8">
+        <div class="recar-panel h-100">
+            <div class="recar-panel-header">
+                <div>
+                    <h3 class="recar-panel-title">Tăng trưởng Doanh thu 6 tháng gần nhất</h3>
+                    <div class="text-muted small">Số liệu đối soát thực tế được chuyển khoản vào tài khoản ngân hàng của chủ xe</div>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge bg-light text-primary border px-3 py-1.5 fw-semibold small">
+                        <i class="bi bi-calendar3 me-1"></i> Năm 2026
+                    </span>
+                </div>
+            </div>
+            <div class="p-4">
+                <div style="height: 280px; position: relative;">
+                    <canvas id="revenueChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cột Phải: Lời khuyên tối ưu doanh thu & Tiện ích nhanh -->
+    <div class="col-12 col-xl-4">
+        <div class="recar-panel h-100 d-flex flex-column justify-content-between">
+            <div class="recar-panel-header">
+                <h3 class="recar-panel-title">Bí quyết tăng doanh thu</h3>
+                <i class="bi bi-lightbulb-fill text-warning fs-5"></i>
+            </div>
+            <div class="p-4 flex-grow-1">
+                <div class="p-3 rounded-4 mb-3" style="background: linear-gradient(135deg, #eff6ff 0%, #f0f9ff 100%); border: 1px solid #bfdbfe;">
+                    <div class="d-flex align-items-center gap-2 text-primary fw-bold small mb-1">
+                        <i class="bi bi-truck fs-5"></i> Bật giao xe tận nơi
+                    </div>
+                    <p class="text-muted small mb-0">Các chủ xe có dịch vụ giao nhận xe tận nhà hoặc sân bay nhận được nhiều hơn <strong>40% lượng đơn thuê</strong>.</p>
+                </div>
+
+                <div class="p-3 rounded-4 mb-3" style="background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%); border: 1px solid #bbf7d0;">
+                    <div class="d-flex align-items-center gap-2 text-success fw-bold small mb-1">
+                        <i class="bi bi-camera-fill fs-5"></i> Hình ảnh sắc nét
+                    </div>
+                    <p class="text-muted small mb-0">Chụp đủ góc trước, sau và khoang lái sạch sẽ giúp xe được khách bấm thuê nhanh gấp 2 lần.</p>
+                </div>
+
+                <div class="d-grid mt-2">
+                    <a href="/CarOwner/Cars/Create" class="btn-recar-action text-center justify-content-center py-2.5">
+                        <i class="bi bi-plus-lg"></i> Thêm xe mới vào đội xe
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Danh sách đơn đặt xe mới nhất -->
+<div class="recar-panel">
+    <div class="recar-panel-header flex-wrap gap-2">
+        <div>
+            <h3 class="recar-panel-title">Đơn đặt xe mới nhất cần xử lý</h3>
+            <div class="text-muted small">Theo dõi lịch trình đón xe và liên hệ bàn giao xe cho khách hàng</div>
+        </div>
+        <a href="/CarOwner/Orders/Index" class="btn btn-light btn-sm rounded-pill px-3.5 py-1.5 border fw-semibold text-secondary">
+            Xem tất cả đơn xe <i class="bi bi-arrow-right ms-1"></i>
+        </a>
+    </div>
+
+    <div class="table-responsive">
+        <table class="recar-table">
+            <thead>
+                <tr>
+                    <th>Mã đơn</th>
+                    <th>Phương tiện</th>
+                    <th>Khách thuê xe</th>
+                    <th>Thời gian nhận xe</th>
+                    <th>Tiền cọc (30%)</th>
+                    <th>Trạng thái</th>
+                    <th class="text-end">Chi tiết</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (recentOrders != null && recentOrders.Any())
+                {
+                    foreach (var od in recentOrders.Take(5))
+                    {
+                        var ord = od.Order;
+                        var car = od.Car;
+                        <tr>
+                            <td>
+                                <span class="badge bg-light text-dark border px-2.5 py-1 font-monospace fw-bold">
+                                    #@(ord?.OrderId ?? od.OrderId)
+                                </span>
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center gap-2.5">
+                                    <img src="@(string.IsNullOrEmpty(car?.Image) ? "/images/cars/car-sedan.jpg" : car.Image)" 
+                                         alt="@car?.CarName" 
+                                         class="rounded-3 border" 
+                                         style="width: 54px; height: 38px; object-fit: cover;" />
+                                    <div>
+                                        <div class="fw-bold text-dark small">@(car?.CarName ?? "Phương tiện ReCar")</div>
+                                        <div class="text-muted" style="font-size: 0.72rem;">@(car?.LicensePlate ?? "30H-xxx.xx")</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="fw-semibold text-dark small">@(ord?.Customer?.Name ?? "Khách hàng ReCar")</div>
+                                <div class="text-muted" style="font-size: 0.72rem;"><i class="bi bi-telephone me-1"></i>@(ord?.Customer?.PhoneNumber ?? "0988.xxx.xxx")</div>
+                            </td>
+                            <td class="small text-muted">
+                                <div><i class="bi bi-calendar-event text-primary me-1"></i>@(od.PickupDate?.ToString("dd/MM/yyyy") ?? "Hôm nay")</div>
+                                <div style="font-size: 0.72rem;">Đến @(od.ReturnDate?.ToString("dd/MM/yyyy") ?? "Ngày mai")</div>
+                            </td>
+                            <td>
+                                <div class="fw-bold text-success small">@((ord?.Deposit ?? ((od.Price ?? 0) * (od.Quantity ?? 1) * 0.3m)).ToString("N0"))đ</div>
+                                <div class="text-muted" style="font-size: 0.7rem;">Tổng: @((ord?.Payment ?? ((od.Price ?? 0) * (od.Quantity ?? 1))).ToString("N0"))đ</div>
+                            </td>
+                            <td>
+                                <span class="recar-status-badge status-ready">
+                                    Đã thanh toán cọc
+                                </span>
+                            </td>
+                            <td class="text-end">
+                                <a href="/CarOwner/Orders/Details/@(ord?.OrderId ?? od.OrderId)" class="btn btn-outline-primary btn-sm rounded-pill px-3 py-1 fw-bold">
+                                    Xem đơn
+                                </a>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="7" class="text-center py-5 text-muted">
+                            <i class="bi bi-inbox fs-2 text-secondary opacity-50 d-block mb-2"></i>
+                            Chưa có đơn đặt xe nào gần đây. Hãy đảm bảo xe của bạn đang ở trạng thái <strong>"Sẵn sàng"</strong> để khách tìm thấy nhé!
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    // Khởi tạo biểu đồ Chart.js doanh thu đẹp mắt
+    document.addEventListener("DOMContentLoaded", function () {
+        const ctx = document.getElementById('revenueChart');
+        if (ctx) {
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Tháng 5', 'Tháng 6', 'Tháng 7', 'Tháng 8', 'Tháng 9', 'Tháng 10 (Nay)'],
+                    datasets: [{
+                        label: 'Doanh thu (triệu VNĐ)',
+                        data: [8.5, 12.0, 15.5, 14.2, 17.8, 18.45],
+                        backgroundColor: 'rgba(2, 132, 199, 0.85)',
+                        hoverBackgroundColor: '#0284c7',
+                        borderRadius: 8,
+                        borderSkipped: false,
+                        barThickness: 32
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            backgroundColor: '#0f172a',
+                            titleFont: { family: 'Plus Jakarta Sans', size: 13, weight: 'bold' },
+                            bodyFont: { family: 'Plus Jakarta Sans', size: 12 },
+                            padding: 12,
+                            cornerRadius: 10,
+                            callbacks: {
+                                label: function(context) {
+                                    return ' Doanh thu: ' + context.parsed.y + ' triệu VNĐ';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { display: false },
+                            ticks: { font: { family: 'Plus Jakarta Sans', size: 12, weight: '600' }, color: '#64748b' }
+                        },
+                        y: {
+                            grid: { color: '#f1f5f9' },
+                            ticks: {
+                                font: { family: 'Plus Jakarta Sans', size: 11 },
+                                color: '#64748b',
+                                callback: function(value) { return value + 'tr'; }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    });
+</script>

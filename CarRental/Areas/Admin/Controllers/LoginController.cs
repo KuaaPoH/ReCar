@@ -1,4 +1,4 @@
-﻿using CarRental.Models;
+using CarRental.Models;
 using CarRental.Utilities;
 using CarRental.ViewModels;
 using Microsoft.AspNetCore.Mvc;
@@ -92,9 +92,7 @@ namespace CarRental.Areas.Admin.Controllers
             }
             // vao trang admin neu dung usernam va pasw - lưu vào Session
             Function.SetMessage(HttpContext.Session, string.Empty);
-            Function.SetAccountId(HttpContext.Session, check.AccountId);
-            Function.SetUserName(HttpContext.Session, string.IsNullOrEmpty(check.Username) ? string.Empty : check.Username);
-            Function.SetEmail(HttpContext.Session, string.IsNullOrEmpty(check.Email) ? string.Empty : check.Email);
+            Function.SetAdminSession(HttpContext.Session, check.AccountId, string.IsNullOrEmpty(check.Username) ? "Admin" : check.Username, string.IsNullOrEmpty(check.Email) ? string.Empty : check.Email);
             // Luôn đưa về Trang chủ Admin sau khi đăng nhập
             return RedirectToAction("Index", "Home", new { area = "Admin" });
         }

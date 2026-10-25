@@ -53,6 +53,12 @@ public partial class Car
 
     public string? CarStatus { get; set; } = "Sẵn sàng";
 
+    public string? RegistrationImage { get; set; }
+
+    public string? InspectionImage { get; set; }
+
+    public string? InsuranceImage { get; set; }
+
     public virtual ICollection<CarReview> CarReviews { get; set; } = new List<CarReview>();
 
     public virtual CarType? Type { get; set; }

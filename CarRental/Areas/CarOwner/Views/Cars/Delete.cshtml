@@ -1,314 +1,355 @@
 @model CarRental.Models.Car
 @using CarRental.Utilities
 @{
-    ViewData["Title"] = "Xóa xe";
+    ViewData["Title"] = "Ngừng kinh doanh / Xóa xe";
     Layout = "~/Areas/CarOwner/Views/Shared/_Layout.cshtml";
+
+    bool isBusy = ViewBag.IsBusy ?? false;
+    bool hasActiveOrders = ViewBag.HasActiveOrders ?? false;
+    bool hasHistory = ViewBag.HasHistory ?? false;
+    int orderCount = ViewBag.OrderCount ?? 0;
+    int reviewCount = ViewBag.ReviewCount ?? 0;
+    int trips = ViewBag.Trips ?? 0;
+
+    bool canDelete = !isBusy && !hasActiveOrders;
 }
 
 <style>
-    .page-header-modern {
-        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-        padding: 2rem;
-        border-radius: 15px;
-        margin-bottom: 2rem;
-        box-shadow: 0 10px 30px rgba(245, 87, 108, 0.3);
+    :root {
+        --recar-primary: #0284c7;
+        --recar-primary-hover: #0369a1;
+        --recar-dark: #0f172a;
+        --recar-slate: #334155;
+        --recar-muted: #64748b;
+        --recar-light: #f8fafc;
+        --recar-border: #e2e8f0;
     }
 
-    .page-header-modern h3 {
-        color: white;
-        font-weight: 600;
-        margin: 0;
-        display: flex;
-        align-items: center;
-        gap: 10px;
+    .recar-delete-container {
+        max-width: 960px;
+        margin: 0 auto;
+        padding-bottom: 3rem;
     }
 
-    .page-header-modern h3 i {
-        font-size: 1.5rem;
-    }
-
-    .breadcrumb-modern {
-        background: rgba(255, 255, 255, 0.2);
-        backdrop-filter: blur(10px);
-        padding: 0.75rem 1.5rem;
-        border-radius: 10px;
-        margin: 0;
-    }
-
-    .breadcrumb-modern .breadcrumb-item a {
-        color: rgba(255, 255, 255, 0.9);
-        text-decoration: none;
-    }
-
-    .breadcrumb-modern .breadcrumb-item.active {
-        color: white;
-        font-weight: 500;
-    }
-
-    .delete-card {
-        background: white;
-        border-radius: 15px;
-        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
+    .recar-card {
+        background: #ffffff;
+        border: 1px solid var(--recar-border);
+        border-radius: 1.25rem;
+        box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.05);
         overflow: hidden;
-        border: none;
     }
 
-    .card-header-modern {
-        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-        padding: 1.5rem;
-        color: white;
+    .license-plate-badge {
+        font-family: 'SF Mono', Monaco, Consolas, 'Liberation Mono', monospace;
+        font-weight: 700;
+        font-size: 0.95rem;
+        letter-spacing: 1px;
+        padding: 0.35rem 0.85rem;
+        border-radius: 6px;
+        background: #ffffff;
+        border: 2px solid #0f172a;
+        color: #0f172a;
+        display: inline-block;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.06);
     }
 
-    .card-header-modern h4 {
-        margin: 0;
-        font-weight: 600;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
-
-    .warning-banner {
-        background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
-        border: none;
-        border-left: 5px solid #f5576c;
-        border-radius: 10px;
-        padding: 1.5rem;
-        margin-bottom: 2rem;
-        box-shadow: 0 4px 15px rgba(245, 87, 108, 0.2);
-    }
-
-    .warning-banner i {
-        font-size: 2rem;
-        color: #f5576c;
-        margin-right: 1rem;
-    }
-
-    .warning-banner strong {
-        color: #d63384;
-        font-size: 1.1rem;
-    }
-
-    .car-info-section {
-        background: #f8f9fa;
-        border-radius: 15px;
-        padding: 2rem;
-        margin-bottom: 2rem;
-    }
-
-    .info-item {
-        padding: 0.75rem 0;
-        display: flex;
-        align-items: flex-start;
-    }
-
-    .info-label {
-        font-weight: 600;
-        color: #495057;
-        min-width: 150px;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
-
-    .info-label i {
-        color: #f5576c;
-    }
-
-    .info-value {
-        color: #212529;
-        flex: 1;
-        font-weight: 500;
-    }
-
-    .car-image-preview {
-        max-width: 100%;
-        max-height: 300px;
-        border-radius: 15px;
-        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
+    .car-hero-img {
+        width: 100%;
+        height: 220px;
         object-fit: cover;
-        border: 3px solid #f5576c;
+        border-radius: 1rem;
+        border: 1px solid var(--recar-border);
     }
 
-    .btn-modern-delete {
-        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-        border: none;
-        color: white;
-        padding: 0.75rem 2rem;
-        border-radius: 10px;
+    .stat-pill {
+        background: #f1f5f9;
+        border-radius: 0.75rem;
+        padding: 0.75rem 1rem;
+        text-align: center;
+        border: 1px solid #e2e8f0;
+    }
+
+    .stat-pill-val {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: var(--recar-dark);
+        line-height: 1.2;
+    }
+
+    .stat-pill-lbl {
+        font-size: 0.75rem;
         font-weight: 600;
-        transition: all 0.3s ease;
-        box-shadow: 0 4px 15px rgba(245, 87, 108, 0.3);
+        color: var(--recar-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
     }
 
-    .btn-modern-delete:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(245, 87, 108, 0.4);
-        color: white;
+    .policy-card {
+        border-radius: 1rem;
+        border: 1px solid var(--recar-border);
+        padding: 1.25rem;
+        transition: all 0.2s ease;
     }
 
-    .btn-modern-cancel {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        border: none;
-        color: white;
-        padding: 0.75rem 2rem;
-        border-radius: 10px;
-        font-weight: 600;
-        transition: all 0.3s ease;
-        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+    .policy-card:hover {
+        border-color: #cbd5e1;
+        background: #fafafa;
     }
 
-    .btn-modern-cancel:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
-        color: white;
-    }
-
-    .alert-modern {
-        border-radius: 10px;
-        border: none;
-        padding: 1rem 1.5rem;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-        margin-bottom: 1.5rem;
-    }
-
-    @@media (max-width: 768px) {
-        .page-header-modern {
-            padding: 1.5rem;
-        }
-
-        .info-item {
-            flex-direction: column;
-        }
-
-        .info-label {
-            min-width: auto;
-            margin-bottom: 0.5rem;
-        }
-
-        .car-info-section {
-            padding: 1.5rem;
-        }
+    .policy-card.featured {
+        border: 2px solid #38bdf8;
+        background: #f0f9ff;
     }
 </style>
 
 <div id="main">
-    <header class="mb-3">
-        <a href="#" class="burger-btn d-block d-xl-none">
-            <i class="bi bi-justify fs-3"></i>
-        </a>
-    </header>
+    <div class="recar-delete-container pt-3">
+        <!-- Breadcrumb & Navigation -->
+        <div class="d-flex align-items-center justify-content-between mb-4">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-0">
+                    <li class="breadcrumb-item"><a asp-area="CarOwner" asp-controller="Home" asp-action="Index" class="text-decoration-none text-muted">Trang chủ</a></li>
+                    <li class="breadcrumb-item"><a asp-area="CarOwner" asp-controller="Cars" asp-action="Index" class="text-decoration-none text-muted">Đội xe của tôi</a></li>
+                    <li class="breadcrumb-item active fw-semibold text-dark" aria-current="page">Ngừng kinh doanh / Xóa xe</li>
+                </ol>
+            </nav>
+            <a asp-action="Index" class="btn btn-sm btn-light border rounded-pill px-3 fw-medium">
+                <i class="bi bi-arrow-left me-1"></i> Trở về danh sách
+            </a>
+        </div>
 
-    <div class="page-heading">
-        <div class="page-header-modern">
-            <div class="row align-items-center">
-                <div class="col-12 col-md-6 order-md-1 order-last">
-                    <h3>
-                        <i class="bi bi-trash-fill"></i>
-                        Xóa xe
-                    </h3>
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <div class="alert alert-danger border-0 rounded-4 shadow-sm mb-4 d-flex align-items-center gap-3 p-3">
+                <i class="bi bi-exclamation-triangle-fill fs-4 text-danger"></i>
+                <div class="fw-medium">@TempData["ErrorMessage"]</div>
+            </div>
+        }
+
+        <!-- Thẻ Tổng quan xe -->
+        <div class="recar-card p-4 mb-4">
+            <div class="row g-4 align-items-center">
+                <div class="col-12 col-md-5">
+                    <img src="@(string.IsNullOrEmpty(Model.Image) ? "/images/cars/car-sedan.jpg" : Model.Image)" 
+                         alt="@Model.CarName" 
+                         class="car-hero-img shadow-xs" />
                 </div>
-                <div class="col-12 col-md-6 order-md-2 order-first">
-                    <nav aria-label="breadcrumb">
-                        <ol class="breadcrumb breadcrumb-modern">
-                            <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index" asp-area="CarOwner">Trang chủ</a></li>
-                            <li class="breadcrumb-item"><a asp-action="Index">Quản lý xe</a></li>
-                            <li class="breadcrumb-item active" aria-current="page">Xóa xe</li>
-                        </ol>
-                    </nav>
+                <div class="col-12 col-md-7">
+                    <div class="d-flex align-items-center justify-content-between gap-2 flex-wrap mb-2">
+                        <span class="license-plate-badge">
+                            @(string.IsNullOrEmpty(Model.LicensePlate) ? "CHƯA CẤP" : Model.LicensePlate)
+                        </span>
+                        <span class="badge bg-light text-dark border px-3 py-1.5 rounded-pill small">
+                            <i class="bi bi-tag-fill text-primary me-1"></i> @(Model.Type?.CarTypeName ?? "Xe ô tô")
+                        </span>
+                    </div>
+
+                    <h3 class="fw-bold text-dark mb-1">@Model.CarName</h3>
+                    <p class="text-muted small mb-3">
+                        <i class="bi bi-geo-alt-fill text-danger me-1"></i>@(string.IsNullOrEmpty(Model.Location) ? "Toàn quốc" : Model.Location)
+                        <span class="mx-2">·</span>
+                        <i class="bi bi-calendar3 me-1"></i>Đời @(Model.Model > 0 ? Model.Model.ToString() : "Mới")
+                        <span class="mx-2">·</span>
+                        <i class="bi bi-speedometer2 me-1"></i>@Model.Transmission (@Model.Fuel)
+                    </p>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-4">
+                            <div class="stat-pill">
+                                <div class="stat-pill-val">@trips</div>
+                                <div class="stat-pill-lbl">Chuyến đi</div>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="stat-pill">
+                                <div class="stat-pill-val">@orderCount</div>
+                                <div class="stat-pill-lbl">Đơn thuê</div>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="stat-pill">
+                                <div class="stat-pill-val">@reviewCount</div>
+                                <div class="stat-pill-lbl">Đánh giá</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex align-items-center justify-content-between pt-2 border-top">
+                        <span class="text-muted small">Đơn giá niêm yết:</span>
+                        <span class="fs-5 fw-bold text-primary">@((Model.Price ?? 0).ToString("N0"))₫ <span class="fs-6 fw-normal text-muted">/ngày</span></span>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <section class="section">
-            <div class="card delete-card">
-                <div class="card-header-modern">
-                    <h4>
-                        <i class="bi bi-exclamation-triangle-fill"></i>
-                        Xác nhận xóa xe
-                    </h4>
-                </div>
-                <div class="card-body p-4">
-                    @if (!string.IsNullOrEmpty(Function._Message))
-                    {
-                        <div class="alert alert-info alert-modern">@Function._Message</div>
-                        Function._Message = string.Empty;
-                    }
-
-                    <div class="warning-banner d-flex align-items-center">
-                        <i class="bi bi-exclamation-triangle-fill"></i>
-                        <div>
-                            <strong>Cảnh báo!</strong>
-                            <p class="mb-0 mt-1">Bạn có chắc chắn muốn xóa xe này không? Hành động này không thể hoàn tác!</p>
-                        </div>
+        <!-- ========================================================================= -->
+        <!-- KỊCH BẢN 1: XE ĐANG BẬN HOẶC ĐANG CÓ KHÁCH (CHẶN THAO TÁC TUYỆT ĐỐI) -->
+        <!-- ========================================================================= -->
+        @if (!canDelete)
+        {
+            <div class="recar-card border-danger border-opacity-25 p-4 bg-danger bg-opacity-10 mb-4">
+                <div class="d-flex gap-3 align-items-start">
+                    <div class="p-3 bg-danger text-white rounded-circle flex-shrink-0">
+                        <i class="bi bi-shield-lock-fill fs-3"></i>
                     </div>
-
-                    <div class="car-info-section">
-                        <h5 class="mb-4 text-danger">
-                            <i class="bi bi-car-front"></i>
-                            Thông tin xe sẽ bị xóa
-                        </h5>
-
-                        @if (!string.IsNullOrEmpty(Model.Image))
-                        {
-                            <div class="text-center mb-4">
-                                <img src="@Model.Image" alt="@Model.CarName" class="car-image-preview" />
-                            </div>
-                        }
-
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="info-item">
-                                    <span class="info-label">
-                                        <i class="bi bi-tag-fill"></i> Tên xe:
-                                    </span>
-                                    <span class="info-value">@Model.CarName</span>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="info-item">
-                                    <span class="info-label">
-                                        <i class="bi bi-grid-3x3-gap-fill"></i> Hạng xe:
-                                    </span>
-                                    <span class="info-value">@(Model.Type?.CarTypeName ?? "N/A")</span>
-                                </div>
-                            </div>
+                    <div>
+                        <h4 class="fw-bold text-danger mb-2">Thao tác bị khóa: Phương tiện đang trong hành trình đón khách</h4>
+                        <p class="text-dark mb-3">
+                            Hệ thống ghi nhận xe <strong>@Model.CarName</strong> hiện đang ở trạng thái 
+                            <span class="badge bg-danger">@Model.CarStatus</span> hoặc đang có đơn đặt thuê chưa hoàn thành. 
+                            Theo quy tắc an toàn vận hành, bạn <strong>không thể ngừng hoạt động hoặc xóa</strong> phương tiện lúc này để bảo vệ quyền lợi của khách thuê và chủ xe.
+                        </p>
+                        <div class="p-3 bg-white rounded-3 border border-danger border-opacity-25 small text-muted mb-4">
+                            <i class="bi bi-info-circle-fill text-danger me-1"></i>
+                            <strong>Chủ xe cần làm gì?</strong> Hãy đợi khách hàng hoàn tất hành trình và hoàn thành thủ tục kiểm tra bàn giao xe tại mục <em>Quản lý chuyến đi</em> trước khi quay lại thực hiện thao tác này.
                         </div>
-
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="info-item">
-                                    <span class="info-label">
-                                        <i class="bi bi-123"></i> Biển số:
-                                    </span>
-                                    <span class="info-value">@Model.LicensePlate</span>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="info-item">
-                                    <span class="info-label">
-                                        <i class="bi bi-currency-dollar"></i> Giá thuê/ngày:
-                                    </span>
-                                    <span class="info-value text-primary fw-bold">@string.Format("{0:N0}", Model.Price) ₫</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <form asp-action="Delete" method="post">
-                        <input type="hidden" asp-for="CarId" />
-                        <div class="d-flex gap-3 justify-content-center mt-4">
-                            <button type="submit" class="btn btn-modern-delete">
-                                <i class="bi bi-trash-fill"></i> Xác nhận xóa
-                            </button>
-                            <a asp-action="Index" class="btn btn-modern-cancel">
-                                <i class="bi bi-x-circle-fill"></i> Hủy
+                        <div class="d-flex gap-2">
+                            <a asp-action="Index" class="btn btn-secondary rounded-pill px-4 fw-semibold">
+                                <i class="bi bi-arrow-left me-1"></i> Quay lại danh sách xe
                             </a>
                         </div>
-                    </form>
+                    </div>
                 </div>
             </div>
-        </section>
+        }
+        else if (hasHistory)
+        {
+            <!-- ========================================================================= -->
+            <!-- KỊCH BẢN 2: XE ĐÃ CÓ LỊCH SỬ GIAO DỊCH (ÁP DỤNG SOFT DELETE / BẢO TỒN SỐ LIỆU) -->
+            <!-- ========================================================================= -->
+            <div class="recar-card p-4 p-md-5">
+                <div class="d-flex align-items-center gap-3 mb-4">
+                    <div class="p-3 bg-info bg-opacity-10 text-info rounded-circle flex-shrink-0">
+                        <i class="bi bi-shield-check fs-2 text-primary"></i>
+                    </div>
+                    <div>
+                        <h4 class="fw-bold text-dark mb-1">Phương tiện đã có lịch sử kinh doanh</h4>
+                        <p class="text-muted small mb-0">Xe đã hoàn thành <strong>@trips</strong> chuyến đi với <strong>@orderCount</strong> đơn hợp đồng. Dữ liệu kế toán và đánh giá được bảo lưu vĩnh viễn.</p>
+                    </div>
+                </div>
+
+                <div class="alert alert-primary bg-primary bg-opacity-10 border-0 rounded-4 p-3 small text-dark mb-4 d-flex align-items-center gap-2">
+                    <i class="bi bi-lightbulb-fill text-primary fs-5 flex-shrink-0"></i>
+                    <div>
+                        Để đảm bảo tính toàn vẹn của hợp đồng điện tử và số liệu doanh thu, xe sẽ <strong>không bị xóa vật lý</strong> khỏi hệ thống mà chuyển sang chế độ <strong>Rút khỏi sàn kinh doanh</strong>.
+                    </div>
+                </div>
+
+                <h5 class="fw-bold text-dark mb-3">Vui lòng chọn giải pháp phù hợp:</h5>
+
+                <div class="row g-3 mb-4">
+                    <!-- Tùy chọn 1: Tạm ngưng đón khách (Khuyên dùng) -->
+                    <div class="col-12 col-md-6">
+                        <div class="policy-card featured h-100 d-flex flex-column justify-content-between">
+                            <div>
+                                <div class="d-flex align-items-center justify-content-between mb-2">
+                                    <span class="badge bg-primary text-white rounded-pill px-3 py-1 small fw-semibold">Khuyên dùng</span>
+                                    <i class="bi bi-pause-circle-fill text-primary fs-3"></i>
+                                </div>
+                                <h5 class="fw-bold text-dark mb-2">Tạm ngưng đón khách</h5>
+                                <p class="text-muted small mb-3">
+                                    Dành cho trường hợp xe cần đưa đi bảo dưỡng, chủ xe bận việc cá nhân hoặc muốn tạm nghỉ vài tuần.
+                                </p>
+                                <ul class="text-muted small ps-3 mb-3">
+                                    <li>Xe tạm ẩn khỏi kết quả tìm kiếm của khách.</li>
+                                    <li>Mọi thông tin cấu hình, tiện nghi, bảng giá giữ nguyên vẹn.</li>
+                                    <li>Bật lại kinh doanh ngay lập tức bất cứ lúc nào chỉ với 1 cú click.</li>
+                                </ul>
+                            </div>
+                            <form asp-action="Delete" method="post">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@Model.CarId" />
+                                <input type="hidden" name="actionType" value="pause" />
+                                <button type="submit" class="btn btn-primary rounded-pill w-100 fw-bold py-2">
+                                    <i class="bi bi-pause-circle me-1"></i> Tạm ngưng đón khách
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Tùy chọn 2: Ngừng kinh doanh vĩnh viễn (Soft Delete) -->
+                    <div class="col-12 col-md-6">
+                        <div class="policy-card h-100 d-flex flex-column justify-content-between">
+                            <div>
+                                <div class="d-flex align-items-center justify-content-between mb-2">
+                                    <span class="badge bg-secondary text-white rounded-pill px-3 py-1 small fw-semibold">Lưu kho dữ liệu</span>
+                                    <i class="bi bi-archive-fill text-secondary fs-3"></i>
+                                </div>
+                                <h5 class="fw-bold text-dark mb-2">Rút xe khỏi sàn (Lưu kho)</h5>
+                                <p class="text-muted small mb-3">
+                                    Dành cho xe bạn đã bán lại cho người khác, thanh lý hoặc quyết định không kinh doanh xe này trên ReCar nữa.
+                                </p>
+                                <ul class="text-muted small ps-3 mb-3">
+                                    <li>Xe chuyển trạng thái <code>Ngừng hoạt động</code> vĩnh viễn.</li>
+                                    <li>Bảo vệ số liệu báo cáo tài chính và lịch sử chuyến đi của bạn.</li>
+                                    <li>Không thể tự mở lại trên sàn, cần liên hệ bộ phận hỗ trợ ReCar.</li>
+                                </ul>
+                            </div>
+                            <form asp-action="Delete" method="post" onsubmit="return confirm('Bạn có chắc chắn muốn rút xe này khỏi sàn kinh doanh?');">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@Model.CarId" />
+                                <input type="hidden" name="actionType" value="archive" />
+                                <button type="submit" class="btn btn-outline-danger rounded-pill w-100 fw-bold py-2">
+                                    <i class="bi bi-archive me-1"></i> Ngừng kinh doanh xe này
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="text-center">
+                    <a asp-action="Index" class="btn btn-link text-muted text-decoration-none small">
+                        <i class="bi bi-x-circle me-1"></i> Tôi suy nghĩ lại, hủy bỏ thao tác
+                    </a>
+                </div>
+            </div>
+        }
+        else
+        {
+            <!-- ========================================================================= -->
+            <!-- KỊCH BẢN 3: XE MỚI TẠO HOẶC CHƯA TỪNG CÓ CHUYẾN ĐI (CHO PHÉP XÓA VĨNH VIỄN) -->
+            <!-- ========================================================================= -->
+            <div class="recar-card p-4 p-md-5">
+                <div class="d-flex align-items-center gap-3 mb-4">
+                    <div class="p-3 bg-danger bg-opacity-10 text-danger rounded-circle flex-shrink-0">
+                        <i class="bi bi-trash3-fill fs-2"></i>
+                    </div>
+                    <div>
+                        <h4 class="fw-bold text-dark mb-1">Xác nhận xóa hoàn toàn phương tiện</h4>
+                        <p class="text-muted small mb-0">Phương tiện này chưa từng phát sinh chuyến đi hay hợp đồng nào.</p>
+                    </div>
+                </div>
+
+                <div class="alert alert-warning bg-warning bg-opacity-10 border-0 rounded-4 p-3 text-dark small mb-4">
+                    <i class="bi bi-exclamation-triangle-fill text-warning fs-5 me-2"></i>
+                    <strong>Cảnh báo quan trọng:</strong> Hành động này sẽ <strong>xóa vĩnh viễn</strong> hồ sơ xe, danh sách tiện nghi và toàn bộ ảnh xe khỏi cơ sở dữ liệu. Dữ liệu sau khi xóa sẽ <strong>không thể phục hồi</strong>.
+                </div>
+
+                <div class="d-flex align-items-center justify-content-between p-3 rounded-4 bg-light border mb-4">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-info-circle text-muted"></i>
+                        <span class="small text-muted">Nếu bạn chỉ tạo nhầm thông tin, hãy chọn <strong>Chỉnh sửa xe</strong> thay vì xóa.</span>
+                    </div>
+                    <a asp-action="Edit" asp-route-id="@Model.CarId" class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-medium">
+                        Chỉnh sửa xe
+                    </a>
+                </div>
+
+                <form asp-action="Delete" method="post" onsubmit="return confirm('Bạn có thực sự chắc chắn muốn XÓA VĨNH VIỄN xe này khỏi hệ thống?');">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" value="@Model.CarId" />
+                    <input type="hidden" name="actionType" value="hard" />
+
+                    <div class="d-flex gap-3 justify-content-end align-items-center">
+                        <a asp-action="Index" class="btn btn-light border rounded-pill px-4 fw-medium">
+                            Hủy bỏ
+                        </a>
+                        <button type="submit" class="btn btn-danger rounded-pill px-4 fw-bold">
+                            <i class="bi bi-trash-fill me-1"></i> Xác nhận xóa vĩnh viễn
+                        </button>
+                    </div>
+                </form>
+            </div>
+        }
     </div>
 </div>
-
-

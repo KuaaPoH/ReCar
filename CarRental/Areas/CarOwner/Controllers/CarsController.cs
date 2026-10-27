@@ -86,6 +86,16 @@ namespace CarRental.Areas.CarOwner.Controllers
                     Value = c.TypeId.ToString()
                 }).ToList();
 
+            ViewBag.Locations = _context.Locations
+                .Where(l => l.IsActive)
+                .OrderBy(l => l.DisplayOrder)
+                .ToList();
+
+            ViewBag.Amenities = _context.Amenities
+                .Where(a => a.IsActive)
+                .OrderBy(a => a.DisplayOrder)
+                .ToList();
+
             // Khởi tạo model mặc định (để trống các lựa chọn để người dùng tự chọn/nhập)
             var model = new CarCreateVM
             {
@@ -209,6 +219,20 @@ namespace CarRental.Areas.CarOwner.Controllers
                     _context.SaveChanges();
                 }
 
+                // Lưu liên kết tiện ích vào CarAmenities
+                if (model.AmenityIds != null && model.AmenityIds.Any())
+                {
+                    foreach (var aId in model.AmenityIds.Distinct())
+                    {
+                        _context.CarAmenities.Add(new CarAmenity
+                        {
+                            CarId = car.CarId,
+                            AmenityId = aId
+                        });
+                    }
+                    _context.SaveChanges();
+                }
+
                 Function.SetMessage(HttpContext.Session, $"Đăng ký xe '{car.CarName}' thành công! Hồ sơ đang ở trạng thái 'Chờ duyệt' để Ban Quản trị ReCar phê duyệt.");
 
                 // Bắn thông báo Realtime SignalR cho Admin
@@ -242,6 +266,16 @@ namespace CarRental.Areas.CarOwner.Controllers
                     Text = c.CarTypeName,
                     Value = c.TypeId.ToString()
                 }).ToList();
+
+            ViewBag.Locations = _context.Locations
+                .Where(l => l.IsActive)
+                .OrderBy(l => l.DisplayOrder)
+                .ToList();
+
+            ViewBag.Amenities = _context.Amenities
+                .Where(a => a.IsActive)
+                .OrderBy(a => a.DisplayOrder)
+                .ToList();
 
             return View(model);
         }
@@ -282,26 +316,43 @@ namespace CarRental.Areas.CarOwner.Controllers
                     Selected = c.TypeId == car.TypeId
                 }).ToList();
 
-            // Trích xuất danh sách tiện nghi từ Details nếu có
-            var featuresList = new List<string>();
-            var allKnownFeatures = new[]
-            {
-                "Bản đồ dẫn đường GPS", "Camera lùi / Camera 360", "Camera hành trình", "Cảm biến áp suất lốp",
-                "Apple CarPlay & Android Auto", "Cửa sổ trời Panorama", "Thu phí tự động ETC", "Ghế da cao cấp chỉnh điện",
-                "Ghế trẻ em ISOFIX", "Sạc không dây Qi", "Cảm biến va chạm trước/sau", "Cảnh báo điểm mù BSM",
-                "Khóa thông minh SmartKey", "Cốp điện thông minh"
-            };
+            var allAmenities = _context.Amenities
+                .Where(a => a.IsActive)
+                .OrderBy(a => a.DisplayOrder)
+                .ToList();
+            ViewBag.Amenities = allAmenities;
 
-            if (!string.IsNullOrEmpty(car.Details))
+            // Lấy danh sách AmenityId đã lưu trong bảng CarAmenities
+            var selectedAmenityIds = _context.CarAmenities
+                .Where(ca => ca.CarId == car.CarId)
+                .Select(ca => ca.AmenityId)
+                .ToList();
+
+            // Nếu xe cũ chưa có bản ghi trong CarAmenities, tự động map từ chuỗi Details
+            var featuresList = new List<string>();
+            if (selectedAmenityIds.Any())
             {
-                foreach (var f in allKnownFeatures)
+                featuresList = allAmenities
+                    .Where(a => selectedAmenityIds.Contains(a.AmenityId))
+                    .Select(a => a.Name)
+                    .ToList();
+            }
+            else if (!string.IsNullOrEmpty(car.Details))
+            {
+                foreach (var amen in allAmenities)
                 {
-                    if (car.Details.Contains(f, StringComparison.OrdinalIgnoreCase))
+                    if (car.Details.Contains(amen.Name, StringComparison.OrdinalIgnoreCase))
                     {
-                        featuresList.Add(f);
+                        selectedAmenityIds.Add(amen.AmenityId);
+                        featuresList.Add(amen.Name);
                     }
                 }
             }
+
+            var detailImages = _context.CarImages
+                .Where(ci => ci.CarId == car.CarId)
+                .Select(ci => ci.Image1)
+                .ToList();
 
             var model = new CarEditVM
             {
@@ -322,10 +373,12 @@ namespace CarRental.Areas.CarOwner.Controllers
                 ExistingImage = car.Image,
                 Details = car.Details,
                 Features = featuresList,
+                AmenityIds = selectedAmenityIds,
                 Alias = car.Alias,
                 RegistrationImage = car.RegistrationImage,
                 InspectionImage = car.InspectionImage,
-                InsuranceImage = car.InsuranceImage
+                InsuranceImage = car.InsuranceImage,
+                DetailImageUrls = detailImages
             };
 
             return View(model);
@@ -403,9 +456,107 @@ namespace CarRental.Areas.CarOwner.Controllers
                     existingCar.InsuranceImage = "/files/cars/" + uploaded;
                 }
 
-                // Xây dựng chuỗi tiện nghi & mô tả
-                var featuresStr = model.Features != null && model.Features.Any()
-                    ? string.Join(", ", model.Features)
+                // Cập nhật độc lập các góc ảnh chi tiết trong bộ sưu tập 4 ảnh
+                var existingDetails = _context.CarImages
+                    .Where(ci => ci.CarId == existingCar.CarId)
+                    .OrderBy(ci => ci.ImageId)
+                    .ToList();
+
+                // Slot 2: Đuôi xe
+                if (model.DetailImage2 != null && model.DetailImage2.Length > 0)
+                {
+                    string uploaded = Function.UploadImage(model.DetailImage2, "cars");
+                    if (existingDetails.Count >= 1)
+                    {
+                        existingDetails[0].Image1 = "/files/cars/" + uploaded;
+                    }
+                    else
+                    {
+                        _context.CarImages.Add(new CarImage
+                        {
+                            CarId = existingCar.CarId,
+                            Image1 = "/files/cars/" + uploaded
+                        });
+                    }
+                }
+
+                // Slot 3: Khoang lái / Nội thất
+                if (model.DetailImage3 != null && model.DetailImage3.Length > 0)
+                {
+                    string uploaded = Function.UploadImage(model.DetailImage3, "cars");
+                    if (existingDetails.Count >= 2)
+                    {
+                        existingDetails[1].Image1 = "/files/cars/" + uploaded;
+                    }
+                    else
+                    {
+                        _context.CarImages.Add(new CarImage
+                        {
+                            CarId = existingCar.CarId,
+                            Image1 = "/files/cars/" + uploaded
+                        });
+                    }
+                }
+
+                // Slot 4: Thân xe / Góc nghiêng
+                if (model.DetailImage4 != null && model.DetailImage4.Length > 0)
+                {
+                    string uploaded = Function.UploadImage(model.DetailImage4, "cars");
+                    if (existingDetails.Count >= 3)
+                    {
+                        existingDetails[2].Image1 = "/files/cars/" + uploaded;
+                    }
+                    else
+                    {
+                        _context.CarImages.Add(new CarImage
+                        {
+                            CarId = existingCar.CarId,
+                            Image1 = "/files/cars/" + uploaded
+                        });
+                    }
+                }
+
+                // Bổ sung các ảnh chi tiết khác nếu có
+                if (model.DetailImages != null && model.DetailImages.Any())
+                {
+                    foreach (var imgFile in model.DetailImages)
+                    {
+                        if (imgFile.Length > 0)
+                        {
+                            string detailName = Function.UploadImage(imgFile, "cars");
+                            _context.CarImages.Add(new CarImage
+                            {
+                                CarId = existingCar.CarId,
+                                Image1 = "/files/cars/" + detailName
+                            });
+                        }
+                    }
+                }
+
+                // Cập nhật bảng liên kết tiện ích CarAmenities
+                var existingCarAmenities = _context.CarAmenities.Where(ca => ca.CarId == existingCar.CarId).ToList();
+                _context.CarAmenities.RemoveRange(existingCarAmenities);
+
+                if (model.AmenityIds != null && model.AmenityIds.Any())
+                {
+                    foreach (var aId in model.AmenityIds.Distinct())
+                    {
+                        _context.CarAmenities.Add(new CarAmenity
+                        {
+                            CarId = existingCar.CarId,
+                            AmenityId = aId
+                        });
+                    }
+                }
+                _context.SaveChanges();
+
+                // Lấy tên tiện ích để đồng bộ vào chuỗi Details & Descriptions tương thích ngược
+                var selectedAmenityNames = model.AmenityIds != null && model.AmenityIds.Any()
+                    ? _context.Amenities.Where(a => model.AmenityIds.Contains(a.AmenityId)).Select(a => a.Name).ToList()
+                    : (model.Features ?? new List<string>());
+
+                var featuresStr = selectedAmenityNames.Any()
+                    ? string.Join(", ", selectedAmenityNames)
                     : "Đang cập nhật";
 
                 existingCar.Details = $"[Tiện nghi]: {featuresStr}\n" +
@@ -435,10 +586,16 @@ namespace CarRental.Areas.CarOwner.Controllers
                     Selected = c.TypeId == model.TypeId
                 }).ToList();
 
+            ViewBag.Amenities = _context.Amenities
+                .Where(a => a.IsActive)
+                .OrderBy(a => a.DisplayOrder)
+                .ToList();
+
             model.ExistingImage = existingCar.Image;
             return View(model);
         }
 
+        [HttpGet]
         public IActionResult Delete(int? id)
         {
             if (!CheckCarOwnerPermission())
@@ -459,9 +616,28 @@ namespace CarRental.Areas.CarOwner.Controllers
 
             if (car == null)
             {
-                Function.SetMessage(HttpContext.Session, "Không tìm thấy xe hoặc bạn không có quyền xóa");
+                TempData["ErrorMessage"] = "Không tìm thấy xe hoặc bạn không có quyền thao tác";
                 return RedirectToAction("Index");
             }
+
+            // 1. Kiểm tra xe có đang bận/phục vụ khách hay không
+            bool isBusy = car.CarStatus == "Đang bận" || car.CarStatus == "Đang có khách" || car.CarStatus == "busy";
+
+            // 2. Kiểm tra xem xe có đơn đặt thuê nào chưa hoàn thành không
+            var hasActiveOrders = _context.OrderDetails.Any(od => od.CarId == id && od.ReturnDate >= DateTime.Now);
+
+            // 3. Kiểm tra xe đã từng phát sinh lịch sử giao dịch (đơn hàng, đánh giá, số chuyến) hay chưa
+            int orderCount = _context.OrderDetails.Count(od => od.CarId == id);
+            int reviewCount = _context.CarReviews.Count(cr => cr.CarId == id);
+            int trips = car.Trips ?? 0;
+            bool hasHistory = orderCount > 0 || reviewCount > 0 || trips > 0;
+
+            ViewBag.IsBusy = isBusy;
+            ViewBag.HasActiveOrders = hasActiveOrders;
+            ViewBag.HasHistory = hasHistory;
+            ViewBag.OrderCount = orderCount;
+            ViewBag.ReviewCount = reviewCount;
+            ViewBag.Trips = trips;
 
             return View(car);
         }
@@ -469,7 +645,7 @@ namespace CarRental.Areas.CarOwner.Controllers
         [HttpPost]
         [ActionName("Delete")]
         [ValidateAntiForgeryToken]
-        public IActionResult DeleteConfirmed(int id)
+        public IActionResult DeleteConfirmed(int id, string? actionType)
         {
             if (!CheckCarOwnerPermission())
             {
@@ -477,25 +653,121 @@ namespace CarRental.Areas.CarOwner.Controllers
                 return RedirectToAction("Index", "Login", new { area = "" });
             }
 
-            var car = _context.Cars.FirstOrDefault(c => c.CarId == id && c.OwnerId == Function.GetAccountId(HttpContext.Session));
+            var ownerId = Function.GetAccountId(HttpContext.Session);
+            var car = _context.Cars.FirstOrDefault(c => c.CarId == id && c.OwnerId == ownerId);
             if (car == null)
             {
-                TempData["ErrorMessage"] = "Không tìm thấy xe hoặc bạn không có quyền xóa";
+                TempData["ErrorMessage"] = "Không tìm thấy xe hoặc bạn không có quyền thao tác";
                 return RedirectToAction("Index");
             }
 
-            // Xóa các ảnh liên quan
-            var carImages = _context.CarImages.Where(ci => ci.CarId == id).ToList();
-            if (carImages.Any())
+            // 1. Chặn tuyệt đối nếu xe đang bận
+            if (car.CarStatus == "Đang bận" || car.CarStatus == "Đang có khách" || car.CarStatus == "busy")
             {
-                _context.CarImages.RemoveRange(carImages);
+                TempData["ErrorMessage"] = "Xe đang trong hành trình đón khách, không thể ngừng hoạt động hoặc xóa!";
+                return RedirectToAction("Index");
             }
 
-            _context.Cars.Remove(car);
+            // 2. Chặn nếu có đơn đặt xe chưa hoàn tất
+            var hasActiveOrders = _context.OrderDetails.Any(od => od.CarId == id && od.ReturnDate >= DateTime.Now);
+            if (hasActiveOrders)
+            {
+                TempData["ErrorMessage"] = "Xe đang có đơn đặt thuê chưa hoàn thành. Vui lòng hoàn thành chuyến đi trước khi gỡ xe!";
+                return RedirectToAction("Index");
+            }
+
+            // 3. Nếu chủ xe chỉ muốn Tạm ngưng đón khách
+            if (actionType == "pause")
+            {
+                car.CarStatus = "Tạm ngưng";
+                car.IsActive = false;
+                _context.Cars.Update(car);
+                _context.SaveChanges();
+
+                TempData["SuccessMessage"] = $"Đã chuyển xe '{car.CarName}' sang trạng thái 'Tạm ngưng đón khách'. Bạn có thể bật lại bất cứ lúc nào.";
+                return RedirectToAction("Index");
+            }
+
+            // 4. Kiểm tra lịch sử giao dịch: Soft Delete vs Hard Delete
+            int orderCount = _context.OrderDetails.Count(od => od.CarId == id);
+            int reviewCount = _context.CarReviews.Count(cr => cr.CarId == id);
+            int trips = car.Trips ?? 0;
+            bool hasHistory = orderCount > 0 || reviewCount > 0 || trips > 0;
+
+            if (hasHistory)
+            {
+                // Xóa mềm (Soft Delete / Ngừng kinh doanh): Bảo toàn dữ liệu đơn hàng & kế toán
+                car.CarStatus = "Ngừng hoạt động";
+                car.IsActive = false;
+                _context.Cars.Update(car);
+                _context.SaveChanges();
+
+                TempData["SuccessMessage"] = $"Đã rút xe '{car.CarName}' khỏi sàn ReCar (Ngừng kinh doanh). Toàn bộ lịch sử {trips} chuyến đi và doanh thu được bảo lưu an toàn.";
+            }
+            else
+            {
+                // Xe mới tạo hoặc chưa có đơn: Xóa hoàn toàn (Hard Delete)
+                var carAmenities = _context.CarAmenities.Where(ca => ca.CarId == id).ToList();
+                if (carAmenities.Any())
+                {
+                    _context.CarAmenities.RemoveRange(carAmenities);
+                }
+
+                var carImages = _context.CarImages.Where(ci => ci.CarId == id).ToList();
+                if (carImages.Any())
+                {
+                    _context.CarImages.RemoveRange(carImages);
+                }
+
+                _context.Cars.Remove(car);
+                _context.SaveChanges();
+
+                TempData["SuccessMessage"] = $"Đã xóa hoàn toàn hồ sơ xe '{car.CarName}' khỏi hệ thống.";
+            }
+
+            return RedirectToAction("Index");
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult ToggleStatus(int id)
+        {
+            if (!CheckCarOwnerPermission())
+            {
+                return Json(new { success = false, message = "Bạn không có quyền truy cập" });
+            }
+
+            var ownerId = Function.GetAccountId(HttpContext.Session);
+            var car = _context.Cars.FirstOrDefault(c => c.CarId == id && c.OwnerId == ownerId);
+            if (car == null)
+            {
+                return Json(new { success = false, message = "Không tìm thấy xe" });
+            }
+
+            if (car.CarStatus == "Đang bận" || car.CarStatus == "Đang có khách")
+            {
+                return Json(new { success = false, message = "Xe đang phục vụ khách, không thể đổi trạng thái lúc này" });
+            }
+
+            if (car.CarStatus == "Sẵn sàng" || car.CarStatus == "active")
+            {
+                car.CarStatus = "Tạm ngưng";
+                car.IsActive = false;
+            }
+            else if (car.CarStatus == "Tạm ngưng" || car.CarStatus == "Ngừng hoạt động")
+            {
+                car.CarStatus = "Sẵn sàng";
+                car.IsActive = true;
+            }
+            else
+            {
+                return Json(new { success = false, message = $"Xe đang ở trạng thái '{car.CarStatus}', không thể tự chuyển đổi" });
+            }
+
+            _context.Cars.Update(car);
             _context.SaveChanges();
 
-            TempData["SuccessMessage"] = "Xóa xe thành công";
-            return RedirectToAction("Index");
+            return Json(new { success = true, newStatus = car.CarStatus, message = $"Đã cập nhật trạng thái xe thành '{car.CarStatus}'" });
         }
 
         public IActionResult Details(int? id)
@@ -524,29 +796,6 @@ namespace CarRental.Areas.CarOwner.Controllers
             }
 
             return View(car);
-        }
-
-        [HttpPost]
-        [IgnoreAntiforgeryToken]
-        public IActionResult ToggleStatus(int id)
-        {
-            if (!CheckCarOwnerPermission())
-            {
-                return Json(new { success = false, message = "Bạn không có quyền truy cập" });
-            }
-
-            var ownerId = Function.GetAccountId(HttpContext.Session);
-            var car = _context.Cars.FirstOrDefault(c => c.CarId == id && c.OwnerId == ownerId);
-            if (car == null)
-            {
-                return Json(new { success = false, message = "Không tìm thấy xe" });
-            }
-
-            car.IsActive = !car.IsActive;
-            _context.Cars.Update(car);
-            _context.SaveChanges();
-
-            return Json(new { success = true, isActive = car.IsActive, message = car.IsActive ? "Đã kích hoạt xe" : "Đã tạm dừng xe" });
         }
 
         [HttpPost]

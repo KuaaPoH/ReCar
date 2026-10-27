@@ -72,6 +72,9 @@ namespace CarRental.ViewModels
         [Display(Name = "Tiện nghi trang bị")]
         public List<string> Features { get; set; } = new List<string>();
 
+        // Danh sách ID tiện ích được chọn từ CSDL
+        public List<int> AmenityIds { get; set; } = new List<int>();
+
         [Display(Name = "Mô tả chi tiết và nội quy")]
         public string? Details { get; set; }
 

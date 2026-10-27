@@ -727,6 +727,66 @@ LOCK TABLES `users` WRITE;
 /*!40000 ALTER TABLE `users` DISABLE KEYS */;
 /*!40000 ALTER TABLE `users` ENABLE KEYS */;
 UNLOCK TABLES;
+
+--
+-- Table structure for table `amenities`
+--
+
+DROP TABLE IF EXISTS `amenities`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `amenities` (
+  `AmenityId` int(11) NOT NULL AUTO_INCREMENT,
+  `Name` varchar(150) NOT NULL,
+  `Icon` varchar(100) NOT NULL DEFAULT 'bi-check-circle',
+  `IconColor` varchar(50) DEFAULT 'text-primary',
+  `DisplayOrder` int(11) NOT NULL DEFAULT 0,
+  `IsActive` tinyint(1) NOT NULL DEFAULT 1,
+  PRIMARY KEY (`AmenityId`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `amenities`
+--
+
+LOCK TABLES `amenities` WRITE;
+/*!40000 ALTER TABLE `amenities` DISABLE KEYS */;
+INSERT INTO `amenities` (`AmenityId`, `Name`, `Icon`, `IconColor`, `DisplayOrder`, `IsActive`) VALUES
+(1,'Bản đồ định vị GPS','bi-geo-alt-fill','text-danger',1,1),
+(2,'Camera lùi / Cảm biến va chạm','bi-camera-video-fill','text-primary',2,1),
+(3,'Camera hành trình HD','bi-webcam-fill','text-info',3,1),
+(4,'Kết nối Bluetooth & Apple CarPlay','bi-bluetooth','text-primary',4,1),
+(5,'Cửa sổ trời toàn cảnh (Panorama)','bi-brightness-high-fill','text-warning',5,1),
+(6,'Sạc điện thoại không dây Qi','bi-battery-charging','text-success',6,1),
+(7,'Cảm biến áp suất lốp (TPMS)','bi-speedometer2','text-danger',7,1),
+(8,'Hệ thống túi khí an toàn 360','bi-shield-fill-check','text-success',8,1),
+(9,'Hệ thống phanh ABS / Cân bằng ESC','bi-shield-shaded','text-secondary',9,1),
+(10,'Ghế bọc da chỉnh điện','bi-car-front-fill','text-dark',10,1),
+(11,'Cổng sạc nhanh USB / Type-C','bi-usb-symbol','text-info',11,1),
+(12,'Lốp xe dự phòng & Bộ cứu hộ','bi-tools','text-warning',12,1),
+(13,'Cốp mở điện / Đá cốp thông minh','bi-box-seam-fill','text-primary',13,1),
+(14,'Thiết bị thu phí tự động ETC (VETC/ePass)','bi-tag-fill','text-success',14,1);
+/*!40000 ALTER TABLE `amenities` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `car_amenities`
+--
+
+DROP TABLE IF EXISTS `car_amenities`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `car_amenities` (
+  `CarId` int(11) NOT NULL,
+  `AmenityId` int(11) NOT NULL,
+  PRIMARY KEY (`CarId`,`AmenityId`),
+  KEY `FK_car_amenities_amenity` (`AmenityId`),
+  CONSTRAINT `FK_car_amenities_car` FOREIGN KEY (`CarId`) REFERENCES `cars` (`CarID`) ON DELETE CASCADE,
+  CONSTRAINT `FK_car_amenities_amenity` FOREIGN KEY (`AmenityId`) REFERENCES `amenities` (`AmenityId`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
@@ -737,4 +797,5 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-10-16 23:19:05
+-- Dump completed on 2026-10-28
+

@@ -61,6 +61,8 @@ public partial class Car
 
     public virtual ICollection<CarReview> CarReviews { get; set; } = new List<CarReview>();
 
+    public virtual ICollection<CarAmenity> CarAmenities { get; set; } = new List<CarAmenity>();
+
     public virtual CarType? Type { get; set; }
 
     public virtual Account? Owner { get; set; }

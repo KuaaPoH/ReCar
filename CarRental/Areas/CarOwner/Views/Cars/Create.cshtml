@@ -1,202 +1,702 @@
 @model CarRental.ViewModels.CarCreateVM
 @using Microsoft.AspNetCore.Mvc.Rendering
 @{
-    ViewData["Title"] = "Thêm xe mới cho thuê";
+    ViewData["Title"] = "Đăng ký xe cho thuê mới";
     Layout = "~/Areas/CarOwner/Views/Shared/_Layout.cshtml";
     var carTypes = ViewBag.CarTypes as List<SelectListItem> ?? new List<SelectListItem>();
-    var carBrands = ViewBag.CarBrands as List<CarRental.Models.CarBrand>;
+    var carBrands = ViewBag.CarBrands as List<CarRental.Models.CarBrand> ?? new List<CarRental.Models.CarBrand>();
+    var locations = ViewBag.Locations as List<CarRental.Models.Location> ?? new List<CarRental.Models.Location>();
 }
+ 
+ <style>
+    .recar-wizard-container {
+        max-width: 1060px;
+        margin: 0 auto;
+        padding-bottom: 3.5rem;
+    }
 
-<style>
-    .recar-form-card {
+    /* Stepper Header */
+    .wizard-stepper {
         background: #ffffff;
         border-radius: 18px;
         border: 1px solid #e2e8f0;
-        box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.05);
-        padding: 2rem 2.25rem;
-        margin-bottom: 2rem;
-        transition: border-color 0.2s ease, box-shadow 0.2s ease;
-    }
-    .recar-form-card:hover {
-        border-color: #cbd5e1;
-        box-shadow: 0 8px 30px -4px rgba(15, 23, 42, 0.08);
-    }
-    .recar-card-header {
-        display: flex;
-        align-items: center;
-        gap: 0.85rem;
-        padding-bottom: 1.15rem;
-        border-bottom: 2px solid #f1f5f9;
+        box-shadow: 0 2px 12px rgba(15, 23, 42, 0.04);
+        padding: 1.25rem 2rem;
         margin-bottom: 1.75rem;
     }
-    .recar-card-step-badge {
-        width: 38px;
-        height: 38px;
-        border-radius: 10px;
-        background: linear-gradient(135deg, #0284c7 0%, #38bdf8 100%);
-        color: #fff;
-        font-weight: 800;
-        font-size: 1.05rem;
+
+    .stepper-list {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        position: relative;
+        list-style: none;
+        margin: 0;
+        padding: 0;
+    }
+
+    .stepper-progress-track {
+        position: absolute;
+        top: 22px;
+        left: 6%;
+        right: 6%;
+        height: 3px;
+        background-color: #f1f5f9;
+        z-index: 1;
+    }
+
+    .stepper-progress-bar {
+        height: 100%;
+        background: linear-gradient(90deg, #0284c7 0%, #38bdf8 100%);
+        transition: width 0.35s ease;
+        width: 0%;
+    }
+
+    .step-item {
+        position: relative;
+        z-index: 2;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        cursor: pointer;
+        user-select: none;
+        flex: 1;
+    }
+
+    .step-circle {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        background-color: #ffffff;
+        border: 2px solid #cbd5e1;
+        color: #64748b;
+        font-weight: 700;
+        font-size: 0.95rem;
         display: flex;
         align-items: center;
         justify-content: center;
-        flex-shrink: 0;
-        box-shadow: 0 4px 12px rgba(2, 132, 199, 0.35);
+        transition: all 0.25s ease;
     }
-    .recar-card-title {
-        font-size: 1.2rem;
+
+    .step-label {
+        margin-top: 0.5rem;
+        font-size: 0.82rem;
+        font-weight: 600;
+        color: #64748b;
+        text-align: center;
+    }
+
+    .step-item.active .step-circle {
+        background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+        border-color: #0284c7;
+        color: #ffffff;
+        box-shadow: 0 0 0 4px rgba(2, 132, 199, 0.18);
+    }
+
+    .step-item.active .step-label {
+        color: #0284c7;
+        font-weight: 700;
+    }
+
+    .step-item.completed .step-circle {
+        background-color: #ecfdf5;
+        border-color: #10b981;
+        color: #10b981;
+    }
+
+    .step-item.completed .step-label {
+        color: #1e293b;
+    }
+
+    /* Panes */
+    .wizard-step-pane {
+        display: none;
+    }
+
+    .wizard-step-pane.active {
+        display: block;
+        animation: fadeIn 0.25s ease;
+    }
+
+    @@keyframes fadeIn {
+        from { opacity: 0; transform: translateY(6px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Common Card */
+    .recar-card {
+        background: #ffffff;
+        border-radius: 18px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 2px 14px rgba(15, 23, 42, 0.04);
+        padding: 2rem 2.25rem;
+    }
+
+    .step-header {
+        margin-bottom: 1.75rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid #f1f5f9;
+    }
+
+    .step-badge {
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        padding: 0.25rem 0.65rem;
+        border-radius: 999px;
+        background-color: #eff6ff;
+        color: #0284c7;
+        font-weight: 700;
+        display: inline-block;
+        margin-bottom: 0.35rem;
+    }
+
+    .step-title {
+        font-size: 1.35rem;
         font-weight: 800;
         color: #0f172a;
         margin: 0;
         letter-spacing: -0.3px;
     }
-    .recar-card-subtitle {
-        font-size: 0.82rem;
+
+    .step-desc {
+        font-size: 0.85rem;
         color: #64748b;
-        margin-top: 2px;
+        margin-top: 0.25rem;
+        margin-bottom: 0;
+    }
+
+    /* Form Fields */
+    .form-label-custom {
+        font-size: 0.84rem;
+        font-weight: 600;
+        color: #1e293b;
+        margin-bottom: 0.4rem;
+        display: block;
     }
 
     .form-control-custom, .form-select-custom {
-        border-radius: 12px;
+        border-radius: 10px;
         border: 1.5px solid #e2e8f0;
-        padding: 0.75rem 1rem;
-        font-size: 0.92rem;
+        padding: 0.65rem 0.9rem;
+        font-size: 0.9rem;
         color: #0f172a;
         background-color: #f8fafc;
-        transition: all 0.2s ease;
+        transition: border-color 0.2s, box-shadow 0.2s;
     }
+
     .form-control-custom:focus, .form-select-custom:focus {
         background-color: #ffffff;
         border-color: #0284c7;
-        box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
+        box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.12);
         outline: none;
     }
-    .form-label-custom {
-        font-size: 0.85rem;
-        font-weight: 700;
-        color: #1e293b;
-        margin-bottom: 0.45rem;
-        display: flex;
-        align-items: center;
-        gap: 4px;
+
+    /* Choice Cards (Step 2) */
+    .choice-card-group {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(105px, 1fr));
+        gap: 0.6rem;
     }
 
-    /* Amenities Feature Pill Card */
-    .feature-item-card {
+    .choice-card {
         border: 1.5px solid #e2e8f0;
         background-color: #f8fafc;
         border-radius: 12px;
-        padding: 0.75rem 1rem;
+        padding: 0.85rem 0.6rem;
+        text-align: center;
+        cursor: pointer;
+        user-select: none;
+        transition: all 0.2s ease;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0.3rem;
+    }
+
+    .choice-card:hover {
+        background-color: #f0f9ff;
+        border-color: #38bdf8;
+    }
+
+    .choice-card.active {
+        background-color: #eff6ff;
+        border-color: #0284c7;
+        box-shadow: 0 2px 8px rgba(2, 132, 199, 0.15);
+    }
+
+    .choice-card.active .choice-icon,
+    .choice-card.active .choice-text {
+        color: #0284c7 !important;
+        font-weight: 700;
+    }
+
+    .choice-icon {
+        font-size: 1.3rem;
+        color: #64748b;
+    }
+
+    .choice-text {
+        font-size: 0.82rem;
+        font-weight: 600;
+        color: #334155;
+    }
+
+    /* Amenities Cards (Step 2) */
+    .amenities-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.85rem 1rem;
+    }
+
+    @@media (max-width: 768px) {
+        .amenities-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    .amenity-card {
+        border: 1px solid #e2e8f0;
+        background-color: #ffffff;
+        border-radius: 12px;
+        padding: 0.85rem 1rem;
         display: flex;
         align-items: center;
         gap: 0.75rem;
         cursor: pointer;
         user-select: none;
-        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        transition: all 0.2s ease;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.02);
     }
-    .feature-item-card:hover {
-        background-color: #f0f9ff;
-        border-color: #38bdf8;
-        transform: translateY(-2px);
+
+    .amenity-card:hover {
+        background-color: #f8fafc;
+        border-color: #94a3b8;
     }
-    .feature-item-card.active {
+
+    .amenity-card.active {
         background-color: #eff6ff;
         border-color: #0284c7;
-        box-shadow: 0 4px 14px rgba(2, 132, 199, 0.2);
-    }
-    .feature-item-card.active i {
-        color: #0284c7 !important;
-    }
-    .feature-item-card.active span {
-        color: #0284c7;
-        font-weight: 700;
+        box-shadow: 0 2px 8px rgba(2, 132, 199, 0.12);
     }
 
-    /* Image Upload Box */
-    .recar-image-dropzone {
+    .amenity-card.active i {
+        color: #0284c7 !important;
+    }
+
+    .amenity-card.active span {
+        color: #0284c7;
+        font-weight: 600;
+    }
+
+    /* 4 Visual Car Photo Slots (Step 4 - 4 Cột ngang cân xứng) */
+    .photo-slot-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1rem;
+    }
+
+    @@media (max-width: 991px) {
+        .photo-slot-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    .photo-slot {
         border: 2px dashed #cbd5e1;
-        border-radius: 16px;
-        padding: 2.25rem 1.5rem;
-        text-align: center;
-        background: #f8fafc;
+        border-radius: 14px;
+        background-color: #f8fafc;
+        position: relative;
+        overflow: hidden;
+        aspect-ratio: 4 / 3;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
         cursor: pointer;
         transition: all 0.2s ease;
-        position: relative;
+        padding: 0.75rem;
+        text-align: center;
     }
-    .recar-image-dropzone:hover {
+
+    .photo-slot:hover {
         border-color: #0284c7;
         background-color: #f0f9ff;
     }
-    .preview-box-main {
-        max-height: 240px;
-        border-radius: 12px;
-        object-fit: cover;
-        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+
+    .photo-slot.has-image {
+        border-style: solid;
+        border-color: #10b981;
+        padding: 0;
     }
 
-    .gallery-preview-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
-        gap: 0.75rem;
-        margin-top: 1rem;
+    .photo-slot-img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: none;
     }
-    .gallery-preview-item {
-        position: relative;
-        height: 85px;
+
+    .photo-slot.has-image .photo-slot-img {
+        display: block;
+    }
+
+    .photo-slot.has-image .photo-slot-placeholder {
+        display: none;
+    }
+
+    .photo-slot-badge {
+        position: absolute;
+        top: 8px;
+        left: 8px;
+        background: rgba(15, 23, 42, 0.75);
+        backdrop-filter: blur(4px);
+        color: #ffffff;
+        font-size: 0.65rem;
+        font-weight: 700;
+        padding: 0.15rem 0.5rem;
+        border-radius: 999px;
+        z-index: 3;
+    }
+
+    .photo-slot-remove {
+        position: absolute;
+        top: 6px;
+        right: 6px;
+        background: rgba(239, 68, 68, 0.9);
+        color: white;
+        border: none;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.8rem;
+        cursor: pointer;
+        z-index: 4;
+    }
+
+    .photo-slot.has-image .photo-slot-remove {
+        display: flex;
+    }
+
+    /* KYC Doc Cards (Step 4) */
+    .doc-slot-card {
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 0.9rem 1rem;
+        background-color: #ffffff;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        cursor: pointer;
+        transition: border-color 0.2s;
+    }
+
+    .doc-slot-card:hover {
+        border-color: #0284c7;
+    }
+
+    .doc-slot-card.has-doc {
+        border-color: #10b981;
+        background-color: #ecfdf5;
+    }
+
+    /* Footer Navigation */
+    .wizard-footer-nav {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        margin-top: 1.75rem;
+        padding-top: 1.25rem;
+        border-top: 1px solid #f1f5f9;
+    }
+
+    .btn-wizard-next {
+        background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+        color: #ffffff;
+        border: none;
+        border-radius: 12px;
+        padding: 0.75rem 1.75rem;
+        font-weight: 700;
+        font-size: 0.92rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        box-shadow: 0 3px 12px rgba(2, 132, 199, 0.3);
+        transition: all 0.2s ease;
+    }
+
+    .btn-wizard-next:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 5px 16px rgba(2, 132, 199, 0.4);
+        color: #ffffff;
+    }
+
+    .btn-wizard-prev {
+        background-color: #ffffff;
+        color: #475569;
+        border: 1.5px solid #cbd5e1;
+        border-radius: 12px;
+        padding: 0.75rem 1.5rem;
+        font-weight: 600;
+        font-size: 0.92rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        transition: all 0.2s ease;
+    }
+
+    .btn-wizard-prev:hover {
+        background-color: #f8fafc;
+        color: #0f172a;
+    }
+
+    /* Step 5: Tái Cấu Trúc Toàn Diện - Trang Nhã & Sang Trọng */
+    /* Step 5: Hồ Sơ Tóm Tắt Tinh Tế & Cân Đối */
+    .summary-card {
+        background: #ffffff;
+        border-radius: 18px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.05);
+        overflow: hidden;
+    }
+
+    .summary-header-bar {
+        background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+        color: #ffffff;
+        padding: 1.75rem 2rem;
+    }
+
+    .summary-gallery-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 0.85rem;
+        padding: 1.25rem 2rem;
+        background-color: #f8fafc;
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    @@media (max-width: 768px) {
+        .summary-gallery-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    .summary-photo-box {
+        aspect-ratio: 4 / 3;
         border-radius: 10px;
         overflow: hidden;
         border: 1px solid #e2e8f0;
+        background-color: #e2e8f0;
+        position: relative;
     }
-    .gallery-preview-item img {
+
+    .summary-photo-box img {
         width: 100%;
         height: 100%;
         object-fit: cover;
     }
+
+    .summary-photo-tag {
+        position: absolute;
+        bottom: 6px;
+        left: 6px;
+        background: rgba(15, 23, 42, 0.75);
+        color: #ffffff;
+        font-size: 0.65rem;
+        font-weight: 600;
+        padding: 0.15rem 0.45rem;
+        border-radius: 4px;
+        backdrop-filter: blur(4px);
+    }
+
+    .summary-body {
+        padding: 2rem;
+    }
+
+    .summary-section-title {
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: #0f172a;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .summary-specs-strip {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 0.75rem;
+        margin-bottom: 1.75rem;
+    }
+
+    @@media (max-width: 768px) {
+        .summary-specs-strip {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    .summary-spec-cell {
+        background: #f8fafc;
+        border: 1px solid #edf2f7;
+        border-radius: 12px;
+        padding: 0.85rem 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .summary-spec-cell i {
+        font-size: 1.35rem;
+        color: #0284c7;
+    }
+
+    .summary-spec-cell .spec-sub {
+        font-size: 0.72rem;
+        color: #64748b;
+    }
+
+    .summary-spec-cell .spec-main {
+        font-size: 0.92rem;
+        font-weight: 700;
+        color: #0f172a;
+    }
+
+    .summary-table-box {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 14px;
+        overflow: hidden;
+    }
+
+    .summary-table-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.9rem 1.25rem;
+        border-bottom: 1px solid #f1f5f9;
+        font-size: 0.88rem;
+    }
+
+    .summary-table-row:last-child {
+        border-bottom: none;
+    }
+
+    .summary-table-label {
+        color: #64748b;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .summary-table-val {
+        font-weight: 700;
+        color: #0f172a;
+        text-align: right;
+    }
+
+    /* Biển số xe chuẩn Việt Nam */
+    .vn-license-plate {
+        display: inline-flex;
+        align-items: center;
+        background: #ffffff;
+        border: 2px solid #0f172a;
+        border-radius: 6px;
+        padding: 2px 10px;
+        font-family: 'Consolas', 'Courier New', monospace;
+        font-weight: 900;
+        font-size: 0.92rem;
+        color: #0f172a;
+        letter-spacing: 1.5px;
+        box-shadow: inset 0 0 0 1px #94a3b8;
+    }
+
+    /* Thẻ mini KYC Step 5 */
+    .kyc-badge-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        background: #ecfdf5;
+        color: #047857;
+        border: 1px solid #a7f3d0;
+        padding: 0.35rem 0.75rem;
+        border-radius: 8px;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
 </style>
 
-<!-- Hero Title Header -->
-<div class="mb-4 d-flex align-items-center justify-content-between flex-wrap gap-3">
-    <div>
-        <div class="d-inline-flex align-items-center gap-2 px-3 py-1.5 rounded-pill mb-2" style="background: rgba(2, 132, 199, 0.1); color: #0284c7; font-size: 0.8rem; font-weight: 700;">
-            <i class="bi bi-patch-check-fill"></i> Chính sách ReCar Host 90/10 · Chủ xe hưởng 90% doanh thu
+<div class="recar-wizard-container">
+
+    <!-- Stepper Navigation Bar -->
+    <div class="wizard-stepper">
+        <div class="stepper-progress-track">
+            <div class="stepper-progress-bar" id="stepperProgressBar"></div>
         </div>
-        <h2 class="fw-bold text-dark mb-1" style="font-size: 1.85rem; letter-spacing: -0.5px;">Đăng ký Xe Cho Thuê</h2>
-        <p class="text-muted small mb-0">Cung cấp đầy đủ và chính xác thông số phương tiện để hồ sơ xe được Ban Quản trị phê duyệt nhanh nhất.</p>
+        <ul class="stepper-list">
+            <li class="step-item active" onclick="goToStep(1)" id="stepItem1">
+                <div class="step-circle" id="stepCircle1">1</div>
+                <div class="step-label">Dòng xe</div>
+            </li>
+            <li class="step-item" onclick="goToStep(2)" id="stepItem2">
+                <div class="step-circle" id="stepCircle2">2</div>
+                <div class="step-label">Vận hành & Tiện ích</div>
+            </li>
+            <li class="step-item" onclick="goToStep(3)" id="stepItem3">
+                <div class="step-circle" id="stepCircle3">3</div>
+                <div class="step-label">Giá & Địa điểm</div>
+            </li>
+            <li class="step-item" onclick="goToStep(4)" id="stepItem4">
+                <div class="step-circle" id="stepCircle4">4</div>
+                <div class="step-label">4 Góc ảnh & Giấy tờ</div>
+            </li>
+            <li class="step-item" onclick="goToStep(5)" id="stepItem5">
+                <div class="step-circle" id="stepCircle5"><i class="bi bi-eye-fill"></i></div>
+                <div class="step-label">Xem trước</div>
+            </li>
+        </ul>
     </div>
 
-    <a href="/CarOwner/Cars/Index" class="btn btn-light border rounded-pill px-4 py-2.5 small fw-semibold text-secondary shadow-sm">
-        <i class="bi bi-arrow-left me-1"></i> Danh sách xe
-    </a>
-</div>
+    <!-- Form Submit Toàn trình -->
+    <form asp-action="Create" method="post" enctype="multipart/form-data" id="wizardCarForm">
+        @Html.AntiForgeryToken()
 
-<form asp-action="Create" method="post" enctype="multipart/form-data" id="formCreateCar">
-    @Html.AntiForgeryToken()
-
-    <div class="row g-4">
-        <!-- Cột Trái: Các khối thông tin kỹ thuật & giá -->
-        <div class="col-12 col-xl-8">
-
-            <!-- Khối 1: Thông tin cơ bản & Định danh xe -->
-            <div class="recar-form-card">
-                <div class="recar-card-header">
-                    <div class="recar-card-step-badge">1</div>
-                    <div>
-                        <h3 class="recar-card-title">Thông tin cơ bản & Định danh xe</h3>
-                        <div class="recar-card-subtitle">Tên thương mại, hãng sản xuất, phân khúc và biển số xe kiểm định</div>
-                    </div>
+        <!-- ============================================== -->
+        <!-- BƯỚC 1: THÔNG TIN CƠ BẢN & DÒNG XE             -->
+        <!-- ============================================== -->
+        <div class="wizard-step-pane active" id="stepPane1">
+            <div class="recar-card">
+                <div class="step-header">
+                    <span class="step-badge">Bước 1 trên 4</span>
+                    <h4 class="step-title">Thông tin cơ bản & Dòng xe</h4>
+                    <p class="step-desc">Nhập tên thương mại, hãng sản xuất và biển số kiểm định phương tiện.</p>
                 </div>
 
                 <div class="row g-3">
-                    <div class="col-md-7">
-                        <label asp-for="CarName" class="form-label-custom">Tên phương tiện <span class="text-danger">*</span></label>
-                        <input asp-for="CarName" class="form-control form-control-custom" placeholder="Ví dụ: VinFast VF 8 Plus, Toyota Camry 2.5Q, Mazda CX-5..." required />
+                    <div class="col-12 col-md-8">
+                        <label asp-for="CarName" class="form-label-custom">Tên xe <span class="text-danger">*</span></label>
+                        <input asp-for="CarName" class="form-control form-control-custom" id="inputCarName"
+                               placeholder="Ví dụ: VinFast VF 8 Plus, Toyota Camry 2.5Q..." required />
                         <span asp-validation-for="CarName" class="text-danger small"></span>
                     </div>
 
-                    <div class="col-md-5">
-                        <label asp-for="CarBrand" class="form-label-custom">Hãng sản xuất <span class="text-danger">*</span></label>
-                        <select asp-for="CarBrand" class="form-select form-select-custom" required>
-                            <option value="" selected disabled hidden>-- Chọn hãng sản xuất --</option>
+                    <div class="col-12 col-md-4">
+                        <label asp-for="LicensePlate" class="form-label-custom">Biển số xe <span class="text-danger">*</span></label>
+                        <input asp-for="LicensePlate" class="form-control form-control-custom text-uppercase font-monospace fw-bold" id="inputLicensePlate"
+                               placeholder="30H-888.68" required style="letter-spacing: 0.8px;" />
+                        <span asp-validation-for="LicensePlate" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-12 col-md-4">
+                        <label asp-for="CarBrand" class="form-label-custom">Hãng xe <span class="text-danger">*</span></label>
+                        <select asp-for="CarBrand" class="form-select form-select-custom" id="selectBrand" required>
+                            <option value="">-- Chọn hãng sản xuất --</option>
                             @if (carBrands != null && carBrands.Any())
                             {
                                 foreach (var brand in carBrands)
@@ -213,445 +713,919 @@
                                 <option value="Mazda">Mazda</option>
                                 <option value="Honda">Honda</option>
                                 <option value="Ford">Ford</option>
-                                <option value="Mitsubishi">Mitsubishi</option>
-                                <option value="Mercedes-Benz">Mercedes-Benz</option>
-                                <option value="BMW">BMW</option>
                             }
                         </select>
                         <span asp-validation-for="CarBrand" class="text-danger small"></span>
                     </div>
 
-                    <div class="col-md-4">
-                        <label asp-for="TypeId" class="form-label-custom">Phân khúc / Dáng xe <span class="text-danger">*</span></label>
-                        <select asp-for="TypeId" class="form-select form-select-custom" asp-items="carTypes" required>
-                            <option value="">-- Chọn dáng xe --</option>
+                    <div class="col-12 col-md-4">
+                        <label asp-for="TypeId" class="form-label-custom">Phân khúc dáng xe <span class="text-danger">*</span></label>
+                        <select asp-for="TypeId" class="form-select form-select-custom" id="selectType" asp-items="carTypes" required>
+                            <option value="">-- Chọn kiểu dáng xe --</option>
                         </select>
                         <span asp-validation-for="TypeId" class="text-danger small"></span>
                     </div>
 
-                    <div class="col-md-4">
+                    <div class="col-6 col-md-2">
                         <label asp-for="ModelYear" class="form-label-custom">Năm sản xuất <span class="text-danger">*</span></label>
-                        <select asp-for="ModelYear" class="form-select form-select-custom" required>
+                        <select asp-for="ModelYear" class="form-select form-select-custom" id="selectYear" required>
                             @for (int y = DateTime.Now.Year; y >= 2017; y--)
                             {
-                                <option value="@y">Năm @y</option>
+                                <option value="@y">@y</option>
                             }
                         </select>
                     </div>
 
-                    <div class="col-md-4">
-                        <label asp-for="LicensePlate" class="form-label-custom">Biển số xe kiểm định <span class="text-danger">*</span></label>
-                        <input asp-for="LicensePlate" class="form-control form-control-custom text-uppercase font-monospace fw-bold" placeholder="30H-888.68" required />
-                        <span asp-validation-for="LicensePlate" class="text-danger small"></span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Khối 2: Thông số vận hành & Động cơ -->
-            <div class="recar-form-card">
-                <div class="recar-card-header">
-                    <div class="recar-card-step-badge">2</div>
-                    <div>
-                        <h3 class="recar-card-title">Thông số vận hành & Tiêu hao</h3>
-                        <div class="recar-card-subtitle">Chỗ ngồi, hộp số truyền động, loại năng lượng và màu sắc xe</div>
-                    </div>
-                </div>
-
-                <div class="row g-3">
-                    <div class="col-6 col-md-4 col-lg-3">
-                        <label asp-for="Seat" class="form-label-custom">Số chỗ ngồi <span class="text-danger">*</span></label>
-                        <select asp-for="Seat" class="form-select form-select-custom" required>
-                            <option value="" selected disabled hidden>-- Chọn số chỗ --</option>
-                            <option value="4">4 chỗ</option>
-                            <option value="5">5 chỗ</option>
-                            <option value="7">7 chỗ</option>
-                            <option value="8">8 chỗ</option>
-                            <option value="16">16 chỗ</option>
-                        </select>
-                        <span asp-validation-for="Seat" class="text-danger small"></span>
-                    </div>
-
-                    <div class="col-6 col-md-4 col-lg-3">
-                        <label asp-for="Transmission" class="form-label-custom">Hộp số <span class="text-danger">*</span></label>
-                        <select asp-for="Transmission" class="form-select form-select-custom" required>
-                            <option value="" selected disabled hidden>-- Chọn hộp số --</option>
-                            <option value="Tự động">Tự động</option>
-                            <option value="Số sàn">Số sàn</option>
-                        </select>
-                        <span asp-validation-for="Transmission" class="text-danger small"></span>
-                    </div>
-
-                    <div class="col-6 col-md-4 col-lg-3">
-                        <label asp-for="Fuel" class="form-label-custom">Nhiên liệu <span class="text-danger">*</span></label>
-                        <select asp-for="Fuel" class="form-select form-select-custom" required>
-                            <option value="" selected disabled hidden>-- Chọn nhiên liệu --</option>
-                            <option value="Xăng">Xăng</option>
-                            <option value="Dầu">Dầu (Diesel)</option>
-                            <option value="Điện">Thuần điện (EV)</option>
-                            <option value="Hybrid">Hybrid</option>
-                        </select>
-                        <span asp-validation-for="Fuel" class="text-danger small"></span>
-                    </div>
-
-                    <div class="col-6 col-md-4 col-lg-3">
-                        <label asp-for="Color" class="form-label-custom">Màu sắc xe <span class="text-danger">*</span></label>
-                        <input asp-for="Color" class="form-control form-control-custom" placeholder="Trắng, Đen, Xám..." required />
+                    <div class="col-6 col-md-2">
+                        <label asp-for="Color" class="form-label-custom">Màu sắc <span class="text-danger">*</span></label>
+                        <input asp-for="Color" class="form-control form-control-custom" id="inputColor" placeholder="Trắng, Đen..." required />
                         <span asp-validation-for="Color" class="text-danger small"></span>
                     </div>
+                </div>
 
-                    <div class="col-md-6">
-                        <label asp-for="FuelConsumption" class="form-label-custom">Mức tiêu hao năng lượng trung bình</label>
-                        <input asp-for="FuelConsumption" class="form-control form-control-custom" placeholder="Ví dụ: 6.5L/100km hoặc 14 kWh/100km" />
-                    </div>
-
-                    <div class="col-md-6">
-                        <label asp-for="Location" class="form-label-custom">Địa chỉ nhận xe cố định <span class="text-danger">*</span></label>
-                        <input asp-for="Location" class="form-control form-control-custom" placeholder="Ví dụ: Số 18 Phạm Hùng, Mỹ Đình, Nam Từ Liêm, Hà Nội" required />
-                        <span asp-validation-for="Location" class="text-danger small"></span>
-                    </div>
+                <div class="wizard-footer-nav">
+                    <div></div>
+                    <button type="button" class="btn-wizard-next" onclick="validateAndGoStep(1, 2)">
+                        <span>Tiếp tục: Vận hành & Tiện ích</span>
+                        <i class="bi bi-arrow-right"></i>
+                    </button>
                 </div>
             </div>
+        </div>
 
-            <!-- Khối 3: Bảng giá thuê & Giới hạn quãng đường -->
-            <div class="recar-form-card">
-                <div class="recar-card-header">
-                    <div class="recar-card-step-badge">3</div>
-                    <div>
-                        <h3 class="recar-card-title">Bảng giá thuê & Giới hạn di chuyển</h3>
-                        <div class="recar-card-subtitle">Thiết lập đơn giá theo ngày, giới hạn quãng đường và phụ phí vượt km</div>
-                    </div>
+        <!-- ============================================== -->
+        <!-- BƯỚC 2: THÔNG SỐ VẬN HÀNH & TIỆN NGHI          -->
+        <!-- ============================================== -->
+        <div class="wizard-step-pane" id="stepPane2">
+            <div class="recar-card">
+                <div class="step-header">
+                    <span class="step-badge">Bước 2 trên 4</span>
+                    <h4 class="step-title">Thông số vận hành & Tiện nghi xe</h4>
+                    <p class="step-desc">Thiết lập động cơ, số chỗ ngồi và chọn các trang bị có trên phương tiện.</p>
                 </div>
 
-                <div class="row g-3">
-                    <div class="col-md-6">
-                        <label asp-for="Price" class="form-label-custom">Giá niêm yết (VNĐ/ngày) <span class="text-danger">*</span></label>
-                        <div class="input-group">
-                            <input asp-for="Price" type="number" min="300000" step="50000" class="form-control form-control-custom" id="inputPrice" required />
-                            <span class="input-group-text bg-white border-start-0 text-muted small fw-semibold" style="border-radius: 0 12px 12px 0;">đ/ngày</span>
+                <!-- Chỗ ngồi, Hộp số, Nhiên liệu -->
+                <div class="row g-3 mb-4">
+                    <div class="col-12 col-md-4">
+                        <label class="form-label-custom">Số chỗ ngồi <span class="text-danger">*</span></label>
+                        <div class="choice-card-group">
+                            <div class="choice-card @(Model.Seat == 4 ? "active" : "")" onclick="selectSeat(4, this)">
+                                <i class="bi bi-car-front choice-icon"></i>
+                                <span class="choice-text">4 chỗ</span>
+                            </div>
+                            <div class="choice-card @(Model.Seat == 5 || Model.Seat == null ? "active" : "")" onclick="selectSeat(5, this)">
+                                <i class="bi bi-car-front choice-icon"></i>
+                                <span class="choice-text">5 chỗ</span>
+                            </div>
+                            <div class="choice-card @(Model.Seat == 7 ? "active" : "")" onclick="selectSeat(7, this)">
+                                <i class="bi bi-bus-front choice-icon"></i>
+                                <span class="choice-text">7 chỗ</span>
+                            </div>
+                            <div class="choice-card @(Model.Seat == 8 ? "active" : "")" onclick="selectSeat(8, this)">
+                                <i class="bi bi-truck-front choice-icon"></i>
+                                <span class="choice-text">8+ chỗ</span>
+                            </div>
                         </div>
-                        <div class="text-primary small fw-semibold mt-1" id="priceFormattedText">850.000 VNĐ / ngày</div>
-                        <span asp-validation-for="Price" class="text-danger small"></span>
+                        <input type="hidden" asp-for="Seat" id="inputSeat" value="@(Model.Seat ?? 5)" />
                     </div>
 
-                    <div class="col-md-6">
-                        <label asp-for="SalePrice" class="form-label-custom">Giá ưu đãi khuyến mãi (nếu có)</label>
-                        <div class="input-group">
-                            <input asp-for="SalePrice" type="number" min="0" step="50000" class="form-control form-control-custom" placeholder="Để trống nếu không giảm giá" />
-                            <span class="input-group-text bg-white border-start-0 text-muted small fw-semibold" style="border-radius: 0 12px 12px 0;">đ/ngày</span>
+                    <div class="col-12 col-md-4">
+                        <label class="form-label-custom">Hộp số <span class="text-danger">*</span></label>
+                        <div class="choice-card-group">
+                            <div class="choice-card @(Model.Transmission == "Tự động" || string.IsNullOrEmpty(Model.Transmission) ? "active" : "")" onclick="selectTransmission('Tự động', this)">
+                                <i class="bi bi-sliders choice-icon"></i>
+                                <span class="choice-text">Tự động (AT)</span>
+                            </div>
+                            <div class="choice-card @(Model.Transmission == "Số sàn" ? "active" : "")" onclick="selectTransmission('Số sàn', this)">
+                                <i class="bi bi-joystick choice-icon"></i>
+                                <span class="choice-text">Số sàn (MT)</span>
+                            </div>
                         </div>
-                        <div class="text-muted small mt-1">Giúp xe nổi bật với nhãn giảm giá và thu hút khách hơn</div>
+                        <input type="hidden" asp-for="Transmission" id="inputTransmission" value="@(string.IsNullOrEmpty(Model.Transmission) ? "Tự động" : Model.Transmission)" />
                     </div>
 
-                    <div class="col-md-6">
-                        <label asp-for="MileageLimit" class="form-label-custom">Giới hạn quãng đường trong ngày</label>
-                        <div class="input-group">
-                            <input asp-for="MileageLimit" type="number" min="100" max="1000" step="50" class="form-control form-control-custom" />
-                            <span class="input-group-text bg-white border-start-0 text-muted small fw-semibold" style="border-radius: 0 12px 12px 0;">km/ngày</span>
+                    <div class="col-12 col-md-4">
+                        <label class="form-label-custom">Nhiên liệu <span class="text-danger">*</span></label>
+                        <div class="choice-card-group">
+                            <div class="choice-card @(Model.Fuel == "Xăng" || string.IsNullOrEmpty(Model.Fuel) ? "active" : "")" onclick="selectFuel('Xăng', this)">
+                                <i class="bi bi-fuel-pump choice-icon"></i>
+                                <span class="choice-text">Xăng</span>
+                            </div>
+                            <div class="choice-card @(Model.Fuel == "Dầu" ? "active" : "")" onclick="selectFuel('Dầu', this)">
+                                <i class="bi bi-droplet-half choice-icon"></i>
+                                <span class="choice-text">Dầu Diesel</span>
+                            </div>
+                            <div class="choice-card @(Model.Fuel == "Điện" ? "active" : "")" onclick="selectFuel('Điện', this)">
+                                <i class="bi bi-lightning-charge-fill choice-icon" style="color: #0284c7;"></i>
+                                <span class="choice-text">Điện EV</span>
+                            </div>
                         </div>
-                        <div class="text-muted small mt-1">Tiêu chuẩn sàn: 300 - 400 km/ngày</div>
-                    </div>
-
-                    <div class="col-md-6">
-                        <label asp-for="ExtraFeePerKm" class="form-label-custom">Phụ phí vượt quãng đường</label>
-                        <div class="input-group">
-                            <input asp-for="ExtraFeePerKm" type="number" min="1000" max="20000" step="500" class="form-control form-control-custom" />
-                            <span class="input-group-text bg-white border-start-0 text-muted small fw-semibold" style="border-radius: 0 12px 12px 0;">đ/km</span>
-                        </div>
+                        <input type="hidden" asp-for="Fuel" id="inputFuel" value="@(string.IsNullOrEmpty(Model.Fuel) ? "Xăng" : Model.Fuel)" />
                     </div>
 
                     <div class="col-12">
-                        <label class="form-label-custom">Hỗ trợ giao xe tận nơi cho khách</label>
-                        <div class="d-flex align-items-center gap-3 pt-2">
-                            <div class="form-check form-switch">
-                                <input asp-for="DeliverySupported" class="form-check-input" type="checkbox" id="checkDelivery" checked style="width: 2.5em; height: 1.3em;">
-                                <label class="form-check-label small fw-bold text-dark ms-2" for="checkDelivery">Có hỗ trợ giao xe tận nhà / sân bay</label>
-                            </div>
-                            <div class="input-group input-group-sm" style="max-width: 200px;">
-                                <input asp-for="DeliveryFee" type="number" step="10000" class="form-control form-control-custom py-1" />
-                                <span class="input-group-text bg-white small">đ/lượt</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Khối 4: Trang bị & Tiện nghi xe (Interactive Grid) -->
-            <div class="recar-form-card">
-                <div class="recar-card-header">
-                    <div class="recar-card-step-badge">4</div>
-                    <div>
-                        <h3 class="recar-card-title">Tiện nghi & Trang bị trên xe</h3>
-                        <div class="recar-card-subtitle">Nhấp chọn các tính năng thực tế có trên phương tiện để khách hàng dễ dàng tìm kiếm</div>
+                        <label asp-for="FuelConsumption" class="form-label-custom">Mức tiêu hao nhiên liệu trung bình</label>
+                        <input asp-for="FuelConsumption" class="form-control form-control-custom" id="inputFuelConsumption"
+                               placeholder="Ví dụ: 6.5L/100km hoặc 14 kWh/100km" />
                     </div>
                 </div>
 
-                @{
-                    var amenitiesList = new[]
-                    {
-                        ("Bản đồ dẫn đường GPS", "bi-geo-alt-fill", "text-danger"),
-                        ("Camera lùi / Camera 360", "bi-camera-video-fill", "text-primary"),
-                        ("Camera hành trình", "bi-record-circle-fill", "text-danger"),
-                        ("Cảm biến áp suất lốp", "bi-speedometer2", "text-warning"),
-                        ("Apple CarPlay & Android Auto", "bi-phone-fill", "text-info"),
-                        ("Cửa sổ trời Panorama", "bi-brightness-high-fill", "text-warning"),
-                        ("Thu phí tự động ETC", "bi-credit-card-2-front-fill", "text-success"),
-                        ("Ghế da cao cấp chỉnh điện", "bi-award-fill", "text-primary"),
-                        ("Ghế trẻ em ISOFIX", "bi-person-heart", "text-danger"),
-                        ("Sạc không dây Qi", "bi-lightning-charge-fill", "text-warning"),
-                        ("Cảm biến va chạm trước/sau", "bi-shield-check", "text-success"),
-                        ("Cảnh báo điểm mù BSM", "bi-eye-fill", "text-secondary"),
-                        ("Khóa thông minh SmartKey", "bi-key-fill", "text-primary"),
-                        ("Cốp điện thông minh", "bi-box-seam-fill", "text-secondary")
-                    };
-                }
+                <!-- Tiện nghi trang bị -->
+                <div class="pt-3 border-top">
+                    <label class="form-label-custom mb-2.5">Tiện nghi & Trang bị trên xe</label>
 
-                <div class="row g-2.5">
-                    @foreach (var item in amenitiesList)
-                    {
-                        bool isChecked = Model.Features != null && Model.Features.Contains(item.Item1);
-                        <div class="col-6 col-md-4">
-                            <label class="feature-item-card @(isChecked ? "active" : "")" onclick="toggleFeature(this)">
-                                <input type="checkbox" name="Features" value="@item.Item1" class="d-none" @(isChecked ? "checked" : "") />
-                                <i class="bi @item.Item2 @item.Item3 fs-5"></i>
-                                <span class="small">@item.Item1</span>
-                            </label>
-                        </div>
+                    @{
+                        var dbAmenities = ViewBag.Amenities as List<CarRental.Models.Amenity> ?? new List<CarRental.Models.Amenity>();
                     }
-                </div>
 
-                <div class="mt-4">
-                    <label asp-for="Details" class="form-label-custom">Mô tả giới thiệu thêm & Nội quy trên xe</label>
-                    <textarea asp-for="Details" rows="3" class="form-control form-control-custom" placeholder="Giới thiệu về trải nghiệm lái, tình trạng bảo dưỡng xe, quy định cấm hút thuốc, cấm chở thú cưng (nếu có)..."></textarea>
-                </div>
-            </div>
+                    <div class="amenities-grid" id="amenitiesContainer">
+                        @foreach (var item in dbAmenities)
+                        {
+                            bool isChecked = (Model.AmenityIds != null && Model.AmenityIds.Contains(item.AmenityId)) ||
+                                             (Model.Features != null && Model.Features.Contains(item.Name));
+                            <label class="amenity-card @(isChecked ? "active" : "")" onclick="toggleAmenity(this)">
+                                <input type="checkbox" name="AmenityIds" value="@item.AmenityId" class="d-none" @(isChecked ? "checked" : "") />
+                                <input type="checkbox" name="Features" value="@item.Name" class="d-none" @(isChecked ? "checked" : "") />
+                                <i class="bi @item.Icon @item.IconColor fs-5"></i>
+                                <span class="small">@item.Name</span>
+                            </label>
+                        }
+                    </div>
 
-        </div>
-
-        <!-- Cột Phải: Hình ảnh xe & Bấm gửi hồ sơ -->
-        <div class="col-12 col-xl-4">
-
-            <!-- Card Tải ảnh đại diện -->
-            <div class="recar-form-card">
-                <div class="recar-card-header">
-                    <div class="recar-card-step-badge">5</div>
-                    <div>
-                        <h3 class="recar-card-title">Ảnh đại diện xe</h3>
-                        <div class="recar-card-subtitle">Góc chụp 3/4 trước xe rõ nét</div>
+                    <div class="mt-3.5">
+                        <label asp-for="Details" class="form-label-custom">Mô tả thêm & Nội quy cho thuê xe</label>
+                        <textarea asp-for="Details" rows="2" class="form-control form-control-custom" id="inputDetails"
+                                  placeholder="Mô tả cảm giác lái, quy định cấm hút thuốc, cấm chở thú cưng (nếu có)..."></textarea>
                     </div>
                 </div>
 
-                <div class="recar-image-dropzone" onclick="document.getElementById('fileMainImage').click()">
-                    <input type="file" asp-for="ImageFile" id="fileMainImage" accept="image/*" class="d-none" onchange="previewMainImage(this)" />
-                    
-                    <div id="dropzonePlaceholder">
-                        <i class="bi bi-cloud-arrow-up-fill text-primary" style="font-size: 2.75rem;"></i>
-                        <div class="fw-bold text-dark mt-2">Nhấp để tải ảnh lên</div>
-                        <div class="text-muted small">Hỗ trợ JPG, PNG, WEBP (tối đa 10MB)</div>
-                    </div>
-
-                    <img id="mainImagePreview" src="/images/cars/car-sedan.jpg" class="preview-box-main w-100 mt-2 d-none" alt="Xem trước ảnh xe" />
-                </div>
-
-                <div class="mt-3">
-                    <label asp-for="ImageUrl" class="form-label-custom small text-muted">Hoặc dán URL hình ảnh trực tuyến</label>
-                    <input asp-for="ImageUrl" class="form-control form-control-custom py-1.5 small" placeholder="https://example.com/anh-xe.jpg" oninput="updateImageUrlPreview(this.value)" />
-                </div>
-            </div>
-
-            <!-- Card Tải Album ảnh chi tiết -->
-            <div class="recar-form-card">
-                <div class="recar-card-header">
-                    <div class="recar-card-step-badge"><i class="bi bi-images" style="font-size: 1rem;"></i></div>
-                    <div>
-                        <h3 class="recar-card-title">Album ảnh chi tiết</h3>
-                        <div class="recar-card-subtitle">Đầu xe, đuôi xe, nội thất, taplo</div>
-                    </div>
-                </div>
-
-                <div class="recar-image-dropzone py-3" onclick="document.getElementById('fileGalleryImages').click()">
-                    <input type="file" asp-for="DetailImages" id="fileGalleryImages" accept="image/*" multiple class="d-none" onchange="previewGalleryImages(this)" />
-                    <i class="bi bi-plus-circle text-secondary fs-3"></i>
-                    <div class="small fw-bold text-dark mt-1">Chọn nhiều ảnh chi tiết</div>
-                    <div class="text-muted" style="font-size: 11px;">Tải lên 2 - 6 hình ảnh</div>
-                </div>
-
-                <div id="galleryPreviewContainer" class="gallery-preview-grid"></div>
-            </div>
-
-            <!-- Card Tải Giấy tờ pháp lý của xe -->
-            <div class="recar-form-card" style="border-left: 4px solid #10b981;">
-                <div class="recar-card-header">
-                    <div class="recar-card-step-badge" style="background: #10b981; color: white;"><i class="bi bi-file-earmark-check-fill" style="font-size: 1rem;"></i></div>
-                    <div>
-                        <h3 class="recar-card-title">Giấy tờ pháp lý phương tiện</h3>
-                        <div class="recar-card-subtitle">Bắt buộc tải lên để Admin thẩm định hồ sơ</div>
-                    </div>
-                </div>
-
-                <!-- 1. Cà vẹt xe -->
-                <div class="mb-3">
-                    <label class="form-label-custom small fw-bold text-dark d-flex align-items-center justify-content-between">
-                        <span>1. Giấy đăng ký xe (Cà vẹt) <span class="text-danger">*</span></span>
-                        <span class="badge bg-light text-muted border" style="font-size: 10px;">Ảnh chụp 2 mặt rõ nét</span>
-                    </label>
-                    <div class="recar-image-dropzone py-2.5 px-3 d-flex align-items-center justify-content-between rounded-3 border" onclick="document.getElementById('fileRegDoc').click()" style="cursor: pointer; background-color: #f8fafc;">
-                        <input type="file" asp-for="RegistrationImageFile" id="fileRegDoc" accept="image/*" class="d-none" onchange="previewSingleDoc(this, 'previewRegDoc', 'placeholderRegDoc')" />
-                        <div class="d-flex align-items-center gap-2" id="placeholderRegDoc">
-                            <i class="bi bi-file-earmark-arrow-up-fill text-primary fs-4"></i>
-                            <div class="text-start">
-                                <div class="small fw-semibold text-dark">Tải ảnh Cà vẹt xe</div>
-                                <div class="text-muted" style="font-size: 11px;">Nhấp để chọn tệp</div>
-                            </div>
-                        </div>
-                        <img id="previewRegDoc" src="" class="d-none rounded-2 object-fit-cover shadow-sm" style="width: 50px; height: 38px;" alt="Cà vẹt" />
-                        <span class="btn btn-sm btn-outline-primary py-1 px-2.5 rounded-pill" style="font-size: 11px;">Chọn ảnh</span>
-                    </div>
-                </div>
-
-                <!-- 2. Giấy chứng nhận đăng kiểm -->
-                <div class="mb-3">
-                    <label class="form-label-custom small fw-bold text-dark d-flex align-items-center justify-content-between">
-                        <span>2. Giấy chứng nhận đăng kiểm <span class="text-danger">*</span></span>
-                        <span class="badge bg-light text-muted border" style="font-size: 10px;">Còn thời hạn lưu hành</span>
-                    </label>
-                    <div class="recar-image-dropzone py-2.5 px-3 d-flex align-items-center justify-content-between rounded-3 border" onclick="document.getElementById('fileInspDoc').click()" style="cursor: pointer; background-color: #f8fafc;">
-                        <input type="file" asp-for="InspectionImageFile" id="fileInspDoc" accept="image/*" class="d-none" onchange="previewSingleDoc(this, 'previewInspDoc', 'placeholderInspDoc')" />
-                        <div class="d-flex align-items-center gap-2" id="placeholderInspDoc">
-                            <i class="bi bi-file-earmark-arrow-up-fill text-success fs-4"></i>
-                            <div class="text-start">
-                                <div class="small fw-semibold text-dark">Tải ảnh Sổ đăng kiểm</div>
-                                <div class="text-muted" style="font-size: 11px;">Nhấp để chọn tệp</div>
-                            </div>
-                        </div>
-                        <img id="previewInspDoc" src="" class="d-none rounded-2 object-fit-cover shadow-sm" style="width: 50px; height: 38px;" alt="Đăng kiểm" />
-                        <span class="btn btn-sm btn-outline-success py-1 px-2.5 rounded-pill" style="font-size: 11px;">Chọn ảnh</span>
-                    </div>
-                </div>
-
-                <!-- 3. Bảo hiểm TNDS bắt buộc -->
-                <div class="mb-2">
-                    <label class="form-label-custom small fw-bold text-dark d-flex align-items-center justify-content-between">
-                        <span>3. Bảo hiểm TNDS bắt buộc</span>
-                        <span class="badge bg-light text-muted border" style="font-size: 10px;">Bảo hiểm xe cơ giới</span>
-                    </label>
-                    <div class="recar-image-dropzone py-2.5 px-3 d-flex align-items-center justify-content-between rounded-3 border" onclick="document.getElementById('fileInsDoc').click()" style="cursor: pointer; background-color: #f8fafc;">
-                        <input type="file" asp-for="InsuranceImageFile" id="fileInsDoc" accept="image/*" class="d-none" onchange="previewSingleDoc(this, 'previewInsDoc', 'placeholderInsDoc')" />
-                        <div class="d-flex align-items-center gap-2" id="placeholderInsDoc">
-                            <i class="bi bi-shield-earmark-check-fill text-info fs-4"></i>
-                            <div class="text-start">
-                                <div class="small fw-semibold text-dark">Tải ảnh Bảo hiểm TNDS</div>
-                                <div class="text-muted" style="font-size: 11px;">Nhấp để chọn tệp</div>
-                            </div>
-                        </div>
-                        <img id="previewInsDoc" src="" class="d-none rounded-2 object-fit-cover shadow-sm" style="width: 50px; height: 38px;" alt="Bảo hiểm" />
-                        <span class="btn btn-sm btn-outline-info py-1 px-2.5 rounded-pill" style="font-size: 11px;">Chọn ảnh</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Card Quy định & Nút Submit -->
-            <div class="recar-form-card" style="border-top: 4px solid #0284c7;">
-                <h5 class="fw-bold text-dark mb-2">Cam kết đối tác ReCar</h5>
-                <p class="text-muted small mb-3" style="line-height: 1.5;">
-                    Phương tiện sau khi gửi sẽ được Ban Quản trị ReCar thẩm định giấy tờ và đối soát biển số trong vòng <strong>1 đến 12 giờ</strong>.
-                </p>
-
-                <div class="d-grid gap-2">
-                    <button type="submit" class="btn btn-primary rounded-pill py-3 fw-bold shadow-sm d-flex align-items-center justify-content-center gap-2" style="background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); border: none; font-size: 1rem;">
-                        <i class="bi bi-send-check-fill fs-5"></i>
-                        <span>Gửi hồ sơ kiểm duyệt xe</span>
+                <div class="wizard-footer-nav">
+                    <button type="button" class="btn-wizard-prev" onclick="goToStep(1)">
+                        <i class="bi bi-arrow-left"></i>
+                        <span>Quay lại</span>
                     </button>
-
-                    <a href="/CarOwner/Cars/Index" class="btn btn-light rounded-pill py-2.5 border text-secondary fw-semibold small text-center">
-                        Hủy và quay lại
-                    </a>
+                    <button type="button" class="btn-wizard-next" onclick="validateAndGoStep(2, 3)">
+                        <span>Tiếp tục: Bảng giá & Địa điểm</span>
+                        <i class="bi bi-arrow-right"></i>
+                    </button>
                 </div>
             </div>
-
         </div>
-    </div>
-</form>
+
+        <!-- ============================================== -->
+        <!-- BƯỚC 3: GIÁ THUÊ & ĐỊA ĐIỂM BÀN GIAO           -->
+        <!-- ============================================== -->
+        <div class="wizard-step-pane" id="stepPane3">
+            <div class="recar-card">
+                <div class="step-header">
+                    <span class="step-badge">Bước 3 trên 4</span>
+                    <h4 class="step-title">Giá thuê & Địa điểm bàn giao xe</h4>
+                    <p class="step-desc">Thiết lập đơn giá theo ngày và địa điểm bàn giao phương tiện.</p>
+                </div>
+
+                <div class="row g-3.5">
+                    <!-- Hàng 1: Giá niêm yết & Giá ưu đãi -->
+                    <div class="col-12 col-md-6">
+                        <label asp-for="Price" class="form-label-custom">Giá thuê theo ngày (VNĐ) <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <input asp-for="Price" type="number" min="200000" step="50000" class="form-control form-control-custom fw-bold text-primary" id="inputPrice" required />
+                            <span class="input-group-text bg-white text-muted small">đ/ngày</span>
+                        </div>
+                        <div class="text-primary fw-semibold small mt-1" id="priceDisplayFormatted">850.000 VNĐ / ngày</div>
+                        <span asp-validation-for="Price" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-12 col-md-6">
+                        <label asp-for="SalePrice" class="form-label-custom">Giá khuyến mãi (nếu có)</label>
+                        <div class="input-group">
+                            <input asp-for="SalePrice" type="number" min="0" step="50000" class="form-control form-control-custom" id="inputSalePrice" placeholder="Để trống nếu không giảm giá" />
+                            <span class="input-group-text bg-white text-muted small">đ/ngày</span>
+                        </div>
+                    </div>
+
+                    <!-- Hàng 2: Quy định hành trình (2 cột rộng rãi) -->
+                    <div class="col-12 col-md-6">
+                        <label asp-for="MileageLimit" class="form-label-custom">Giới hạn quãng đường</label>
+                        <div class="input-group">
+                            <input asp-for="MileageLimit" type="number" min="100" max="1000" step="50" class="form-control form-control-custom" id="inputMileage" />
+                            <span class="input-group-text bg-white text-muted small">km/ngày</span>
+                        </div>
+                        <div class="text-muted small mt-1" style="font-size: 11px;">Mặc định 350 km/ngày, vượt sẽ tính phụ phí</div>
+                    </div>
+
+                    <div class="col-12 col-md-6">
+                        <label asp-for="ExtraFeePerKm" class="form-label-custom">Phụ phí vượt km</label>
+                        <div class="input-group">
+                            <input asp-for="ExtraFeePerKm" type="number" min="1000" max="20000" step="500" class="form-control form-control-custom" id="inputExtraKm" />
+                            <span class="input-group-text bg-white text-muted small">đ/km</span>
+                        </div>
+                        <div class="text-muted small mt-1" style="font-size: 11px;">Phụ thu trên mỗi km phát sinh thêm</div>
+                    </div>
+
+                    <!-- Hàng 3: Hỗ trợ giao xe tận nơi (Khối thẻ nổi riêng) -->
+                    <div class="col-12">
+                        <div class="p-3 rounded-3 bg-light border d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+                            <div class="d-flex align-items-center gap-2.5">
+                                <div class="form-check form-switch m-0 fs-5">
+                                    <input asp-for="DeliverySupported" class="form-check-input" type="checkbox" id="checkDelivery" role="switch" checked>
+                                </div>
+                                <div>
+                                    <label for="checkDelivery" class="fw-bold text-dark mb-0" style="cursor: pointer; font-size: 0.9rem;">Hỗ trợ giao xe tận nơi cho khách</label>
+                                    <div class="text-muted" style="font-size: 11.5px;">Chủ xe hỗ trợ đem xe đến địa chỉ khách mong muốn</div>
+                                </div>
+                            </div>
+                            <div class="d-flex align-items-center gap-2" style="min-width: 220px;">
+                                <label class="form-label-custom mb-0 text-nowrap small text-muted">Phí giao xe:</label>
+                                <div class="input-group input-group-sm">
+                                    <input asp-for="DeliveryFee" type="number" step="10000" class="form-control form-control-custom py-1.5" id="inputDeliveryFee" placeholder="Phí giao" />
+                                    <span class="input-group-text bg-white text-muted small">đ/lượt</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Hàng 3: Địa điểm nhận xe -->
+                    <div class="col-12 pt-3 border-top">
+                        <label class="form-label-custom mb-2">Địa điểm bàn giao xe cố định</label>
+                        <div class="row g-2.5">
+                            <div class="col-12 col-md-4">
+                                <select class="form-select form-select-custom" id="selectCity" onchange="combineLocationAddress()" required>
+                                    <option value="">-- Chọn Tỉnh / Thành phố --</option>
+                                    @if (locations != null && locations.Any())
+                                    {
+                                        foreach (var loc in locations)
+                                        {
+                                            <option value="@loc.CityName">@loc.CityName @(loc.IsPopular ? "★" : "")</option>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <option value="Hà Nội">Hà Nội</option>
+                                        <option value="TP. Hồ Chí Minh">TP. Hồ Chí Minh</option>
+                                        <option value="Nghệ An">Nghệ An (TP. Vinh)</option>
+                                        <option value="Đà Nẵng">Đà Nẵng</option>
+                                    }
+                                </select>
+                            </div>
+
+                            <div class="col-12 col-md-8">
+                                <input type="text" class="form-control form-control-custom" id="inputStreetAddress"
+                                       placeholder="Số nhà, đường, phường/xã, quận/huyện..." oninput="combineLocationAddress()" required />
+                            </div>
+
+                            <input type="hidden" asp-for="Location" id="inputLocationHidden" />
+                            <div class="col-12" id="fullAddressPreviewBox" style="display: none;">
+                                <div class="small text-muted">
+                                    <i class="bi bi-geo-alt-fill text-danger me-1"></i>
+                                    <strong>Địa chỉ hiển thị:</strong> <span id="fullAddressPreview"></span>
+                                </div>
+                            </div>
+                            <span asp-validation-for="Location" class="text-danger small"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="wizard-footer-nav">
+                    <button type="button" class="btn-wizard-prev" onclick="goToStep(2)">
+                        <i class="bi bi-arrow-left"></i>
+                        <span>Quay lại</span>
+                    </button>
+                    <button type="button" class="btn-wizard-next" onclick="validateAndGoStep(3, 4)">
+                        <span>Tiếp tục: 4 Góc ảnh & Giấy tờ</span>
+                        <i class="bi bi-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================== -->
+        <!-- BƯỚC 4: 4 Ô CHỤP ẢNH XE & GIẤY TỜ PHÁP LÝ KYC  -->
+        <!-- ============================================== -->
+        <div class="wizard-step-pane" id="stepPane4">
+            <div class="recar-card">
+                <div class="step-header">
+                    <span class="step-badge">Bước 4 trên 4</span>
+                    <h4 class="step-title">4 Góc ảnh xe chuẩn & Giấy tờ pháp lý</h4>
+                    <p class="step-desc">Tải ảnh 4 góc xe thực tế và 3 giấy tờ pháp lý để thẩm định hồ sơ.</p>
+                </div>
+
+                <!-- 4 Ô Chụp Ảnh Xe -->
+                <div class="mb-4">
+                    <label class="form-label-custom mb-2.5">Ảnh xe thực tế (4 góc chụp)</label>
+
+                    <div class="photo-slot-grid">
+                        <!-- Ô 1: Mặt trước (Bắt buộc) -->
+                        <div class="photo-slot" id="slotFront" onclick="triggerUpload('fileFrontImage')">
+                            <span class="photo-slot-badge">Mặt trước (Chính) *</span>
+                            <button type="button" class="photo-slot-remove" onclick="removeImage(event, 'fileFrontImage', 'slotFront', 'imgFront')">
+                                <i class="bi bi-x"></i>
+                            </button>
+                            <input type="file" asp-for="ImageFile" id="fileFrontImage" accept="image/*" class="d-none" onchange="previewSlot(this, 'slotFront', 'imgFront')" />
+                            
+                            <div class="photo-slot-placeholder">
+                                <i class="bi bi-car-front text-primary" style="font-size: 2.2rem;"></i>
+                                <div class="fw-bold text-dark mt-2 small">Đầu xe</div>
+                                <span class="btn btn-sm btn-outline-primary py-0.5 px-2 mt-2 rounded-pill" style="font-size: 11px;">Tải ảnh</span>
+                            </div>
+                            <img id="imgFront" src="" alt="Mặt trước xe" class="photo-slot-img" />
+                        </div>
+
+                        <!-- Ô 2: Mặt sau -->
+                        <div class="photo-slot" id="slotRear" onclick="triggerUpload('fileRearImage')">
+                            <span class="photo-slot-badge">Mặt sau xe</span>
+                            <button type="button" class="photo-slot-remove" onclick="removeImage(event, 'fileRearImage', 'slotRear', 'imgRear')">
+                                <i class="bi bi-x"></i>
+                            </button>
+                            <input type="file" name="DetailImages" id="fileRearImage" accept="image/*" class="d-none" onchange="previewSlot(this, 'slotRear', 'imgRear')" />
+                            
+                            <div class="photo-slot-placeholder">
+                                <i class="bi bi-truck-front text-secondary" style="font-size: 2.2rem;"></i>
+                                <div class="fw-bold text-dark mt-2 small">Đuôi xe</div>
+                                <span class="btn btn-sm btn-outline-secondary py-0.5 px-2 mt-2 rounded-pill" style="font-size: 11px;">Tải ảnh</span>
+                            </div>
+                            <img id="imgRear" src="" alt="Mặt sau xe" class="photo-slot-img" />
+                        </div>
+
+                        <!-- Ô 3: Nội thất -->
+                        <div class="photo-slot" id="slotInterior" onclick="triggerUpload('fileInteriorImage')">
+                            <span class="photo-slot-badge">Nội thất</span>
+                            <button type="button" class="photo-slot-remove" onclick="removeImage(event, 'fileInteriorImage', 'slotInterior', 'imgInterior')">
+                                <i class="bi bi-x"></i>
+                            </button>
+                            <input type="file" name="DetailImages" id="fileInteriorImage" accept="image/*" class="d-none" onchange="previewSlot(this, 'slotInterior', 'imgInterior')" />
+                            
+                            <div class="photo-slot-placeholder">
+                                <i class="bi bi-speedometer text-secondary" style="font-size: 2.2rem;"></i>
+                                <div class="fw-bold text-dark mt-2 small">Khoang lái</div>
+                                <span class="btn btn-sm btn-outline-secondary py-0.5 px-2 mt-2 rounded-pill" style="font-size: 11px;">Tải ảnh</span>
+                            </div>
+                            <img id="imgInterior" src="" alt="Nội thất khoang lái" class="photo-slot-img" />
+                        </div>
+
+                        <!-- Ô 4: Góc nghiêng -->
+                        <div class="photo-slot" id="slotSide" onclick="triggerUpload('fileSideImage')">
+                            <span class="photo-slot-badge">Góc nghiêng 3/4</span>
+                            <button type="button" class="photo-slot-remove" onclick="removeImage(event, 'fileSideImage', 'slotSide', 'imgSide')">
+                                <i class="bi bi-x"></i>
+                            </button>
+                            <input type="file" name="DetailImages" id="fileSideImage" accept="image/*" class="d-none" onchange="previewSlot(this, 'slotSide', 'imgSide')" />
+                            
+                            <div class="photo-slot-placeholder">
+                                <i class="bi bi-car-front-fill text-secondary" style="font-size: 2.2rem;"></i>
+                                <div class="fw-bold text-dark mt-2 small">Thân xe</div>
+                                <span class="btn btn-sm btn-outline-secondary py-0.5 px-2 mt-2 rounded-pill" style="font-size: 11px;">Tải ảnh</span>
+                            </div>
+                            <img id="imgSide" src="" alt="Góc nghiêng thân xe" class="photo-slot-img" />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Giấy tờ pháp lý xe -->
+                <div class="pt-3 border-top">
+                    <label class="form-label-custom mb-2">Giấy tờ pháp lý phương tiện (KYC) <span class="text-danger">*</span></label>
+                    <div class="row g-2.5">
+                        <!-- 1. Cà vẹt xe -->
+                        <div class="col-12 col-md-4">
+                            <div class="doc-slot-card" id="docCardReg" onclick="triggerUpload('fileRegDoc')">
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="p-1.5 bg-primary-subtle text-primary rounded-2"><i class="bi bi-file-earmark-text-fill fs-5"></i></div>
+                                    <div>
+                                        <div class="fw-bold text-dark small">Giấy đăng ký xe</div>
+                                        <div class="text-muted" style="font-size: 11px;" id="docTextReg">Cà vẹt xe</div>
+                                    </div>
+                                </div>
+                                <img id="docPreviewReg" src="" class="d-none rounded-2 object-fit-cover shadow-sm" style="width: 40px; height: 30px;" />
+                                <span class="btn btn-sm btn-outline-primary py-0.5 px-2 rounded-pill" style="font-size: 11px;">Tải tệp</span>
+                                <input type="file" asp-for="RegistrationImageFile" id="fileRegDoc" accept="image/*" class="d-none" onchange="previewDoc(this, 'docCardReg', 'docTextReg', 'docPreviewReg')" />
+                            </div>
+                        </div>
+
+                        <!-- 2. Đăng kiểm -->
+                        <div class="col-12 col-md-4">
+                            <div class="doc-slot-card" id="docCardInsp" onclick="triggerUpload('fileInspDoc')">
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="p-1.5 bg-success-subtle text-success rounded-2"><i class="bi bi-file-earmark-check-fill fs-5"></i></div>
+                                    <div>
+                                        <div class="fw-bold text-dark small">Sổ đăng kiểm</div>
+                                        <div class="text-muted" style="font-size: 11px;" id="docTextInsp">Đăng kiểm lưu hành</div>
+                                    </div>
+                                </div>
+                                <img id="docPreviewInsp" src="" class="d-none rounded-2 object-fit-cover shadow-sm" style="width: 40px; height: 30px;" />
+                                <span class="btn btn-sm btn-outline-success py-0.5 px-2 rounded-pill" style="font-size: 11px;">Tải tệp</span>
+                                <input type="file" asp-for="InspectionImageFile" id="fileInspDoc" accept="image/*" class="d-none" onchange="previewDoc(this, 'docCardInsp', 'docTextInsp', 'docPreviewInsp')" />
+                            </div>
+                        </div>
+
+                        <!-- 3. Bảo hiểm TNDS -->
+                        <div class="col-12 col-md-4">
+                            <div class="doc-slot-card" id="docCardIns" onclick="triggerUpload('fileInsDoc')">
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="p-1.5 bg-info-subtle text-info rounded-2"><i class="bi bi-shield-check fs-5"></i></div>
+                                    <div>
+                                        <div class="fw-bold text-dark small">Bảo hiểm TNDS</div>
+                                        <div class="text-muted" style="font-size: 11px;" id="docTextIns">Bảo hiểm xe</div>
+                                    </div>
+                                </div>
+                                <img id="docPreviewIns" src="" class="d-none rounded-2 object-fit-cover shadow-sm" style="width: 40px; height: 30px;" />
+                                <span class="btn btn-sm btn-outline-info py-0.5 px-2 rounded-pill" style="font-size: 11px;">Tải tệp</span>
+                                <input type="file" asp-for="InsuranceImageFile" id="fileInsDoc" accept="image/*" class="d-none" onchange="previewDoc(this, 'docCardIns', 'docTextIns', 'docPreviewIns')" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="wizard-footer-nav">
+                    <button type="button" class="btn-wizard-prev" onclick="goToStep(3)">
+                        <i class="bi bi-arrow-left"></i>
+                        <span>Quay lại</span>
+                    </button>
+                    <button type="button" class="btn-wizard-next" onclick="prepareAndGoStep5()">
+                        <span>Xem trước</span>
+                        <i class="bi bi-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================== -->
+        <!-- BƯỚC 5: XEM LẠI TOÀN BỘ HỒ SƠ XE (CHUẨN HÓA)  -->
+        <!-- ============================================== -->
+        <div class="wizard-step-pane" id="stepPane5">
+            <div class="summary-card mb-4">
+                
+                <!-- 1. Header Tổng Quan Xe & Biển Số Chuẩn -->
+                <div class="summary-header-bar">
+                    <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+                        <div>
+                            <div class="d-flex align-items-center gap-2 mb-2.5 flex-wrap">
+                                <span class="badge bg-primary px-3 py-1.5 rounded-pill fw-bold" id="lpBrandBadge">VinFast</span>
+                                <span class="badge bg-secondary px-2.5 py-1.5 rounded-pill" id="lpYearBadge">2024</span>
+                                <div class="vn-license-plate">
+                                    <span id="lpLicensePlate">30H-888.68</span>
+                                </div>
+                                <span class="badge bg-warning text-dark px-2.5 py-1.5 rounded-pill fw-bold">
+                                    <i class="bi bi-hourglass-split me-1"></i> Chờ duyệt
+                                </span>
+                            </div>
+                            <h3 class="fw-bolder text-white mb-1.5" id="lpCarName">VinFast VF 8 Plus</h3>
+                            <div class="text-white-50 small">
+                                Màu sơn: <strong class="text-white" id="lpColor">Trắng</strong> · Khu vực hoạt động: <strong class="text-white" id="lpCityBadge">Hà Nội</strong>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline-light rounded-pill px-3 py-1.5" onclick="goToStep(1)">
+                            <i class="bi bi-pencil-square me-1"></i> Chỉnh sửa thông tin
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 2. 4 Ảnh Xe Dàn Đều (Tỷ lệ 4:3 Rõ Ràng) -->
+                <div class="summary-gallery-grid">
+                    <div class="summary-photo-box">
+                        <img id="lpGalleryMain" src="/images/cars/car-sedan.jpg" alt="Mặt trước xe" />
+                        <span class="summary-photo-tag">1. Đầu xe (Chính)</span>
+                    </div>
+                    <div class="summary-photo-box">
+                        <img id="lpGallerySub1" src="/images/cars/car-sedan.jpg" alt="Mặt sau xe" />
+                        <span class="summary-photo-tag">2. Đuôi xe</span>
+                    </div>
+                    <div class="summary-photo-box">
+                        <img id="lpGallerySub2" src="/images/cars/car-sedan.jpg" alt="Khoang lái" />
+                        <span class="summary-photo-tag">3. Khoang lái</span>
+                    </div>
+                    <div class="summary-photo-box">
+                        <img id="lpGallerySub3" src="/images/cars/car-sedan.jpg" alt="Thân xe" />
+                        <span class="summary-photo-tag">4. Thân xe</span>
+                    </div>
+                </div>
+
+                <!-- 3. Nội Dung Chi Tiết -->
+                <div class="summary-body">
+                    
+                    <!-- Băng 4 Thông số Kỹ thuật Rộng Rãi -->
+                    <div class="summary-section-title">
+                        <i class="bi bi-speedometer2 text-primary"></i>
+                        <span>Thông số kỹ thuật & Vận hành</span>
+                    </div>
+
+                    <div class="summary-specs-strip">
+                        <div class="summary-spec-cell">
+                            <i class="bi bi-people-fill"></i>
+                            <div>
+                                <div class="spec-sub">Số chỗ ngồi</div>
+                                <div class="spec-main" id="lpSeats">5 chỗ</div>
+                            </div>
+                        </div>
+                        <div class="summary-spec-cell">
+                            <i class="bi bi-sliders"></i>
+                            <div>
+                                <div class="spec-sub">Hộp số</div>
+                                <div class="spec-main" id="lpTransmission">Tự động</div>
+                            </div>
+                        </div>
+                        <div class="summary-spec-cell">
+                            <i class="bi bi-fuel-pump-fill"></i>
+                            <div>
+                                <div class="spec-sub">Nhiên liệu</div>
+                                <div class="spec-main" id="lpFuel">Xăng</div>
+                            </div>
+                        </div>
+                        <div class="summary-spec-cell">
+                            <i class="bi bi-lightning-charge-fill text-warning"></i>
+                            <div>
+                                <div class="spec-sub">Mức tiêu hao</div>
+                                <div class="spec-main" id="lpConsumption">Tiêu chuẩn</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 2 Cột Cân Đối 50 - 50: Giá & Thu Nhập / Địa Điểm & Pháp Lý -->
+                    <div class="row g-4 mb-4">
+                        
+                        <!-- Cột Trái: Bảng giá & Phân bổ tài chính -->
+                        <div class="col-12 col-md-6">
+                            <div class="summary-section-title">
+                                <i class="bi bi-cash-stack text-success"></i>
+                                <span>Giá thuê & Thu nhập chủ xe</span>
+                            </div>
+
+                            <div class="summary-table-box mb-3">
+                                <div class="summary-table-row bg-light">
+                                    <span class="summary-table-label fw-bold text-dark">
+                                        <i class="bi bi-tag-fill text-primary"></i> Đơn giá niêm yết:
+                                    </span>
+                                    <span class="summary-table-val text-primary fs-5" id="lpPrice">850.000 đ/ngày</span>
+                                </div>
+                                <div class="summary-table-row">
+                                    <span class="summary-table-label">
+                                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle" style="font-size: 11px;">30%</span>
+                                        Khách cọc sàn giữ chỗ:
+                                    </span>
+                                    <span class="summary-table-val text-muted" id="lpDepositAmount">255.000 đ</span>
+                                </div>
+                                <div class="summary-table-row">
+                                    <span class="summary-table-label">
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle" style="font-size: 11px;">70%</span>
+                                        Bạn thu khi bàn giao xe:
+                                    </span>
+                                    <span class="summary-table-val text-success fs-6 fw-bold" id="lpRemainingAmount">595.000 đ</span>
+                                </div>
+                                <div class="summary-table-row">
+                                    <span class="summary-table-label">
+                                        <i class="bi bi-speedometer text-secondary"></i> Giới hạn hành trình:
+                                    </span>
+                                    <span class="summary-table-val" id="lpMileageLimit">350 km/ngày</span>
+                                </div>
+                                <div class="summary-table-row">
+                                    <span class="summary-table-label">
+                                        <i class="bi bi-truck text-secondary"></i> Dịch vụ giao nhận xe:
+                                    </span>
+                                    <span class="summary-table-val text-dark" id="lpDeliveryText">Có hỗ trợ giao tận nơi</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Cột Phải: Địa điểm & Hồ sơ pháp lý -->
+                        <div class="col-12 col-md-6">
+                            <div class="summary-section-title">
+                                <i class="bi bi-geo-alt-fill text-danger"></i>
+                                <span>Địa điểm bàn giao & Pháp lý</span>
+                            </div>
+
+                            <div class="summary-table-box mb-3">
+                                <div class="summary-table-row">
+                                    <span class="summary-table-label">
+                                        <i class="bi bi-pin-map-fill text-danger"></i> Điểm giao xe cố định:
+                                    </span>
+                                    <span class="summary-table-val text-dark text-truncate" style="max-width: 250px;" id="lpLocationFull">Chưa cập nhật</span>
+                                </div>
+                                <div class="summary-table-row">
+                                    <span class="summary-table-label">
+                                        <i class="bi bi-shield-check text-success"></i> Giấy tờ pháp lý KYC:
+                                    </span>
+                                    <span class="summary-table-val">
+                                        <div class="d-flex flex-wrap gap-1 justify-content-end">
+                                            <span class="kyc-badge-pill"><i class="bi bi-check-circle-fill"></i> Cà vẹt</span>
+                                            <span class="kyc-badge-pill"><i class="bi bi-check-circle-fill"></i> Đăng kiểm</span>
+                                            <span class="kyc-badge-pill"><i class="bi bi-check-circle-fill"></i> Bảo hiểm</span>
+                                        </div>
+                                    </span>
+                                </div>
+                                <div class="summary-table-row flex-column align-items-start gap-1">
+                                    <span class="summary-table-label">
+                                        <i class="bi bi-chat-left-text text-secondary"></i> Quy định của chủ xe:
+                                    </span>
+                                    <div class="w-100 p-2.5 rounded-3 bg-light text-muted small mt-1 border" id="lpDetails">
+                                        Áp dụng quy chuẩn bàn giao và giữ gìn xe của ReCar.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- Tiện nghi trang bị rộng rãi -->
+                    <div class="summary-section-title">
+                        <i class="bi bi-check2-circle text-primary"></i>
+                        <span>Tiện nghi trang bị trên xe</span>
+                    </div>
+                    <div class="d-flex flex-wrap gap-2 mb-4" id="lpAmenitiesList">
+                        <!-- Danh sách tiện nghi dạng pills thoáng mát -->
+                    </div>
+
+                    <!-- Bottom Action Bar Cân Đối Toàn Trang -->
+                    <div class="d-flex align-items-center justify-content-between pt-3 border-top flex-wrap gap-3">
+                        <button type="button" class="btn btn-wizard-prev" onclick="goToStep(4)">
+                            <i class="bi bi-arrow-left"></i>
+                            <span>Quay lại ảnh & giấy tờ</span>
+                        </button>
+
+                        <button type="submit" class="btn btn-wizard-next px-4 py-2.5 fs-6 shadow" id="btnFinalSubmit">
+                            <i class="bi bi-send-check-fill"></i>
+                            <span>Xác nhận & Gửi hồ sơ kiểm duyệt</span>
+                        </button>
+                    </div>
+
+                </div>
+
+            </div>
+        </div>
+
+    </form>
+</div>
 
 <script>
-    // Format hiển thị giá tiền real-time
+    let currentStep = 1;
+    const totalSteps = 5;
+
+    function goToStep(step) {
+        if (step < 1 || step > totalSteps) return;
+
+        for (let i = 1; i <= totalSteps; i++) {
+            const pane = document.getElementById('stepPane' + i);
+            const item = document.getElementById('stepItem' + i);
+            if (pane) pane.classList.remove('active');
+            if (item) {
+                if (i < step) {
+                    item.classList.remove('active');
+                    item.classList.add('completed');
+                } else if (i === step) {
+                    item.classList.add('active');
+                    item.classList.remove('completed');
+                } else {
+                    item.classList.remove('active', 'completed');
+                }
+            }
+        }
+
+        const activePane = document.getElementById('stepPane' + step);
+        if (activePane) activePane.classList.add('active');
+
+        const progressPercent = ((step - 1) / (totalSteps - 1)) * 100;
+        const progressBar = document.getElementById('stepperProgressBar');
+        if (progressBar) progressBar.style.width = progressPercent + '%';
+
+        currentStep = step;
+        window.scrollTo({ top: 100, behavior: 'smooth' });
+    }
+
+    function validateAndGoStep(fromStep, toStep) {
+        if (fromStep === 1) {
+            const name = document.getElementById('inputCarName').value.trim();
+            const brand = document.getElementById('selectBrand').value;
+            const type = document.getElementById('selectType').value;
+            const plate = document.getElementById('inputLicensePlate').value.trim();
+            const color = document.getElementById('inputColor').value.trim();
+
+            if (!name || !brand || !type || !plate || !color) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Thiếu thông tin',
+                    text: 'Vui lòng điền đủ Tên xe, Hãng xe, Dáng xe, Biển số và Màu sắc.',
+                    confirmButtonColor: '#0284c7'
+                });
+                return;
+            }
+        } else if (fromStep === 3) {
+            const price = parseFloat(document.getElementById('inputPrice').value) || 0;
+            const city = document.getElementById('selectCity').value;
+            const street = document.getElementById('inputStreetAddress').value.trim();
+
+            if (price < 200000) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Giá chưa hợp lệ',
+                    text: 'Giá thuê tối thiểu từ 200.000 VNĐ / ngày.',
+                    confirmButtonColor: '#0284c7'
+                });
+                return;
+            }
+            if (!city || !street) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Thiếu địa chỉ',
+                    text: 'Vui lòng chọn Tỉnh/Thành phố và nhập địa chỉ cụ thể.',
+                    confirmButtonColor: '#0284c7'
+                });
+                return;
+            }
+            combineLocationAddress();
+        }
+
+        goToStep(toStep);
+    }
+
+    function prepareAndGoStep5() {
+        const fileFront = document.getElementById('fileFrontImage');
+
+        if (!fileFront.files || fileFront.files.length === 0) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Thiếu ảnh đại diện xe',
+                text: 'Vui lòng tải lên ít nhất 1 ảnh Mặt trước của xe để làm ảnh đại diện.',
+                confirmButtonColor: '#0284c7'
+            });
+            return;
+        }
+
+        document.getElementById('lpCarName').innerText = document.getElementById('inputCarName').value || 'Tên xe';
+        document.getElementById('lpBrandBadge').innerText = document.getElementById('selectBrand').value || 'Hãng xe';
+        document.getElementById('lpYearBadge').innerText = document.getElementById('selectYear').value || '2024';
+        document.getElementById('lpLicensePlate').innerText = document.getElementById('inputLicensePlate').value.toUpperCase() || 'Chưa có';
+        document.getElementById('lpColor').innerText = document.getElementById('inputColor').value || 'Tự do';
+        document.getElementById('lpSeats').innerText = (document.getElementById('inputSeat').value || '5') + ' chỗ';
+        document.getElementById('lpTransmission').innerText = document.getElementById('inputTransmission').value || 'Tự động';
+        document.getElementById('lpFuel').innerText = document.getElementById('inputFuel').value || 'Xăng';
+        document.getElementById('lpConsumption').innerText = document.getElementById('inputFuelConsumption').value || 'Tiêu chuẩn';
+
+        const city = document.getElementById('selectCity').value;
+        const street = document.getElementById('inputStreetAddress').value;
+        const fullLoc = street + (city ? (', ' + city) : '');
+        document.getElementById('lpLocationFull').innerText = fullLoc || 'Chưa cập nhật';
+        document.getElementById('lpCityBadge').innerText = city || 'Toàn quốc';
+
+        const price = parseInt(document.getElementById('inputPrice').value) || 850000;
+        document.getElementById('lpPrice').innerHTML = price.toLocaleString('vi-VN') + '<span class="fs-6 text-muted fw-normal"> đ/ngày</span>';
+        
+        const deposit = Math.round(price * 0.3);
+        const remaining = price - deposit;
+        document.getElementById('lpDepositAmount').innerText = deposit.toLocaleString('vi-VN') + ' đ';
+        document.getElementById('lpRemainingAmount').innerText = remaining.toLocaleString('vi-VN') + ' đ';
+
+        const km = document.getElementById('inputMileage').value || 350;
+        document.getElementById('lpMileageLimit').innerText = km + ' km/ngày';
+
+        const isDelivery = document.getElementById('checkDelivery').checked;
+        const deliveryFee = parseInt(document.getElementById('inputDeliveryFee').value) || 0;
+        document.getElementById('lpDeliveryText').innerText = isDelivery ? `Có hỗ trợ (${deliveryFee.toLocaleString('vi-VN')}đ)` : 'Nhận tại bãi';
+
+        const details = document.getElementById('inputDetails').value.trim();
+        document.getElementById('lpDetails').innerText = details || 'Chủ xe chưa thêm quy định riêng.';
+
+        const amenitiesBox = document.getElementById('lpAmenitiesList');
+        amenitiesBox.innerHTML = '';
+        const checkedAmenities = document.querySelectorAll('#amenitiesContainer input[type="checkbox"]:checked');
+        if (checkedAmenities.length > 0) {
+            checkedAmenities.forEach(cb => {
+                const badge = document.createElement('span');
+                badge.className = 'badge bg-primary-subtle text-primary border border-primary-subtle px-2.5 py-1.5 rounded-pill small';
+                badge.innerHTML = `<i class="bi bi-check2 me-1"></i> ${cb.value}`;
+                amenitiesBox.appendChild(badge);
+            });
+        } else {
+            amenitiesBox.innerHTML = '<span class="text-muted small">Chưa chọn tiện nghi đặc thù.</span>';
+        }
+
+        const frontPreview = document.getElementById('imgFront').src;
+        if (frontPreview && frontPreview.length > 20) {
+            document.getElementById('lpGalleryMain').src = frontPreview;
+        }
+
+        const rearPreview = document.getElementById('imgRear').src;
+        if (rearPreview && rearPreview.length > 20) {
+            document.getElementById('lpGallerySub1').src = rearPreview;
+        } else {
+            document.getElementById('lpGallerySub1').src = document.getElementById('lpGalleryMain').src;
+        }
+
+        const intPreview = document.getElementById('imgInterior').src;
+        if (intPreview && intPreview.length > 20) {
+            document.getElementById('lpGallerySub2').src = intPreview;
+        } else {
+            document.getElementById('lpGallerySub2').src = document.getElementById('lpGalleryMain').src;
+        }
+
+        const sidePreview = document.getElementById('imgSide').src;
+        if (sidePreview && sidePreview.length > 20) {
+            document.getElementById('lpGallerySub3').src = sidePreview;
+        } else {
+            document.getElementById('lpGallerySub3').src = document.getElementById('lpGalleryMain').src;
+        }
+
+        goToStep(5);
+    }
+
+    function selectSeat(seat, el) {
+        document.getElementById('inputSeat').value = seat;
+        el.parentElement.querySelectorAll('.choice-card').forEach(c => c.classList.remove('active'));
+        el.classList.add('active');
+    }
+
+    function selectTransmission(trans, el) {
+        document.getElementById('inputTransmission').value = trans;
+        el.parentElement.querySelectorAll('.choice-card').forEach(c => c.classList.remove('active'));
+        el.classList.add('active');
+    }
+
+    function selectFuel(fuel, el) {
+        document.getElementById('inputFuel').value = fuel;
+        el.parentElement.querySelectorAll('.choice-card').forEach(c => c.classList.remove('active'));
+        el.classList.add('active');
+    }
+
+    function toggleAmenity(el) {
+        const checkboxes = el.querySelectorAll('input[type="checkbox"]');
+        let isChecked = false;
+        checkboxes.forEach((cb, idx) => {
+            cb.checked = !cb.checked;
+            if (idx === 0) isChecked = cb.checked;
+        });
+        if (isChecked) {
+            el.classList.add('active');
+        } else {
+            el.classList.remove('active');
+        }
+    }
+
+    function combineLocationAddress() {
+        const city = document.getElementById('selectCity').value;
+        const street = document.getElementById('inputStreetAddress').value.trim();
+        const full = street + (city ? (', ' + city) : '');
+        document.getElementById('inputLocationHidden').value = full;
+        const previewBox = document.getElementById('fullAddressPreviewBox');
+        if (full) {
+            document.getElementById('fullAddressPreview').innerText = full;
+            previewBox.style.display = 'block';
+        } else {
+            previewBox.style.display = 'none';
+        }
+    }
+
+    function triggerUpload(inputId) {
+        document.getElementById(inputId).click();
+    }
+
+    function previewSlot(input, slotId, imgId) {
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = document.getElementById(imgId);
+                const slot = document.getElementById(slotId);
+                img.src = e.target.result;
+                slot.classList.add('has-image');
+            };
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+
+    function removeImage(event, inputId, slotId, imgId) {
+        event.stopPropagation();
+        const input = document.getElementById(inputId);
+        const slot = document.getElementById(slotId);
+        const img = document.getElementById(imgId);
+        input.value = '';
+        img.src = '';
+        slot.classList.remove('has-image');
+    }
+
+    function previewDoc(input, cardId, textId, imgId) {
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const card = document.getElementById(cardId);
+                const text = document.getElementById(textId);
+                const img = document.getElementById(imgId);
+                card.classList.add('has-doc');
+                text.innerText = '✓ ' + input.files[0].name;
+                text.classList.add('text-success', 'fw-bold');
+                img.src = e.target.result;
+                img.classList.remove('d-none');
+            };
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+
     const inputPrice = document.getElementById('inputPrice');
-    const priceFormattedText = document.getElementById('priceFormattedText');
-    if (inputPrice && priceFormattedText) {
+    if (inputPrice) {
         inputPrice.addEventListener('input', function() {
             const val = parseInt(this.value) || 0;
-            priceFormattedText.innerText = val.toLocaleString('vi-VN') + ' VNĐ / ngày';
+            document.getElementById('priceDisplayFormatted').innerText = val.toLocaleString('vi-VN') + ' VNĐ / ngày';
         });
     }
 
-    // Toggle tiện nghi
-    function toggleFeature(element) {
-        const checkbox = element.querySelector('input[type="checkbox"]');
-        if (checkbox) {
-            checkbox.checked = !checkbox.checked;
-            if (checkbox.checked) {
-                element.classList.add('active');
-            } else {
-                element.classList.remove('active');
-            }
-        }
-    }
-
-    // Xem trước ảnh đại diện chính
-    function previewMainImage(input) {
-        if (input.files && input.files[0]) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const img = document.getElementById('mainImagePreview');
-                const placeholder = document.getElementById('dropzonePlaceholder');
-                img.src = e.target.result;
-                img.classList.remove('d-none');
-                placeholder.classList.add('d-none');
-            };
-            reader.readAsDataURL(input.files[0]);
-        }
-    }
-
-    // Cập nhật khi dán link ảnh URL
-    function updateImageUrlPreview(url) {
-        if (url && url.length > 5) {
-            const img = document.getElementById('mainImagePreview');
-            const placeholder = document.getElementById('dropzonePlaceholder');
-            img.src = url;
-            img.classList.remove('d-none');
-            placeholder.classList.add('d-none');
-        }
-    }
-
-    // Xem trước album nhiều ảnh
-    function previewGalleryImages(input) {
-        const container = document.getElementById('galleryPreviewContainer');
-        container.innerHTML = '';
-        if (input.files) {
-            Array.from(input.files).forEach(file => {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const item = document.createElement('div');
-                    item.className = 'gallery-preview-item';
-                    item.innerHTML = `<img src="${e.target.result}" alt="Chi tiết xe" />`;
-                    container.appendChild(item);
-                };
-                reader.readAsDataURL(file);
-            });
-        }
-    }
-
-    // Xem trước ảnh từng loại giấy tờ xe
-    function previewSingleDoc(input, previewId, placeholderId) {
-        if (input.files && input.files[0]) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const img = document.getElementById(previewId);
-                const placeholder = document.getElementById(placeholderId);
-                img.src = e.target.result;
-                img.classList.remove('d-none');
-                placeholder.classList.add('d-none');
-            };
-            reader.readAsDataURL(input.files[0]);
-        }
-    }
+    document.getElementById('wizardCarForm').addEventListener('submit', function(e) {
+        combineLocationAddress();
+        const btn = document.getElementById('btnFinalSubmit');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> Đang gửi hồ sơ...';
+    });
 </script>

@@ -278,6 +278,26 @@ static void EnsureAllTablesExist(DbRenalCarContext context, ILogger logger)
                 `IsActive` TINYINT(1) NOT NULL DEFAULT 1,
                 PRIMARY KEY (`BankId`),
                 INDEX `idx_bank_code` (`BankCode`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;" },
+
+            { "amenities", @"CREATE TABLE IF NOT EXISTS `amenities` (
+                `AmenityId` INT NOT NULL AUTO_INCREMENT,
+                `Name` VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+                `Icon` VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL,
+                `IconColor` VARCHAR(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL,
+                `DisplayOrder` INT NOT NULL DEFAULT 0,
+                `IsActive` TINYINT(1) NOT NULL DEFAULT 1,
+                PRIMARY KEY (`AmenityId`),
+                INDEX `idx_amenity_order` (`DisplayOrder`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;" },
+
+            { "car_amenities", @"CREATE TABLE IF NOT EXISTS `car_amenities` (
+                `CarId` INT NOT NULL,
+                `AmenityId` INT NOT NULL,
+                PRIMARY KEY (`CarId`, `AmenityId`),
+                INDEX `FK_CarAmenities_Amenities` (`AmenityId`),
+                CONSTRAINT `FK_CarAmenities_Cars` FOREIGN KEY (`CarId`) REFERENCES `Cars` (`CarID`) ON DELETE CASCADE ON UPDATE CASCADE,
+                CONSTRAINT `FK_CarAmenities_Amenities` FOREIGN KEY (`AmenityId`) REFERENCES `amenities` (`AmenityId`) ON DELETE CASCADE ON UPDATE CASCADE
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;" }
         };
         
@@ -342,6 +362,38 @@ static void EnsureAllTablesExist(DbRenalCarContext context, ILogger logger)
         catch (Exception bankEx)
         {
             logger.LogWarning(bankEx, "Could not seed banks: {Message}", bankEx.Message);
+        }
+
+        // Tự động Seed danh sách 14 tiện nghi xe mặc định nếu bảng amenities chưa có dữ liệu
+        try
+        {
+            if (!context.Amenities.Any())
+            {
+                logger.LogInformation("Seeding default vehicle amenities...");
+                context.Amenities.AddRange(new[]
+                {
+                    new Amenity { Name = "Bản đồ dẫn đường GPS", Icon = "bi-geo-alt-fill", IconColor = "text-danger", DisplayOrder = 1, IsActive = true },
+                    new Amenity { Name = "Camera lùi / Camera 360", Icon = "bi-camera-video-fill", IconColor = "text-primary", DisplayOrder = 2, IsActive = true },
+                    new Amenity { Name = "Camera hành trình", Icon = "bi-record-circle-fill", IconColor = "text-danger", DisplayOrder = 3, IsActive = true },
+                    new Amenity { Name = "Cảm biến áp suất lốp", Icon = "bi-speedometer2", IconColor = "text-warning", DisplayOrder = 4, IsActive = true },
+                    new Amenity { Name = "Apple CarPlay & Android Auto", Icon = "bi-phone-fill", IconColor = "text-info", DisplayOrder = 5, IsActive = true },
+                    new Amenity { Name = "Cửa sổ trời Panorama", Icon = "bi-brightness-high-fill", IconColor = "text-warning", DisplayOrder = 6, IsActive = true },
+                    new Amenity { Name = "Thu phí tự động ETC", Icon = "bi-credit-card-2-front-fill", IconColor = "text-success", DisplayOrder = 7, IsActive = true },
+                    new Amenity { Name = "Ghế da cao cấp chỉnh điện", Icon = "bi-award-fill", IconColor = "text-primary", DisplayOrder = 8, IsActive = true },
+                    new Amenity { Name = "Ghế trẻ em ISOFIX", Icon = "bi-person-heart", IconColor = "text-danger", DisplayOrder = 9, IsActive = true },
+                    new Amenity { Name = "Sạc không dây Qi", Icon = "bi-lightning-charge-fill", IconColor = "text-warning", DisplayOrder = 10, IsActive = true },
+                    new Amenity { Name = "Cảm biến va chạm trước/sau", Icon = "bi-shield-check", IconColor = "text-success", DisplayOrder = 11, IsActive = true },
+                    new Amenity { Name = "Cảnh báo điểm mù BSM", Icon = "bi-eye-fill", IconColor = "text-secondary", DisplayOrder = 12, IsActive = true },
+                    new Amenity { Name = "Khóa thông minh SmartKey", Icon = "bi-key-fill", IconColor = "text-primary", DisplayOrder = 13, IsActive = true },
+                    new Amenity { Name = "Cốp điện thông minh", Icon = "bi-box-seam-fill", IconColor = "text-secondary", DisplayOrder = 14, IsActive = true }
+                });
+                context.SaveChanges();
+                logger.LogInformation("Amenities seeded successfully.");
+            }
+        }
+        catch (Exception amenEx)
+        {
+            logger.LogWarning(amenEx, "Could not seed amenities: {Message}", amenEx.Message);
         }
     }
     catch (Exception ex)

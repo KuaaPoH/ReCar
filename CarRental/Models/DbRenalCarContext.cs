@@ -69,6 +69,10 @@ public partial class DbRenalCarContext : DbContext
 
     public virtual DbSet<CarBrand> CarBrands { get; set; }
 
+    public virtual DbSet<Amenity> Amenities { get; set; }
+
+    public virtual DbSet<CarAmenity> CarAmenities { get; set; }
+
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -455,6 +459,35 @@ public partial class DbRenalCarContext : DbContext
             entity.Property(e => e.IsPopular).HasDefaultValue(true);
             entity.Property(e => e.DisplayOrder).HasDefaultValue(0);
             entity.Property(e => e.IsActive).HasDefaultValue(true);
+        });
+
+        modelBuilder.Entity<Amenity>(entity =>
+        {
+            entity.HasKey(e => e.AmenityId);
+            entity.ToTable("amenities");
+
+            entity.Property(e => e.AmenityId).HasColumnName("AmenityId");
+            entity.Property(e => e.Name).HasMaxLength(100).IsRequired();
+            entity.Property(e => e.Icon).HasMaxLength(50);
+            entity.Property(e => e.IconColor).HasMaxLength(30);
+            entity.Property(e => e.DisplayOrder).HasDefaultValue(0);
+            entity.Property(e => e.IsActive).HasDefaultValue(true);
+        });
+
+        modelBuilder.Entity<CarAmenity>(entity =>
+        {
+            entity.HasKey(e => new { e.CarId, e.AmenityId });
+            entity.ToTable("car_amenities");
+
+            entity.HasOne(d => d.Car)
+                .WithMany(p => p.CarAmenities)
+                .HasForeignKey(d => d.CarId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(d => d.Amenity)
+                .WithMany(p => p.CarAmenities)
+                .HasForeignKey(d => d.AmenityId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         OnModelCreatingPartial(modelBuilder);

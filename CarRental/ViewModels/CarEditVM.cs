@@ -76,6 +76,9 @@ namespace CarRental.ViewModels
         [Display(Name = "Tiện nghi trang bị")]
         public List<string> Features { get; set; } = new List<string>();
 
+        // Danh sách ID tiện ích được chọn từ CSDL
+        public List<int> AmenityIds { get; set; } = new List<int>();
+
         [Display(Name = "Mô tả chi tiết và nội quy")]
         public string? Details { get; set; }
 
@@ -101,5 +104,21 @@ namespace CarRental.ViewModels
 
         [Display(Name = "Bảo hiểm TNDS bắt buộc")]
         public IFormFile? InsuranceImageFile { get; set; }
+
+        // Danh sách ảnh chi tiết của xe (Đuôi xe, Khoang lái, Thân xe...)
+        public List<string> DetailImageUrls { get; set; } = new List<string>();
+
+        // Upload ảnh chi tiết mới (nếu muốn thay/thêm)
+        public List<IFormFile>? DetailImages { get; set; }
+
+        // Hỗ trợ cập nhật độc lập từng góc ảnh trong lưới 4 ảnh
+        [Display(Name = "Ảnh đuôi xe")]
+        public IFormFile? DetailImage2 { get; set; }
+
+        [Display(Name = "Ảnh khoang lái/nội thất")]
+        public IFormFile? DetailImage3 { get; set; }
+
+        [Display(Name = "Ảnh thân xe/góc nghiêng")]
+        public IFormFile? DetailImage4 { get; set; }
     }
 }

@@ -354,20 +354,104 @@ Nhằm giúp đồ án tạo được ấn tượng mạnh mẽ với hội đ�
 
 ---
 
-## 9. ĐỀ XUẤT ĐỘT PHÁ CHO CÁC PHIÊN LÀM VIỆC TIẾP THEO
+## 10. CẬP NHẬT TIẾN TRÌNH PHIÊN LÀM VIỆC (NGÀY 27 THÁNG 10 NĂM 2026)
 
-### 1. Triển khai Toàn diện Thiết kế Mới Phân hệ Chủ xe (ReCar Host Pro)
-- Tham chiếu trực tiếp tài liệu hướng dẫn và prompt chi tiết tại [PROMPT_DESIGN_CAR_OWNER.md](file:///d:/CarRental_TTCN/PROMPT_DESIGN_CAR_OWNER.md).
-- Áp dụng Multi-step Form Wizard cho trang Thêm xe mới (`Cars/Create.cshtml`).
-- Nâng cấp Dashboard Chủ xe với biểu đồ doanh thu tương tác cao cấp.
+### 10.1. Tái Cấu Trúc Biểu Mẫu Đăng Xe Mới (`/CarOwner/Cars/Create`) Thành Multi-Step Wizard 5 Bước Rộng Rãi
+1. **Khắc phục triệt để hiện tượng form cuộn dài gò bó:**
+   - Thay thế biểu mẫu 2 cột cuộn dọc dài cũ bằng **Quy trình Multi-step Stepper 5 bước** (`max-width: 1040px`) hiện đại, công thái học, có thanh đo tiến trình (%) và số bước tương tác rõ ràng.
+   - Cơ chế điều hướng thông minh: Tự động kiểm tra (validate) từng bước trước khi cho phép người dùng bấm "Tiếp tục".
+2. **Thiết kế Lưới 4 Ô Chụp Ảnh Xe Trực Quan (4 Visual Photo Slots):**
+   - **Ô 1 (Bắt buộc - Ảnh chính sàn):** Đầu xe / Mặt trước (`ImageFile`) - Hướng dẫn chụp rõ nét logo và biển số.
+   - **Ô 2:** Đuôi xe / Mặt sau (`DetailImages`) - Chụp rõ cụm đèn hậu và cốp.
+   - **Ô 3:** Nội thất khoang lái (`DetailImages`) - Chụp toàn cảnh taplo, vô lăng và ghế.
+   - **Ô 4:** Góc nghiêng 3/4 thân xe (`DetailImages`) - Chụp toàn cảnh sườn xe và mâm lốp.
+   - Hỗ trợ xem trước ảnh tức thì (Live Preview), nút xóa/thay đổi ảnh và ô nhập link URL dự phòng.
+3. **Tích hợp Danh mục Địa điểm (`locations`):**
+   - Dropdown chọn Tỉnh/Thành phố động nạp từ CSDL `locations` kết hợp ô nhập địa chỉ chi tiết, tự động ghép nối thành địa chỉ hoàn chỉnh.
+4. **Màn hình Bước 5: Xem Trước Dạng Landing Page (Product Preview Showcase):**
+   - Đột phá trải nghiệm: Trước khi bấm "Gửi kiểm duyệt", người dùng được chiêm ngưỡng chiếc xe của mình dưới dạng một **Landing Page sang trọng**:
+     - Hero banner tối màu Navy với tên xe, năm sản xuất, hãng xe và biển số xe monospace.
+     - Khối trưng bày 4 ảnh xe (1 ảnh lớn + 3 ảnh nhỏ).
+     - Bảng thông số vận hành (chỗ ngồi, hộp số, nhiên liệu, tiêu hao), bảng phân rã giá & cọc 30%, địa điểm nhận xe và chip pills tiện nghi đã chọn.
+     - Nút "✏️ Sửa" ở từng khối cho phép quay lại chỉnh sửa ngay lập tức.
+     - Nút **"🚀 Xác nhận & Gửi hồ sơ kiểm duyệt"** lớn nổi bật kèm hiệu ứng loading.
 
-### 2. Tự Động Hóa Thông Báo Thời Gian Thực (SignalR / Webhook)
-- **Thông báo duyệt xe:** Khi Admin duyệt hoặc từ chối hồ sơ xe/chủ xe, gửi thông báo tức thì (In-app Notification + Toast Popup) tới tài khoản Chủ xe mà không cần tải lại trang.
-- **Thông báo đơn đặt:** Khi có khách đặt xe mới và thanh toán cọc thành công, đổ chuông thông báo cho chủ xe để chuẩn bị bàn giao.
+### 10.2. Tối Ưu Hóa Thanh Header Topbar Chuẩn SaaS & Triệt Tiêu Lỗi Trùng Lặp Header (Double Header)
+1. **Khắc phục hiện tượng Double Header tại trang Đăng ký xe (`Create.cshtml`) và Chỉnh sửa xe (`Edit.cshtml`):**
+   - Trước đây: Layout đã hiển thị Topbar với tiêu đề to + breadcrumb và nút "+ Đăng xe cho thuê" (kể cả khi đang ở chính trang Create). Ngay bên dưới, view con lại render thêm một khối tiêu đề to thứ 2 kèm nút "Hủy và quay lại", làm giao diện bị đè 2 tầng header cồng kềnh, chiếm hết không gian màn hình.
+   - Giải pháp:
+     - Xóa bỏ triệt để khối header trùng lặp bên trong các view con (`Create.cshtml`, `Edit.cshtml`).
+     - Tích hợp cơ chế `@section TopbarActions`: View con có thể đưa nút bấm tùy chỉnh (ví dụ: nút "Hủy & Thoát", "Xem trên sàn") lên thẳng Topbar của Layout.
+     - Tự động ẩn nút "+ Đăng xe cho thuê" trên Topbar khi người dùng đang ở trang tạo xe (`currentController == "Cars" && currentAction == "Create"`).
+2. **Thiết kế lại Topbar Layout (`_Layout.cshtml`) theo tỷ lệ chuẩn SaaS cao cấp:**
+   - Thu nhỏ kích thước tiêu đề trang từ `1.75rem` xuống `1.35rem`, font-weight 800 sắc nét, không còn choán diện tích.
+   - Breadcrumb tinh gọn, liên kết xám nhã nhặn.
+   - Chuyển đổi nút "Thông báo" từ dạng viên thuốc bành trướng sang nút **Icon chuông tròn 38px** thanh lịch chuẩn SaaS hiện đại, có chấm đỏ Real-time nhấp nháy tinh tế.
+   - User Profile dạng viên thuốc bo tròn mỏng nhẹ với avatar gradient tròn.
+   - Bổ sung đường phân cách mỏng (`border-bottom: 1px solid #eef2f6`), mang lại tổng thể thoáng đãng, sang trọng và chuẩn mực.
 
-### 3. Tích Hợp OCR Quét Tự Động Giấy Tờ Xe & Bằng Lái
-- Tích hợp thư viện Tesseract OCR hoặc Google Cloud Vision API để tự động đọc Biển số xe, Số khung, Số máy từ ảnh Cà vẹt xe và Số GPLX từ ảnh Bằng lái của khách thuê, giúp giảm 80% thời gian nhập liệu thủ công.
+### 10.3. Tái Cấu Trúc Toàn Diện Màn Hình Chỉnh Sửa Xe (`Cars/Edit.cshtml`) Phân Quyền Theo Trạng Thái Phương Tiện
+1. **Status Context Banner thông minh trên đầu trang:**
+   - Tự động nhận diện 5 trạng thái phương tiện (`Chờ duyệt`, `Sẵn sàng`, `Đang bận / Đang có khách`, `Từ chối`, `Tạm ngưng`).
+   - Hiển thị thông báo ngữ cảnh và hướng dẫn rõ ràng cho Chủ xe về những quyền hạn chỉnh sửa được phép ở trạng thái đó.
+2. **Quy tắc phân quyền trường dữ liệu chặt chẽ (Data Integrity):**
+   - **Khi xe đang "Sẵn sàng" (Đã duyệt lên sàn):** Biển số xe và Giấy tờ pháp lý chuyển sang chế độ `readonly` kèm huy hiệu `[✓ Đã xác thực]`, ngăn chặn việc tráo đổi biển số/giấy tờ chưa kiểm duyệt. Chủ xe vẫn được tự do đổi Giá thuê, Khuyến mãi, Địa chỉ và Tiện nghi.
+   - **Khi xe đang "Đang bận" (Khách đang thuê):** Tự động khóa `readonly` trường Đơn giá niêm yết, Biển số và Địa điểm giao nhận nhằm bảo vệ quyền lợi hợp đồng với khách thuê đang chạy trên đường.
+   - **Khi xe "Chờ duyệt" hoặc "Từ chối":** Mở khóa toàn bộ các trường để chủ xe chủ động sửa sai hoặc bổ sung hồ sơ. Khi bấm Lưu ở xe bị từ chối, hệ thống tự động đưa về hàng đợi "Chờ duyệt" để Admin thẩm định lại.
+3. **Cải tiến công thái học (Ergonomics):**
+   - Đưa hộp thao tác Lưu lên trên cùng của cột phải với hiệu ứng `sticky-top`, giúp chủ xe bấm lưu ngay lập tức ở bất kỳ vị trí cuộn nào mà không phải cuộn chuột dài mệt mỏi.
+   - Nút hành động thông minh: Tự đổi nhãn thành *"Cập nhật & Gửi duyệt lại"* khi xe đang bị từ chối.
 
-### 4. Hệ Thống Đánh Giá & Phản Hồi 2 Chiều
-- Cho phép Chủ xe đánh giá ngược lại Khách thuê (về mức độ giữ gìn xe, trả xe đúng giờ, thái độ) sau khi kết thúc chuyến đi, xây dựng cộng đồng cho thuê xe văn minh và an toàn.
+### 10.4. Tinh Chỉnh Giao Diện Chỉnh Sửa Xe: Status Banner Thanh Mảnh & Bộ Sưu Tập 4 Góc Ảnh Ô Tô
+1. **Tối ưu hóa Status Context Banner (Ảnh 1):**
+   - Thay thế khối thông báo cồng kềnh bằng thanh thông báo mỏng gọn (Slim notification strip): Chiều cao tinh gọn, đường viền 1px bo góc 12px trang nhã.
+   - Khắc phục triệt để lỗi icon hình tròn bị méo phình to: Cố định kích thước chuẩn `width: 36px; height: 36px; min-width: 36px; border-radius: 50%` với màu nền pastel dịu mắt.
+   - Badge trạng thái phương tiện được bố trí thẳng hàng cùng hàng với dòng thông báo ở góc phải, không bị rớt xuống dòng.
+2. **Nâng cấp Bộ sưu tập 4 góc ảnh ô tô dạng lưới 2x2 (Ảnh 2):**
+   - Xóa bỏ hoàn toàn Card "Ảnh đại diện" 1 ảnh đơn điệu trước đây.
+   - Xây dựng **Bộ sưu tập 4 góc ảnh xe (Lưới 2x2)** chuẩn kiểm định:
+     - **Slot 1 (Đầu xe - Ảnh đại diện chính):** Hiển thị ảnh đại diện hiện tại, cho phép thay đổi qua `ImageFile`.
+     - **Slot 2 (Đuôi xe):** Hiển thị ảnh chi tiết 1, cập nhật qua `DetailImage2`.
+     - **Slot 3 (Khoang lái / Nội thất):** Hiển thị ảnh chi tiết 2, cập nhật qua `DetailImage3`.
+     - **Slot 4 (Thân xe / Toàn cảnh):** Hiển thị ảnh chi tiết 3, cập nhật qua `DetailImage4`.
+   - Mỗi slot có tỷ lệ 4:3, bo góc 10px, nhãn badge góc trên mờ kính, overlay đổi ảnh khi hover và trạng thái placeholder nét đứt nếu ô chưa có ảnh.
+   - JavaScript `previewSlot` cho phép xem trước tức thì khi người dùng chọn file và tự động đánh dấu tích xanh `✓`.
+   - Backend `CarsController.cs` và `CarEditVM.cs` xử lý lưu và ghi đè chính xác từng slot ảnh chi tiết vào CSDL `CarImages`.
+
+
+
+
+### 10.5. Chuẩn Hóa Quản Lý Tiện Ích Phương Tiện Trong Cơ Sở Dữ Liệu (Database-Driven Amenities)
+1. **Thiết kế & Tạo bảng CSDL mới trong MySQL:**
+   - **Bảng amenities:** Lưu danh mục tiện ích chuẩn (AmenityId, Name, Icon, IconColor, DisplayOrder, IsActive).
+   - **Bảng car_amenities:** Bảng trung gian liên kết nhiều - nhiều (N - N) giữa xe và tiện ích (CarId, AmenityId) với khóa chính phức hợp và ràng buộc khóa ngoại CASCADE.
+   - **Seed dữ liệu & Tự động khởi tạo:** Khai báo cấu trúc bảng và seed sẵn 14 tiện nghi mặc định trong Program.cs, đồng thời đã di trú (migrate) dữ liệu tiện ích của các xe cũ sang bảng mới.
+2. **Cập nhật Backend & Model:**
+   - Tạo Amenity.cs và CarAmenity.cs.
+   - Đăng ký DbSet trong DbRenalCarContext.cs.
+   - Thêm AmenityIds vào CarCreateVM và CarEditVM.
+   - Cập nhật CarsController.cs: Cả 2 action Create và Edit đều nạp danh mục tiện ích động từ CSDL, lưu liên kết vào car_amenities, đồng thời vẫn duy trì cập nhật chuỗi Details/Descriptions để tương thích ngược 100%.
+3. **Cập nhật Giao diện:**
+   - Cả Create.cshtml và Edit.cshtml được chuyển đổi sang duyệt danh sách tiện ích từ CSDL, hỗ trợ toggle linh hoạt qua AmenityIds.
+
+### 10.6. Tái Cấu Trúc Khối Bảng Giá & Quy Định Hành Trình (Tách Hàng Thoáng Đãng)
+- **Khắc phục lỗi chèn ép giao diện:** Trước đây các trường Giới hạn km, Phụ phí vượt km và Giao xe tận nơi bị nhét chung 3 cột col-md-4 làm ô phí giao xe bị bẹp dúm thành '100('.
+- **Phân tách bố cục đa tầng thoáng đãng:**
+  - Hàng 1: Đơn giá niêm yết & Giá khuyến mãi (2 cột rộng rãi), bỏ số đuôi .00 thừa của decimal.
+  - Hàng 2: Xuống dòng riêng cho Giới hạn quãng đường & Phụ phí quá km (2 cột col-md-6), bổ sung ghi chú giải thích.
+  - Hàng 3: Tách Giao xe tận nơi thành Panel Card riêng biệt có Switch bật/tắt (Toggle switch) và ô nhập phí độc lập rộng rãi.
+- **Đồng bộ:** Áp dụng hoàn chỉnh cho cả Edit.cshtml và Create.cshtml.
+
+### 10.7. Chuẩn Hóa Cơ Chế Vòng Đời Phương Tiện & Xóa Xe An Toàn (Safety Guard & Soft Delete)
+1. **Nghiệp vụ thực tế:**
+   - Trong mô hình sàn thương mại điện tử / chia sẻ xe (như Airbnb, Mioto), một chiếc xe **tuyệt đối không được phép "xóa cái rụp" (Hard Delete)** nếu đã từng phát sinh đơn hàng, hợp đồng thuê xe hoặc đánh giá nhằm tránh vi phạm toàn vẹn khóa ngoại (Foreign Key Restrict) và làm mất dữ liệu hóa đơn, kế toán thuế.
+2. **Triển khai Cơ chế 3 tầng bảo vệ dữ liệu:**
+   - **Tầng 1 - Kiểm tra an toàn (Safety Guard):** Khóa xóa và hiển thị cảnh báo đỏ nguy cấp nếu xe đang ở trạng thái `Đang bận`, `Đang có khách` hoặc có đơn đặt thuê chưa hoàn thành (`ReturnDate >= DateTime.Now`).
+   - **Tầng 2 - Xóa mềm (Soft Delete / Ngừng kinh doanh):** Áp dụng cho xe đã có lịch sử (`Trips > 0` hoặc có `OrderDetails` / `CarReviews`). Xe được chuyển sang `CarStatus = "Ngừng hoạt động"`, `IsActive = false` để ẩn khỏi sàn khách thuê nhưng bảo toàn trọn vẹn số liệu thống kê và lịch sử doanh thu.
+   - **Tầng 3 - Xóa cứng (Hard Delete):** Chỉ cho phép đối với xe mới tạo nhầm hoặc chưa từng phát sinh bất kỳ chuyến đi/hợp đồng nào. Đồng thời dọn sạch các bản ghi liên quan trong `car_amenities` và `car_images`.
+3. **Cung cấp Tùy chọn "Tạm ngưng đón khách" (Pause Listing):**
+   - Hỗ trợ chủ xe tạm ẩn xe khỏi sàn khi cần bảo dưỡng, sửa chữa hoặc bận việc cá nhân mà không phải xóa xe. Có thể mở lại bất cứ lúc nào chỉ với 1 thao tác.
+4. **Nâng cấp Giao diện Xác nhận (`Delete.cshtml` & `Index.cshtml`):**
+   - Thiết kế lại toàn bộ view [Delete.cshtml](file:///d:/CarRental_TTCN/CarRental/Areas/CarOwner/Views/Cars/Delete.cshtml) theo phong cách ReCar SaaS hiện đại (thẻ xe nổi bật, biển số xe chuẩn mono, 3 thống kê Chuyến đi - Đơn thuê - Đánh giá, thông báo ngữ cảnh tương ứng với 3 kịch bản bảo vệ).
+   - Loại bỏ alert popup thô của trình duyệt tại [Index.cshtml](file:///d:/CarRental_TTCN/CarRental/Areas/CarOwner/Views/Cars/Index.cshtml), bổ sung bộ lọc trạng thái `Tạm ngưng` trên thanh công cụ và chuẩn hóa badge `Tạm ngưng`, `Ngừng KD`.
 

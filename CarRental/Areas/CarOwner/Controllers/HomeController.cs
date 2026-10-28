@@ -62,19 +62,43 @@ namespace CarRental.Areas.CarOwner.Controllers
 
             var ownerId = account.AccountId;
             var totalCars = _context.Cars.Count(c => c.OwnerId == ownerId);
-            var activeCars = _context.Cars.Count(c => c.OwnerId == ownerId && c.IsActive);
+            var activeCars = _context.Cars.Count(c => c.OwnerId == ownerId && (c.CarStatus == "Sẵn sàng" || (c.CarStatus == null && c.IsActive)));
+            var busyCars = _context.Cars.Count(c => c.OwnerId == ownerId && (c.CarStatus == "Đang bận" || c.CarStatus == "Đang có khách"));
+            var otherCars = Math.Max(0, totalCars - activeCars - busyCars);
+
             var totalOrders = _context.OrderDetails
                 .Include(od => od.Order)
                 .Count(od => od.Car != null && od.Car.OwnerId == ownerId);
-            var totalRevenue = _context.OrderDetails
+
+            var completedOrders = _context.OrderDetails
                 .Include(od => od.Order)
-                .Where(od => od.Car != null && od.Car.OwnerId == ownerId && od.Order.StatusId == 3) // Đã thanh toán
-                .Sum(od => od.Price * od.Quantity) ?? 0;
+                .Count(od => od.Car != null && od.Car.OwnerId == ownerId && od.Order.StatusId == 5);
+
+            var processingOrders = _context.OrderDetails
+                .Include(od => od.Order)
+                .Count(od => od.Car != null && od.Car.OwnerId == ownerId && (od.Order.StatusId == 3 || od.Order.StatusId == 4));
+
+            var totalGross = _context.OrderDetails
+                .Include(od => od.Order)
+                .Where(od => od.Car != null && od.Car.OwnerId == ownerId && (od.Order.StatusId == 3 || od.Order.StatusId == 4 || od.Order.StatusId == 5))
+                .Sum(od => (decimal?)(od.Price * od.Quantity)) ?? 0;
+
+            var totalNet = totalGross * 0.9m; // 90% thu nhập thực nhận sau trừ 10% phí sàn
+            var heldDeposits = _context.OrderDetails
+                .Include(od => od.Order)
+                .Where(od => od.Car != null && od.Car.OwnerId == ownerId && (od.Order.StatusId == 3 || od.Order.StatusId == 4))
+                .Sum(od => (decimal?)(od.Price * od.Quantity * 0.3m)) ?? 0;
 
             ViewBag.TotalCars = totalCars;
             ViewBag.ActiveCars = activeCars;
+            ViewBag.BusyCars = busyCars;
+            ViewBag.OtherCars = otherCars;
             ViewBag.TotalOrders = totalOrders;
-            ViewBag.TotalRevenue = totalRevenue;
+            ViewBag.CompletedOrders = completedOrders;
+            ViewBag.ProcessingOrders = processingOrders;
+            ViewBag.TotalRevenue = totalGross;
+            ViewBag.NetRevenue = totalNet;
+            ViewBag.HeldDeposits = heldDeposits;
 
             // Lấy danh sách xe gần đây
             var recentCars = _context.Cars

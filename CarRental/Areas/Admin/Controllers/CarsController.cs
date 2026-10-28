@@ -37,7 +37,7 @@ namespace CarRental.Areas.Admin.Controllers
             var query = _context.Cars
                 .Include(c => c.Type)
                 .Include(c => c.Owner)
-                .Where(c => c.CarStatus == "Chờ duyệt")
+                .Where(c => c.CarStatus == "Chờ duyệt" || c.CarStatus == "Chờ cập nhật" || c.CarStatus == "pending_update" || c.CarStatus == "pending")
                 .AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(q))

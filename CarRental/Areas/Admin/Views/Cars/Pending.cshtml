@@ -574,7 +574,19 @@
                             </div>
 
                             <div>
-                                <div class="mb-3">
+                                <div class="mb-3 d-flex flex-wrap gap-1.5 align-items-center">
+                                    @if (car.CarStatus == "Chờ cập nhật" || car.CarStatus == "pending_update")
+                                    {
+                                        <span class="status-badge-custom" style="background-color: #fff7ed; color: #ea580c; border: 1px solid #fed7aa;">
+                                            <i class="bi bi-arrow-repeat"></i> Cập nhật hồ sơ
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="status-badge-custom" style="background-color: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe;">
+                                            <i class="bi bi-plus-circle"></i> Đăng ký mới
+                                        </span>
+                                    }
                                     @if (hasFullDocs)
                                     {
                                         <span class="status-badge-custom badge-verified">
@@ -696,18 +708,32 @@
                                 </td>
                                 <td class="py-3 text-nowrap small text-muted">@dateStr</td>
                                 <td class="py-3">
-                                    @if (hasFullDocsRow)
-                                    {
-                                        <span class="status-badge-custom badge-verified">
-                                            <span class="dot"></span> Giấy tờ đầy đủ
-                                        </span>
-                                    }
-                                    else
-                                    {
-                                        <span class="status-badge-custom badge-pending">
-                                            <span class="dot"></span> Giấy tờ cần bổ sung
-                                        </span>
-                                    }
+                                    <div class="d-flex flex-column gap-1">
+                                        @if (car.CarStatus == "Chờ cập nhật" || car.CarStatus == "pending_update")
+                                        {
+                                            <span class="status-badge-custom" style="background-color: #fff7ed; color: #ea580c; border: 1px solid #fed7aa; width: fit-content;">
+                                                <i class="bi bi-arrow-repeat"></i> Cập nhật hồ sơ
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="status-badge-custom" style="background-color: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; width: fit-content;">
+                                                <i class="bi bi-plus-circle"></i> Đăng ký mới
+                                            </span>
+                                        }
+                                        @if (hasFullDocsRow)
+                                        {
+                                            <span class="status-badge-custom badge-verified" style="width: fit-content;">
+                                                <span class="dot"></span> Giấy tờ đầy đủ
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="status-badge-custom badge-pending" style="width: fit-content;">
+                                                <span class="dot"></span> Giấy tờ cần bổ sung
+                                            </span>
+                                        }
+                                    </div>
                                 </td>
                                 <td class="pe-4 py-3 text-end">
                                     <div class="d-inline-flex gap-1.5">

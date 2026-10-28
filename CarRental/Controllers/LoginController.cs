@@ -82,18 +82,15 @@ namespace CarRental.Controllers
                 
                 if (carOwnerAccount != null)
                 {
-                    Function.SetAccountId(HttpContext.Session, carOwnerAccount.AccountId);
                     Function.SetCarOwnerAccountId(HttpContext.Session, carOwnerAccount.AccountId);
-                }
-                else if (account != null)
-                {
-                    Function.SetAccountId(HttpContext.Session, account.AccountId);
-                    Function.SetCarOwnerAccountId(HttpContext.Session, 0);
                 }
                 else
                 {       
                     Function.SetCarOwnerAccountId(HttpContext.Session, 0);
                 }
+
+                // Luôn lưu AccountId là check.CustomerId của bảng Customers để các tính năng giỏ hàng, đặt xe hoạt động chính xác
+                Function.SetAccountId(HttpContext.Session, check.CustomerId);
 
                 // Luôn chuyển về Trang chủ sau khi đăng nhập, bỏ qua ReturnUrl
                 return RedirectToAction("Index", "Home");

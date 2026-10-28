@@ -1,135 +1,594 @@
 @model IEnumerable<CarRental.Models.CarRentalOrder>
 @using CarRental.Utilities
 @{
-    ViewData["Title"] = "Đơn đặt xe";
+    ViewData["Title"] = "Lịch trình & Đơn xe — ReCar Host Pro";
     Layout = "~/Areas/CarOwner/Views/Shared/_Layout.cshtml";
-    var orderStatuses = ViewBag.OrderStatuses as List<SelectListItem> ?? new List<SelectListItem>();
+
+    int? currentFilter = ViewBag.FilterStatusId as int?;
+    string currentSearch = ViewBag.FilterQ as string ?? "";
+
+    int countAll = ViewBag.CountAll ?? 0;
+    int countPendingHandover = ViewBag.CountPendingHandover ?? 0;
+    int countInRental = ViewBag.CountInRental ?? 0;
+    int countCompleted = ViewBag.CountCompleted ?? 0;
+    int countCancelled = ViewBag.CountCancelled ?? 0;
 }
 
-<div class="space-y-4">
-    <!-- Panel Quản lý Đơn đặt xe (Pixel-Perfect Template) -->
-    <div class="recar-panel">
-        <div class="recar-panel-header flex-wrap gap-2">
-            <div>
-                <h2 class="recar-panel-title">Danh sách đơn đặt thuê xe</h2>
-                <div class="text-muted small mt-1">Theo dõi các đơn khách hàng đặt cọc giữ xe và xác nhận lịch trình bàn giao xe.</div>
+@Html.AntiForgeryToken()
+
+<style>
+    /* Design Tokens Khớp 100% Template CarOwner.Orders.Index */
+    .plate {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.75rem;
+        letter-spacing: 0.02em;
+        padding: 0.15rem 0.5rem;
+        border-radius: 0.375rem;
+        border: 1px solid #e2e8f0;
+        background: #f1f5f9;
+        color: #1e293b;
+        font-weight: 700;
+        white-space: nowrap;
+        display: inline-block;
+    }
+
+    .order-tab-bar {
+        background-color: #f1f5f9;
+        border-radius: 12px;
+        padding: 4px;
+        display: flex;
+        gap: 4px;
+        overflow-x: auto;
+    }
+
+    .order-tab-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        white-space: nowrap;
+        border-radius: 8px;
+        padding: 7px 14px;
+        font-size: 0.84rem;
+        font-weight: 500;
+        text-decoration: none;
+        transition: all 0.15s ease;
+        border: none;
+        color: #64748b;
+    }
+    .order-tab-item:hover {
+        color: #0f172a;
+    }
+    .order-tab-item.active {
+        background-color: #ffffff;
+        color: #0f172a;
+        font-weight: 600;
+        box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+    }
+
+    .order-tab-badge {
+        font-size: 0.6875rem; /* 11px */
+        font-weight: 700;
+        border-radius: 9999px;
+        padding: 1px 7px;
+        line-height: 1.3;
+        background-color: #e2e8f0;
+        color: #475569;
+    }
+    .order-tab-item.active .order-tab-badge {
+        background-color: #0284c7;
+        color: #ffffff;
+    }
+
+    .order-search-input {
+        border-radius: 10px;
+        border: 1px solid #e2e8f0;
+        padding: 8px 14px 8px 38px;
+        font-size: 0.875rem;
+        background-color: #ffffff;
+        color: #0f172a;
+        transition: all 0.15s ease;
+        width: 100%;
+    }
+    .order-search-input:focus {
+        border-color: #0284c7;
+        box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
+        outline: none;
+    }
+
+    /* Status Badges Chuẩn Template Căn Giữa Hoàn Hảo */
+    .status-badge-custom {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        white-space: nowrap;
+        border-radius: 9999px;
+        padding: 4px 10px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        line-height: 1;
+    }
+    .status-badge-custom .dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background-color: currentColor;
+        flex-shrink: 0;
+        display: inline-block;
+    }
+    .badge-status-3 { /* Chờ bàn giao */
+        background-color: #fffbeb;
+        color: #b45309;
+        border: 1px solid #fde68a;
+    }
+    .badge-status-4 { /* Đang cho thuê */
+        background-color: #eff6ff;
+        color: #1d4ed8;
+        border: 1px solid #bfdbfe;
+    }
+    .badge-status-5 { /* Đã hoàn tất */
+        background-color: #f0fdf4;
+        color: #15803d;
+        border: 1px solid #bbf7d0;
+    }
+    .badge-status-2 { /* Đã hủy */
+        background-color: #fef2f2;
+        color: #b91c1c;
+        border: 1px solid #fecaca;
+    }
+    .badge-status-other {
+        background-color: #f8fafc;
+        color: #475569;
+        border: 1px solid #e2e8f0;
+    }
+
+    .order-action-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        border-radius: 8px;
+        padding: 5px 12px;
+        font-size: 0.8125rem;
+        font-weight: 500;
+        text-decoration: none;
+        transition: all 0.15s ease;
+        border: 1px solid transparent;
+        line-height: 1;
+        vertical-align: middle;
+    }
+    .order-action-btn svg, .order-action-btn i {
+        width: 14px;
+        height: 14px;
+        flex-shrink: 0;
+        display: inline-block;
+        vertical-align: middle;
+    }
+    .order-action-ghost {
+        background-color: transparent;
+        color: #475569;
+        border-color: #e2e8f0;
+    }
+    .order-action-ghost:hover {
+        background-color: #f8fafc;
+        color: #0f172a;
+    }
+    .order-action-handover {
+        background-color: #10b981;
+        color: #ffffff;
+    }
+    .order-action-handover:hover {
+        background-color: #059669;
+        color: #ffffff;
+    }
+    .order-action-return {
+        background-color: #0284c7;
+        color: #ffffff;
+    }
+    .order-action-return:hover {
+        background-color: #0369a1;
+        color: #ffffff;
+    }
+</style>
+
+<!-- Page Header Chuẩn Template -->
+<div class="mb-4 d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-3">
+    <div>
+        <h1 class="h3 fw-bold text-dark tracking-tight mb-1" style="font-size: 1.5rem;">Lịch trình & Đơn xe</h1>
+        <p class="text-muted small mb-0">Chỉ hiển thị đơn thuộc các xe của bạn.</p>
+    </div>
+</div>
+
+<!-- Tabs & Search Toolbar -->
+<div class="mb-4 d-flex flex-column flex-lg-row gap-3 align-items-lg-center justify-content-between">
+    <!-- Tab Filter Pills -->
+    <div class="order-tab-bar">
+        <a href="/CarOwner/Orders/Index@(string.IsNullOrEmpty(currentSearch) ? "" : $"?q={currentSearch}")" 
+           class="order-tab-item @(!currentFilter.HasValue ? "active" : "")">
+            Tất cả
+            <span class="order-tab-badge">@countAll</span>
+        </a>
+
+        <a href="/CarOwner/Orders/Index?statusId=3@(string.IsNullOrEmpty(currentSearch) ? "" : $"&q={currentSearch}")" 
+           class="order-tab-item @(currentFilter == 3 ? "active" : "")">
+            Chờ bàn giao
+            <span class="order-tab-badge">@countPendingHandover</span>
+        </a>
+
+        <a href="/CarOwner/Orders/Index?statusId=4@(string.IsNullOrEmpty(currentSearch) ? "" : $"&q={currentSearch}")" 
+           class="order-tab-item @(currentFilter == 4 ? "active" : "")">
+            Đang cho thuê
+            <span class="order-tab-badge">@countInRental</span>
+        </a>
+
+        <a href="/CarOwner/Orders/Index?statusId=5@(string.IsNullOrEmpty(currentSearch) ? "" : $"&q={currentSearch}")" 
+           class="order-tab-item @(currentFilter == 5 ? "active" : "")">
+            Đã hoàn tất
+            <span class="order-tab-badge">@countCompleted</span>
+        </a>
+
+        <a href="/CarOwner/Orders/Index?statusId=2@(string.IsNullOrEmpty(currentSearch) ? "" : $"&q={currentSearch}")" 
+           class="order-tab-item @(currentFilter == 2 ? "active" : "")">
+            Đã hủy
+            <span class="order-tab-badge">@countCancelled</span>
+        </a>
+    </div>
+
+    <!-- Search Box -->
+    <form method="get" action="/CarOwner/Orders/Index" class="position-relative" style="min-width: 290px;">
+        @if (currentFilter.HasValue)
+        {
+            <input type="hidden" name="statusId" value="@currentFilter.Value" />
+        }
+        <i data-lucide="search" class="position-absolute text-muted" style="left: 12px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px;"></i>
+        <input type="text" name="q" value="@currentSearch" class="order-search-input" placeholder="Mã đơn, xe, biển số, khách, SĐT…" />
+    </form>
+</div>
+
+<!-- Table Card Surface Chuẩn Template -->
+<div class="card-surface overflow-hidden">
+    @if (Model == null || !Model.Any())
+    {
+        <div class="text-center py-5 text-muted">
+            <div class="d-inline-flex p-3 rounded-circle bg-light text-muted mb-3">
+                <i data-lucide="clipboard-list" style="width: 36px; height: 36px; stroke-width: 1.5;"></i>
             </div>
-
-            <!-- Bộ lọc trạng thái nhanh -->
-            <form method="get" class="d-flex align-items-center gap-2">
-                <select name="filterStatusId" class="recar-input py-1 px-3 small" style="width: auto;" onchange="this.form.submit()">
-                    <option value="">Tất cả trạng thái</option>
-                    @foreach (var s in orderStatuses)
-                    {
-                        <option value="@s.Value" selected="@(s.Selected)">@s.Text</option>
-                    }
-                </select>
-            </form>
+            <h5 class="fw-bold text-dark mb-1">Không có đơn thuê</h5>
+            <p class="text-muted small mb-0">Chưa có đơn nào khớp với bộ lọc hiện tại.</p>
+            @if (!string.IsNullOrEmpty(currentSearch) || currentFilter.HasValue)
+            {
+                <a href="/CarOwner/Orders/Index" class="btn btn-sm btn-light border rounded-pill px-3 py-1.5 mt-3 fw-semibold text-primary">
+                    <i data-lucide="rotate-ccw" class="d-inline-block me-1" style="width: 14px; height: 14px;"></i>Xóa bộ lọc
+                </a>
+            }
         </div>
-
+    }
+    else
+    {
         <div class="table-responsive">
-            <table class="recar-table">
-                <thead>
-                    <tr>
-                        <th>Mã đơn</th>
-                        <th>Khách hàng</th>
-                        <th>Ngày tạo đơn</th>
-                        <th>Đặt cọc (30%)</th>
-                        <th>Tổng tiền thuê</th>
-                        <th>Trạng thái</th>
-                        <th class="text-end">Thao tác</th>
+            <table class="table align-top mb-0" style="min-width: 1100px;">
+                <thead class="bg-light" style="border-bottom: 1px solid #e2e8f0;">
+                    <tr style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; color: #64748b;">
+                        <th class="ps-4 py-3 fw-semibold">Đơn hàng</th>
+                        <th class="py-3 fw-semibold">Xe</th>
+                        <th class="py-3 fw-semibold">Khách thuê</th>
+                        <th class="py-3 fw-semibold">Lịch trình</th>
+                        <th class="py-3 fw-semibold">Tài chính</th>
+                        <th class="pe-4 py-3 fw-semibold">Trạng thái & thao tác</th>
                     </tr>
                 </thead>
-                <tbody>
-                    @if (Model != null && Model.Any())
+                <tbody class="divide-y">
+                    @foreach (var order in Model)
                     {
-                        foreach (var item in Model)
+                        var firstDetail = order.OrderDetails.FirstOrDefault();
+                        var car = firstDetail?.Car;
+                        var customer = order.Customer;
+
+                        decimal totalPay = order.Payment ?? 0;
+                        decimal depositVal = order.Deposit ?? (totalPay * 0.3m);
+                        decimal remainingPay = Math.Max(0, totalPay - depositVal);
+
+                        DateTime pDate = firstDetail?.PickupDate ?? DateTime.Now;
+                        DateTime rDate = firstDetail?.ReturnDate ?? DateTime.Now.AddDays(1);
+                        int rentDays = (int)Math.Max(1, (rDate.Date - pDate.Date).TotalDays);
+
+                        string custName = customer?.Name ?? customer?.FullName ?? "Khách hàng ReCar";
+                        string initialsStr = "KH";
+                        if (!string.IsNullOrWhiteSpace(custName))
                         {
-                            string statusClass = "status-ready";
-                            string statusName = item.Status?.StatusDescription ?? "Đã thanh toán cọc";
-
-                            if (item.StatusId == 1 || item.StatusId == 2)
+                            var parts = custName.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                            if (parts.Length >= 2)
                             {
-                                statusClass = "status-pending"; // Chờ duyệt / Chờ thanh toán
+                                initialsStr = (parts[0][0].ToString() + parts[parts.Length - 1][0].ToString()).ToUpper();
                             }
-                            else if (item.StatusId == 3)
+                            else if (parts.Length == 1 && parts[0].Length >= 2)
                             {
-                                statusClass = "status-ready"; // Đã thanh toán cọc
+                                initialsStr = parts[0].Substring(0, 2).ToUpper();
                             }
-                            else if (item.StatusId == 4)
-                            {
-                                statusClass = "status-busy"; // Đang thực hiện
-                            }
-                            else if (item.StatusId == 5)
-                            {
-                                statusClass = "status-maintenance"; // Đã hủy
-                            }
-
-                            <tr>
-                                <td>
-                                    <span class="fw-bold text-dark font-monospace fs-6">#@item.OrderId</span>
-                                </td>
-                                <td>
-                                    <div class="fw-bold text-dark">@(item.Customer?.Name ?? "Khách hàng ReCar")</div>
-                                    <div class="text-muted small">
-                                        <i class="bi bi-telephone text-secondary me-1"></i>@(item.Customer?.PhoneNumber ?? "0988.xxx.xxx")
-                                    </div>
-                                </td>
-                                <td class="text-muted small">
-                                    <i class="bi bi-clock-history me-1"></i>
-                                    @(item.OrderDate?.ToString("HH:mm - dd/MM/yyyy") ?? "Gần đây")
-                                </td>
-                                <td>
-                                    <span class="fw-bold text-success">
-                                        @((item.Deposit ?? 0).ToString("N0"))đ
-                                    </span>
-                                </td>
-                                <td>
-                                    <span class="fw-bold text-primary fs-6">
-                                        @((item.Payment ?? 0).ToString("N0"))đ
-                                    </span>
-                                </td>
-                                <td>
-                                    <span class="recar-status-badge @statusClass">
-                                        @statusName
-                                    </span>
-                                </td>
-                                <td class="text-end">
-                                    <div class="d-inline-flex gap-1">
-                                        <a href="/CarOwner/Orders/Details/@item.OrderId" class="btn btn-outline-primary btn-sm rounded-pill px-3 py-1 fw-semibold">
-                                            <i class="bi bi-eye me-1"></i>Chi tiết
-                                        </a>
-                                        @if (item.StatusId == 1 || item.StatusId == 2)
-                                        {
-                                            <a href="/CarOwner/Orders/Confirm/@item.OrderId" class="btn btn-success btn-sm rounded-pill px-2.5 py-1 text-white" title="Xác nhận đơn">
-                                                <i class="bi bi-check-lg"></i>
-                                            </a>
-                                            <a href="/CarOwner/Orders/Cancel/@item.OrderId" class="btn btn-outline-danger btn-sm rounded-pill px-2.5 py-1" onclick="return confirm('Bạn có chắc muốn từ chối đơn này?');" title="Từ chối">
-                                                <i class="bi bi-x-lg"></i>
-                                            </a>
-                                        }
-                                    </div>
-                                </td>
-                            </tr>
                         }
-                    }
-                    else
-                    {
-                        <tr>
-                            <td colspan="7" class="text-center py-5 text-muted">
-                                <div class="mb-3">
-                                    <i class="bi bi-clipboard-x fs-1 text-secondary opacity-50"></i>
-                                </div>
-                                <h5>Chưa có đơn đặt xe nào</h5>
-                                <p class="small text-muted">Khi khách hàng đặt cọc giữ xe của bạn, các thông báo và lịch trình sẽ xuất hiện tại đây.</p>
-                                <a href="/CarOwner/Home/Index" class="btn btn-light rounded-pill px-4 py-2 border text-primary fw-bold">
-                                    Quay về Tổng quan
+
+                        <tr class="hover:bg-light" style="transition: background-color 0.15s ease;">
+                            <!-- 1. ĐƠN HÀNG -->
+                            <td class="ps-4 py-3.5">
+                                <a href="/CarOwner/Orders/Details/@order.OrderId" class="fw-bold font-monospace text-decoration-none" style="color: #0284c7; font-size: 0.9rem;">
+                                    #@order.OrderId
                                 </a>
+                                <p class="text-muted mb-0" style="font-size: 0.75rem;">
+                                    Tạo @(order.OrderDate?.ToString("dd/MM/yyyy") ?? "Hôm nay")
+                                </p>
+                            </td>
+
+                            <!-- 2. XE -->
+                            <td class="py-3.5">
+                                <div class="d-flex align-items-center gap-3">
+                                    <img src="@(string.IsNullOrEmpty(car?.Image) ? "/images/cars/car-sedan.jpg" : car.Image)" 
+                                         alt="@car?.CarName" 
+                                         class="rounded-3 border object-fit-cover shadow-xs flex-shrink-0" 
+                                         style="width: 72px; height: 48px;" loading="lazy" />
+                                    <div>
+                                        <p class="fw-semibold text-dark mb-1" style="font-size: 0.875rem;">@(car?.CarName ?? "Phương tiện ReCar")</p>
+                                        <span class="plate">@(car?.LicensePlate ?? "CHƯA CẤP")</span>
+                                        <p class="text-muted mb-0 mt-1" style="font-size: 0.72rem;">@(car?.Transmission ?? "Tự động")</p>
+                                    </div>
+                                </div>
+                            </td>
+
+                            <!-- 3. KHÁCH THUÊ -->
+                            <td class="py-3.5">
+                                <div class="d-flex align-items-center" style="gap: 10px;">
+                                    <span class="rounded-circle flex-shrink-0 fw-bold d-inline-flex align-items-center justify-content-center" 
+                                          style="width: 36px; height: 36px; min-width: 36px; min-height: 36px; background-color: #e0f2fe; color: #0284c7; font-size: 0.78rem; line-height: 1; text-align: center;">
+                                        @initialsStr
+                                    </span>
+                                    <div>
+                                        <p class="fw-medium text-dark mb-0" style="font-size: 0.85rem;">@custName</p>
+                                        <a href="tel:@(customer?.PhoneNumber)" class="text-decoration-none d-inline-flex align-items-center" style="gap: 6px; color: #0284c7; font-size: 0.75rem;">
+                                            <i data-lucide="phone" style="width: 12px; height: 12px; flex-shrink: 0;"></i>
+                                            <span>@(customer?.PhoneNumber ?? "0988.xxx.xxx")</span>
+                                        </a>
+                                    </div>
+                                </div>
+                            </td>
+
+                            <!-- 4. LỊCH TRÌNH -->
+                            <td class="py-3.5" style="font-size: 0.75rem; line-height: 1.5;">
+                                <p class="mb-0 text-muted">Nhận: <b class="text-dark">@pDate.ToString("HH:mm - dd/MM/yyyy")</b></p>
+                                <p class="mb-0 text-muted">Trả: <b class="text-dark">@rDate.ToString("HH:mm - dd/MM/yyyy")</b></p>
+                                <p class="text-muted mb-0">@rentDays ngày</p>
+                            </td>
+
+                            <!-- 5. TÀI CHÍNH -->
+                            <td class="py-3.5" style="font-size: 0.75rem; line-height: 1.5;">
+                                <p class="fw-bold text-dark mb-0" style="font-size: 0.875rem;">@totalPay.ToString("N0") đ</p>
+                                <p class="text-muted mb-0">Cọc 30% (sàn thu): @depositVal.ToString("N0") đ</p>
+                                <p class="text-muted mb-0">Còn lại 70% (khách trả bạn): <strong class="text-dark">@remainingPay.ToString("N0") đ</strong></p>
+                                @if (order.StatusId == 3 && order.Deposit == null)
+                                {
+                                    <p class="mb-0 mt-1 fw-semibold" style="color: #d97706; font-size: 0.72rem;">Chờ xác nhận cọc</p>
+                                }
+                            </td>
+
+                            <!-- 6. TRẠNG THÁI & THAO TÁC -->
+                            <td class="pe-4 py-3.5">
+                                <div class="mb-2">
+                                    @if (order.StatusId == 3)
+                                    {
+                                        <span class="status-badge-custom badge-status-3">
+                                            <span class="dot"></span> Chờ bàn giao
+                                        </span>
+                                    }
+                                    else if (order.StatusId == 4)
+                                    {
+                                        <span class="status-badge-custom badge-status-4">
+                                            <span class="dot"></span> Đang cho thuê
+                                        </span>
+                                    }
+                                    else if (order.StatusId == 5)
+                                    {
+                                        <span class="status-badge-custom badge-status-5">
+                                            <span class="dot"></span> Đã hoàn tất
+                                        </span>
+                                    }
+                                    else if (order.StatusId == 2)
+                                    {
+                                        <span class="status-badge-custom badge-status-2">
+                                            <span class="dot"></span> Đã hủy
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="status-badge-custom badge-status-other">
+                                            <span class="dot"></span> @(order.Status?.StatusDescription ?? "Đã đặt")
+                                        </span>
+                                    }
+                                </div>
+
+                                <div class="d-flex flex-wrap gap-1.5 align-items-center">
+                                    <a href="/CarOwner/Orders/Details/@order.OrderId" class="order-action-btn order-action-ghost" title="Xem chi tiết đơn">
+                                        <i data-lucide="eye" style="width: 14px; height: 14px;"></i>
+                                        <span>Chi tiết</span>
+                                    </a>
+
+                                    @if (order.StatusId == 3)
+                                    {
+                                        <button type="button" class="order-action-btn order-action-handover" 
+                                                onclick="quickHandover(@order.OrderId, '@(car?.CarName)', '@custName')">
+                                            <i data-lucide="key-round" style="width: 14px; height: 14px;"></i>
+                                            <span>Bàn giao xe</span>
+                                        </button>
+                                    }
+                                    else if (order.StatusId == 4)
+                                    {
+                                        <button type="button" class="order-action-btn order-action-return" 
+                                                onclick="quickReturn(@order.OrderId, '@(car?.CarName)')">
+                                            <i data-lucide="check-circle-2" style="width: 14px; height: 14px;"></i>
+                                            <span>Nhận xe</span>
+                                        </button>
+                                    }
+                                </div>
                             </td>
                         </tr>
                     }
                 </tbody>
             </table>
         </div>
-    </div>
+    }
 </div>
+
+@section Scripts {
+    <script>
+        function getCsrfToken() {
+            var tokenInput = document.querySelector('input[name="__RequestVerificationToken"]');
+            return tokenInput ? tokenInput.value : '';
+        }
+
+        // 1. Thao tác nhanh Bàn giao xe (Quick Handover)
+        function quickHandover(orderId, carName, customerName) {
+            Swal.fire({
+                title: `Bàn giao xe #${orderId}?`,
+                html: `
+                    <div class="text-start small p-3 bg-light rounded-3 border">
+                        <div class="mb-2"><strong>Phương tiện:</strong> ${carName}</div>
+                        <div class="mb-2"><strong>Khách hàng:</strong> ${customerName}</div>
+                        <hr class="my-2">
+                        <div class="text-danger fw-semibold mb-1">
+                            <i data-lucide="alert-triangle" class="d-inline size-4 me-1"></i>Lưu ý trước khi giao chìa khóa:
+                        </div>
+                        <ul class="ps-3 mb-0 text-muted">
+                            <li>Đã đối chiếu bản gốc CCCD & GPLX của người thuê.</li>
+                            <li>Đã thu 70% số tiền thuê còn lại (tiền mặt / chuyển khoản).</li>
+                            <li>Đã kiểm tra số km (ODO) và mức xăng/pin hiện tại.</li>
+                        </ul>
+                    </div>
+                `,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#10b981',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: 'Xác nhận bàn giao',
+                cancelButtonText: 'Đóng lại'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    Swal.showLoading();
+                    var formData = new FormData();
+                    formData.append('id', orderId);
+                    formData.append('__RequestVerificationToken', getCsrfToken());
+
+                    fetch('/CarOwner/Orders/ConfirmHandover', {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => {
+                        if (!response.ok) {
+                            return response.text().then(text => { throw new Error(text || ("Lỗi HTTP " + response.status)); });
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Bàn giao xe thành công!',
+                                text: data.message,
+                                timer: 1800,
+                                showConfirmButton: false
+                            }).then(() => {
+                                window.location.reload();
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Thao tác không thành công',
+                                text: data.message
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Lỗi thao tác',
+                            text: error.message || 'Không thể kết nối máy chủ. Vui lòng thử lại!'
+                        });
+                    });
+                }
+            });
+        }
+
+        // 2. Thao tác nhanh Nhận lại xe & Hoàn tất (Quick Return)
+        function quickReturn(orderId, carName) {
+            Swal.fire({
+                title: `Nhận lại xe & Hoàn tất #${orderId}?`,
+                html: `
+                    <div class="text-start small p-3 bg-light rounded-3 border">
+                        <div class="mb-2"><strong>Phương tiện:</strong> ${carName}</div>
+                        <hr class="my-2">
+                        <div class="text-success fw-semibold mb-1">
+                            <i data-lucide="shield-check" class="d-inline size-4 me-1"></i>Kiểm tra phương tiện hoàn trả:
+                        </div>
+                        <ul class="ps-3 mb-0 text-muted">
+                            <li>Kiểm tra tình trạng ngoại thất, lốp và phụ kiện kèm xe.</li>
+                            <li>Đối chiếu mức xăng/pin và số km phát sinh nếu có.</li>
+                            <li>Xe sẽ tự động chuyển về <strong>Sẵn sàng</strong> trên sàn (+1 chuyến đi thành công).</li>
+                        </ul>
+                    </div>
+                `,
+                icon: 'info',
+                showCancelButton: true,
+                confirmButtonColor: '#0284c7',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: 'Xác nhận nhận lại xe',
+                cancelButtonText: 'Để sau'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    Swal.showLoading();
+                    var formData = new FormData();
+                    formData.append('id', orderId);
+                    formData.append('__RequestVerificationToken', getCsrfToken());
+
+                    fetch('/CarOwner/Orders/ConfirmReturn', {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => {
+                        if (!response.ok) {
+                            return response.text().then(text => { throw new Error(text || ("Lỗi HTTP " + response.status)); });
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Hoàn tất chuyến đi!',
+                                text: data.message,
+                                timer: 1800,
+                                showConfirmButton: false
+                            }).then(() => {
+                                window.location.reload();
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Thao tác không thành công',
+                                text: data.message
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Lỗi thao tác',
+                            text: error.message || 'Không thể kết nối máy chủ. Vui lòng thử lại!'
+                        });
+                    });
+                }
+            });
+        }
+
+        // Render Lucide icons khi tải xong
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+        });
+    </script>
+}

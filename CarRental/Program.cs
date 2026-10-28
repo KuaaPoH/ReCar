@@ -390,6 +390,21 @@ static void EnsureAllTablesExist(DbRenalCarContext context, ILogger logger)
                 context.SaveChanges();
                 logger.LogInformation("Amenities seeded successfully.");
             }
+
+            // Đảm bảo trạng thái OrderStatus = 5 (Hoàn tất) luôn tồn tại trong CSDL
+            try
+            {
+                if (!context.OrderStatuses.Any(s => s.StatusId == 5))
+                {
+                    context.OrderStatuses.Add(new OrderStatus { StatusId = 5, StatusDescription = "Hoàn tất" });
+                    context.SaveChanges();
+                    logger.LogInformation("OrderStatus 5 (Hoàn tất) ensured successfully.");
+                }
+            }
+            catch (Exception osEx)
+            {
+                logger.LogWarning(osEx, "Could not ensure OrderStatus 5: {Message}", osEx.Message);
+            }
         }
         catch (Exception amenEx)
         {
@@ -445,10 +460,17 @@ static void SeedDatabase(DbRenalCarContext context, ILogger logger)
                 new OrderStatus { StatusId = 1, StatusDescription = " Đã đặt" },
                 new OrderStatus { StatusId = 2, StatusDescription = "Đã Huỷ" },
                 new OrderStatus { StatusId = 3, StatusDescription = "Đã thanh toán" },
-                new OrderStatus { StatusId = 4, StatusDescription = "Đang giao" }
+                new OrderStatus { StatusId = 4, StatusDescription = "Đang giao" },
+                new OrderStatus { StatusId = 5, StatusDescription = "Hoàn tất" }
             });
             context.SaveChanges();
             logger.LogInformation("OrderStatuses seeded.");
+        }
+        else if (!context.OrderStatuses.Any(s => s.StatusId == 5))
+        {
+            context.OrderStatuses.Add(new OrderStatus { StatusId = 5, StatusDescription = "Hoàn tất" });
+            context.SaveChanges();
+            logger.LogInformation("OrderStatus 5 (Hoàn tất) seeded.");
         }
 
         // Insert CarTypes data

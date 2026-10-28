@@ -23,15 +23,20 @@ namespace CarRental.Controllers
             }
             // Lấy ID khách hàng từ session
             var customerId = Function.GetAccountId(HttpContext.Session);
+            var userEmail = Function.GetEmail(HttpContext.Session);
 
-            // Truy vấn thông tin khách hàng từ database
+            // Truy vấn thông tin khách hàng từ database (theo CustomerId hoặc Email)
             var customer = _context.Customers
-                .FirstOrDefault(c => c.CustomerId == customerId);
+                .FirstOrDefault(c => c.CustomerId == customerId || (!string.IsNullOrEmpty(userEmail) && c.Email == userEmail));
 
             if (customer == null)
             {
                 return RedirectToAction("Index", "Home"); // Redirect nếu không tìm thấy khách hàng
             }
+
+            // Đồng bộ lại customerId và Session
+            customerId = customer.CustomerId;
+            Function.SetAccountId(HttpContext.Session, customer.CustomerId);
             // Lấy danh sách đơn hàng, đơn mới nhất hiển thị trước
             ViewBag.Order = _context.CarRentalOrders
                 .Include(i => i.Status)

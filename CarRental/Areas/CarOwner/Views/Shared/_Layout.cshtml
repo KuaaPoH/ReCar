@@ -5,727 +5,491 @@
     var ownerName = Function.GetUserName(Context.Session);
     if (string.IsNullOrEmpty(ownerName))
     {
-        ownerName = "Đối tác Chủ xe";
+        ownerName = "Trần Quốc Bảo";
     }
     var ownerInitials = ownerName.Length >= 2 ? ownerName.Substring(0, 2).ToUpper() : "CX";
     var ownerAccountId = Function.GetCarOwnerAccountId(Context.Session) > 0 ? Function.GetCarOwnerAccountId(Context.Session) : Function.GetAccountId(Context.Session);
+    string pageTitle = ViewData["Title"]?.ToString() ?? "Tổng quan";
 }
 <!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>@(ViewData["Title"] ?? "Quản lý xe") | ReCar Host - Trung tâm Quản trị Phương tiện</title>
+    <title>@(pageTitle) | ReCar Host Pro</title>
     
-    <!-- Google Fonts -->
+    <!-- Script khôi phục trạng thái thu gọn Sidebar tránh giật lag -->
+    <script>
+        (function() {
+            try {
+                if (localStorage.getItem('recar_host_sidebar_collapsed') === 'true' && window.innerWidth >= 992) {
+                    document.documentElement.classList.add('sidebar-collapsed');
+                }
+            } catch(e) {}
+        })();
+    </script>
+
+    <!-- Google Fonts: Plus Jakarta Sans & JetBrains Mono -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     
-    <!-- Bootstrap 5 & Icons -->
+    <!-- Bootstrap 5 & SweetAlert2 -->
     <link rel="stylesheet" href="~/assets/css/vendor/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
     
+    <!-- Lucide Icons CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
     <style>
         :root {
-            --recar-dark: #0b132b;
-            --recar-dark-subtle: #1c2541;
-            --recar-dark-card: #222d4a;
-            --recar-primary: #0284c7;
-            --recar-primary-hover: #0369a1;
-            --recar-cyan: #06b6d4;
-            --recar-emerald: #10b981;
-            --recar-amber: #f59e0b;
-            --recar-rose: #f43f5e;
-            --recar-bg: #f8fafc;
-            --recar-border: #e2e8f0;
-            --recar-border-subtle: #edf2f7;
-            --recar-card-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.05), 0 2px 6px -1px rgba(15, 23, 42, 0.04);
-            --recar-glow-primary: 0 8px 24px -4px rgba(2, 132, 199, 0.35);
+            --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+            --primary: #0284c7;
+            --cyan: #00a8e8;
+            --sidebar-bg: #0b1329;
+            --sidebar-card: #131c31;
+            --sidebar-text: #94a3b8;
+            --sidebar-text-active: #ffffff;
+            --sidebar-muted: #64748b;
+            --bg-canvas: #f8fafc;
+            --border-color: #e2e8f0;
+            --sidebar-w: 240px;
+            --sidebar-w-collapsed: 68px;
         }
 
         body {
-            font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-            background-color: var(--recar-bg);
-            color: #334155;
+            font-family: var(--font-sans);
+            background-color: var(--bg-canvas);
+            color: #0f172a;
             margin: 0;
             padding: 0;
             -webkit-font-smoothing: antialiased;
         }
 
-        /* Sidebar Styling (High-End Midnight Tech) */
+        /* Design System Utilities */
+        .card-surface {
+            background-color: #ffffff;
+            border: 1px solid var(--border-color);
+            border-radius: 18px;
+            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
+            transition: all 0.2s ease;
+        }
+
+        /* Utility classes Tailwind-compatible */
+        .gap-1\.5 { gap: 0.375rem !important; }
+        .gap-2\.5 { gap: 0.625rem !important; }
+        .gap-3\.5 { gap: 0.875rem !important; }
+        .place-items-center { place-items: center !important; }
+        .icon-box-fixed {
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            flex-shrink: 0 !important;
+        }
+
+        /* Sidebar Styling */
         .recar-owner-sidebar {
-            background: linear-gradient(180deg, #0b132b 0%, #111a36 100%);
-            color: #f8fafc;
-            width: 275px;
-            min-height: 100vh;
-            position: sticky;
+            width: var(--sidebar-w);
+            background-color: var(--sidebar-bg);
+            color: var(--sidebar-text);
+            position: fixed;
             top: 0;
+            left: 0;
+            bottom: 0;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            padding: 1.5rem 1.15rem;
-            z-index: 1030;
-            box-shadow: 4px 0 24px rgba(0, 0, 0, 0.12);
-            transition: all 0.3s ease;
+            z-index: 1040;
+            overflow-y: auto;
+            overflow-x: hidden;
+            transition: width 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
         }
 
-        .recar-owner-logo {
-            display: flex;
-            align-items: center;
-            gap: 0.85rem;
-            text-decoration: none;
-            color: #fff;
-            padding: 0.25rem 0.5rem;
+        .recar-owner-sidebar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .recar-owner-sidebar::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 4px;
         }
 
-        .recar-owner-logo-icon {
-            width: 42px;
-            height: 42px;
-            background: linear-gradient(135deg, #0284c7 0%, #38bdf8 100%);
-            border-radius: 12px;
+        .recar-owner-main {
+            margin-left: var(--sidebar-w);
+            min-height: 100vh;
             display: flex;
-            align-items: center;
+            flex-direction: column;
+            background-color: var(--bg-canvas);
+            transition: margin-left 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Collapsed Sidebar Mode */
+        html.sidebar-collapsed .recar-owner-sidebar,
+        body.sidebar-collapsed .recar-owner-sidebar {
+            width: var(--sidebar-w-collapsed);
+        }
+        html.sidebar-collapsed .recar-owner-main,
+        body.sidebar-collapsed .recar-owner-main {
+            margin-left: var(--sidebar-w-collapsed);
+        }
+        html.sidebar-collapsed .sidebar-hide-on-collapse,
+        body.sidebar-collapsed .sidebar-hide-on-collapse {
+            display: none !important;
+        }
+        html.sidebar-collapsed .sidebar-nav-link,
+        body.sidebar-collapsed .sidebar-nav-link {
             justify-content: center;
-            color: #fff;
-            font-size: 1.35rem;
-            box-shadow: 0 4px 14px rgba(2, 132, 199, 0.45);
+            padding: 10px 0;
         }
-
-        .recar-owner-brand {
-            font-size: 1.35rem;
-            font-weight: 800;
-            letter-spacing: -0.6px;
-            color: #ffffff;
-            line-height: 1.1;
-        }
-
-        .recar-owner-badge {
-            font-size: 0.65rem;
-            text-transform: uppercase;
-            letter-spacing: 1.8px;
-            color: #38bdf8;
-            font-weight: 700;
-            display: flex;
-            align-items: center;
-            gap: 4px;
-            margin-top: 2px;
-        }
-
-        /* Host Profile Mini Card in Sidebar */
-        .recar-host-profile-card {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 14px;
-            padding: 0.85rem;
-            margin-top: 1.25rem;
-            margin-bottom: 1.25rem;
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            backdrop-filter: blur(8px);
-        }
-
-        .recar-host-avatar {
-            width: 38px;
-            height: 38px;
-            border-radius: 10px;
-            background: linear-gradient(135deg, #0284c7, #0ea5e9);
-            color: #fff;
-            font-weight: 700;
-            display: flex;
-            align-items: center;
+        html.sidebar-collapsed .sidebar-brand-box,
+        body.sidebar-collapsed .sidebar-brand-box {
             justify-content: center;
-            font-size: 0.85rem;
-            flex-shrink: 0;
-            box-shadow: 0 2px 8px rgba(2, 132, 199, 0.3);
+            padding: 10px 0;
         }
-
-        .recar-host-info {
-            min-width: 0;
-            flex: 1;
-        }
-
-        .recar-host-name {
-            font-size: 0.85rem;
-            font-weight: 700;
-            color: #f1f5f9;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            margin: 0;
-        }
-
-        .recar-host-verified {
-            font-size: 0.7rem;
-            color: #10b981;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 3px;
+        html.sidebar-collapsed .recar-host-profile-card,
+        body.sidebar-collapsed .recar-host-profile-card {
+            padding: 8px 4px;
+            justify-content: center;
+            background: transparent !important;
         }
 
         /* Navigation Links */
-        .recar-owner-nav {
-            display: flex;
-            flex-direction: column;
-            gap: 0.4rem;
-        }
-
-        .recar-owner-nav-heading {
-            font-size: 0.65rem;
+        .sidebar-nav-header {
+            font-size: 0.6875rem; /* 11px */
             text-transform: uppercase;
-            letter-spacing: 1.5px;
+            letter-spacing: 0.06em;
             font-weight: 700;
-            color: #64748b;
-            padding: 0.5rem 0.85rem 0.2rem 0.85rem;
+            color: var(--sidebar-muted);
+            padding: 14px 12px 6px 12px;
         }
 
-        .recar-owner-nav-item {
+        .sidebar-nav-link {
             display: flex;
             align-items: center;
-            justify-content: space-between;
-            gap: 0.75rem;
-            padding: 0.75rem 1rem;
-            border-radius: 12px;
-            color: #94a3b8;
+            gap: 12px;
+            padding: 8px 12px;
+            margin: 1px 6px;
+            border-radius: 8px;
+            font-size: 0.8125rem; /* 13px */
+            font-weight: 500;
+            color: var(--sidebar-text);
             text-decoration: none;
-            font-size: 0.88rem;
-            font-weight: 600;
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: all 0.15s ease;
             position: relative;
         }
-
-        .recar-owner-nav-item .nav-link-left {
-            display: flex;
-            align-items: center;
-            gap: 0.85rem;
+        .sidebar-nav-link svg, .sidebar-nav-link i {
+            width: 18px;
+            height: 18px;
+            min-width: 18px;
+            stroke-width: 1.8;
+            flex-shrink: 0;
+            color: var(--sidebar-text);
+            transition: color 0.15s ease;
         }
-
-        .recar-owner-nav-item i {
-            font-size: 1.2rem;
-            transition: transform 0.2s ease;
-        }
-
-        .recar-owner-nav-item:hover {
+        .sidebar-nav-link:hover {
+            background-color: rgba(255, 255, 255, 0.06);
             color: #ffffff;
-            background-color: rgba(255, 255, 255, 0.07);
-            transform: translateX(3px);
         }
-
-        .recar-owner-nav-item:hover i {
-            color: #38bdf8;
-        }
-
-        .recar-owner-nav-item.active {
-            background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+        .sidebar-nav-link:hover svg, .sidebar-nav-link:hover i {
             color: #ffffff;
-            box-shadow: 0 4px 16px rgba(2, 132, 199, 0.4);
         }
-
-        .recar-owner-nav-item.active i {
+        .sidebar-nav-link.active {
+            background-color: #00a8e8;
+            color: #ffffff;
+            font-weight: 600;
+            box-shadow: 0 4px 12px rgba(0, 168, 232, 0.35);
+        }
+        .sidebar-nav-link.active svg, .sidebar-nav-link.active i {
             color: #ffffff;
         }
 
-        .recar-owner-nav-item .nav-badge {
-            background: rgba(255, 255, 255, 0.15);
-            font-size: 0.72rem;
-            padding: 0.15rem 0.5rem;
-            border-radius: 999px;
-            font-weight: 700;
-        }
-
-        /* Content Area */
-        .recar-owner-main {
-            flex: 1;
-            min-width: 0;
-            padding: 2rem 2.5rem;
-            background-color: var(--recar-bg);
-        }
-
+        /* Topbar Header */
         .recar-owner-topbar {
+            height: 58px;
+            position: sticky;
+            top: 0;
+            z-index: 1020;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border-color);
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding-bottom: 1.15rem;
-            margin-bottom: 1.75rem;
-            gap: 1.25rem;
-            flex-wrap: wrap;
-            border-bottom: 1px solid #eef2f6;
+            padding: 0 1.5rem;
         }
 
-        .recar-owner-page-title {
-            font-size: 1.35rem;
-            font-weight: 800;
-            color: #0f172a;
-            letter-spacing: -0.4px;
-            margin: 0;
-            line-height: 1.25;
-        }
-
-        .recar-owner-breadcrumb {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            font-size: 0.78rem;
-            color: #64748b;
-            margin-top: 0.25rem;
-        }
-
-        .recar-owner-breadcrumb a {
-            color: #64748b;
-            text-decoration: none;
-            transition: color 0.15s;
-        }
-
-        .recar-owner-breadcrumb a:hover {
-            color: var(--recar-primary);
-        }
-
-        /* Common Premium Panel */
-        .recar-panel {
-            background: #ffffff;
-            border: 1px solid var(--recar-border);
-            border-radius: 18px;
-            box-shadow: var(--recar-card-shadow);
-            overflow: hidden;
-            margin-bottom: 2rem;
-            transition: box-shadow 0.25s ease;
-        }
-
-        .recar-panel:hover {
-            box-shadow: 0 8px 30px -4px rgba(15, 23, 42, 0.08);
-        }
-
-        .recar-panel-header {
-            padding: 1.25rem 1.65rem;
-            border-bottom: 1px solid var(--recar-border-subtle);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            background-color: #ffffff;
-        }
-
-        .recar-panel-title {
-            font-size: 1.15rem;
-            font-weight: 800;
-            color: var(--recar-dark);
-            margin: 0;
-            letter-spacing: -0.3px;
-        }
-
-        /* Primary Action Button - Slim & Pill Shape */
-        .btn-recar-action {
-            background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
-            color: #ffffff !important;
-            border: none;
-            border-radius: 999px;
-            padding: 0.5rem 1.2rem;
-            font-size: 0.84rem;
-            font-weight: 700;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.45rem;
-            box-shadow: 0 2px 8px rgba(2, 132, 199, 0.25);
-            transition: all 0.2s ease;
-        }
-
-        .btn-recar-action:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 14px rgba(2, 132, 199, 0.35);
-            color: #ffffff;
-        }
-
-        /* Chuông thông báo tròn chuẩn SaaS */
-        .btn-owner-bell {
-            width: 38px;
-            height: 38px;
+        /* Nút thu gọn Sidebar tròn tinh tế chuẩn như bên Admin */
+        .btn-toggle-sidebar {
+            width: 36px;
+            height: 36px;
             border-radius: 50%;
+            border: none;
+            background: #f1f5f9;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #475569;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            flex-shrink: 0;
+        }
+        .btn-toggle-sidebar:hover {
+            background: #e2e8f0;
+            color: #0f172a;
+        }
+        .btn-toggle-sidebar svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .btn-owner-bell {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: 1px solid var(--border-color);
             background: #ffffff;
-            border: 1px solid #e2e8f0;
             display: flex;
             align-items: center;
             justify-content: center;
             color: #475569;
             position: relative;
-            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
-            transition: all 0.2s ease;
+            cursor: pointer;
+            transition: all 0.15s ease;
         }
-
         .btn-owner-bell:hover {
             background: #f8fafc;
-            color: #0284c7;
-            border-color: #cbd5e1;
-            transform: translateY(-1px);
+            color: #0f172a;
+        }
+        .btn-owner-bell svg {
+            width: 17px;
+            height: 17px;
         }
 
-        /* User Profile Pill */
         .owner-profile-pill {
             display: flex;
             align-items: center;
-            gap: 0.55rem;
+            gap: 8px;
             background: #ffffff;
-            border: 1px solid #e2e8f0;
-            padding: 0.25rem 0.8rem 0.25rem 0.3rem;
+            border: 1px solid var(--border-color);
+            padding: 3px 12px 3px 3px;
             border-radius: 999px;
-            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: all 0.15s ease;
         }
-
         .owner-profile-pill:hover {
             background: #f8fafc;
-            border-color: #cbd5e1;
-        }
-
-        /* Status Badges */
-        .recar-status-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 0.35rem 0.85rem;
-            border-radius: 999px;
-            font-size: 0.78rem;
-            font-weight: 700;
-            letter-spacing: 0.2px;
-        }
-
-        .status-ready {
-            background-color: #ecfdf5;
-            color: #059669;
-            border: 1px solid #a7f3d0;
-        }
-        .status-ready::before {
-            content: "";
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            background-color: #10b981;
-            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
-        }
-
-        .status-busy {
-            background-color: #eff6ff;
-            color: #1d4ed8;
-            border: 1px solid #bfdbfe;
-        }
-        .status-busy::before {
-            content: "";
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            background-color: #3b82f6;
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
-        }
-
-        .status-pending {
-            background-color: #fffbeb;
-            color: #b45309;
-            border: 1px solid #fde68a;
-        }
-        .status-pending::before {
-            content: "";
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            background-color: #f59e0b;
-            box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.2);
-        }
-
-        .status-maintenance {
-            background-color: #fef2f2;
-            color: #b91c1c;
-            border: 1px solid #fecaca;
-        }
-        .status-maintenance::before {
-            content: "";
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            background-color: #ef4444;
-            box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
-        }
-
-        /* Recar Table System */
-        .recar-table {
-            width: 100%;
-            border-collapse: separate;
-            border-spacing: 0;
-            margin-bottom: 0;
-        }
-
-        .recar-table th {
-            background-color: #f8fafc;
-            color: #475569;
-            font-weight: 700;
-            font-size: 0.82rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            padding: 1.1rem 1.25rem;
-            border-bottom: 2px solid #e2e8f0;
-            white-space: nowrap;
-        }
-
-        .recar-table td {
-            padding: 1.1rem 1.25rem;
-            vertical-align: middle;
-            border-bottom: 1px solid #f1f5f9;
-            background-color: #ffffff;
-            color: #334155;
-            font-size: 0.9rem;
-        }
-
-        .recar-table tbody tr:hover td {
-            background-color: #f8fafc;
-        }
-
-        .recar-table tbody tr:last-child td {
-            border-bottom: none;
         }
 
         @@media (max-width: 991px) {
             .recar-owner-sidebar {
-                width: 100%;
-                min-height: auto;
-                position: relative;
-                flex-direction: row;
-                align-items: center;
-                flex-wrap: wrap;
-                padding: 1rem;
+                transform: translateX(-100%);
+                width: var(--sidebar-w) !important;
             }
-            .recar-host-profile-card {
-                display: none;
-            }
-            .recar-owner-nav {
-                flex-direction: row;
-                overflow-x: auto;
-                width: 100%;
-                margin-top: 0.75rem;
-                padding-bottom: 0.5rem;
+            .recar-owner-sidebar.show {
+                transform: translateX(0);
             }
             .recar-owner-main {
-                padding: 1.25rem 1rem;
+                margin-left: 0 !important;
+            }
+            html.sidebar-collapsed .recar-owner-sidebar,
+            body.sidebar-collapsed .recar-owner-sidebar {
+                transform: translateX(-100%);
+            }
+            html.sidebar-collapsed .recar-owner-sidebar.show,
+            body.sidebar-collapsed .recar-owner-sidebar.show {
+                transform: translateX(0);
+            }
+            html.sidebar-collapsed .sidebar-hide-on-collapse,
+            body.sidebar-collapsed .sidebar-hide-on-collapse {
+                display: block !important;
+            }
+            html.sidebar-collapsed .sidebar-nav-link,
+            body.sidebar-collapsed .sidebar-nav-link {
+                justify-content: flex-start;
+                padding: 9px 14px;
             }
         }
     </style>
 </head>
 
 <body>
-    <div class="d-flex flex-column flex-lg-row min-vh-100">
-        <!-- Sidebar Navigation (ReCar Host Pro) -->
-        <aside class="recar-owner-sidebar">
-            <div>
-                <!-- Brand Logo -->
-                <a href="/CarOwner/Home/Index" class="recar-owner-logo">
-                    <div class="recar-owner-logo-icon">
-                        <i class="bi bi-car-front-fill"></i>
-                    </div>
-                    <div>
-                        <div class="recar-owner-brand">Re<span style="color: #38bdf8;">Car</span> <span style="font-size: 0.75rem; font-weight: 600; opacity: 0.8; letter-spacing: 0;">Host</span></div>
-                        <div class="recar-owner-badge">
-                            <i class="bi bi-shield-fill-check"></i> Đối tác Chủ xe
-                        </div>
-                    </div>
+    <!-- Sleek Sidebar Khớp 100% Ảnh 2 Template -->
+    <aside class="recar-owner-sidebar" id="hostSidebar">
+        <div style="padding: 16px 8px 12px 8px;">
+            <!-- Brand Logo: Ô tròn xanh cyan + icon xe ô tô -->
+            <div class="d-flex align-items-center gap-2.5 px-2 py-2 mb-3 sidebar-brand-box">
+                <div style="width: 42px; height: 42px; min-width: 42px; border-radius: 50%; background: #00a8e8; display: flex; align-items: center; justify-content: center; color: #ffffff; flex-shrink: 0; box-shadow: 0 4px 12px rgba(0, 168, 232, 0.4);">
+                    <i data-lucide="car-front" style="width: 22px; height: 22px; stroke-width: 2;"></i>
+                </div>
+                <div class="sidebar-hide-on-collapse min-w-0">
+                    <div class="fw-bold text-white" style="font-size: 15px; letter-spacing: -0.2px; line-height: 1.2;">ReCar Host Pro</div>
+                    <div style="color: #64748b; font-size: 11.5px; margin-top: 1px;">Đối tác Chủ xe</div>
+                </div>
+            </div>
+
+
+
+            <!-- Navigation Links Khớp 100% Ảnh 2 -->
+            <nav class="d-flex flex-column gap-1">
+                <div class="sidebar-nav-header sidebar-hide-on-collapse">QUẢN TRỊ PHƯƠNG TIỆN</div>
+
+                <a href="/CarOwner/Home/Index" class="sidebar-nav-link @(currentController == "Home" ? "active" : "")" title="Tổng quan">
+                    <i data-lucide="layout-grid"></i>
+                    <span class="sidebar-hide-on-collapse">Tổng quan</span>
                 </a>
 
-                <!-- Host Profile Mini Card -->
-                <div class="recar-host-profile-card">
-                    <div class="recar-host-avatar">
-                        @ownerInitials
-                    </div>
-                    <div class="recar-host-info">
-                        <div class="recar-host-name">@ownerName</div>
-                        <div class="recar-host-verified">
-                            <i class="bi bi-patch-check-fill"></i> Chủ xe uy tín
-                        </div>
-                    </div>
-                </div>
+                <a href="/CarOwner/Cars/Index" class="sidebar-nav-link @((currentController == "Cars" && currentAction == "Index") ? "active" : "")" title="Quản lý xe">
+                    <i data-lucide="car"></i>
+                    <span class="sidebar-hide-on-collapse">Quản lý xe</span>
+                </a>
 
-                <!-- Navigation Links -->
-                <nav class="recar-owner-nav">
-                    <div class="recar-owner-nav-heading">Quản trị phương tiện</div>
+                <!-- Đã loại bỏ chữ "mới" theo yêu cầu người dùng -->
+                <a href="/CarOwner/Cars/Create" class="sidebar-nav-link @((currentController == "Cars" && currentAction == "Create") ? "active" : "")" title="Thêm xe">
+                    <i data-lucide="plus-circle"></i>
+                    <span class="sidebar-hide-on-collapse">Thêm xe</span>
+                </a>
 
-                    <a href="/CarOwner/Home/Index" class="recar-owner-nav-item @(currentController == "Home" ? "active" : "")">
-                        <div class="nav-link-left">
-                            <i class="bi bi-grid-1x2-fill"></i>
-                            <span>Tổng quan</span>
-                        </div>
-                    </a>
+                <div class="sidebar-nav-header sidebar-hide-on-collapse">KINH DOANH & THU NHẬP</div>
 
-                    <a href="/CarOwner/Cars/Index" class="recar-owner-nav-item @((currentController == "Cars" && currentAction == "Index") ? "active" : "")">
-                        <div class="nav-link-left">
-                            <i class="bi bi-speedometer2"></i>
-                            <span>Quản lý xe</span>
-                        </div>
-                    </a>
+                <a href="/CarOwner/Orders/Index" class="sidebar-nav-link @(currentController == "Orders" ? "active" : "")" title="Lịch trình & Đơn xe">
+                    <i data-lucide="calendar-range"></i>
+                    <span class="sidebar-hide-on-collapse">Lịch trình & Đơn xe</span>
+                </a>
 
-                    <a href="/CarOwner/Cars/Create" class="recar-owner-nav-item @((currentController == "Cars" && currentAction == "Create") ? "active" : "")">
-                        <div class="nav-link-left">
-                            <i class="bi bi-plus-circle-fill text-info"></i>
-                            <span>Thêm xe mới</span>
-                        </div>
-                        <span class="badge bg-primary rounded-pill px-2" style="font-size: 0.65rem;">+ Mới</span>
-                    </a>
+                <a href="/CarOwner/Register/Pending" class="sidebar-nav-link @(currentController == "Register" ? "active" : "")" title="Hồ sơ pháp lý & Ngân hàng">
+                    <i data-lucide="file-text"></i>
+                    <span class="sidebar-hide-on-collapse">Hồ sơ pháp lý & Ngân hàng</span>
+                </a>
 
-                    <div class="recar-owner-nav-heading mt-2">Kinh doanh & Thu nhập</div>
+                <div class="sidebar-nav-header sidebar-hide-on-collapse">SẮP RA MẮT</div>
 
-                    <a href="/CarOwner/Orders/Index" class="recar-owner-nav-item @(currentController == "Orders" ? "active" : "")">
-                        <div class="nav-link-left">
-                            <i class="bi bi-calendar2-check-fill"></i>
-                            <span>Lịch trình & Đơn xe</span>
-                        </div>
-                    </a>
+                <a href="#" onclick="event.preventDefault(); Swal.fire('Tính năng tương lai', 'Lịch chặn xe thông minh và Báo cáo tài chính chi tiết đang được phát triển!', 'info');" class="sidebar-nav-link text-muted" title="Tính năng tương lai">
+                    <i data-lucide="sparkles"></i>
+                    <span class="sidebar-hide-on-collapse">Tính năng tương lai</span>
+                </a>
+            </nav>
+        </div>
 
-                    <a href="/CarOwner/Register/Pending" class="recar-owner-nav-item @(currentController == "Register" ? "active" : "")">
-                        <div class="nav-link-left">
-                            <i class="bi bi-person-vcard-fill"></i>
-                            <span>Hồ sơ pháp lý & Bank</span>
-                        </div>
-                    </a>
+        <!-- Chân Sidebar Khớp Ảnh 2 -->
+        <div style="padding: 12px 8px; border-top: 1px solid rgba(255, 255, 255, 0.08);">
+            <a href="/" class="sidebar-nav-link mb-1 text-white" title="Về sàn khách thuê">
+                <i data-lucide="store" style="color: #38bdf8;"></i>
+                <span class="sidebar-hide-on-collapse">Về sàn khách thuê</span>
+            </a>
+            <a href="/CarOwner/Home/Logout" class="sidebar-nav-link text-danger" title="Đăng xuất">
+                <i data-lucide="log-out"></i>
+                <span class="sidebar-hide-on-collapse">Đăng xuất</span>
+            </a>
+        </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="recar-owner-main">
+        <!-- Topbar Header Căn Chỉnh Chuẩn Như Admin: Nút tròn + Breadcrumb 1 hàng thẳng tắp -->
+        <header class="recar-owner-topbar">
+            <div class="d-flex align-items-center gap-3">
+                <!-- Nút Thu gọn/Mở rộng Sidebar tròn tinh tế -->
+                <button class="btn-toggle-sidebar" type="button" id="btnToggleSidebar" title="Thu gọn / Mở rộng Sidebar">
+                    <i data-lucide="panel-left" id="sidebarToggleIcon"></i>
+                </button>
+                
+                <!-- Breadcrumbs 1 hàng gọn gàng, không bị đội tiêu đề làm lệch -->
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb mb-0" style="font-size: 0.8125rem;">
+                        <li class="breadcrumb-item text-muted">Host Pro</li>
+                        <li class="breadcrumb-item active fw-bold text-dark" aria-current="page">@(pageTitle)</li>
+                    </ol>
                 </nav>
             </div>
 
-            <div class="pt-3 border-top border-secondary" style="border-color: rgba(255,255,255,0.08) !important;">
-                <a href="/" class="recar-owner-nav-item mb-1 text-white text-decoration-none">
-                    <div class="nav-link-left">
-                        <i class="bi bi-arrow-left-right text-info"></i>
-                        <span>Về sàn khách thuê</span>
-                    </div>
-                </a>
-
-                <a href="/CarOwner/Home/Logout" class="recar-owner-nav-item text-danger text-decoration-none opacity-85">
-                    <div class="nav-link-left">
-                        <i class="bi bi-box-arrow-right"></i>
-                        <span>Đăng xuất</span>
-                    </div>
-                </a>
-            </div>
-        </aside>
-
-        <!-- Main Content Area -->
-        <main class="recar-owner-main">
-            <!-- Topbar Header Chuẩn SaaS Tinh Gọn -->
-            <div class="recar-owner-topbar">
-                <div>
-                    <h1 class="recar-owner-page-title">@(ViewData["Title"] ?? "Tổng quan")</h1>
-                    <div class="recar-owner-breadcrumb">
-                        <a href="/CarOwner/Home/Index"><i class="bi bi-house-door me-1"></i>ReCar Host</a>
-                        <i class="bi bi-chevron-right" style="font-size: 0.65rem;"></i>
-                        <span>@(ViewData["Title"] ?? "Dashboard")</span>
-                    </div>
-                </div>
-
-                <div class="d-flex align-items-center gap-2.5">
-                    <!-- Chuông thông báo Real-time tinh tế -->
-                    <div class="dropdown">
-                        <button class="btn-owner-bell" type="button" data-bs-toggle="dropdown" aria-expanded="false" id="btnOwnerBell" title="Thông báo đối tác">
-                            <i class="bi bi-bell-fill fs-6"></i>
-                            <span id="ownerNotificationDot" class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle" style="display: none; width: 9px; height: 9px; margin-top: 6px; margin-left: -6px;">
-                                <span class="visually-hidden">Thông báo mới</span>
-                            </span>
-                        </button>
-                        <ul class="dropdown-menu dropdown-menu-end shadow-lg p-2 border-0" style="width: 340px; border-radius: 16px; margin-top: 10px;">
-                            <li>
-                                <div class="d-flex align-items-center justify-content-between px-3 py-2 border-bottom">
-                                    <h6 class="fw-bold text-dark mb-0"><i class="bi bi-bell-fill text-primary me-1"></i> Thông báo đối tác</h6>
-                                    <span class="badge bg-light text-muted small">Realtime</span>
-                                </div>
-                            </li>
-                            <li id="ownerNotificationEmpty" class="text-center py-4 text-muted small">
-                                <i class="bi bi-inbox fs-3 d-block text-secondary opacity-50 mb-1"></i>
-                                Chưa có thông báo mới nào
-                            </li>
-                            <div id="ownerNotificationList"></div>
-                        </ul>
-                    </div>
-
-                    <!-- User Profile Dropdown viên thuốc gọn gàng -->
-                    <div class="dropdown">
-                        <div class="owner-profile-pill" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <div class="user-avatar-circle" style="width: 32px; height: 32px; font-size: 12px; font-weight: 700; background: linear-gradient(135deg, #0ea5e9, #0284c7); color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
-                                @ownerInitials
+            <div class="d-flex align-items-center gap-2.5">
+                <!-- Chuông thông báo Real-time -->
+                <div class="dropdown">
+                    <button class="btn-owner-bell" type="button" data-bs-toggle="dropdown" aria-expanded="false" id="btnOwnerBell" title="Thông báo đối tác">
+                        <i data-lucide="bell"></i>
+                        <span id="ownerNotificationDot" class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle" style="display: none; width: 8px; height: 8px; margin-top: 6px; margin-left: -6px;"></span>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end shadow-lg p-2 border-0" style="width: 340px; border-radius: 16px; margin-top: 10px;">
+                        <li>
+                            <div class="d-flex align-items-center justify-content-between px-3 py-2 border-bottom">
+                                <h6 class="fw-bold text-dark mb-0 d-flex align-items-center gap-1">
+                                    <i data-lucide="bell" style="width: 15px; height: 15px; color: #0284c7;"></i> Thông báo đối tác
+                                </h6>
+                                <span class="badge bg-light text-muted small">Realtime</span>
                             </div>
-                            <span class="fw-bold text-dark small d-none d-md-inline" style="font-size: 0.82rem;">@ownerName</span>
-                            <i class="bi bi-chevron-down text-muted ms-0.5" style="font-size: 0.7rem;"></i>
+                        </li>
+                        <li id="ownerNotificationEmpty" class="text-center py-4 text-muted small">
+                            <i data-lucide="inbox" style="width: 32px; height: 32px; margin: 0 auto 6px auto; display: block; opacity: 0.4;"></i>
+                            Chưa có thông báo mới nào
+                        </li>
+                        <div id="ownerNotificationList"></div>
+                    </ul>
+                </div>
+
+                <!-- Host Profile Pill -->
+                <div class="dropdown">
+                    <div class="owner-profile-pill" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <div style="width: 30px; height: 30px; font-size: 11px; font-weight: 700; background: #00a8e8; color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                            @ownerInitials
                         </div>
-                        <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 p-2" style="border-radius: 14px; min-width: 220px; margin-top: 8px;">
-                            <li class="px-3 py-2 border-bottom mb-1">
-                                <div class="fw-bold text-dark">@ownerName</div>
-                                <div class="text-muted small">Đối tác Chủ xe ReCar</div>
-                            </li>
-                            <li><a class="dropdown-item rounded-3 py-2 small" href="/Accounts/Index"><i class="bi bi-person me-2"></i>Tài khoản cá nhân</a></li>
-                            <li><a class="dropdown-item rounded-3 py-2 small" href="/CarOwner/Register/Pending"><i class="bi bi-bank2 me-2"></i>Tài khoản thụ hưởng</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item rounded-3 py-2 small text-danger" href="/CarOwner/Home/Logout"><i class="bi bi-box-arrow-right me-2"></i>Đăng xuất</a></li>
-                        </ul>
+                        <span class="fw-semibold text-dark small d-none d-md-inline" style="font-size: 0.82rem;">@ownerName</span>
+                        <i data-lucide="chevron-down" style="width: 14px; height: 14px; color: #94a3b8;"></i>
                     </div>
+                    <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 p-2" style="border-radius: 14px; min-width: 220px; margin-top: 8px;">
+                        <li class="px-3 py-2 border-bottom mb-1">
+                            <div class="fw-bold text-dark">@ownerName</div>
+                            <div class="text-muted small">Đối tác Chủ xe ReCar</div>
+                        </li>
+                        <li><a class="dropdown-item rounded-3 py-2 small" href="/Accounts/Index"><i class="bi bi-person me-2"></i>Tài khoản cá nhân</a></li>
+                        <li><a class="dropdown-item rounded-3 py-2 small" href="/CarOwner/Register/Pending"><i class="bi bi-bank2 me-2"></i>Tài khoản thụ hưởng</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item rounded-3 py-2 small text-danger" href="/CarOwner/Home/Logout"><i class="bi bi-box-arrow-right me-2"></i>Đăng xuất</a></li>
+                    </ul>
                 </div>
             </div>
+        </header>
 
+        <!-- Body Content -->
+        <div class="p-3 p-md-4 p-xl-5 flex-grow-1">
             @RenderBody()
-        </main>
-    </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="py-3 px-4 border-top text-center text-muted small" style="background: #ffffff; font-size: 0.78rem;">
+            &copy; @DateTime.Now.Year ReCar Host Pro — Hệ thống quản trị phương tiện dành cho Đối tác Chủ xe.
+        </footer>
+    </main>
 
     <!-- Scripts -->
-    <script src="~/assets/js/vendor/jquery-3.6.0.min.js"></script>
+    <script src="~/assets/js/vendor/jquery.min.js"></script>
     <script src="~/assets/js/vendor/bootstrap.bundle.min.js"></script>
-    <script src="~/assets/js/vendor/signalr.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
     <script>
-        window.RECAR_CURRENT_USER = {
-            accountId: @(ownerAccountId > 0 ? ownerAccountId.ToString() : "null"),
-            role: 'CarOwner',
-            userName: '@ownerName'
-        };
-
-        // Bật chấm đỏ thông báo khi có đơn mới
-        if (window.recarRealtimeHub) {
-            window.recarRealtimeHub.on("ReceiveNewOrderNotification", function(data) {
-                var dot = document.getElementById('ownerNotificationDot');
-                if (dot) dot.style.display = 'inline-block';
-
-                var empty = document.getElementById('ownerNotificationEmpty');
-                if (empty) empty.style.display = 'none';
-
-                var list = document.getElementById('ownerNotificationList');
-                if (list) {
-                    var item = document.createElement('li');
-                    item.innerHTML = `
-                        <a class="dropdown-item rounded-3 py-2.5 small d-flex gap-2 border-bottom" href="${data.detailUrl || '/CarOwner/Orders/Index'}">
-                            <div class="rounded-circle bg-success bg-opacity-10 p-2 text-success flex-shrink-0">
-                                <i class="bi bi-bag-check-fill fs-5"></i>
-                            </div>
-                            <div>
-                                <p class="mb-0 fw-bold text-dark">Đơn mới #${data.orderId}: ${data.carName}</p>
-                                <span class="text-muted" style="font-size: 0.72rem;">Khách: ${data.customerName} · Cọc: ${data.depositFormatted}</span>
-                            </div>
-                        </a>
-                    `;
-                    list.insertBefore(item, list.firstChild);
-                }
-
-                // Hiển thị Toast thông báo nhanh
-                Swal.fire({
-                    toast: true,
-                    position: 'top-end',
-                    icon: 'success',
-                    title: `Có đơn đặt xe mới #${data.orderId}!`,
-                    text: `${data.carName} - ${data.customerName}`,
-                    showConfirmButton: false,
-                    timer: 5000,
-                    timerProgressBar: true
-                });
-            });
+        // Toggle Sidebar & Persist state in localStorage
+        function toggleHostSidebar() {
+            if (window.innerWidth < 992) {
+                var sb = document.getElementById('hostSidebar');
+                if (sb) sb.classList.toggle('show');
+            } else {
+                var isCollapsed = document.documentElement.classList.toggle('sidebar-collapsed');
+                document.body.classList.toggle('sidebar-collapsed', isCollapsed);
+                localStorage.setItem('recar_host_sidebar_collapsed', isCollapsed ? 'true' : 'false');
+            }
         }
 
-        document.getElementById('btnOwnerBell')?.addEventListener('click', function() {
-            var dot = document.getElementById('ownerNotificationDot');
-            if (dot) dot.style.display = 'none';
+        document.getElementById('btnToggleSidebar')?.addEventListener('click', toggleHostSidebar);
+
+        // Khởi tạo Lucide Icons
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
         });
     </script>
-    <script src="~/assets/js/recar-realtime.js"></script>
     @RenderSection("Scripts", required: false)
 </body>
 </html>

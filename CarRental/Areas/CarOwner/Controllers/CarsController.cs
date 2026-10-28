@@ -405,28 +405,84 @@ namespace CarRental.Areas.CarOwner.Controllers
 
             if (ModelState.IsValid)
             {
+                string currentStatus = existingCar.CarStatus ?? "Sẵn sàng";
+                bool isBusy = currentStatus == "Đang bận" || currentStatus == "Đang có khách" || currentStatus == "busy";
+
+                // Kiểm tra xem chủ xe có sửa đổi các thông tin định danh nhạy cảm (cần Admin duyệt lại) hay không
+                bool isSensitiveChanged = 
+                    (!string.Equals(existingCar.CarName?.Trim(), model.CarName?.Trim(), StringComparison.OrdinalIgnoreCase)) ||
+                    (!string.Equals(existingCar.CarBrand?.Trim(), model.CarBrand?.Trim(), StringComparison.OrdinalIgnoreCase)) ||
+                    (existingCar.TypeId != model.TypeId) ||
+                    (existingCar.Model != model.ModelYear) ||
+                    (!string.Equals(existingCar.LicensePlate?.Trim().ToUpper(), model.LicensePlate?.Trim().ToUpper(), StringComparison.OrdinalIgnoreCase)) ||
+                    (existingCar.Seat != model.Seat) ||
+                    (model.ImageFile != null && model.ImageFile.Length > 0) ||
+                    (!string.IsNullOrEmpty(model.ImageUrl) && !string.Equals(existingCar.Image, model.ImageUrl.Trim(), StringComparison.OrdinalIgnoreCase)) ||
+                    (model.RegistrationImageFile != null && model.RegistrationImageFile.Length > 0) ||
+                    (model.InspectionImageFile != null && model.InspectionImageFile.Length > 0) ||
+                    (model.InsuranceImageFile != null && model.InsuranceImageFile.Length > 0);
+
                 // Cập nhật thông tin cơ bản
                 existingCar.CarName = model.CarName.Trim();
                 existingCar.CarBrand = model.CarBrand.Trim();
                 existingCar.TypeId = model.TypeId;
                 existingCar.Model = model.ModelYear;
-                existingCar.LicensePlate = model.LicensePlate.Trim().ToUpper();
+                
+                // Nếu xe đang bận, giữ nguyên biển số và địa điểm để bảo vệ hợp đồng đang chạy
+                if (!isBusy)
+                {
+                    existingCar.LicensePlate = model.LicensePlate.Trim().ToUpper();
+                    existingCar.Location = model.Location.Trim();
+                    existingCar.Price = model.Price;
+                }
+                
                 existingCar.Color = model.Color.Trim();
                 existingCar.Seat = model.Seat;
                 existingCar.Transmission = model.Transmission;
                 existingCar.Fuel = model.Fuel;
-                existingCar.Price = model.Price;
                 existingCar.SalePrice = (model.SalePrice.HasValue && model.SalePrice.Value > 0) ? model.SalePrice : null;
-                existingCar.IsSale = (model.SalePrice.HasValue && model.SalePrice.Value > 0 && model.SalePrice < model.Price);
-                existingCar.Location = model.Location.Trim();
-                
-                // Nếu xe đang ở trạng thái 'Từ chối' thì khi chủ xe cập nhật bổ sung sẽ tự động chuyển về 'Chờ duyệt'
-                if (existingCar.CarStatus == "Từ chối" || existingCar.CarStatus == "rejected")
+                existingCar.IsSale = (model.SalePrice.HasValue && model.SalePrice.Value > 0 && model.SalePrice < existingCar.Price);
+                existingCar.Alias = Function.TitleSlugGenerationAlias(model.CarName);
+
+                string statusMessage = "";
+
+                // Xử lý chuyển đổi trạng thái xe thông minh
+                if (currentStatus == "Từ chối" || currentStatus == "rejected")
                 {
                     existingCar.CarStatus = "Chờ duyệt";
+                    existingCar.IsActive = false;
+                    statusMessage = $"Hồ sơ xe '{existingCar.CarName}' đã được gửi lại cho Admin thẩm định!";
                 }
-                
-                existingCar.Alias = Function.TitleSlugGenerationAlias(model.CarName);
+                else if (isBusy)
+                {
+                    // Xe đang chạy chuyến, giữ nguyên trạng thái bận
+                    statusMessage = $"Đã cập nhật thông tin xe '{existingCar.CarName}'! Đơn giá và biển số được giữ nguyên bảo vệ chuyến đi.";
+                }
+                else if (isSensitiveChanged)
+                {
+                    // Xe sửa đổi thông tin định danh/ảnh giấy tờ -> Chuyển sang 'Chờ cập nhật' để Admin duyệt lại
+                    existingCar.CarStatus = "Chờ cập nhật";
+                    existingCar.IsActive = false;
+                    statusMessage = $"Đã lưu thay đổi! Vì bạn đã sửa đổi thông tin định danh/ảnh giấy tờ, xe '{existingCar.CarName}' được chuyển sang trạng thái 'Chờ cập nhật' để Admin phê duyệt lại.";
+
+                    // Bắn thông báo Realtime SignalR cho Admin
+                    try
+                    {
+                        _ = _hubContext.Clients.All.SendAsync("ReceiveNewCarPendingNotification", new
+                        {
+                            carId = existingCar.CarId,
+                            carName = existingCar.CarName,
+                            licensePlate = existingCar.LicensePlate,
+                            ownerName = currentOwner?.FullName ?? "Đối tác Chủ xe (Cập nhật thông tin)"
+                        });
+                    }
+                    catch { }
+                }
+                else
+                {
+                    // Chỉ sửa giá thuê, tiện nghi, mô tả -> Áp dụng ngay lập tức
+                    statusMessage = $"Cập nhật giá thuê và thông tin xe '{existingCar.CarName}' thành công! Thay đổi có hiệu lực ngay.";
+                }
 
                 // Cập nhật ảnh đại diện nếu có tải file mới
                 if (model.ImageFile != null && model.ImageFile.Length > 0)
@@ -569,7 +625,7 @@ namespace CarRental.Areas.CarOwner.Controllers
                 _context.Cars.Update(existingCar);
                 _context.SaveChanges();
 
-                TempData["SuccessMessage"] = $"Cập nhật thông tin phương tiện '{existingCar.CarName}' thành công!";
+                TempData["SuccessMessage"] = statusMessage;
                 return RedirectToAction("Index");
             }
 
@@ -783,7 +839,8 @@ namespace CarRental.Areas.CarOwner.Controllers
                 return NotFound();
             }
 
-            var ownerId = Function.GetAccountId(HttpContext.Session);
+            var owner = GetCurrentCarOwner();
+            var ownerId = owner?.AccountId ?? Function.GetAccountId(HttpContext.Session);
             var car = _context.Cars
                 .Include(c => c.Type)
                 .Include(c => c.CarReviews)
@@ -794,6 +851,38 @@ namespace CarRental.Areas.CarOwner.Controllers
                 Function.SetMessage(HttpContext.Session, "Không tìm thấy xe");
                 return RedirectToAction("Index");
             }
+
+            // Lấy album ảnh chi tiết
+            var galleryImages = _context.CarImages
+                .Where(ci => ci.CarId == id && !string.IsNullOrEmpty(ci.Image1))
+                .Select(ci => ci.Image1!)
+                .ToList();
+            ViewBag.GalleryImages = galleryImages;
+
+            // Lấy danh sách tiện nghi
+            var amenities = _context.CarAmenities
+                .Include(ca => ca.Amenity)
+                .Where(ca => ca.CarId == id && ca.Amenity != null)
+                .Select(ca => ca.Amenity.Name)
+                .ToList();
+            if (!amenities.Any() && !string.IsNullOrEmpty(car.Details))
+            {
+                var allAm = _context.Amenities.Where(a => a.IsActive).Select(a => a.Name).ToList();
+                amenities = allAm.Where(a => car.Details.Contains(a, StringComparison.OrdinalIgnoreCase)).ToList();
+            }
+            ViewBag.Amenities = amenities;
+
+            // Lấy lịch sử đơn thuê của xe
+            var carOrders = _context.OrderDetails
+                .Include(od => od.Order)
+                    .ThenInclude(o => o.Customer)
+                .Include(od => od.Order)
+                    .ThenInclude(o => o.Status)
+                .Where(od => od.CarId == id)
+                .OrderByDescending(od => od.OrderDetailId)
+                .Take(10)
+                .ToList();
+            ViewBag.CarOrders = carOrders;
 
             return View(car);
         }

@@ -674,7 +674,7 @@ CREATE TABLE `orderstatus` (
 
 LOCK TABLES `orderstatus` WRITE;
 /*!40000 ALTER TABLE `orderstatus` DISABLE KEYS */;
-INSERT INTO `orderstatus` VALUES (1,' Đã đặt'),(2,'Đã Huỷ'),(3,'Đã thanh toán'),(4,'Đang giao');
+INSERT INTO `orderstatus` VALUES (1,' Đã đặt'),(2,'Đã Huỷ'),(3,'Đã thanh toán'),(4,'Đang giao'),(5,'Hoàn tất');
 /*!40000 ALTER TABLE `orderstatus` ENABLE KEYS */;
 UNLOCK TABLES;
 

@@ -1,492 +1,344 @@
 @model CarRental.Models.Car
 @using CarRental.Utilities
 @{
-    ViewData["Title"] = "Chi tiết xe";
+    ViewData["Title"] = $"Chi tiết xe: {Model.CarName}";
     Layout = "~/Areas/CarOwner/Views/Shared/_Layout.cshtml";
+
+    var galleryImages = ViewBag.GalleryImages as List<string> ?? new List<string>();
+    var amenities = ViewBag.Amenities as List<string> ?? new List<string>();
+    var carOrders = ViewBag.CarOrders as List<CarRental.Models.OrderDetail> ?? new List<CarRental.Models.OrderDetail>();
+
+    var reviews = Model.CarReviews?.ToList() ?? new List<CarRental.Models.CarReview>();
+    double avgRating = reviews.Any() ? reviews.Average(r => (double)(r.Star ?? 5)) : (Model.Rate ?? 5.0);
+
+    string status = Model.CarStatus ?? "Sẵn sàng";
+    bool isAvailable = status == "Sẵn sàng" || (status == "active" && Model.IsActive);
+    bool isBusy = status == "Đang bận" || status == "Đang có khách" || status == "busy";
+    bool isPending = status == "Chờ duyệt" || status == "pending";
+    bool isPaused = status == "Tạm ngưng" || status == "paused";
+    bool isRejected = status == "Từ chối" || status == "rejected";
+
+    decimal regularPrice = Model.Price ?? 0;
+    decimal? salePrice = Model.SalePrice;
+    bool hasSale = Model.IsSale && salePrice.HasValue && salePrice.Value > 0 && salePrice.Value < regularPrice;
 }
 
-<style>
-    .page-header-modern {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        padding: 2rem;
-        border-radius: 15px;
-        margin-bottom: 2rem;
-        box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
-    }
-
-    .page-header-modern h3 {
-        color: white;
-        font-weight: 600;
-        margin: 0;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
-
-    .page-header-modern h3 i {
-        font-size: 1.5rem;
-    }
-
-    .breadcrumb-modern {
-        background: rgba(255, 255, 255, 0.2);
-        backdrop-filter: blur(10px);
-        padding: 0.75rem 1.5rem;
-        border-radius: 10px;
-        margin: 0;
-    }
-
-    .breadcrumb-modern .breadcrumb-item a {
-        color: rgba(255, 255, 255, 0.9);
-        text-decoration: none;
-    }
-
-    .breadcrumb-modern .breadcrumb-item.active {
-        color: white;
-        font-weight: 500;
-    }
-
-    .details-card {
-        background: white;
-        border-radius: 15px;
-        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
-        overflow: hidden;
-        border: none;
-    }
-
-    .card-header-modern {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        padding: 1.5rem;
-        color: white;
-    }
-
-    .card-header-modern h4 {
-        margin: 0;
-        font-weight: 600;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
-
-    .info-section {
-        padding: 1.5rem;
-        border-bottom: 1px solid #f0f0f0;
-    }
-
-    .info-section:last-child {
-        border-bottom: none;
-    }
-
-    .info-item {
-        padding: 0.75rem 0;
-        display: flex;
-        align-items: flex-start;
-    }
-
-    .info-label {
-        font-weight: 600;
-        color: #495057;
-        min-width: 150px;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
-
-    .info-label i {
-        color: #667eea;
-    }
-
-    .info-value {
-        color: #212529;
-        flex: 1;
-    }
-
-    .badge-modern {
-        padding: 0.5rem 1rem;
-        border-radius: 20px;
-        font-weight: 600;
-        font-size: 0.85rem;
-    }
-
-    .car-image-large {
-        max-width: 100%;
-        max-height: 400px;
-        border-radius: 15px;
-        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
-        object-fit: cover;
-    }
-
-    .review-card {
-        background: #f8f9fa;
-        border-radius: 10px;
-        padding: 1rem;
-        margin-bottom: 1rem;
-        border-left: 4px solid #667eea;
-        transition: all 0.3s ease;
-    }
-
-    .review-card:hover {
-        background: #f0f4ff;
-        transform: translateX(5px);
-    }
-
-    .star-rating {
-        color: #ffc107;
-    }
-
-    .btn-modern-edit {
-        background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
-        border: none;
-        color: white;
-        padding: 0.75rem 2rem;
-        border-radius: 10px;
-        font-weight: 600;
-        transition: all 0.3s ease;
-        box-shadow: 0 4px 15px rgba(17, 153, 142, 0.3);
-    }
-
-    .btn-modern-edit:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(17, 153, 142, 0.4);
-        color: white;
-    }
-
-    .btn-modern-back {
-        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-        border: none;
-        color: white;
-        padding: 0.75rem 2rem;
-        border-radius: 10px;
-        font-weight: 600;
-        transition: all 0.3s ease;
-        box-shadow: 0 4px 15px rgba(245, 87, 108, 0.3);
-    }
-
-    .btn-modern-back:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(245, 87, 108, 0.4);
-        color: white;
-    }
-
-    .alert-modern {
-        border-radius: 10px;
-        border: none;
-        padding: 1rem 1.5rem;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-        margin-bottom: 1.5rem;
-    }
-
-    .section-title {
-        font-size: 1.25rem;
-        font-weight: 600;
-        color: #667eea;
-        margin-bottom: 1.5rem;
-        padding-bottom: 0.75rem;
-        border-bottom: 2px solid #e9ecef;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
-
-    @@media (max-width: 768px) {
-        .page-header-modern {
-            padding: 1.5rem;
-        }
-
-        .info-item {
-            flex-direction: column;
-        }
-
-        .info-label {
-            min-width: auto;
-            margin-bottom: 0.5rem;
-        }
-    }
-</style>
-
-<div id="main">
-    <header class="mb-3">
-        <a href="#" class="burger-btn d-block d-xl-none">
-            <i class="bi bi-justify fs-3"></i>
+<div class="space-y-4">
+    <!-- Breadcrumb / Header -->
+    <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-3 mb-4">
+        <div>
+            <h1 class="h3 fw-bold text-dark tracking-tight mb-1">Chi tiết xe</h1>
+            <p class="text-muted small mb-0">Hồ sơ phương tiện, thông số, giá thuê và lịch sử giao dịch.</p>
+        </div>
+        <a href="/CarOwner/Cars/Index" class="btn btn-light border rounded-pill px-3 py-1.5 fw-semibold text-secondary small d-inline-flex align-items-center gap-1">
+            <i data-lucide="arrow-left" style="width: 14px; height: 14px;"></i> Quay lại danh sách
         </a>
-    </header>
+    </div>
 
-    <div class="page-heading">
-        <div class="page-header-modern">
-            <div class="row align-items-center">
-                <div class="col-12 col-md-6 order-md-1 order-last">
-                    <h3>
-                        <i class="bi bi-car-front-fill"></i>
-                        Chi tiết xe
-                    </h3>
-                </div>
-                <div class="col-12 col-md-6 order-md-2 order-first">
-                    <nav aria-label="breadcrumb">
-                        <ol class="breadcrumb breadcrumb-modern">
-                            <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index" asp-area="CarOwner">Trang chủ</a></li>
-                            <li class="breadcrumb-item"><a asp-action="Index">Quản lý xe</a></li>
-                            <li class="breadcrumb-item active" aria-current="page">Chi tiết xe</li>
-                        </ol>
-                    </nav>
+    <!-- Thông báo nếu bị từ chối -->
+    @if (isRejected)
+    {
+        <div class="alert alert-danger rounded-3 d-flex align-items-center gap-2 mb-4" role="alert">
+            <i data-lucide="alert-circle" style="width: 18px; height: 18px; color: #dc2626;"></i>
+            <div>
+                <strong>Hồ sơ xe đã bị từ chối:</strong> Vui lòng bấm <em>Chỉnh sửa</em> để cập nhật lại thông tin hoặc bổ sung giấy tờ xe theo yêu cầu từ Quản trị viên.
+            </div>
+        </div>
+    }
+
+    <!-- Phần 1: Ảnh lớn & Thẻ thông tin nhanh -->
+    <div class="row g-4 mb-4">
+        <!-- Cột Trái: Ảnh xe 16:9 + Album 4 ảnh -->
+        <div class="col-12 col-xl-7">
+            <div class="card-surface overflow-hidden h-100 p-3">
+                <img src="@(string.IsNullOrEmpty(Model.Image) ? "/images/cars/car-sedan.jpg" : Model.Image)" 
+                     alt="@Model.CarName" 
+                     class="w-100 rounded-3 object-fit-cover shadow-xs mb-3" 
+                     style="aspect-ratio: 16 / 9; max-height: 380px;" />
+
+                <div class="row g-2">
+                    @if (galleryImages.Any())
+                    {
+                        foreach (var img in galleryImages.Take(4))
+                        {
+                            <div class="col-3">
+                                <img src="@img" alt="Chi tiết" class="w-100 rounded-2 border object-fit-cover" style="aspect-ratio: 4 / 3;" />
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <!-- Fallback gallery thumbnails -->
+                        for (int i = 0; i < 4; i++)
+                        {
+                            <div class="col-3">
+                                <img src="@(string.IsNullOrEmpty(Model.Image) ? "/images/cars/car-sedan.jpg" : Model.Image)" 
+                                     alt="Chi tiết" class="w-100 rounded-2 border object-fit-cover opacity-75" style="aspect-ratio: 4 / 3;" />
+                            </div>
+                        }
+                    }
                 </div>
             </div>
         </div>
 
-        <section class="section">
-            <div class="card details-card">
-                <div class="card-header-modern">
-                    <h4>
-                        <i class="bi bi-info-circle-fill"></i>
-                        Thông tin xe: @Model.CarName
-                    </h4>
-                </div>
-                <div class="card-body p-0">
-                    @if (!string.IsNullOrEmpty(Function._Message))
-                    {
-                        <div class="alert alert-info alert-modern m-3">@Function._Message</div>
-                        Function._Message = string.Empty;
-                    }
-
-                    @if (!string.IsNullOrEmpty(Model.Image))
-                    {
-                        <div class="info-section text-center">
-                            <img src="@Model.Image" alt="@Model.CarName" class="car-image-large" />
+        <!-- Cột Phải: Thẻ thông tin, Giá & Thao tác -->
+        <div class="col-12 col-xl-5">
+            <div class="card-surface p-4 h-100 d-flex flex-column justify-content-between">
+                <div>
+                    <div class="d-flex align-items-start justify-content-between gap-3 mb-2">
+                        <div>
+                            <h2 class="h4 fw-bold text-dark mb-1">@Model.CarName</h2>
+                            <span class="plate">@(string.IsNullOrEmpty(Model.LicensePlate) ? "CHƯA CẤP" : Model.LicensePlate)</span>
                         </div>
-                    }
-
-                    <div class="info-section">
-                        <h5 class="section-title">
-                            <i class="bi bi-clipboard-data"></i>
-                            Thông tin cơ bản
-                        </h5>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="info-item">
-                                    <span class="info-label">
-                                        <i class="bi bi-tag-fill"></i> Tên xe:
-                                    </span>
-                                    <span class="info-value fw-bold">@Model.CarName</span>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="info-item">
-                                    <span class="info-label">
-                                        <i class="bi bi-grid-3x3-gap-fill"></i> Hạng xe:
-                                    </span>
-                                    <span class="info-value">@(Model.Type?.CarTypeName ?? "N/A")</span>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="info-item">
-                                    <span class="info-label">
-                                        <i class="bi bi-123"></i> Biển số:
-                                    </span>
-                                    <span class="info-value">@Model.LicensePlate</span>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="info-item">
-                                    <span class="info-label">
-                                        <i class="bi bi-people-fill"></i> Số chỗ ngồi:
-                                    </span>
-                                    <span class="info-value">@(Model.Seat?.ToString() ?? "N/A")</span>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-4">
-                                <div class="info-item">
-                                    <span class="info-label">
-                                        <i class="bi bi-palette-fill"></i> Màu xe:
-                                    </span>
-                                    <span class="info-value">@(Model.Color ?? "N/A")</span>
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="info-item">
-                                    <span class="info-label">
-                                        <i class="bi bi-calendar-event"></i> Năm sản xuất:
-                                    </span>
-                                    <span class="info-value">@(Model.Model?.ToString() ?? "N/A")</span>
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="info-item">
-                                    <span class="info-label">
-                                        <i class="bi bi-building"></i> Hãng xe:
-                                    </span>
-                                    <span class="info-value">@(Model.CarBrand ?? "N/A")</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="info-section">
-                        <h5 class="section-title">
-                            <i class="bi bi-currency-dollar"></i>
-                            Thông tin giá
-                        </h5>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="info-item">
-                                    <span class="info-label">
-                                        <i class="bi bi-cash-stack"></i> Giá thuê/ngày:
-                                    </span>
-                                    <span class="info-value text-primary fw-bold fs-5">@string.Format("{0:N0}", Model.Price) ₫</span>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="info-item">
-                                    <span class="info-label">
-                                        <i class="bi bi-tag-fill"></i> Giá giảm/ngày:
-                                    </span>
-                                    <span class="info-value text-success fw-bold fs-5">@(Model.SalePrice.HasValue ? string.Format("{0:N0}", Model.SalePrice) + " ₫" : "N/A")</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="info-section">
-                        <h5 class="section-title">
-                            <i class="bi bi-star-fill"></i>
-                            Đánh giá & Trạng thái
-                        </h5>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="info-item">
-                                    <span class="info-label">
-                                        <i class="bi bi-star-fill"></i> Đánh giá:
-                                    </span>
-                                    <span class="info-value">
-                                        @if (Model.Rate.HasValue)
-                                        {
-                                            <div class="star-rating">
-                                                @for (int i = 0; i < 5; i++)
-                                                {
-                                                    if (i < Model.Rate.Value)
-                                                    {
-                                                        <i class="bi bi-star-fill"></i>
-                                                    }
-                                                    else
-                                                    {
-                                                        <i class="bi bi-star"></i>
-                                                    }
-                                                }
-                                            </div>
-                                            <span class="ms-2">(@Model.Rate.Value.ToString("F1")/5)</span>
-                                        }
-                                        else
-                                        {
-                                            <span class="text-muted">Chưa có đánh giá</span>
-                                        }
-                                    </span>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="info-item">
-                                    <span class="info-label">
-                                        <i class="bi bi-toggle-on"></i> Trạng thái:
-                                    </span>
-                                    <span class="info-value">
-                                        @if (Model.IsActive)
-                                        {
-                                            <span class="badge badge-modern bg-success">Hoạt động</span>
-                                        }
-                                        else
-                                        {
-                                            <span class="badge badge-modern bg-danger">Tạm dừng</span>
-                                        }
-                                        @if (Model.IsSale)
-                                        {
-                                            <span class="badge badge-modern bg-warning ms-2">Đang giảm giá</span>
-                                        }
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    @if (!string.IsNullOrEmpty(Model.Descriptions))
-                    {
-                        <div class="info-section">
-                            <h5 class="section-title">
-                                <i class="bi bi-card-text"></i>
-                                Mô tả ngắn
-                            </h5>
-                            <div class="info-item">
-                                <span class="info-value">@Model.Descriptions</span>
-                            </div>
-                        </div>
-                    }
-
-                    @if (!string.IsNullOrEmpty(Model.Details))
-                    {
-                        <div class="info-section">
-                            <h5 class="section-title">
-                                <i class="bi bi-file-text-fill"></i>
-                                Chi tiết
-                            </h5>
-                            <div class="info-item">
-                                <span class="info-value">@Html.Raw(Model.Details)</span>
-                            </div>
-                        </div>
-                    }
-
-                    @if (Model.CarReviews != null && Model.CarReviews.Any())
-                    {
-                        <div class="info-section">
-                            <h5 class="section-title">
-                                <i class="bi bi-chat-left-text-fill"></i>
-                                Đánh giá từ khách hàng (@Model.CarReviews.Count)
-                            </h5>
-                            @foreach (var review in Model.CarReviews.Take(5))
+                        <div>
+                            @if (isAvailable)
                             {
-                                <div class="review-card">
-                                    <div class="d-flex justify-content-between align-items-start mb-2">
-                                        <strong class="d-flex align-items-center gap-2">
-                                            <i class="bi bi-person-circle"></i>
-                                            @(review.Name ?? "Khách hàng")
-                                        </strong>
-                                        <small class="text-muted">
-                                            <i class="bi bi-calendar"></i>
-                                            @review.CreatedDate?.ToString("dd/MM/yyyy")
-                                        </small>
-                                    </div>
-                                    @if (review.Star.HasValue)
-                                    {
-                                        <div class="star-rating mb-2">
-                                            @for (int i = 0; i < 5; i++)
-                                            {
-                                                if (i < review.Star.Value)
-                                                {
-                                                    <i class="bi bi-star-fill"></i>
-                                                }
-                                                else
-                                                {
-                                                    <i class="bi bi-star"></i>
-                                                }
-                                            }
-                                        </div>
-                                    }
-                                    <p class="mb-0">@(review.Detail ?? "Không có nhận xét")</p>
-                                </div>
+                                <span class="status-badge status-badge-ready">Sẵn sàng</span>
+                            }
+                            else if (isBusy)
+                            {
+                                <span class="status-badge status-badge-busy">Đang có khách</span>
+                            }
+                            else if (isPending)
+                            {
+                                <span class="status-badge status-badge-pending">Chờ duyệt</span>
+                            }
+                            else if (isPaused)
+                            {
+                                <span class="status-badge status-badge-paused">Tạm ngưng</span>
+                            }
+                            else if (isRejected)
+                            {
+                                <span class="status-badge status-badge-rejected">Từ chối</span>
+                            }
+                            else
+                            {
+                                <span class="status-badge status-badge-paused">@status</span>
                             }
                         </div>
-                    }
+                    </div>
 
-                    <div class="info-section">
-                        <div class="d-flex gap-3">
-                            <a asp-action="Edit" asp-route-id="@Model.CarId" class="btn btn-modern-edit">
-                                <i class="bi bi-pencil-fill"></i> Sửa
-                            </a>
-                            <a asp-action="Index" class="btn btn-modern-back">
-                                <i class="bi bi-arrow-left-circle-fill"></i> Quay lại
-                            </a>
+                    <p class="text-muted small d-flex align-items-center gap-1.5 mb-3">
+                        <i data-lucide="map-pin" style="width: 15px; height: 15px; color: #ef4444;"></i>
+                        <span>@(string.IsNullOrEmpty(Model.Location) ? "Toàn quốc" : Model.Location)</span>
+                    </p>
+
+                    <div class="d-flex align-items-baseline gap-2 mb-4">
+                        @if (hasSale)
+                        {
+                            <span class="h2 fw-bold text-primary mb-0">@salePrice!.Value.ToString("N0")đ</span>
+                            <span class="text-muted text-decoration-line-through small">@regularPrice.ToString("N0")đ</span>
+                        }
+                        else
+                        {
+                            <span class="h2 fw-bold text-dark mb-0">@regularPrice.ToString("N0")đ</span>
+                        }
+                        <span class="text-muted small">/ngày</span>
+                    </div>
+
+                    <!-- 2 Hộp chỉ số mini -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-6">
+                            <div class="p-3 bg-light rounded-3 border">
+                                <div class="text-muted small" style="font-size: 0.72rem;">Chuyến hoàn thành</div>
+                                <div class="h4 fw-bold text-dark mb-0 mt-1">@(Model.Trips ?? 0)</div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="p-3 bg-light rounded-3 border">
+                                <div class="text-muted small" style="font-size: 0.72rem;">Đánh giá của khách</div>
+                                <div class="h4 fw-bold text-dark mb-0 mt-1 d-flex align-items-center gap-1">
+                                    <i data-lucide="star" style="width: 18px; height: 18px; fill: #f59e0b; color: #f59e0b;"></i>
+                                    <span>@avgRating.ToString("0.0")</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
+
+                <!-- Thao tác hành động -->
+                <div class="d-flex flex-wrap gap-2 pt-3 border-top">
+                    <a href="/CarOwner/Cars/Edit/@Model.CarId" class="btn btn-primary rounded-pill px-3.5 py-2 fw-semibold d-inline-flex align-items-center gap-2" style="background: #0284c7; border-color: #0284c7;">
+                        <i data-lucide="pencil" style="width: 15px; height: 15px;"></i> Chỉnh sửa xe
+                    </a>
+                    <a href="/product/@(Model.Alias)-@(Model.CarId).html" target="_blank" class="btn btn-light border rounded-pill px-3.5 py-2 fw-semibold text-secondary d-inline-flex align-items-center gap-2">
+                        <i data-lucide="external-link" style="width: 15px; height: 15px;"></i> Xem trên sàn
+                    </a>
+                    <a href="/CarOwner/Cars/Delete/@Model.CarId" class="btn btn-outline-danger rounded-pill px-3.5 py-2 fw-semibold d-inline-flex align-items-center gap-2 ms-auto">
+                        <i data-lucide="trash-2" style="width: 15px; height: 15px;"></i> Gỡ xe
+                    </a>
+                </div>
             </div>
-        </section>
+        </div>
+    </div>
+
+    <!-- Phần 2: Thông số kỹ thuật & Đánh giá của khách -->
+    <div class="row g-4 mb-4">
+        <!-- Thông số kỹ thuật & Tiện nghi -->
+        <div class="col-12 col-lg-6">
+            <div class="card-surface p-4 h-100">
+                <h3 class="h5 fw-bold text-dark mb-3">Thông số kỹ thuật</h3>
+                <dl class="row g-2 mb-4" style="font-size: 0.88rem;">
+                    <dt class="col-6 text-muted fw-normal">Hãng sản xuất:</dt>
+                    <dd class="col-6 fw-semibold text-dark mb-1">@(Model.CarBrand ?? "Đang cập nhật")</dd>
+
+                    <dt class="col-6 text-muted fw-normal">Phân khúc / Kiểu xe:</dt>
+                    <dd class="col-6 fw-semibold text-dark mb-1">@(Model.Type?.CarTypeName ?? "Sedan")</dd>
+
+                    <dt class="col-6 text-muted fw-normal">Năm sản xuất:</dt>
+                    <dd class="col-6 fw-semibold text-dark mb-1">@(Model.Model > 0 ? Model.Model.ToString() : "2024")</dd>
+
+                    <dt class="col-6 text-muted fw-normal">Màu sắc:</dt>
+                    <dd class="col-6 fw-semibold text-dark mb-1">@(string.IsNullOrEmpty(Model.Color) ? "Trắng" : Model.Color)</dd>
+
+                    <dt class="col-6 text-muted fw-normal">Số chỗ ngồi:</dt>
+                    <dd class="col-6 fw-semibold text-dark mb-1">@(Model.Seat ?? 5) chỗ</dd>
+
+                    <dt class="col-6 text-muted fw-normal">Hộp số:</dt>
+                    <dd class="col-6 fw-semibold text-dark mb-1">@(string.IsNullOrEmpty(Model.Transmission) ? "Tự động" : Model.Transmission)</dd>
+
+                    <dt class="col-6 text-muted fw-normal">Nhiên liệu:</dt>
+                    <dd class="col-6 fw-semibold text-dark mb-1">@(string.IsNullOrEmpty(Model.Fuel) ? "Xăng" : Model.Fuel)</dd>
+
+                    <dt class="col-6 text-muted fw-normal">Mức tiêu thụ:</dt>
+                    <dd class="col-6 fw-semibold text-dark mb-1">@(Model.Descriptions ?? "6.5L/100km")</dd>
+
+                    <dt class="col-6 text-muted fw-normal">Giới hạn quãng đường:</dt>
+                    <dd class="col-6 fw-semibold text-dark mb-1">350 km/ngày</dd>
+
+                    <dt class="col-6 text-muted fw-normal">Phụ phí vượt quãng đường:</dt>
+                    <dd class="col-6 fw-semibold text-dark mb-1">3.000đ/km</dd>
+
+                    <dt class="col-6 text-muted fw-normal">Hỗ trợ giao xe tận nơi:</dt>
+                    <dd class="col-6 fw-semibold text-dark mb-1">Có hỗ trợ (100.000đ)</dd>
+                </dl>
+
+                <h4 class="h6 fw-bold text-dark mb-2">Tiện nghi trang bị</h4>
+                <div class="d-flex flex-wrap gap-2">
+                    @if (amenities.Any())
+                    {
+                        foreach (var am in amenities)
+                        {
+                            <span class="rounded-pill px-3 py-1 text-xs fw-semibold text-primary" style="background: #f0f9ff; border: 1px solid #bae6fd; font-size: 0.78rem;">
+                                @am
+                            </span>
+                        }
+                    }
+                    else
+                    {
+                        <span class="rounded-pill px-3 py-1 text-xs fw-semibold text-primary" style="background: #f0f9ff; border: 1px solid #bae6fd; font-size: 0.78rem;">Bản đồ định vị</span>
+                        <span class="rounded-pill px-3 py-1 text-xs fw-semibold text-primary" style="background: #f0f9ff; border: 1px solid #bae6fd; font-size: 0.78rem;">Bluetooth</span>
+                        <span class="rounded-pill px-3 py-1 text-xs fw-semibold text-primary" style="background: #f0f9ff; border: 1px solid #bae6fd; font-size: 0.78rem;">Camera lùi</span>
+                        <span class="rounded-pill px-3 py-1 text-xs fw-semibold text-primary" style="background: #f0f9ff; border: 1px solid #bae6fd; font-size: 0.78rem;">Điều hòa mát</span>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Đánh giá của khách -->
+        <div class="col-12 col-lg-6">
+            <div class="card-surface p-4 h-100">
+                <h3 class="h5 fw-bold text-dark mb-3">Đánh giá của khách (@reviews.Count)</h3>
+                @if (reviews.Any())
+                {
+                    <ul class="list-unstyled mb-0 d-flex flex-column gap-3">
+                        @foreach (var r in reviews.Take(5))
+                        {
+                            <li class="border-bottom pb-3">
+                                <div class="d-flex align-items-center justify-content-between mb-1">
+                                    <span class="fw-semibold text-dark">@(string.IsNullOrEmpty(r.Name) ? "Khách hàng ReCar" : r.Name)</span>
+                                    <span class="text-muted" style="font-size: 0.72rem;">@(r.CreatedDate?.ToString("dd/MM/yyyy") ?? "Gần đây")</span>
+                                </div>
+                                <div class="d-flex align-items-center gap-1 mb-1">
+                                    @for (int s = 1; s <= 5; s++)
+                                    {
+                                        <i data-lucide="star" style="width: 14px; height: 14px; fill: @(s <= (r.Star ?? 5) ? "#f59e0b" : "none"); color: @(s <= (r.Star ?? 5) ? "#f59e0b" : "#cbd5e1");"></i>
+                                    }
+                                </div>
+                                <p class="text-secondary small mb-0">@(string.IsNullOrEmpty(r.Detail) ? "Xe chạy êm, chủ xe nhiệt tình và đúng giờ." : r.Detail)</p>
+                            </li>
+                        }
+                    </ul>
+                }
+                else
+                {
+                    <div class="text-center py-5 text-muted">
+                        <i data-lucide="message-square" style="width: 32px; height: 32px; margin: 0 auto 8px auto; display: block; opacity: 0.4;"></i>
+                        <p class="small mb-0">Chưa có đánh giá nào cho xe này.</p>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- Phần 3: Lịch sử đơn thuê của xe -->
+    <div class="card-surface p-4">
+        <h3 class="h5 fw-bold text-dark mb-3">Lịch sử đơn thuê của xe</h3>
+        @if (carOrders.Any())
+        {
+            <div class="table-responsive">
+                <table class="table align-middle mb-0" style="font-size: 0.88rem;">
+                    <thead class="bg-light text-muted text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.5px;">
+                        <tr>
+                            <th class="py-2.5">Mã đơn</th>
+                            <th class="py-2.5">Khách thuê</th>
+                            <th class="py-2.5">Thời gian nhận - trả</th>
+                            <th class="py-2.5">Doanh thu</th>
+                            <th class="py-2.5">Trạng thái</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y">
+                        @foreach (var od in carOrders)
+                        {
+                            var ord = od.Order;
+                            var customer = ord?.Customer;
+
+                            <tr>
+                                <td class="py-3">
+                                    <a href="/CarOwner/Orders/Details/@(ord?.OrderId ?? od.OrderId)" class="font-monospace fw-bold text-primary text-decoration-none">
+                                        #@(ord?.OrderId ?? od.OrderId)
+                                    </a>
+                                </td>
+                                <td class="py-3 fw-semibold text-dark">
+                                    @(customer?.Name ?? "Khách hàng")
+                                </td>
+                                <td class="py-3 text-muted small">
+                                    @(od.PickupDate?.ToString("dd/MM/yyyy") ?? "Hôm nay") → @(od.ReturnDate?.ToString("dd/MM/yyyy") ?? "Ngày mai")
+                                </td>
+                                <td class="py-3 fw-bold text-dark">
+                                    @(((od.Price ?? 0) * (od.Quantity ?? 1)).ToString("N0"))đ
+                                </td>
+                                <td class="py-3">
+                                    @if (ord?.StatusId == 3)
+                                    {
+                                        <span class="status-badge status-badge-pending">Chờ bàn giao</span>
+                                    }
+                                    else if (ord?.StatusId == 4)
+                                    {
+                                        <span class="status-badge status-badge-busy">Đang cho thuê</span>
+                                    }
+                                    else if (ord?.StatusId == 5)
+                                    {
+                                        <span class="status-badge status-badge-completed">Đã hoàn tất</span>
+                                    }
+                                    else if (ord?.StatusId == 2)
+                                    {
+                                        <span class="status-badge status-badge-rejected">Đã hủy</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="status-badge status-badge-ready">@(ord?.Status?.StatusDescription ?? "Đã đặt")</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <p class="text-muted small mb-0 py-3 text-center">Xe chưa phát sinh đơn đặt thuê nào.</p>
+        }
     </div>
 </div>

@@ -455,3 +455,111 @@ Nhằm giúp đồ án tạo được ấn tượng mạnh mẽ với hội đ�
    - Thiết kế lại toàn bộ view [Delete.cshtml](file:///d:/CarRental_TTCN/CarRental/Areas/CarOwner/Views/Cars/Delete.cshtml) theo phong cách ReCar SaaS hiện đại (thẻ xe nổi bật, biển số xe chuẩn mono, 3 thống kê Chuyến đi - Đơn thuê - Đánh giá, thông báo ngữ cảnh tương ứng với 3 kịch bản bảo vệ).
    - Loại bỏ alert popup thô của trình duyệt tại [Index.cshtml](file:///d:/CarRental_TTCN/CarRental/Areas/CarOwner/Views/Cars/Index.cshtml), bổ sung bộ lọc trạng thái `Tạm ngưng` trên thanh công cụ và chuẩn hóa badge `Tạm ngưng`, `Ngừng KD`.
 
+---
+
+## 11. CẬP NHẬT TIẾN TRÌNH PHIÊN LÀM VIỆC (NGÀY 28 THÁNG 10 NĂM 2026)
+
+### 11.1. Nâng Cấp Toàn Diện Phân Hệ Quản Lý Đơn Thuê Xe Chủ Xe (`Areas/CarOwner/Orders`)
+1. **Khép kín Vòng đời Trạng thái Đơn hàng & Cơ sở dữ liệu:**
+   - Bổ sung và seed tự động trạng thái đơn hàng thứ 5: `StatusId = 5` (*"Hoàn tất"*) trong [Program.cs](file:///d:/CarRental_TTCN/CarRental/Program.cs).
+   - Chuẩn hóa luồng nghiệp vụ 4 bước: `[Đã cọc 30% (Status 3)]` ➜ Bấm *"Bàn giao xe"* chuyển sang `[Đang cho thuê (Status 4)]` ➜ Bấm *"Nhận lại xe & Hoàn tất"* chuyển sang `[Đã hoàn tất (Status 5)]`. Đồng thời hỗ trợ nút *"Hủy đơn (Status 2)"* kèm ghi chú lý do.
+2. **Tự động Đồng bộ Hóa 2 Chiều giữa Trạng thái Đơn và Trạng thái Phương tiện:**
+   - **Khi xác nhận Bàn giao xe (`ConfirmHandover`):** Đơn chuyển sang `Đang cho thuê` (Status 4), xe liên quan tự động chuyển sang `CarStatus = "Đang bận"` và `IsActive = false` (tạm ẩn khỏi sàn khách thuê để tránh bị đặt trùng lịch khi xe đang trên đường).
+   - **Khi xác nhận Nhận lại xe (`ConfirmReturn`):** Đơn chuyển sang `Đã hoàn tất` (Status 5), xe tự động quay về `CarStatus = "Sẵn sàng"`, `IsActive = true` và tự động tăng số chuyến thành công `Trips = Trips + 1`.
+   - **Khi Hủy đơn (`CancelOrder`):** Đơn chuyển sang `Đã hủy` (Status 2), xe được giải phóng trở lại trạng thái `Sẵn sàng` đón khách mới, ghi nhận lý do hủy vào `Notes`.
+   - Tích hợp phát thông báo thời gian thực Real-time SignalR qua [ReCarHub.cs](file:///d:/CarRental_TTCN/CarRental/Hubs/ReCarHub.cs) gửi tới Ban Quản trị khi trạng thái đơn thay đổi.
+
+### 11.2. Tái Thiết Kế Trang Danh Sách Đơn Thuê Xe ([Orders/Index.cshtml](file:///d:/CarRental_TTCN/CarRental/Areas/CarOwner/Views/Orders/Index.cshtml)) Chuẩn SaaS Hiện Đại
+1. **Thanh Tab Phân Loại Trạng Thái (Pill Tabs):**
+   - 5 Tab viên thuốc bo tròn: *Tất cả*, *Chờ bàn giao (Đã cọc 30%)*, *Đang cho thuê*, *Đã hoàn tất*, *Đã hủy*.
+   - Tự động hiển thị số lượng đơn tương ứng trên từng tab (`badge-count`).
+2. **Thanh Tìm Kiếm Đa Năng:**
+   - Tìm kiếm tức thì theo: Mã đơn `#RC-...`, Tên khách hàng, Số điện thoại, Tên xe, Biển số xe.
+3. **Bảng Dữ Liệu SaaS Rộng Rãi & Trực Quan:**
+   - **Cột Phương tiện:** Ảnh xe mini bo góc (58x42px), Tên xe in đậm, Biển số font monospace sang trọng kèm hộp số.
+   - **Cột Khách hàng:** Avatar tròn chữ cái gradient, Tên khách, SĐT.
+   - **Cột Lịch trình:** Ngày nhận - Ngày trả, badge số ngày thuê.
+   - **Cột Tài chính:** Bóc tách rõ Tổng tiền thuê (xanh ReCar), Tiền cọc sàn đã thu 30% (xanh lá), Số tiền khách trả trực tiếp 70% khi nhận xe.
+   - **Cột Trạng thái:** Badge viên thuốc chuẩn màu theo trạng thái (Vàng hổ phách: Chờ bàn giao, Xanh ngọc: Đang thuê, Xanh lá: Hoàn tất, Đỏ: Đã hủy).
+   - **Cụm Thao Tác Thông Minh:** Nút *Chi tiết*, Nút thao tác nhanh *Giao xe* / *Nhận xe* và Nút gọi điện nhanh tích hợp Modal Popup SweetAlert2 tương tác mượt mà không cần F5.
+
+### 11.3. Nâng Cấp Toàn Diện Trang Chi Tiết Đơn Thuê ([Orders/Details.cshtml](file:///d:/CarRental_TTCN/CarRental/Areas/CarOwner/Views/Orders/Details.cshtml))
+1. **Banner Phương Tiện Bàn Giao Lớn:**
+   - Trưng bày ảnh xe lớn sắc nét, thông số vận hành (Hộp số, Nhiên liệu, Địa điểm bàn giao xe), đơn giá niêm yết/ngày.
+   - Bảng thông tin lịch trình thời gian nhận - trả và thời lượng thuê rõ ràng.
+2. **Khối Thông Tin Khách Hàng:**
+   - Tên người thuê, số điện thoại, email, địa chỉ, huy hiệu *Đã xác thực danh tính CCCD* và nút gọi điện thoại nhanh.
+3. **Quy Trình & Checklist Bàn Giao An Toàn (Safety Checklist):**
+   - 4 bước kiểm tra thiết thực: Đối chiếu CCCD & GPLX bản gốc; Thu 70% số tiền thuê còn lại; Ghi nhận hiện trạng ODO và mức nhiên liệu/pin; Kích hoạt bàn giao xe.
+4. **Hộp Thao Tác Nghiệp Vụ Ngữ Cảnh (Action Command Card):**
+   - Hiển thị nút hành động phù hợp theo từng trạng thái: *Xác nhận bàn giao xe*, *Hủy đơn thuê*, *Nhận lại xe & Hoàn tất*.
+   - Popup xác nhận thông minh hiển thị số tiền 70% cần thu và lưu ý kiểm tra trước khi bàn giao chìa khóa.
+5. **Bảng Phân Rã Tài Chính 3 Bên Minh Bạch:**
+   - Tổng giá trị hợp đồng thuê xe.
+   - Tiền cọc 30% sàn giữ hộ qua cổng VNPay.
+   - Tiền khách thanh toán trực tiếp khi nhận xe (70% - hiển thị màu đỏ to nổi bật).
+   - Phí hoa hồng sàn 10% và **Thu nhập thực nhận 90% của chủ xe**.
+   - Hướng dẫn đối soát định kỳ chuyển khoản vào tài khoản ngân hàng.
+
+---
+
+## 12. CẬP NHẬT GIAO DIỆN PHÂN HỆ CHỦ XE THEO BỘ TEMPLATE MỚI (NGÀY 29/10/2026)
+
+Đã đồng bộ toàn bộ giao diện từ bộ template clone `giao dien chu xe/screenshot-to-scene-088` vào phân hệ Chủ xe (`Areas/CarOwner`):
+
+1. **Khung Layout & Sidebar ([_Layout.cshtml](file:///d:/CarRental_TTCN/CarRental/Areas/CarOwner/Views/Shared/_Layout.cshtml)):**
+   - Chuẩn hóa Sidebar 260px nền Deep Navy `#0f172a` theo đúng `HostShell.tsx`.
+   - Logo thương hiệu ReCar Host Pro với icon xe nổi bật, loại bỏ profile card cứng "Trần Quốc Bảo" theo yêu cầu người dùng.
+   - Thêm nút thu gọn Sidebar tròn tinh tế (Collapse Sidebar) trên Topbar và Header, ghi nhớ trạng thái bằng `localStorage`.
+   - Chỉnh sửa padding container sidebar (`16px 8px 12px 8px`) và `margin: 1px 6px` cho `.sidebar-nav-link` để khối active màu cyan `#00a8e8` thụt lề vào trong ~14px, không tràn viền.
+   - Xóa bỏ nhãn `+ Mới` tại mục "Thêm xe mới" theo yêu cầu người dùng.
+   - Thiết lập hệ thống thẻ `card-surface`, biển số monospace `plate`, và bộ huy hiệu `status-badge`.
+   - Bổ sung các class CSS tương thích Tailwind: `.gap-1\.5`, `.gap-2\.5`, `.gap-3\.5`, `.place-items-center`, `.icon-box-fixed`.
+
+2. **Trang chủ / Tổng quan ([Home/Index.cshtml](file:///d:/CarRental_TTCN/CarRental/Areas/CarOwner/Views/Home/Index.cshtml)):**
+   - Banner chào mừng cá nhân hóa, loại bỏ nút "Thêm mới xe" thừa ở banner.
+   - 4 Thẻ KPI: Thu nhập thực nhận (90%), Xe đang quản lý (Sẵn sàng / Đang thuê / Chờ duyệt), Chuyến hoàn thành, Đánh giá trung bình.
+   - Biểu đồ tăng trưởng 6 tháng Area Chart (Chart.js) với 2 đường: Doanh thu giao dịch vs Thu nhập thực nhận.
+   - Thẻ *Host Insights - Mẹo tối ưu doanh thu* với 6 gợi ý thiết thực, căn chỉnh icon ngay ngắn, chuẩn khoảng cách `gap: 12px;` thoáng đãng, không dùng emoji.
+   - Bảng Đơn thuê mới nhất trực quan, phân rã cọc 30% và tiền mặt 70%.
+
+3. **Quản lý Đội xe ([Cars/Index.cshtml](file:///d:/CarRental_TTCN/CarRental/Areas/CarOwner/Views/Cars/Index.cshtml)):**
+   - Thanh công cụ tìm kiếm và lọc: Lọc theo Hãng, Phân khúc, Trạng thái và Sắp xếp linh hoạt.
+   - Bảng danh sách xe chuẩn mẫu template: Ảnh xe, Tên xe, Phân khúc, Biển số `plate`, Đơn giá/ngày, Địa điểm nhận xe, Số chuyến, Đánh giá sao, Badge trạng thái.
+   - Hai công tắc Toggle Switch tức thời: Bật/Tắt trạng thái hoạt động (`available` <-> `paused`) và Bật/Tắt giá khuyến mãi (`ToggleSale`).
+   - Dropdown thao tác 3 chấm: Chi tiết xe, Chỉnh sửa, Xem trên sàn, Gỡ xe.
+
+4. **Thêm xe mới ([Cars/Create.cshtml](file:///d:/CarRental_TTCN/CarRental/Areas/CarOwner/Views/Cars/Create.cshtml)):**
+   - Tái cấu trúc sang bố cục Stepper 2 cột hiện đại theo `CarForm.tsx`: Cột trái 260px điều hướng 6 bước dọc có tick xanh khi hoàn thành; Cột phải là card form từng bước.
+   - 6 bước tuần tự: Thông tin cơ bản -> Giá thuê -> Quy định vận hành -> Tiện nghi (đã kết nối với CSDL qua bảng `Amenity` và bảng liên kết `CarAmenity`) -> Hình ảnh & giấy tờ -> Kiểm tra & gửi duyệt.
+
+5. **Chỉnh sửa xe & Xem chi tiết xe ([Cars/Edit.cshtml](file:///d:/CarRental_TTCN/CarRental/Areas/CarOwner/Views/Cars/Edit.cshtml), [Cars/Details.cshtml](file:///d:/CarRental_TTCN/CarRental/Areas/CarOwner/Views/Cars/Details.cshtml)):**
+   - Thiết kế giao diện xem chi tiết xe chuẩn template: Banner gallery ảnh xe, thông số kỹ thuật, tiện nghi, lịch trình và báo cáo.
+   - Giao diện chỉnh sửa xe theo 6 bước Stepper đồng bộ với trang Tạo mới.
+   - Xây dựng cơ chế kiểm soát chỉnh sửa thông minh: Phân quyền theo trạng thái xe; nếu xe đã duyệt hoạt động khi chỉnh sửa các thông tin quan trọng sẽ chuyển sang trạng thái "Chờ admin duyệt cập nhật" để đảm bảo tính an toàn dữ liệu trên sàn.
+
+6. **Lịch trình & Đơn xe ([Orders/Index.cshtml](file:///d:/CarRental_TTCN/CarRental/Areas/CarOwner/Views/Orders/Index.cshtml)):**
+   - Thanh Tab 5 nhóm trạng thái (Tất cả, Chờ bàn giao, Đang cho thuê, Đã hoàn tất, Đã hủy) kèm badge đếm số lượng.
+   - Thanh tìm kiếm đơn xe tức thời.
+   - Cột Khách thuê: Avatar tròn chứa chữ cái viết tắt (`TR`, `TK`) được căn giữa tâm tuyệt đối (`d-inline-flex align-items-center justify-content-center`), số điện thoại gọi nhanh.
+   - Bảng dữ liệu SaaS chuẩn theo `CarOwner.Orders.Index.tsx` tích hợp đầy đủ SweetAlert2 cho thao tác *Bàn giao xe* và *Nhận xe*.
+
+7. **Trang Chi tiết Đơn thuê ([Orders/Details.cshtml](file:///d:/CarRental_TTCN/CarRental/Areas/CarOwner/Views/Orders/Details.cshtml)):**
+   - Banner 2 cột trực quan: thông tin xe và lịch trình chi tiết.
+   - 3 Card thông tin nghiệp vụ:
+     - *Khách thuê:* Avatar căn giữa chuẩn xác, sđt gọi nhanh, nút bật/tắt xem số CCCD và GPLX đầy đủ để đối chiếu lúc bàn giao.
+     - *Checklist bàn giao an toàn:* 5 mục kiểm tra an toàn với icon tick xanh sắc nét, khoảng cách rộng rãi thoáng mắt (`gap: 14px; mb-3`).
+     - *Phân rã tài chính:* Minh bạch tiền thuê, cọc 30% sàn thu, còn lại 70% khách trả trực tiếp cho chủ xe, trừ hoa hồng sàn 10%.
+   - Timeline tiến trình 5 bước theo dõi vòng đời đơn thuê từ lúc cọc đến khi hoàn tất.
+   - Sửa lỗi tương thích biên dịch liên quan đến kiểu dữ liệu `DateOnly`.
+
+---
+
+## 13. TỔNG KẾT & TRẠNG THÁI HỆ THỐNG
+- **Dự án ASP.NET Core (.NET 9):** Biên dịch sạch sẽ `0 Error(s)`.
+- **Cơ sở dữ liệu SQL Server (`dbrenalcar.sql`):** Đã cập nhật cấu trúc bảng và dữ liệu mẫu đồng bộ.
+- **Dọn dẹp mã nguồn:** Đã gỡ bỏ các tệp rác `.git` thừa trong thư mục template clone, giữ repository gọn gàng chuẩn mực.
+- **Sẵn sàng:** Toàn bộ mã nguồn đã được commit và đồng bộ lên remote GitHub `origin/main`.
+
+
+

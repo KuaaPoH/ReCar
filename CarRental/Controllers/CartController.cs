@@ -199,7 +199,7 @@ namespace CarRental.Controllers
             return View(model);
         }
         [HttpPost]
-        public IActionResult Checkout([FromBody] CheckoutVM model)
+        public async Task<IActionResult> Checkout([FromBody] CheckoutVM model)
         {
             if (!Function.IsLogin(HttpContext.Session))
             {
@@ -214,12 +214,20 @@ namespace CarRental.Controllers
 
                 var cart = CART;
                 var customerID = Function.GetAccountId(HttpContext.Session);
-                var customer = _context.Customers.FirstOrDefault(c => c.CustomerId == customerID);
-                ViewBag.Order =  _context.CarRentalOrders.Include(i => i.Status).Where(p => p.CustomerId == customerID).ToList();
+                var userEmail = Function.GetEmail(HttpContext.Session);
+                var customer = _context.Customers.FirstOrDefault(c => 
+                    c.CustomerId == customerID || 
+                    (!string.IsNullOrEmpty(userEmail) && c.Email == userEmail));
+
                 if (customer == null)
                 {
                     return Json(new { success = false, message = "Không tìm thấy khách hàng." });
                 }
+
+                // Luôn đồng bộ customerID chính xác từ bảng Customers
+                customerID = customer.CustomerId;
+                Function.SetAccountId(HttpContext.Session, customer.CustomerId);
+                ViewBag.Order = _context.CarRentalOrders.Include(i => i.Status).Where(p => p.CustomerId == customerID).ToList();
 
                 // Kiểm tra địa chỉ
                 if (string.IsNullOrWhiteSpace(customer.Address))
@@ -323,7 +331,7 @@ namespace CarRental.Controllers
                                 _context.SaveChanges();
 
                                 // Bắn thông báo thời gian thực tới Admin và Chủ xe
-                                _ = SendOrderNotificationAsync(order.OrderId);
+                                await SendOrderNotificationAsync(order.OrderId);
 
                                 var ordersUrlMock = Url.Action("Index", "Accounts") + "?tab=orders";
                                 return Json(new 
@@ -350,7 +358,7 @@ namespace CarRental.Controllers
                         }
 
                         // Bắn thông báo thời gian thực tới Admin và Chủ xe
-                        _ = SendOrderNotificationAsync(order.OrderId);
+                        await SendOrderNotificationAsync(order.OrderId);
 
                         // Trả về URL trang đơn hàng của khách
                         var ordersUrl = Url.Action("Index", "Accounts") + "?tab=orders";
@@ -451,7 +459,7 @@ namespace CarRental.Controllers
             return View();
         }
 
-        public IActionResult PaymentCallBack()
+        public async Task<IActionResult> PaymentCallBack()
         {
             var response = _vnpayServices.PaymentExecute(Request.Query);
 
@@ -473,7 +481,7 @@ namespace CarRental.Controllers
                     _context.SaveChanges();
 
                     // Bắn thông báo Realtime
-                    _ = SendOrderNotificationAsync(orderId);
+                    await SendOrderNotificationAsync(orderId);
                 }
             }
 

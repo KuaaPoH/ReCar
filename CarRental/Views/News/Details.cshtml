@@ -1,183 +1,371 @@
-﻿@Model News
-
+@model CarRental.Models.News
 @{
-    List<NewsComment> newsComments = ViewBag.newsComment;
+    ViewData["Title"] = (Model.Title ?? "Chi tiết bản tin") + " – Tin tức ReCar";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    List<CarRental.Models.NewsComment> newsComments = ViewBag.newsComment ?? new List<CarRental.Models.NewsComment>();
+    List<CarRental.Models.News> relatedNews = ViewBag.RelatedNews ?? new List<CarRental.Models.News>();
+
+    string coverImg = string.IsNullOrEmpty(Model.Image) ? "/images/cars/hero.jpg" : Model.Image;
+    string publishDate = Model.CreatedDate.HasValue ? Model.CreatedDate.Value.ToString("dd/MM/yyyy") : "25/09/2026";
+    string authorName = !string.IsNullOrEmpty(Model.CreatedBy) ? Model.CreatedBy : "Ban biên tập ReCar";
+    string categoryName = !string.IsNullOrEmpty(Model.SeoKeywords) ? Model.SeoKeywords : "Tin tức & Hành trình";
 }
 
-<div class="blog-area-wrapper">
-    <!-- Breadcrumb Area Start Here -->
-    <div class="breadcrumbs-area position-relative">
-        <div class="container">
-            <div class="row">
-                <div class="col-12 text-center">
-                    <div class="breadcrumb-content position-relative section-content">
-                        <h3 class="title-3">Blog Details Fullwidth</h3>
-                        <ul>
-                            <li><a href="index.html">Home</a></li>
-                            <li>Blog</li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
+<style>
+    .recar-article-content {
+        font-size: 16px;
+        line-height: 1.85;
+        color: #1e293b;
+    }
+    .recar-article-content h2,
+    .recar-article-content h3,
+    .recar-article-content h4 {
+        color: var(--recar-navy);
+        font-weight: 700;
+        margin-top: 1.75rem;
+        margin-bottom: 0.75rem;
+    }
+    .recar-article-content p {
+        margin-bottom: 1.15rem;
+    }
+    .recar-article-content ul,
+    .recar-article-content ol {
+        margin-bottom: 1.25rem;
+        padding-left: 1.4rem;
+    }
+    .recar-article-content li {
+        margin-bottom: 0.5rem;
+    }
+    .recar-article-content img {
+        max-width: 100% !important;
+        height: auto !important;
+        border-radius: 12px;
+        margin: 1rem 0;
+        box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+    }
+</style>
+
+<!-- Breadcrumb Area -->
+<div class="py-3 bg-light border-bottom mb-4">
+    <div class="container" style="max-width: 1280px;">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb m-0 small">
+                    <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index" class="text-decoration-none">Trang chủ</a></li>
+                    <li class="breadcrumb-item"><a asp-controller="News" asp-action="Index" class="text-decoration-none">Tin tức</a></li>
+                    <li class="breadcrumb-item active text-truncate" style="max-width: 360px;" aria-current="page">@Model.Title</li>
+                </ol>
+            </nav>
+            <a asp-controller="News" asp-action="Index" class="btn btn-sm btn-outline-secondary rounded-pill px-3">
+                <i class="bi bi-arrow-left me-1"></i> Quay lại Tin tức
+            </a>
         </div>
     </div>
-    <!-- Breadcrumb Area End Here -->
-    <!-- Blog Main Area Start Here -->
-    <div class="blog-main-area">
-        <div class="container container-default custom-area">
-            <div class="row">
-                <div class="col-12 col-custom widget-mt">
-                    <!-- Blog Details wrapper Area Start -->
-                    <div class="blog-post-details">
-                        <figure class="blog-post-thumb mb-5">
-                            <img src="@Model.Image" alt="Blog Image">
-                        </figure>
-                        <section class="blog-post-wrapper product-summery">
-                            <div class="section-content section-title">
-                                <h2 class="section-title-2 mb-3">@Model.Title</h2>
-                                <p class="mb-4">@Model.Description</p>
-
-
-                            </div>
-                            @Html.Raw(Model.Detail)
-                            <div class="share-article">
-                                <span class="left-side">
-                                    <a href="#"> <i class="fa fa-long-arrow-left"></i> Older Post</a>
-                                </span>
-                                <h6 class="text-uppercase">Share this article</h6>
-                                <span class="right-side">
-                                    <a href="#">Newer Post <i class="fa fa-long-arrow-right"></i></a>
-                                </span>
-                            </div>
-                            <div class="social-share">
-                                <a href="#"><i class="fa fa-facebook-square facebook-color"></i></a>
-                                <a href="#"><i class="fa fa-twitter-square twitter-color"></i></a>
-                                <a href="#"><i class="fa fa-linkedin-square linkedin-color"></i></a>
-                                <a href="#"><i class="fa fa-pinterest-square pinterest-color"></i></a>
-                            </div>
-                            <div class="comment-area-wrapper mt-5">
-                                <div class="comments-view-area">
-                                    <h3 class="mb-5"> @newsComments.Count Comments</h3>
-                                    @foreach (var item in newsComments)
-                                    {
-                                        <div class="single-comment-wrap mb-4 d-flex">
-                                            <figure class="author-thumb">
-                                                <a href="#">
-                                                    <img src="~/assets/images/review/1.jpg" alt="Author">
-                                                </a>
-                                            </figure>
-                                            <div class="comments-info">
-                                                <p class="mb-2">@item.Detail</p>
-                                                <div class="comment-footer d-flex justify-content-between">
-                                                    <div class="pro_review mb-5">
-                                                        <div class="review_thumb">
-                                                           @*  <img alt="review images" src="assets/images/review/1.jpg"> *@
-                                                        </div>
-                                                        <div class="review_details">
-                                                            <div class="review_info mb-2">
-
-                                                                <h5>@item.Name - <span> @item.CreatedDate.Value.ToString("dd/MM/yyyy")</span></h5>
-                                                            </div>
-                                                            <p>@item.Detail</p>
-                                                        </div>
-                                                    </div>
-
-
-
-
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                    }
-                                </div>
-                            </div>
-                        </section>
-                    </div>
-                    <!-- Blog Details Wrapper Area End -->
-                    <!-- Blog Comments Area Start Here -->
-                    <form action="#">
-                        <div class="comment-box">
-                            <h3>Leave A Comment</h3>
-                            <form asp-action="Reviews">
-                                <div class="row">
-                                    <div class="col-12 col-custom">
-                                        <div class="input-item mt-4 mb-4">
-                                            <textarea id="n-comment" cols="30" rows="5" name="comment" class="border rounded-0 w-100 custom-textarea input-area" placeholder="Message"></textarea>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6 col-custom">
-                                        <div class="input-item mb-4">
-                                            <input id="n-name"  class="border rounded-0 w-100 input-area name" type="text" placeholder="Name">
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6 col-custom">
-                                        <div class="input-item mb-4">
-                                            <input id="n-email" class="border rounded-0 w-100 input-area email" type="text" placeholder="Email">
-                                        </div>
-                                    </div>
-                                    <div class="col-12 col-custom mt-40">
-
-                                        <button id="n-submit" type="submit" class="btn flosun-button primary-btn rounded-0 w-100" data-id="@Model.NewsId">Post comment</button>
-                                    </div>
-                                </div>
-                            </form>
-
-                        </div>
-                    </form>
-                    <!-- Blog Comments Area End Here -->
-                </div>
-            </div>
-        </div>
-    </div>
-    <!-- Blog Main Area End Here -->
 </div>
 
-    @section scripts {
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<!-- Main News Section -->
+<div class="container mb-5" style="max-width: 1280px;">
+    <div class="row g-4">
+        <!-- Cột trái: Nội dung bản tin & Bình luận (8 cột) -->
+        <div class="col-lg-8">
+            <article class="bg-white rounded-4 border shadow-sm p-4 p-md-5 mb-4">
+                <!-- Header bản tin -->
+                <div class="mb-4">
+                    <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+                        <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-1 fw-semibold">
+                            <i class="bi bi-newspaper me-1"></i> @categoryName
+                        </span>
+                        <span class="text-muted small"><i class="bi bi-calendar3 me-1"></i>@publishDate</span>
+                        <span class="text-muted small">·</span>
+                        <span class="text-muted small"><i class="bi bi-clock me-1"></i>5 phút đọc</span>
+                    </div>
+
+                    <h1 class="fw-bold mb-3" style="color: var(--recar-navy); font-size: clamp(1.5rem, 2.5vw, 2.1rem); line-height: 1.35;">
+                        @Model.Title
+                    </h1>
+
+                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 pt-2 pb-3 border-bottom">
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center fw-bold shadow-sm" style="width: 38px; height: 38px; font-size: 14px;">
+                                RC
+                            </div>
+                            <div>
+                                <div class="fw-bold text-dark small">@authorName</div>
+                                <div class="text-muted" style="font-size: 12px;">Chuyên trang Tin tức Thị trường &amp; Hành trình ReCar</div>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="text-muted small me-1">Chia sẻ:</span>
+                            <button type="button" class="btn btn-light btn-sm rounded-circle border" title="Sao chép liên kết" onclick="navigator.clipboard.writeText(window.location.href); Swal.fire({icon:'success', title:'Đã sao chép liên kết bản tin!', timer:1500, showConfirmButton:false});">
+                                <i class="bi bi-link-45deg"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Ảnh đại diện bản tin -->
+                <div class="rounded-4 overflow-hidden mb-4 border bg-light" style="max-height: 440px;">
+                    <img src="@coverImg" alt="@Model.Title" class="w-100 h-100 object-fit-cover"
+                         onerror="this.onerror=null;this.src='/images/cars/hero.jpg';" />
+                </div>
+
+                <!-- Tóm tắt mở đầu (nếu có) -->
+                @if (!string.IsNullOrEmpty(Model.Description))
+                {
+                    <div class="p-3 p-md-4 rounded-3 mb-4 border-start border-4 border-primary" style="background-color: #f8fafc;">
+                        <p class="m-0 fw-medium text-dark" style="font-size: 15.5px; line-height: 1.7;">
+                            @Model.Description
+                        </p>
+                    </div>
+                }
+
+                <!-- Nội dung chi tiết -->
+                <div class="recar-article-content">
+                    @if (!string.IsNullOrEmpty(Model.Detail))
+                    {
+                        @Html.Raw(Model.Detail)
+                    }
+                    else
+                    {
+                        <p>Cập nhật những xu hướng ô tô mới nhất và các cung đường du lịch hấp dẫn cùng nền tảng thuê xe trực tuyến ReCar.</p>
+                    }
+                </div>
+
+                <!-- Khối CTA đặt xe cuối bản tin -->
+                <div class="mt-5 p-4 rounded-4 border d-flex flex-wrap align-items-center justify-content-between gap-3" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: #fff;">
+                    <div>
+                        <span class="badge bg-info text-dark rounded-pill px-3 py-1 mb-2 fw-semibold">Trải nghiệm ngay</span>
+                        <h5 class="fw-bold mb-1 text-white">Lên kế hoạch cho hành trình tiếp theo cùng ReCar!</h5>
+                        <p class="small text-white-50 mb-0">Hàng trăm mẫu Sedan, SUV 7 chỗ, MPV và Xe điện VinFast đời mới sẵn sàng phục vụ bạn.</p>
+                    </div>
+                    <a href="/Product" class="btn btn-primary rounded-pill px-4 py-2 fw-semibold shadow-sm flex-shrink-0">
+                        <i class="bi bi-car-front-fill me-1"></i> Chọn xe ngay
+                    </a>
+                </div>
+            </article>
+
+            <!-- Khu vực Bình luận -->
+            <div class="bg-white rounded-4 border shadow-sm p-4 p-md-5">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h4 class="fs-5 fw-bold m-0" style="color: var(--recar-navy);">
+                        <i class="bi bi-chat-square-text-fill text-primary me-2"></i>Ý kiến bạn đọc (<span id="newsCommentCount">@newsComments.Count</span>)
+                    </h4>
+                </div>
+
+                <div class="d-flex flex-column gap-3 mb-4" id="newsCommentsList">
+                    @if (newsComments.Any())
+                    {
+                        foreach (var item in newsComments)
+                        {
+                            string initial = string.IsNullOrEmpty(item.Name) ? "K" : item.Name.Trim().Substring(0, 1).ToUpper();
+                            <div class="p-3 bg-light rounded-3 border">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="rounded-circle bg-primary-subtle text-primary fw-bold d-inline-flex align-items-center justify-content-center" style="width: 34px; height: 34px; font-size: 14px;">
+                                            @initial
+                                        </span>
+                                        <div>
+                                            <strong class="text-dark small d-block">@item.Name</strong>
+                                            <span class="text-muted" style="font-size: 11.5px;">@(item.CreatedDate.HasValue ? item.CreatedDate.Value.ToString("dd/MM/yyyy HH:mm") : "Vừa xong")</span>
+                                        </div>
+                                    </div>
+                                    <span class="badge bg-white text-secondary border small">Bạn đọc ReCar</span>
+                                </div>
+                                <p class="text-secondary small m-0 ps-1" style="line-height: 1.6;">@item.Detail</p>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div id="emptyNewsCommentNotice" class="p-4 bg-light rounded-3 border text-center text-muted small">
+                            <i class="bi bi-chat-dots fs-4 d-block mb-1 text-primary"></i>
+                            Chưa có bình luận nào cho bản tin này. Hãy để lại cảm nghĩ của bạn bên dưới!
+                        </div>
+                    }
+                </div>
+
+                <!-- Form gửi bình luận -->
+                <div class="pt-4 border-top">
+                    <h5 class="fs-6 fw-bold mb-3" style="color: var(--recar-navy);">Để lại bình luận của bạn</h5>
+                    <form id="newsCommentForm" onsubmit="return false;">
+                        <input type="hidden" id="newsId" value="@Model.NewsId" />
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold text-dark">Họ và tên <span class="text-danger">*</span></label>
+                                <input type="text" id="c_name" class="form-control" placeholder="Nhập họ tên của bạn" required />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold text-dark">Địa chỉ Email</label>
+                                <input type="email" id="c_email" class="form-control" placeholder="example@email.com" />
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label small fw-semibold text-dark">Nội dung bình luận <span class="text-danger">*</span></label>
+                                <textarea id="c_detail" rows="3" class="form-control" placeholder="Chia sẻ góc nhìn của bạn về thông tin này..." required></textarea>
+                            </div>
+                            <div class="col-12 text-end">
+                                <button type="button" id="btnSubmitNewsComment" class="btn btn-primary rounded-pill px-4 py-2 fw-semibold shadow-sm">
+                                    <i class="bi bi-send-fill me-1"></i> Gửi bình luận
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cột phải: Sidebar tiện ích & Tin tức liên quan (4 cột) -->
+        <div class="col-lg-4">
+            <div class="sticky-top" style="top: 90px;">
+                <!-- Card Đặt xe nhanh -->
+                <div class="card border rounded-4 shadow-sm p-4 mb-4 bg-white">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <span class="rounded-3 bg-primary-subtle text-primary p-2 d-inline-flex">
+                            <i class="bi bi-ev-front-fill fs-5"></i>
+                        </span>
+                        <div>
+                            <h5 class="fs-6 fw-bold m-0" style="color: var(--recar-navy);">Đặt xe trực tuyến ReCar</h5>
+                            <span class="text-muted" style="font-size: 12px;">Chủ động hành trình – Giá minh bạch</span>
+                        </div>
+                    </div>
+                    <hr class="my-3" />
+                    <ul class="list-unstyled small text-secondary d-flex flex-column gap-2 mb-4">
+                        <li class="d-flex align-items-center gap-2">
+                            <i class="bi bi-check-circle-fill text-success"></i>
+                            <span>Đa dạng dòng xe: Sedan, SUV, MPV, Xe điện</span>
+                        </li>
+                        <li class="d-flex align-items-center gap-2">
+                            <i class="bi bi-check-circle-fill text-success"></i>
+                            <span>Giữ xe nhanh chóng với cọc <strong>30%</strong> qua VNPay</span>
+                        </li>
+                        <li class="d-flex align-items-center gap-2">
+                            <i class="bi bi-check-circle-fill text-success"></i>
+                            <span>Hợp đồng thuê xe điện tử rõ ràng, pháp lý chuẩn</span>
+                        </li>
+                    </ul>
+                    <a href="/Product" class="btn btn-primary w-100 rounded-3 py-2 fw-semibold shadow-sm">
+                        <i class="bi bi-car-front me-1"></i> Xem các dòng xe đang sẵn sàng
+                    </a>
+                </div>
+
+                <!-- Tin tức liên quan -->
+                @if (relatedNews.Any())
+                {
+                    <div class="card border rounded-4 shadow-sm p-4 mb-4 bg-white">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="fs-6 fw-bold m-0" style="color: var(--recar-navy);">Tin tức liên quan</h5>
+                            <a href="/News" class="small text-decoration-none fw-semibold" style="color: var(--recar-primary);">Xem tất cả</a>
+                        </div>
+                        <div class="d-flex flex-column gap-3">
+                            @foreach (var rel in relatedNews)
+                            {
+                                string relUrl = $"/news/{rel.Alias}-{rel.NewsId}.html";
+                                string relImg = string.IsNullOrEmpty(rel.Image) ? "/images/cars/hero.jpg" : rel.Image;
+                                string relDate = rel.CreatedDate.HasValue ? rel.CreatedDate.Value.ToString("dd/MM/yyyy") : "25/09/2026";
+                                <div class="d-flex gap-3 align-items-center">
+                                    <a href="@relUrl" class="rounded-3 overflow-hidden border flex-shrink-0" style="width: 84px; height: 62px;">
+                                        <img src="@relImg" alt="@rel.Title" class="w-100 h-100 object-fit-cover"
+                                             onerror="this.onerror=null;this.src='/images/cars/hero.jpg';" />
+                                    </a>
+                                    <div class="min-w-0">
+                                        <h6 class="fw-bold mb-1 small" style="line-height: 1.4;">
+                                            <a href="@relUrl" class="text-decoration-none text-dark">@rel.Title</a>
+                                        </h6>
+                                        <span class="text-muted" style="font-size: 11.5px;"><i class="bi bi-calendar3 me-1"></i>@relDate</span>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+
+                <!-- Hộp chuyển sang Cẩm nang -->
+                <div class="card border rounded-4 shadow-sm p-4 bg-light">
+                    <h6 class="fw-bold text-dark mb-2"><i class="bi bi-journal-bookmark-fill text-primary me-1"></i> Cẩm nang thuê xe tự lái</h6>
+                    <p class="small text-muted mb-3">Xem thêm kinh nghiệm kiểm tra xe lúc nhận bàn giao, thủ tục giấy tờ và mẹo lái xe đường đèo an toàn.</p>
+                    <a href="/Blog" class="btn btn-outline-primary btn-sm w-100 rounded-pill fw-semibold">
+                        Khám phá Cẩm nang ReCar →
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section scripts {
     <script>
         $(document).ready(function () {
+            $('#btnSubmitNewsComment').on('click', function () {
+                var name = ($('#c_name').val() || '').trim();
+                var email = ($('#c_email').val() || '').trim();
+                var detail = ($('#c_detail').val() || '').trim();
+                var id = $('#newsId').val();
 
-           $("#n-submit").click(function() {
-                    const reviewData = {
-                        name: $("#n-name").val(),
-                        email: $("#n-email").val(),
-                        detail: $("#n-comment").val(),
-                        id: $(this).data("id"),
+                if (!name || !detail) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Thiếu thông tin',
+                        text: 'Vui lòng nhập họ tên và nội dung bình luận trước khi gửi.'
+                    });
+                    return;
+                }
 
-                    };
+                var $btn = $(this);
+                $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span> Đang gửi...');
+
                 $.ajax({
-                    url : "/News/Comment",
-                    type : "POST",
-                    data : reviewData,
-                    success: function(data) {
-                            console.log(data);
+                    url: '/News/Comment',
+                    type: 'POST',
+                    data: {
+                        name: name,
+                        email: email,
+                        detail: detail,
+                        id: id
+                    },
+                    success: function (res) {
+                        $btn.prop('disabled', false).html('<i class="bi bi-send-fill me-1"></i> Gửi bình luận');
+                        if (res && res.status !== false) {
+                            $('#emptyNewsCommentNotice').remove();
+                            var initial = name.charAt(0).toUpperCase();
+                            var dateText = res.createdDate || 'Vừa xong';
+                            var html = '<div class="p-3 bg-light rounded-3 border">' +
+                                '<div class="d-flex justify-content-between align-items-center mb-2">' +
+                                '<div class="d-flex align-items-center gap-2">' +
+                                '<span class="rounded-circle bg-primary-subtle text-primary fw-bold d-inline-flex align-items-center justify-content-center" style="width: 34px; height: 34px; font-size: 14px;">' + initial + '</span>' +
+                                '<div><strong class="text-dark small d-block">' + $('<div>').text(name).html() + '</strong>' +
+                                '<span class="text-muted" style="font-size: 11.5px;">' + dateText + '</span></div></div>' +
+                                '<span class="badge bg-white text-secondary border small">Bạn đọc ReCar</span></div>' +
+                                '<p class="text-secondary small m-0 ps-1" style="line-height: 1.6;">' + $('<div>').text(detail).html() + '</p></div>';
+
+                            $('#newsCommentsList').prepend(html);
+                            var countEl = $('#newsCommentCount');
+                            countEl.text(parseInt(countEl.text() || '0') + 1);
+                            $('#c_detail').val('');
+
                             Swal.fire({
-                            position: "top-end",
-                            icon: "success",
-                            title: "Your work has been saved",
-                            showConfirmButton: false,
-                            timer: 1500
+                                icon: 'success',
+                                title: 'Đã gửi bình luận!',
+                                text: 'Cảm ơn bạn đã đóng góp ý kiến cho bản tin.',
+                                timer: 1800,
+                                showConfirmButton: false
                             });
-                            // Thêm bình luận mới vào danh sách hiện tại
-                            appendNewReview(reviewData);
-                            // Xóa nội dung các ô input sau khi gửi
-                            $("#n_name").val("");
-                            $("#n_email").val("");
-                            $("#n_comment").val("");
-                           
-                        },
-                    error: function() {
+                        } else {
                             Swal.fire({
-                                icon: "error",
-                                title: "Oops...",
-                                text: "Something went wrong!",
-                                footer: '<a href="#">Why do I have this issue?</a>'
+                                icon: 'error',
+                                title: 'Không thể gửi bình luận',
+                                text: (res && res.message) ? res.message : 'Đã xảy ra lỗi, vui lòng thử lại.'
                             });
+                        }
+                    },
+                    error: function () {
+                        $btn.prop('disabled', false).html('<i class="bi bi-send-fill me-1"></i> Gửi bình luận');
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Lỗi kết nối',
+                            text: 'Không thể kết nối tới máy chủ, vui lòng thử lại sau.'
+                        });
                     }
                 });
-            });        
+            });
         });
     </script>
 }
-    

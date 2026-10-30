@@ -1,36 +1,78 @@
-﻿  <div class="breadcrumbs-area position-relative">
-        <div class="container">
-            <div class="row">
-                <div class="col-12 text-center">
-                    <div class="breadcrumb-content position-relative section-content">
-                        <h3 class="title-3">Error 404</h3>
-                        <ul>
-                            <li><a href="index.html">Home</a></li>
-                            <li>Error 404</li>
-                        </ul>
+@{
+    ViewData["Title"] = "Thanh toán chưa hoàn tất – ReCar";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    string failReason = TempData["Message"] as string
+        ?? "Giao dịch thanh toán tiền đặt cọc 30% qua cổng VNPay chưa hoàn tất hoặc đã bị hủy bởi người dùng.";
+}
+
+<div class="py-5" style="background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%); min-height: 78vh;">
+    <div class="container" style="max-width: 760px;">
+        <!-- Tiến trình đặt xe (Stepper) -->
+        <div class="d-flex justify-content-center align-items-center gap-2 gap-md-4 mb-4 small fw-semibold">
+            <span class="text-success d-flex align-items-center gap-1">
+                <i class="bi bi-check-circle-fill"></i> 1. Chọn xe &amp; Lịch trình
+            </span>
+            <i class="bi bi-chevron-right text-muted"></i>
+            <span class="text-muted d-flex align-items-center gap-1">
+                2. Thanh toán đặt cọc 30%
+            </span>
+            <i class="bi bi-chevron-right text-muted"></i>
+            <span class="badge bg-danger rounded-pill px-3 py-2 shadow-sm">
+                <i class="bi bi-exclamation-triangle-fill me-1"></i> 3. Giao dịch gián đoạn
+            </span>
+        </div>
+
+        <!-- Card Kết quả thất bại / hủy giao dịch -->
+        <div class="card border rounded-4 shadow-sm overflow-hidden bg-white">
+            <div class="p-4 p-md-5 text-center border-bottom" style="background: radial-gradient(circle at top, #fef2f2 0%, #ffffff 75%);">
+                <div class="mx-auto mb-3 rounded-circle bg-danger bg-opacity-10 text-danger d-flex align-items-center justify-content-center shadow-sm"
+                     style="width: 84px; height: 84px; border: 2px solid rgba(239, 68, 68, 0.25);">
+                    <i class="bi bi-x-lg" style="font-size: 40px; line-height: 1;"></i>
+                </div>
+                <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill px-3 py-1 mb-2 fw-semibold">
+                    Chưa hoàn tất thanh toán cọc
+                </span>
+                <h1 class="fs-2 fw-bold mb-2" style="color: var(--recar-navy);">Giao dịch thanh toán không thành công</h1>
+                <p class="text-secondary mb-0 mx-auto" style="max-width: 540px; font-size: 15px;">
+                    Rất tiếc, quá trình thanh toán đặt cọc giữ xe trực tuyến đã bị gián đoạn. Bạn chưa bị trừ tiền hoặc có thể thực hiện thanh toán lại dễ dàng.
+                </p>
+            </div>
+
+            <div class="p-4 p-md-5">
+                <!-- Chi tiết thông báo lỗi -->
+                <div class="alert alert-warning d-flex align-items-start gap-3 rounded-3 border-warning mb-4">
+                    <i class="bi bi-info-circle-fill fs-4 text-warning mt-1"></i>
+                    <div>
+                        <strong class="text-dark d-block mb-1">Chi tiết phản hồi từ cổng thanh toán:</strong>
+                        <span class="small text-secondary">@failReason</span>
                     </div>
+                </div>
+
+                <!-- Gợi ý khắc phục -->
+                <div class="p-4 rounded-4 bg-light border mb-4">
+                    <h6 class="fw-bold text-dark mb-3">
+                        <i class="bi bi-lightbulb text-primary me-1"></i> Nguyên nhân phổ biến &amp; Cách khắc phục nhanh:
+                    </h6>
+                    <ul class="small text-secondary mb-0 ps-3 d-flex flex-column gap-2">
+                        <li>Bạn đã nhấn nút <strong>Hủy giao dịch</strong> hoặc quay lại trình duyệt trước khi nhập mã xác thực OTP.</li>
+                        <li>Thẻ ATM nội địa / Tài khoản ngân hàng chưa kích hoạt tính năng <strong>Thanh toán trực tuyến (E-Commerce)</strong> hoặc vượt hạn mức ngày.</li>
+                        <li>Phiên giao dịch VNPay đã quá thời gian chờ (15 phút). Bạn có thể kiểm tra lại đơn thuê trong mục <strong>Đơn thuê của tôi</strong> hoặc chọn xe lại.</li>
+                    </ul>
+                </div>
+
+                <!-- Các nút hành động -->
+                <div class="d-flex flex-wrap justify-content-center gap-3 pt-2">
+                    <a href="/Accounts/Index?tab=orders" class="btn btn-primary rounded-pill px-4 py-2 fw-semibold shadow-sm">
+                        <i class="bi bi-receipt me-1"></i> Kiểm tra Đơn thuê của tôi
+                    </a>
+                    <a href="/Product" class="btn btn-outline-primary rounded-pill px-4 py-2 fw-semibold">
+                        <i class="bi bi-arrow-repeat me-1"></i> Chọn xe &amp; Đặt lại
+                    </a>
+                    <a href="/Contact" class="btn btn-light border rounded-pill px-4 py-2 fw-semibold text-secondary">
+                        <i class="bi bi-headset me-1"></i> Liên hệ hỗ trợ 24/7
+                    </a>
                 </div>
             </div>
         </div>
     </div>
-    <!-- Breadcrumb Area End Here -->
-    <!-- Error 404 Area Start Here -->
-    <div class="error-area">
-        <div class="container">
-            <div class="row">
-                <div class="col-12">
-                    <div class="error_form">
-                        <h1>404</h1>
-                        <h2>Opps! PAGE NOT BE FOUND</h2>
-                        <p>Sorry but the page you are looking for does not exist, have been<br> removed, name changed or is temporarily unavailable.</p>
-                        <form action="#">
-                            <input placeholder="Search..." type="text">
-                            <button type="submit"><i class="fa fa-search"></i></button>
-                        </form>
-                        <a href="index.html">Back to home page</a>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <!-- Error 404 Area End Here -->
+</div>

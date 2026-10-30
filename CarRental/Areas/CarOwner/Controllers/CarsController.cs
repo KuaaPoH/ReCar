@@ -138,8 +138,9 @@ namespace CarRental.Areas.CarOwner.Controllers
                 }
 
                 // Xây dựng chuỗi tiện nghi & mô tả
-                var featuresStr = model.Features != null && model.Features.Any()
-                    ? string.Join(", ", model.Features)
+                var createAmenityNames = model.AmenityIds != null && model.AmenityIds.Any() ? _context.Amenities.Where(a => model.AmenityIds.Contains(a.AmenityId)).Select(a => a.Name).ToList() : (model.Features ?? new List<string>());
+                var featuresStr = createAmenityNames.Any()
+                    ? string.Join(", ", createAmenityNames)
                     : "Đang cập nhật";
 
                 var fullDetails = $"[Tiện nghi]: {featuresStr}\n" +
@@ -354,6 +355,7 @@ namespace CarRental.Areas.CarOwner.Controllers
                 .Select(ci => ci.Image1)
                 .ToList();
 
+            var policy = CarPolicy.Parse(car);
             var model = new CarEditVM
             {
                 CarId = car.CarId,
@@ -378,7 +380,12 @@ namespace CarRental.Areas.CarOwner.Controllers
                 RegistrationImage = car.RegistrationImage,
                 InspectionImage = car.InspectionImage,
                 InsuranceImage = car.InsuranceImage,
-                DetailImageUrls = detailImages
+                DetailImageUrls = detailImages,
+                FuelConsumption = policy.FuelConsumption,
+                MileageLimit = policy.MileageLimit,
+                ExtraFeePerKm = policy.ExtraFeePerKm,
+                DeliverySupported = policy.DeliverySupported,
+                DeliveryFee = policy.DeliveryFee
             };
 
             return View(model);
@@ -695,6 +702,19 @@ namespace CarRental.Areas.CarOwner.Controllers
             ViewBag.ReviewCount = reviewCount;
             ViewBag.Trips = trips;
 
+            var deleteAmenityItems = _context.CarAmenities
+                .Include(ca => ca.Amenity)
+                .Where(ca => ca.CarId == id && ca.Amenity != null)
+                .OrderBy(ca => ca.Amenity!.DisplayOrder)
+                .Select(ca => ca.Amenity!)
+                .ToList();
+            if (!deleteAmenityItems.Any() && !string.IsNullOrEmpty(car.Details))
+            {
+                var allAm = _context.Amenities.Where(a => a.IsActive).OrderBy(a => a.DisplayOrder).ToList();
+                deleteAmenityItems = allAm.Where(a => car.Details.Contains(a.Name, StringComparison.OrdinalIgnoreCase)).ToList();
+            }
+            ViewBag.AmenityItems = deleteAmenityItems;
+
             return View(car);
         }
 
@@ -870,7 +890,20 @@ namespace CarRental.Areas.CarOwner.Controllers
                 var allAm = _context.Amenities.Where(a => a.IsActive).Select(a => a.Name).ToList();
                 amenities = allAm.Where(a => car.Details.Contains(a, StringComparison.OrdinalIgnoreCase)).ToList();
             }
+            var amenityItems = _context.CarAmenities
+                .Include(ca => ca.Amenity)
+                .Where(ca => ca.CarId == id && ca.Amenity != null)
+                .OrderBy(ca => ca.Amenity!.DisplayOrder)
+                .Select(ca => ca.Amenity!)
+                .ToList();
+            if (!amenityItems.Any() && !string.IsNullOrEmpty(car.Details))
+            {
+                var allAm = _context.Amenities.Where(a => a.IsActive).OrderBy(a => a.DisplayOrder).ToList();
+                amenityItems = allAm.Where(a => car.Details.Contains(a.Name, StringComparison.OrdinalIgnoreCase)).ToList();
+            }
+            ViewBag.AmenityItems = amenityItems;
             ViewBag.Amenities = amenities;
+            ViewBag.CarPolicy = CarPolicy.Parse(car);
 
             // Lấy lịch sử đơn thuê của xe
             var carOrders = _context.OrderDetails

@@ -24,7 +24,7 @@ export const Route = createFileRoute("/CarOwner/Home/Index")({
 
 const monthKey = (iso: string) => iso.slice(0, 7);
 function lastMonths(n: number) {
-  const [y, m] = DEMO_TODAY.split("-").map(Number);
+  const y = Number(DEMO_TODAY.slice(0, 4)), m = Number(DEMO_TODAY.slice(5, 7));
   return Array.from({ length: n }, (_, i) => {
     const d = new Date(Date.UTC(y, m - 1 - (n - 1 - i), 1));
     return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;

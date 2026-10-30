@@ -1,21 +1,130 @@
 @{
-    ViewData["Title"] = "Cẩm nang";
+    ViewData["Title"] = "Cẩm nang thuê xe & Hành trình";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
 <!-- Page Banner -->
-<div class="page-title-banner" style="background-color: #f8fafc; border-bottom: 1px solid var(--recar-border); padding: 36px 0;">
+<div class="page-title-banner" style="background: linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%); border-bottom: 1px solid var(--recar-border); padding: 40px 0;">
     <div class="container" style="max-width: 1280px;">
-        <h1 class="fs-2 fw-bold m-0" style="color: var(--recar-navy);">Cẩm nang</h1>
-        <p class="text-muted small m-0 mt-2" style="font-size: 15px;">
-            Kinh nghiệm thuê xe, lái xe an toàn và gợi ý hành trình du lịch từ ReCar.
-        </p>
+        <nav aria-label="breadcrumb" class="mb-2">
+            <ol class="breadcrumb m-0 small">
+                <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index" class="text-decoration-none">Trang chủ</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Cẩm nang</li>
+            </ol>
+        </nav>
+        <div class="d-flex flex-wrap justify-content-between align-items-end gap-3">
+            <div>
+                <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-3 py-1 mb-2 fw-semibold">
+                    <i class="bi bi-journal-bookmark-fill me-1"></i> Cẩm nang ReCar
+                </span>
+                <h1 class="fs-2 fw-bold m-0" style="color: var(--recar-navy);">Cẩm nang thuê xe &amp; Kinh nghiệm cầm lái</h1>
+                <p class="text-muted m-0 mt-2" style="font-size: 15px;">
+                    Chia sẻ kinh nghiệm thuê xe tự lái, thủ tục pháp lý, kỹ năng lái xe an toàn và gợi ý hành trình từ chuyên gia ReCar.
+                </p>
+            </div>
+            <div class="d-flex gap-2">
+                <a href="/Blog" class="btn btn-primary rounded-pill px-4 fw-semibold small shadow-sm">
+                    <i class="bi bi-book-half me-1"></i> Cẩm nang
+                </a>
+                <a href="/News" class="btn btn-outline-secondary bg-white rounded-pill px-4 fw-semibold small">
+                    <i class="bi bi-newspaper me-1"></i> Tin tức
+                </a>
+            </div>
+        </div>
     </div>
 </div>
 
-<!-- Lưới danh sách bài viết -->
-<div class="container py-5" style="max-width: 1280px;">
-    <div class="row g-4">
+<!-- Thanh tìm kiếm & Bộ lọc chủ đề -->
+<div class="container pt-4 pb-5" style="max-width: 1280px;">
+    <div class="bg-white p-3 p-md-4 rounded-4 border shadow-sm mb-4">
+        <div class="row g-3 align-items-center">
+            <div class="col-lg-5">
+                <div class="input-group">
+                    <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-search"></i></span>
+                    <input type="text" id="blogSearchInput" class="form-control bg-light border-start-0" placeholder="Tìm kiếm bài viết cẩm nang, kinh nghiệm lái xe..." />
+                </div>
+            </div>
+            <div class="col-lg-7">
+                <div class="d-flex flex-wrap gap-2 justify-content-lg-end" id="blogTopicPills">
+                    <button type="button" class="btn btn-sm rounded-pill px-3 py-2 fw-semibold blog-filter-pill btn-primary text-white" data-topic="all">
+                        Tất cả bài viết
+                    </button>
+                    <button type="button" class="btn btn-sm rounded-pill px-3 py-2 fw-semibold blog-filter-pill btn-light border text-secondary" data-topic="Kinh nghiệm thuê xe">
+                        Kinh nghiệm thuê xe
+                    </button>
+                    <button type="button" class="btn btn-sm rounded-pill px-3 py-2 fw-semibold blog-filter-pill btn-light border text-secondary" data-topic="Thủ tục & Giấy tờ">
+                        Thủ tục &amp; Giấy tờ
+                    </button>
+                    <button type="button" class="btn btn-sm rounded-pill px-3 py-2 fw-semibold blog-filter-pill btn-light border text-secondary" data-topic="Lái xe an toàn">
+                        Lái xe an toàn
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Danh sách bài viết -->
+    <div class="row g-4" id="blogArticlesContainer">
         @await Component.InvokeAsync("Blog")
     </div>
+
+    <!-- Trạng thái không tìm thấy bài viết khi lọc -->
+    <div id="blogEmptyFilterState" class="text-center py-5 d-none">
+        <div class="p-5 bg-white rounded-4 border shadow-sm">
+            <i class="bi bi-journal-x text-muted fs-1 mb-3 d-block"></i>
+            <h5 class="fw-bold text-dark">Không tìm thấy bài viết phù hợp</h5>
+            <p class="text-muted small mb-3">Hãy thử từ khóa khác hoặc chọn lại danh mục "Tất cả bài viết".</p>
+            <button type="button" class="btn btn-outline-primary btn-sm rounded-pill px-4" onclick="resetBlogFilter()">Xem tất cả bài viết</button>
+        </div>
+    </div>
 </div>
+
+@section scripts {
+    <script>
+        var activeBlogTopic = 'all';
+
+        function applyBlogFilter() {
+            var keyword = ($('#blogSearchInput').val() || '').toLowerCase().trim();
+            var visibleCount = 0;
+
+            $('.blog-article-item').each(function () {
+                var itemTopic = ($(this).data('topic') || '').toString();
+                var itemSearch = ($(this).data('search') || '').toString().toLowerCase();
+
+                var matchTopic = (activeBlogTopic === 'all') || (itemTopic === activeBlogTopic);
+                var matchKeyword = !keyword || itemSearch.indexOf(keyword) !== -1;
+
+                if (matchTopic && matchKeyword) {
+                    $(this).removeClass('d-none');
+                    visibleCount++;
+                } else {
+                    $(this).addClass('d-none');
+                }
+            });
+
+            if (visibleCount === 0) {
+                $('#blogEmptyFilterState').removeClass('d-none');
+            } else {
+                $('#blogEmptyFilterState').addClass('d-none');
+            }
+        }
+
+        function resetBlogFilter() {
+            $('#blogSearchInput').val('');
+            activeBlogTopic = 'all';
+            $('.blog-filter-pill').removeClass('btn-primary text-white').addClass('btn-light border text-secondary');
+            $('.blog-filter-pill[data-topic="all"]').removeClass('btn-light border text-secondary').addClass('btn-primary text-white');
+            applyBlogFilter();
+        }
+
+        $(document).ready(function () {
+            $('#blogSearchInput').on('input', applyBlogFilter);
+            $('.blog-filter-pill').on('click', function () {
+                activeBlogTopic = $(this).data('topic');
+                $('.blog-filter-pill').removeClass('btn-primary text-white').addClass('btn-light border text-secondary');
+                $(this).removeClass('btn-light border text-secondary').addClass('btn-primary text-white');
+                applyBlogFilter();
+            });
+        });
+    </script>
+}

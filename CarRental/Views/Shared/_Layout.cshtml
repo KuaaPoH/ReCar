@@ -159,16 +159,22 @@
                                     <i class="bi bi-file-earmark-text me-2"></i> Đơn thuê xe
                                 </a>
                             </li>
-                            <li>
-                                <a class="dropdown-item py-2 rounded-2 small fw-medium" href="/CarOwner/Home/Index">
-                                    <i class="bi bi-speedometer2 me-2"></i> Trang chủ xe
-                                </a>
-                            </li>
-                            <li>
-                                <a class="dropdown-item py-2 rounded-2 small fw-medium" href="/Admin/Home/Index">
-                                    <i class="bi bi-shield-check me-2"></i> Quản trị
-                                </a>
-                            </li>
+                            @if (Function.GetCarOwnerAccountId(Context.Session) > 0)
+                            {
+                                <li>
+                                    <a class="dropdown-item py-2 rounded-2 small fw-medium text-primary" href="/CarOwner/Home/Index">
+                                        <i class="bi bi-speedometer2 me-2"></i> Trang chủ xe
+                                    </a>
+                                </li>
+                            }
+                            @if (Function.IsAdmin(Context.Session))
+                            {
+                                <li>
+                                    <a class="dropdown-item py-2 rounded-2 small fw-medium text-danger" href="/Admin/Home/Index">
+                                        <i class="bi bi-shield-check me-2"></i> Quản trị hệ thống
+                                    </a>
+                                </li>
+                            }
                             <li><hr class="dropdown-divider my-1"></li>
                             <li>
                                 <a class="dropdown-item py-2 rounded-2 small fw-medium text-danger" href="/Accounts/Logout">

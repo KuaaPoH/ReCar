@@ -27,30 +27,30 @@ namespace CarRental.Controllers
         [HttpGet]
         public IActionResult FilterProducts(decimal? minPrice, decimal? maxPrice, string? brands, int? TypeId, int? seats, string? fuel, string? sort, string? city)
         {
-            var query = _context.Cars.Include(c => c.Type).Where(c => c.IsActive && c.CarStatus != "Chờ duyệt" && c.CarStatus != "Từ chối");
+            var query = _context.Cars.Include(c => c.Type).Where(c => c.IsActive && c.CarStatus != "Chá» duyá»‡t" && c.CarStatus != "Tá»« chá»‘i");
 
             if (!string.IsNullOrEmpty(city))
             {
                 var searchTerms = new List<string>();
                 string raw = city.Trim();
                 
-                // Trích xuất các từ khóa cốt lõi (VD: "TP. Vinh (Nghệ An)" -> "Vinh", "Nghệ An")
+                // TrĂ­ch xuáº¥t cĂ¡c tá»« khĂ³a cá»‘t lĂµi (VD: "TP. Vinh (Nghá»‡ An)" -> "Vinh", "Nghá»‡ An")
                 if (raw.Contains("(") && raw.Contains(")"))
                 {
                     int start = raw.IndexOf('(');
                     int end = raw.IndexOf(')');
                     string inside = raw.Substring(start + 1, end - start - 1).Trim();
-                    string outside = raw.Substring(0, start).Replace("TP.", "").Replace("Tỉnh", "").Trim();
+                    string outside = raw.Substring(0, start).Replace("TP.", "").Replace("Tá»‰nh", "").Trim();
                     if (!string.IsNullOrEmpty(outside)) searchTerms.Add(outside);
                     if (!string.IsNullOrEmpty(inside)) searchTerms.Add(inside);
                 }
                 else
                 {
-                    string cleaned = raw.Replace("TP.", "").Replace("Thành phố", "").Replace("Tỉnh", "").Trim();
+                    string cleaned = raw.Replace("TP.", "").Replace("ThĂ nh phá»‘", "").Replace("Tá»‰nh", "").Trim();
                     if (!string.IsNullOrEmpty(cleaned)) searchTerms.Add(cleaned);
                 }
 
-                // Lọc trực tiếp SQL an toàn không dùng .Any() để tương thích 100% MariaDB & MySQL
+                // Lá»c trá»±c tiáº¿p SQL an toĂ n khĂ´ng dĂ¹ng .Any() Ä‘á»ƒ tÆ°Æ¡ng thĂ­ch 100% MariaDB & MySQL
                 if (searchTerms.Count == 1)
                 {
                     string t1 = searchTerms[0];
@@ -121,7 +121,7 @@ namespace CarRental.Controllers
         [HttpGet]
         public IActionResult GetNearbyCars(double? userLat, double? userLng, double? radiusKm)
         {
-            // Mặc định trung tâm Hà Nội (Cầu Giấy) nếu người dùng chưa cấp quyền GPS
+            // Máº·c Ä‘á»‹nh trung tĂ¢m HĂ  Ná»™i (Cáº§u Giáº¥y) náº¿u ngÆ°á»i dĂ¹ng chÆ°a cáº¥p quyá»n GPS
             double centerLat = userLat ?? 21.0333;
             double centerLng = userLng ?? 105.7833;
             double maxRadius = (radiusKm.HasValue && radiusKm.Value > 0) ? radiusKm.Value : 999999;
@@ -129,7 +129,7 @@ namespace CarRental.Controllers
             var cars = _context.Cars
                 .Include(c => c.Type)
                 .Include(c => c.Owner)
-                .Where(c => c.IsActive && c.CarStatus != "Chờ duyệt" && c.CarStatus != "Từ chối")
+                .Where(c => c.IsActive && c.CarStatus != "Chá» duyá»‡t" && c.CarStatus != "Tá»« chá»‘i")
                 .ToList();
 
             var result = cars.Select(car =>
@@ -147,17 +147,17 @@ namespace CarRental.Controllers
                     carBrand = car.CarBrand ?? "",
                     licensePlate = car.LicensePlate ?? "",
                     price = price,
-                    priceFormatted = price.ToString("N0") + "đ",
+                    priceFormatted = price.ToString("N0") + "Ä‘",
                     image = car.Image ?? "/assets/images/cars/default.png",
-                    location = car.Location ?? "Toàn quốc",
-                    transmission = car.Transmission ?? "Tự động",
-                    fuel = car.Fuel ?? "Xăng",
+                    location = car.Location ?? "ToĂ n quá»‘c",
+                    transmission = car.Transmission ?? "Tá»± Ä‘á»™ng",
+                    fuel = car.Fuel ?? "XÄƒng",
                     seat = car.Seat ?? 5,
                     rate = car.Rate ?? 5.0,
                     trips = car.Trips ?? 0,
                     badge = car.Badge ?? "",
-                    carStatus = car.CarStatus ?? "Sẵn sàng",
-                    ownerName = car.Owner?.FullName ?? "Đối tác Chủ xe",
+                    carStatus = car.CarStatus ?? "Sáºµn sĂ ng",
+                    ownerName = car.Owner?.FullName ?? "Äá»‘i tĂ¡c Chá»§ xe",
                     lat = coords.lat,
                     lng = coords.lng,
                     distanceKm = Math.Round(dist, 1),
@@ -186,31 +186,31 @@ namespace CarRental.Controllers
 
             string loc = location.ToLower();
 
-            if (loc.Contains("cầu giấy")) return (21.0333 + (carId % 5) * 0.003, 105.7833 + (carId % 3) * 0.003);
-            if (loc.Contains("đống đa")) return (21.0180 + (carId % 4) * 0.003, 105.8290 + (carId % 3) * 0.003);
-            if (loc.Contains("tây hồ")) return (21.0667 + (carId % 3) * 0.003, 105.8167 + (carId % 2) * 0.003);
-            if (loc.Contains("hà nội")) return (21.0285 + (carId % 5) * 0.004, 105.8542 + (carId % 4) * 0.004);
+            if (loc.Contains("cáº§u giáº¥y")) return (21.0333 + (carId % 5) * 0.003, 105.7833 + (carId % 3) * 0.003);
+            if (loc.Contains("Ä‘á»‘ng Ä‘a")) return (21.0180 + (carId % 4) * 0.003, 105.8290 + (carId % 3) * 0.003);
+            if (loc.Contains("tĂ¢y há»“")) return (21.0667 + (carId % 3) * 0.003, 105.8167 + (carId % 2) * 0.003);
+            if (loc.Contains("hĂ  ná»™i")) return (21.0285 + (carId % 5) * 0.004, 105.8542 + (carId % 4) * 0.004);
 
-            if (loc.Contains("lê mao")) return (18.6705 + (carId % 3) * 0.002, 105.6765 + (carId % 2) * 0.002);
-            if (loc.Contains("trường thi")) return (18.6752 + (carId % 3) * 0.002, 105.6908 + (carId % 2) * 0.002);
-            if (loc.Contains("hưng dũng")) return (18.6815 + (carId % 3) * 0.002, 105.7020 + (carId % 2) * 0.002);
-            if (loc.Contains("quảng trường") || (loc.Contains("vinh") && loc.Contains("hồ chí minh"))) return (18.6737 + (carId % 3) * 0.002, 105.6813 + (carId % 2) * 0.002);
-            if (loc.Contains("vinh") || loc.Contains("nghệ an")) return (18.6737 + (carId % 5) * 0.003, 105.6813 + (carId % 4) * 0.003);
+            if (loc.Contains("lĂª mao")) return (18.6705 + (carId % 3) * 0.002, 105.6765 + (carId % 2) * 0.002);
+            if (loc.Contains("trÆ°á»ng thi")) return (18.6752 + (carId % 3) * 0.002, 105.6908 + (carId % 2) * 0.002);
+            if (loc.Contains("hÆ°ng dÅ©ng")) return (18.6815 + (carId % 3) * 0.002, 105.7020 + (carId % 2) * 0.002);
+            if (loc.Contains("quáº£ng trÆ°á»ng") || (loc.Contains("vinh") && loc.Contains("há»“ chĂ­ minh"))) return (18.6737 + (carId % 3) * 0.002, 105.6813 + (carId % 2) * 0.002);
+            if (loc.Contains("vinh") || loc.Contains("nghá»‡ an")) return (18.6737 + (carId % 5) * 0.003, 105.6813 + (carId % 4) * 0.003);
 
-            if (loc.Contains("quận 7")) return (10.7327 + (carId % 3) * 0.003, 106.7167 + (carId % 4) * 0.003);
-            if (loc.Contains("quận 1")) return (10.7769 + (carId % 4) * 0.003, 106.7009 + (carId % 3) * 0.003);
-            if (loc.Contains("tp.hcm") || loc.Contains("hồ chí minh")) return (10.7769 + (carId % 5) * 0.005, 106.7009 + (carId % 4) * 0.005);
+            if (loc.Contains("quáº­n 7")) return (10.7327 + (carId % 3) * 0.003, 106.7167 + (carId % 4) * 0.003);
+            if (loc.Contains("quáº­n 1")) return (10.7769 + (carId % 4) * 0.003, 106.7009 + (carId % 3) * 0.003);
+            if (loc.Contains("tp.hcm") || loc.Contains("há»“ chĂ­ minh")) return (10.7769 + (carId % 5) * 0.005, 106.7009 + (carId % 4) * 0.005);
 
-            if (loc.Contains("đà nẵng") || loc.Contains("hải châu")) return (16.0544 + (carId % 4) * 0.003, 108.2208 + (carId % 3) * 0.003);
-            if (loc.Contains("đà lạt")) return (11.9404 + (carId % 3) * 0.003, 108.4373 + (carId % 4) * 0.003);
-            if (loc.Contains("nha trang") || loc.Contains("lộc thọ")) return (12.2388 + (carId % 3) * 0.003, 109.1967 + (carId % 4) * 0.003);
+            if (loc.Contains("Ä‘Ă  náºµng") || loc.Contains("háº£i chĂ¢u")) return (16.0544 + (carId % 4) * 0.003, 108.2208 + (carId % 3) * 0.003);
+            if (loc.Contains("Ä‘Ă  láº¡t")) return (11.9404 + (carId % 3) * 0.003, 108.4373 + (carId % 4) * 0.003);
+            if (loc.Contains("nha trang") || loc.Contains("lá»™c thá»")) return (12.2388 + (carId % 3) * 0.003, 109.1967 + (carId % 4) * 0.003);
 
             return (18.6737, 105.6813);
         }
 
         private double CalculateHaversineDistance(double lat1, double lon1, double lat2, double lon2)
         {
-            const double R = 6371; // Bán kính Trái đất (km)
+            const double R = 6371; // BĂ¡n kĂ­nh TrĂ¡i Ä‘áº¥t (km)
             double dLat = ToRadians(lat2 - lat1);
             double dLon = ToRadians(lon2 - lon1);
 
@@ -245,31 +245,59 @@ namespace CarRental.Controllers
                 return NotFound();
             }
 
-            //ViewBag.productFeatured = _context.CarTypes.OrderByDescending(i=>i.CarTypeId).ToList();
+                        // Lấy album ảnh chi tiết của xe (hỗ trợ cả cấu trúc 1 dòng/nhiều cột và nhiều dòng)
+            var rawImages = await _context.CarImages
+                .Where(ci => ci.CarId == id)
+                .ToListAsync();
+            var galleryImages = new List<string>();
+            foreach (var ci in rawImages)
+            {
+                if (!string.IsNullOrWhiteSpace(ci.Image1) && !galleryImages.Contains(ci.Image1)) galleryImages.Add(ci.Image1);
+                if (!string.IsNullOrWhiteSpace(ci.Image2) && !galleryImages.Contains(ci.Image2)) galleryImages.Add(ci.Image2);
+                if (!string.IsNullOrWhiteSpace(ci.Image3) && !galleryImages.Contains(ci.Image3)) galleryImages.Add(ci.Image3);
+                if (!string.IsNullOrWhiteSpace(ci.Image4) && !galleryImages.Contains(ci.Image4)) galleryImages.Add(ci.Image4);
+            }
+            ViewBag.GalleryImages = galleryImages;
+
+            // Lấy tiện ích trang bị động từ bảng liên kết car_amenities
+            var amenityItems = await _context.CarAmenities
+                .Include(ca => ca.Amenity)
+                .Where(ca => ca.CarId == id && ca.Amenity != null)
+                .OrderBy(ca => ca.Amenity!.DisplayOrder)
+                .Select(ca => ca.Amenity!)
+                .ToListAsync();
+
+            if (!amenityItems.Any() && !string.IsNullOrEmpty(product.Details))
+            {
+                var allAm = await _context.Amenities.Where(a => a.IsActive).OrderBy(a => a.DisplayOrder).ToListAsync();
+                amenityItems = allAm.Where(a => product.Details.Contains(a.Name, StringComparison.OrdinalIgnoreCase)).ToList();
+            }
+            ViewBag.AmenityItems = amenityItems;
+            ViewBag.CarPolicy = CarPolicy.Parse(product);
 
 
             //ViewBag.productRelated = _context.Cars.Include(i=>i.Type).Where(i => i.TypeId == product.TypeId && i.CarId != id).ToList();
             ViewBag.productRelated = _context.Cars.Where(i => i.TypeId == product.TypeId && i.CarId != id).ToList();
             ViewBag.productRviews = _context.CarReviews.Where(r => r.CarId == product.CarId).ToList();
           
-            // Lấy danh sách sản phẩm đã xem gần đây từ session
+            // Láº¥y danh sĂ¡ch sáº£n pháº©m Ä‘Ă£ xem gáº§n Ä‘Ă¢y tá»« session
             var recentProducts = HttpContext.Session.Get<List<int>>("RecentProducts") ?? new List<int>();
 
-            // Thêm ID sản phẩm vào danh sách nếu chưa có
+            // ThĂªm ID sáº£n pháº©m vĂ o danh sĂ¡ch náº¿u chÆ°a cĂ³
             if (!recentProducts.Contains(id.Value))
             {
                 recentProducts.Add(id.Value);
 
-                // Giữ danh sách giới hạn số lượng sản phẩm (ví dụ: 5 sản phẩm gần đây)
+                // Giá»¯ danh sĂ¡ch giá»›i háº¡n sá»‘ lÆ°á»£ng sáº£n pháº©m (vĂ­ dá»¥: 5 sáº£n pháº©m gáº§n Ä‘Ă¢y)
                 if (recentProducts.Count > 5)
                 {
                     recentProducts.RemoveAt(0);
                 }
 
-                // Cập nhật session
+                // Cáº­p nháº­t session
                 HttpContext.Session.Set("RecentProducts", recentProducts);
             }
-            // Lấy danh sách ngày thuê liên quan đến xe
+            // Láº¥y danh sĂ¡ch ngĂ y thuĂª liĂªn quan Ä‘áº¿n xe
             var rentalDates = _context.OrderDetails
                 .Where(od => od.CarId == id)
                 .Select(od => new
@@ -279,7 +307,7 @@ namespace CarRental.Controllers
                 })
                 .ToList();
 
-            // Truyền dữ liệu sang View
+            // Truyá»n dá»¯ liá»‡u sang View
             ViewBag.RentalDates = rentalDates;
             return View(product);
         }
@@ -288,7 +316,7 @@ namespace CarRental.Controllers
         {
             try
             {
-                // Tạo đối tượng review mới
+                // Táº¡o Ä‘á»‘i tÆ°á»£ng review má»›i
                 CarReview r = new CarReview
                 {
                     Name = name,
@@ -301,12 +329,12 @@ namespace CarRental.Controllers
 
                 };
 
-                // Thêm vào DbSet và lưu vào cơ sở dữ liệu
+                // ThĂªm vĂ o DbSet vĂ  lÆ°u vĂ o cÆ¡ sá»Ÿ dá»¯ liá»‡u
                 _context.CarReviews.Add(r);
-                await _context.SaveChangesAsync(); // Sử dụng await để đảm bảo dữ liệu được lưu
+                await _context.SaveChangesAsync(); // Sá»­ dá»¥ng await Ä‘á»ƒ Ä‘áº£m báº£o dá»¯ liá»‡u Ä‘Æ°á»£c lÆ°u
 
 
-                // Trả về dữ liệu của review vừa được thêm
+                // Tráº£ vá» dá»¯ liá»‡u cá»§a review vá»«a Ä‘Æ°á»£c thĂªm
                 return Json(new
                 {
                     //status = true,
@@ -319,7 +347,7 @@ namespace CarRental.Controllers
             }
             catch (Exception ex)
             {
-                // Ghi log lỗi (nếu cần) và trả về trạng thái thất bại
+                // Ghi log lá»—i (náº¿u cáº§n) vĂ  tráº£ vá» tráº¡ng thĂ¡i tháº¥t báº¡i
                 return Json(new { status = false, message = ex.Message });
             }
         }

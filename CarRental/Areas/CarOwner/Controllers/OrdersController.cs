@@ -1,6 +1,7 @@
 using CarRental.Hubs;
 using CarRental.Models;
 using CarRental.Utilities;
+using CarRental.ViewModels;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.AspNetCore.SignalR;
@@ -170,14 +171,146 @@ namespace CarRental.Areas.CarOwner.Controllers
                 .Where(od => od.Car != null && od.Car.OwnerId == ownerId)
                 .ToList();
 
+            var firstCar = order.OrderDetails.FirstOrDefault()?.Car;
+            ViewBag.CarPolicy = CarPolicy.Parse(firstCar);
+
+            try
+            {
+                var inspections = _context.VehicleInspections
+                    .Where(vi => vi.OrderId == order.OrderId)
+                    .ToList();
+                ViewBag.HandoverInspection = inspections.FirstOrDefault(vi => vi.InspectionType == VehicleInspection.TypeHandover);
+                ViewBag.ReturnInspection = inspections.FirstOrDefault(vi => vi.InspectionType == VehicleInspection.TypeReturn);
+            }
+            catch
+            {
+                EnsureInspectionTableSafe();
+            }
+
             return View(order);
         }
 
-        // POST: /CarOwner/Orders/ConfirmHandover (Bàn giao xe cho khách -> Đơn sang Đang thuê, Xe sang Đang bận)
+        private void EnsureInspectionTableSafe()
+        {
+            try
+            {
+                _context.Database.ExecuteSqlRaw(@"CREATE TABLE IF NOT EXISTS `vehicle_inspections` (
+                    `InspectionId` INT NOT NULL AUTO_INCREMENT,
+                    `OrderId` INT NOT NULL,
+                    `CarId` INT NOT NULL,
+                    `InspectionType` VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+                    `Odometer` INT NOT NULL DEFAULT 0,
+                    `FuelLevel` INT NOT NULL DEFAULT 0,
+                    `FrontImage` VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL,
+                    `RearImage` VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL,
+                    `LeftImage` VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL,
+                    `RightImage` VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL,
+                    `Notes` VARCHAR(1000) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL,
+                    `CreatedAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    `CreatedBy` INT NULL,
+                    PRIMARY KEY (`InspectionId`),
+                    UNIQUE INDEX `UX_Inspection_Order_Type` (`OrderId`, `InspectionType`),
+                    INDEX `IX_Inspection_Car` (`CarId`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;");
+            }
+            catch { }
+        }
+
+        private async Task<VehicleInspection?> UpsertInspectionAsync(int orderId, int carId, int ownerId, string inspectionType, InspectionSubmitVM vm)
+        {
+            EnsureInspectionTableSafe();
+            bool hasAnyInspectionInput = vm.Odometer.HasValue || vm.FuelLevel.HasValue ||
+                                         !string.IsNullOrWhiteSpace(vm.Notes) ||
+                                         vm.FrontImage != null || vm.RearImage != null ||
+                                         vm.LeftImage != null || vm.RightImage != null;
+            if (!hasAnyInspectionInput) return null;
+
+            var record = await _context.VehicleInspections
+                .FirstOrDefaultAsync(vi => vi.OrderId == orderId && vi.InspectionType == inspectionType);
+
+            if (record == null)
+            {
+                record = new VehicleInspection
+                {
+                    OrderId = orderId,
+                    CarId = carId,
+                    InspectionType = inspectionType,
+                    CreatedAt = DateTime.Now,
+                    CreatedBy = ownerId
+                };
+                _context.VehicleInspections.Add(record);
+            }
+
+            if (vm.Odometer.HasValue && vm.Odometer.Value >= 0) record.Odometer = vm.Odometer.Value;
+            if (vm.FuelLevel.HasValue) record.FuelLevel = Math.Clamp(vm.FuelLevel.Value, 0, 100);
+            if (!string.IsNullOrWhiteSpace(vm.Notes)) record.Notes = vm.Notes.Trim();
+
+            if (vm.FrontImage != null && vm.FrontImage.Length > 0)
+                record.FrontImage = "/files/inspections/" + Function.UploadImage(vm.FrontImage, "inspections");
+            if (vm.RearImage != null && vm.RearImage.Length > 0)
+                record.RearImage = "/files/inspections/" + Function.UploadImage(vm.RearImage, "inspections");
+            if (vm.LeftImage != null && vm.LeftImage.Length > 0)
+                record.LeftImage = "/files/inspections/" + Function.UploadImage(vm.LeftImage, "inspections");
+            if (vm.RightImage != null && vm.RightImage.Length > 0)
+                record.RightImage = "/files/inspections/" + Function.UploadImage(vm.RightImage, "inspections");
+
+            record.CreatedAt = DateTime.Now;
+            record.CreatedBy = ownerId;
+            return record;
+        }
+
+        // POST: /CarOwner/Orders/SaveInspection (Lưu/cập nhật biên bản bàn giao hoặc nhận xe độc lập)
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> ConfirmHandover(int id)
+        public async Task<IActionResult> SaveInspection([FromForm] InspectionSubmitVM vm)
         {
+            var owner = GetCurrentCarOwner();
+            if (owner == null || owner.RoleId != 3)
+            {
+                return Json(new { success = false, message = "Bạn không có quyền thực hiện thao tác này." });
+            }
+
+            var ownerId = owner.AccountId;
+            var order = _context.CarRentalOrders
+                .Include(o => o.OrderDetails)
+                    .ThenInclude(od => od.Car)
+                .FirstOrDefault(o => o.OrderId == vm.id &&
+                    o.OrderDetails.Any(od => od.Car != null && od.Car.OwnerId == ownerId));
+
+            if (order == null)
+            {
+                return Json(new { success = false, message = "Không tìm thấy đơn hàng." });
+            }
+
+            var firstCar = order.OrderDetails.FirstOrDefault(od => od.Car != null && od.Car.OwnerId == ownerId)?.Car;
+            if (firstCar == null)
+            {
+                return Json(new { success = false, message = "Không tìm thấy phương tiện trong đơn." });
+            }
+
+            string inspType = string.Equals(vm.InspectionType, VehicleInspection.TypeReturn, StringComparison.OrdinalIgnoreCase)
+                ? VehicleInspection.TypeReturn
+                : VehicleInspection.TypeHandover;
+
+            await UpsertInspectionAsync(order.OrderId, firstCar.CarId, ownerId, inspType, vm);
+            await _context.SaveChangesAsync();
+
+            return Json(new
+            {
+                success = true,
+                message = inspType == VehicleInspection.TypeReturn
+                    ? "Đã lưu biên bản nhận lại xe (Check-out) thành công!"
+                    : "Đã lưu biên bản bàn giao xe (Check-in) thành công!",
+                redirectUrl = Url.Action("Details", new { id = order.OrderId })
+            });
+        }
+
+        // POST: /CarOwner/Orders/ConfirmHandover (Bàn giao xe cho khách -> Đơn sang Đang thuê, Xe sang Đang bận + Lưu biên bản Check-in)
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ConfirmHandover([FromForm] InspectionSubmitVM vm)
+        {
+            int id = vm.id;
             var owner = GetCurrentCarOwner();
             if (owner == null || owner.RoleId != 3)
             {
@@ -204,13 +337,25 @@ namespace CarRental.Areas.CarOwner.Controllers
             // Cập nhật trạng thái đơn hàng sang 4: Đang thuê / Đang giao
             order.StatusId = 4;
 
+            Car? firstCar = null;
             // Cập nhật trạng thái xe sang "Đang bận" và tạm ẩn khỏi sàn
             foreach (var detail in order.OrderDetails.Where(od => od.Car != null && od.Car.OwnerId == ownerId))
             {
                 if (detail.Car != null)
                 {
+                    firstCar ??= detail.Car;
                     detail.Car.CarStatus = "Đang bận";
                     detail.Car.IsActive = false;
+                }
+            }
+
+            if (firstCar != null)
+            {
+                var record = await UpsertInspectionAsync(order.OrderId, firstCar.CarId, ownerId, VehicleInspection.TypeHandover, vm);
+                if (record != null)
+                {
+                    string checkInLog = $"[Check-in {DateTime.Now:dd/MM/yyyy HH:mm}]: ODO {record.Odometer:N0} km, Nhiên liệu {record.FuelLevel}%";
+                    order.Notes = string.IsNullOrEmpty(order.Notes) ? checkInLog : $"{order.Notes} | {checkInLog}";
                 }
             }
 
@@ -228,15 +373,16 @@ namespace CarRental.Areas.CarOwner.Controllers
             }
             catch { }
 
-            Function.SetMessage(HttpContext.Session, $"Đã xác nhận bàn giao xe thành công cho đơn #{order.OrderId}! Xe đã chuyển sang trạng thái 'Đang có khách'.");
-            return Json(new { success = true, message = "Xác nhận bàn giao xe thành công!", redirectUrl = Url.Action("Details", new { id }) });
+            Function.SetMessage(HttpContext.Session, $"Đã xác nhận bàn giao xe & lưu biên bản Check-in cho đơn #{order.OrderId}! Xe đã chuyển sang trạng thái 'Đang có khách'.");
+            return Json(new { success = true, message = "Xác nhận bàn giao xe & lưu biên bản Check-in thành công!", redirectUrl = Url.Action("Details", new { id }) });
         }
 
-        // POST: /CarOwner/Orders/ConfirmReturn (Nhận lại xe -> Đơn sang Hoàn tất, Xe sang Sẵn sàng, Trips + 1)
+        // POST: /CarOwner/Orders/ConfirmReturn (Nhận lại xe -> Đơn sang Hoàn tất, Xe sang Sẵn sàng, Trips + 1 + Lưu biên bản Check-out)
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> ConfirmReturn(int id)
+        public async Task<IActionResult> ConfirmReturn([FromForm] InspectionSubmitVM vm)
         {
+            int id = vm.id;
             try
             {
                 var owner = GetCurrentCarOwner();
@@ -266,14 +412,49 @@ namespace CarRental.Areas.CarOwner.Controllers
                 order.StatusId = 5;
                 order.ReturnDate = DateOnly.FromDateTime(DateTime.Now);
 
+                Car? firstCar = null;
                 // Cập nhật trạng thái xe trở về "Sẵn sàng", mở lại trên sàn và tăng Trips + 1
                 foreach (var detail in order.OrderDetails.Where(od => od.Car != null && od.Car.OwnerId == ownerId))
                 {
                     if (detail.Car != null)
                     {
+                        firstCar ??= detail.Car;
                         detail.Car.CarStatus = "Sẵn sàng";
                         detail.Car.IsActive = true;
                         detail.Car.Trips = (detail.Car.Trips ?? 0) + 1;
+                    }
+                }
+
+                string summaryExtra = "";
+                if (firstCar != null)
+                {
+                    var record = await UpsertInspectionAsync(order.OrderId, firstCar.CarId, ownerId, VehicleInspection.TypeReturn, vm);
+                    if (record != null)
+                    {
+                        var handoverRecord = await _context.VehicleInspections
+                            .FirstOrDefaultAsync(vi => vi.OrderId == order.OrderId && vi.InspectionType == VehicleInspection.TypeHandover);
+
+                        var firstDetail = order.OrderDetails.FirstOrDefault();
+                        int rentalDays = 1;
+                        if (firstDetail?.PickupDate.HasValue == true && firstDetail?.ReturnDate.HasValue == true)
+                        {
+                            rentalDays = Math.Max(1, (int)(firstDetail.ReturnDate.Value.Date - firstDetail.PickupDate.Value.Date).TotalDays);
+                        }
+                        var policy = CarPolicy.Parse(firstCar);
+                        int allowedKm = rentalDays * policy.MileageLimit;
+
+                        if (handoverRecord != null && record.Odometer >= handoverRecord.Odometer && handoverRecord.Odometer > 0)
+                        {
+                            int drivenKm = record.Odometer - handoverRecord.Odometer;
+                            int overKm = Math.Max(0, drivenKm - allowedKm);
+                            decimal extraFee = overKm * policy.ExtraFeePerKm;
+                            summaryExtra = overKm > 0
+                                ? $" (Đã đi {drivenKm:N0} km, vượt {overKm:N0} km — Phụ phí: {extraFee:N0}đ)"
+                                : $" (Đã đi {drivenKm:N0} km, trong hạn mức {allowedKm:N0} km)";
+                        }
+
+                        string checkOutLog = $"[Check-out {DateTime.Now:dd/MM/yyyy HH:mm}]: ODO {record.Odometer:N0} km, Nhiên liệu {record.FuelLevel}%{summaryExtra}";
+                        order.Notes = string.IsNullOrEmpty(order.Notes) ? checkOutLog : $"{order.Notes} | {checkOutLog}";
                     }
                 }
 
@@ -291,8 +472,8 @@ namespace CarRental.Areas.CarOwner.Controllers
                 }
                 catch { }
 
-                Function.SetMessage(HttpContext.Session, $"Đã nhận lại xe & hoàn tất đơn #{order.OrderId}! Xe đã sẵn sàng đón khách mới (+1 chuyến đi thành công).");
-                return Json(new { success = true, message = "Đã nhận lại xe & hoàn tất chuyến đi thành công!", redirectUrl = Url.Action("Details", new { id }) });
+                Function.SetMessage(HttpContext.Session, $"Đã nhận lại xe & hoàn tất đơn #{order.OrderId}{summaryExtra}! Xe đã sẵn sàng đón khách mới (+1 chuyến đi thành công).");
+                return Json(new { success = true, message = $"Đã nhận lại xe & hoàn tất chuyến đi thành công{summaryExtra}!", redirectUrl = Url.Action("Details", new { id }) });
             }
             catch (Exception ex)
             {

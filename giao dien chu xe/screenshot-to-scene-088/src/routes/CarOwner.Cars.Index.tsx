@@ -45,7 +45,7 @@ function CarsIndex() {
   const [removing, setRemoving] = useState<Car | null>(null);
 
   const uniq = (k: keyof Car) => [...new Set(cars.map((c) => String(c[k])))];
-  const areaOf = (c: Car) => c.location.split(",").slice(-1)[0].trim();
+  const areaOf = (c: Car) => (c.location.split(",").pop() ?? "").trim();
   const rating = (id: number) => {
     const r = reviews.filter((x) => x.carId === id);
     return r.length ? (r.reduce((s, x) => s + x.stars, 0) / r.length).toFixed(1) : null;
@@ -68,7 +68,7 @@ function CarsIndex() {
 
   const toggleActive = async (c: Car) => {
     const chk = canToggleActive(c, orders);
-    if (!chk.ok) return toast.error("Không thể đổi trạng thái", { description: chk.reason });
+    if (!chk.ok) return void toast.error("Không thể đổi trạng thái", { description: chk.reason });
     setLoading(`s${c.id}`);
     await new Promise((r) => setTimeout(r, 500)); // POST ToggleStatus
     const next: CarStatus = c.status === "available" ? "paused" : "available";
@@ -77,7 +77,7 @@ function CarsIndex() {
     toast.success(`${c.name}: ${CAR_STATUS_LABEL[next]}`, { description: DEMO_NOTE });
   };
   const toggleSale = async (c: Car) => {
-    if (!c.salePrice) return toast.error("Chưa thiết lập giá khuyến mãi", { description: "Vào Chỉnh sửa để nhập giá khuyến mãi/ngày." });
+    if (!c.salePrice) return void toast.error("Chưa thiết lập giá khuyến mãi", { description: "Vào Chỉnh sửa để nhập giá khuyến mãi/ngày." });
     setLoading(`p${c.id}`);
     await new Promise((r) => setTimeout(r, 500)); // POST ToggleSale
     updateCar(c.id, { saleEnabled: !c.saleEnabled });

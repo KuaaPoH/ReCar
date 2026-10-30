@@ -301,6 +301,26 @@ static void EnsureAllTablesExist(DbRenalCarContext context, ILogger logger)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;" }
         };
         
+        // Biên bản bàn giao xe điện tử (Digital Check-in / Check-out)
+        tablesToCheck["vehicle_inspections"] = @"CREATE TABLE IF NOT EXISTS `vehicle_inspections` (
+                `InspectionId` INT NOT NULL AUTO_INCREMENT,
+                `OrderId` INT NOT NULL,
+                `CarId` INT NOT NULL,
+                `InspectionType` VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+                `Odometer` INT NOT NULL DEFAULT 0,
+                `FuelLevel` INT NOT NULL DEFAULT 0,
+                `FrontImage` VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL,
+                `RearImage` VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL,
+                `LeftImage` VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL,
+                `RightImage` VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL,
+                `Notes` VARCHAR(1000) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL,
+                `CreatedAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                `CreatedBy` INT NULL,
+                PRIMARY KEY (`InspectionId`),
+                UNIQUE INDEX `UX_Inspection_Order_Type` (`OrderId`, `InspectionType`),
+                INDEX `IX_Inspection_Car` (`CarId`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+
         foreach (var table in tablesToCheck)
         {
             try
@@ -309,7 +329,7 @@ static void EnsureAllTablesExist(DbRenalCarContext context, ILogger logger)
                 try
                 {
                     // Dùng ExecuteSqlRaw với tên bảng nội bộ để tránh EF Core biến tên bảng thành parameter @p0
-                    context.Database.ExecuteSqlRaw($"SELECT 1 FROM `{table.Key}` LIMIT 1;");
+                    context.Database.ExecuteSqlRaw(table.Value);
                     // Nếu không có lỗi, bảng đã tồn tại
                 }
                 catch
@@ -326,6 +346,8 @@ static void EnsureAllTablesExist(DbRenalCarContext context, ILogger logger)
             }
         }
 
+        // Mở rộng cột Notes của bảng CarRentalOrders lên TEXT và đảm bảo bảng vehicle_inspections tồn tại
+        try { context.Database.ExecuteSqlRaw("ALTER TABLE `carrentalorders` MODIFY COLUMN `Notes` TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL;"); } catch { }
         // Tự động Seed danh sách ngân hàng nếu bảng banks chưa có dữ liệu
         try
         {

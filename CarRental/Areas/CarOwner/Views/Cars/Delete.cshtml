@@ -10,6 +10,7 @@
     int orderCount = ViewBag.OrderCount ?? 0;
     int reviewCount = ViewBag.ReviewCount ?? 0;
     int trips = ViewBag.Trips ?? 0;
+    var amenityItems = ViewBag.AmenityItems as List<CarRental.Models.Amenity> ?? new List<CarRental.Models.Amenity>();
 
     bool canDelete = !isBusy && !hasActiveOrders;
 }
@@ -178,6 +179,22 @@
                         <span class="text-muted small">Đơn giá niêm yết:</span>
                         <span class="fs-5 fw-bold text-primary">@((Model.Price ?? 0).ToString("N0"))₫ <span class="fs-6 fw-normal text-muted">/ngày</span></span>
                     </div>
+
+                    @if (amenityItems.Any())
+                    {
+                        <div class="pt-3 mt-2 border-top">
+                            <div class="text-muted small fw-semibold mb-1.5" style="font-size: 0.75rem;">Tiện nghi đi kèm (@amenityItems.Count):</div>
+                            <div class="d-flex flex-wrap gap-1.5">
+                                @foreach (var am in amenityItems)
+                                {
+                                    <span class="badge bg-light text-dark border rounded-pill px-2.5 py-1 fw-medium d-inline-flex align-items-center gap-1" style="font-size: 0.75rem;">
+                                        <i class="bi @(string.IsNullOrEmpty(am.Icon) ? "bi-check-circle-fill" : am.Icon) @(string.IsNullOrEmpty(am.IconColor) ? "text-primary" : am.IconColor)"></i>
+                                        <span>@am.Name</span>
+                                    </span>
+                                }
+                            </div>
+                        </div>
+                    }
                 </div>
             </div>
         </div>

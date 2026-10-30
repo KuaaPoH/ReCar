@@ -73,7 +73,7 @@ function ActionDialog({ order, kind, onClose }: { order: Order; kind: Kind; onCl
             {checks.map((c, i) => (
               <li key={c}>
                 <label className="flex cursor-pointer items-center gap-3 text-sm">
-                  <Checkbox checked={ticked[i]} onCheckedChange={(v) => setTicked((t) => t.map((x, j) => (j === i ? !!v : x)))} />{c}
+                  <Checkbox checked={!!ticked[i]} onCheckedChange={(v) => setTicked((t) => t.map((x, j) => (j === i ? !!v : x)))} />{c}
                 </label>
               </li>
             ))}

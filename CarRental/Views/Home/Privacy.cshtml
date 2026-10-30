@@ -1,6 +1,172 @@
-﻿@{
-    ViewData["Title"] = "Privacy Policy";
+@{
+    ViewData["Title"] = "Điều khoản dịch vụ & Chính sách thuê xe – ReCar";
+    Layout = "~/Views/Shared/_Layout.cshtml";
 }
-<h1>@ViewData["Title"]</h1>
 
-<p>Use this page to detail your site's privacy policy.</p>
+<!-- Page Banner -->
+<div class="page-title-banner" style="background-color: #f8fafc; border-bottom: 1px solid var(--recar-border); padding: 36px 0;">
+    <div class="container" style="max-width: 1100px;">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-2" style="font-size: 14px;">
+                <li class="breadcrumb-item"><a href="/" class="text-decoration-none text-muted">Trang chủ</a></li>
+                <li class="breadcrumb-item active text-primary fw-bold" aria-current="page">Chính sách & Điều khoản</li>
+            </ol>
+        </nav>
+        <h1 class="fs-2 fw-bold m-0" style="color: var(--recar-navy);">Điều khoản dịch vụ & Chính sách thuê xe</h1>
+        <p class="text-muted small m-0 mt-2" style="font-size: 15px;">
+            Quy định minh bạch nhằm bảo đảm quyền lợi và an toàn cao nhất cho Khách thuê và Chủ xe trên nền tảng ReCar.
+        </p>
+    </div>
+</div>
+
+<div class="container py-5" style="max-width: 1100px;">
+    <div class="row g-4">
+        <!-- Cột trái: Menu điều hướng nhanh -->
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm rounded-4 p-3 sticky-top" style="top: 100px;">
+                <h6 class="fw-bold text-dark px-2 mb-3">Mục lục chính sách</h6>
+                <nav class="nav flex-column small">
+                    <a class="nav-link py-2 text-dark fw-medium" href="#sec-general"><i class="bi bi-shield-check text-primary me-2"></i>1. Quy định chung</a>
+                    <a class="nav-link py-2 text-dark fw-medium" href="#sec-papers"><i class="bi bi-person-vcard text-primary me-2"></i>2. Giấy tờ đối chiếu nhận xe</a>
+                    <a class="nav-link py-2 text-dark fw-medium" href="#sec-deposit"><i class="bi bi-wallet2 text-primary me-2"></i>3. Quy chế đặt cọc & Thanh toán</a>
+                    <a class="nav-link py-2 text-dark fw-medium" href="#sec-handover"><i class="bi bi-clipboard-check text-primary me-2"></i>4. Biên bản bàn giao (Digital Check-in)</a>
+                    <a class="nav-link py-2 text-dark fw-medium" href="#sec-mileage"><i class="bi bi-speedometer2 text-primary me-2"></i>5. Hạn mức km & Phụ phí</a>
+                    <a class="nav-link py-2 text-dark fw-medium" href="#sec-cancel"><i class="bi bi-x-circle text-primary me-2"></i>6. Chính sách hủy chuyến</a>
+                </nav>
+                <div class="p-3 bg-light rounded-3 mt-3 small text-muted">
+                    <i class="bi bi-headset text-primary me-1"></i> Cần hỗ trợ khẩn cấp? Gọi Hotline: <strong>1900 6868</strong> (24/7).
+                </div>
+            </div>
+        </div>
+
+        <!-- Cột phải: Nội dung chi tiết các điều khoản -->
+        <div class="col-lg-8">
+            <div class="bg-white p-4 p-md-5 rounded-4 border shadow-sm">
+                <!-- Điều 1 -->
+                <section id="sec-general" class="mb-5">
+                    <h4 class="fw-bold text-dark mb-3" style="color: var(--recar-navy);">1. Quy định chung</h4>
+                    <p class="text-secondary small" style="line-height: 1.8;">
+                        ReCar là nền tảng công nghệ kết nối trực tiếp giữa Khách hàng có nhu cầu thuê phương tiện và các Đối tác Chủ xe cá nhân/doanh nghiệp đã được xác minh danh tính. Khi sử dụng dịch vụ trên ReCar, Khách thuê và Chủ xe cùng đồng thuận tuân thủ các quy định pháp luật hiện hành của nước Cộng hòa Xã hội Chủ nghĩa Việt Nam về giao thông đường bộ và an toàn vận tải.
+                    </p>
+                    <ul class="text-secondary small ps-3" style="line-height: 1.8;">
+                        <li>Khách thuê cam kết đủ tuổi điều khiển phương tiện theo luật định (từ đủ 18 tuổi trở lên).</li>
+                        <li>Nghiêm cấm sử dụng phương tiện vào các mục đích phi pháp: vận chuyển hàng cấm, vũ khí, chất cháy nổ hoặc các hoạt động trái pháp luật.</li>
+                        <li>Tuyệt đối không giao xe cho người khác điều khiển khi người đó chưa cung cấp và xác minh GPLX trên hệ thống ReCar.</li>
+                    </ul>
+                </section>
+
+                <hr class="my-4 text-muted" />
+
+                <!-- Điều 2 -->
+                <section id="sec-papers" class="mb-5">
+                    <h4 class="fw-bold text-dark mb-3" style="color: var(--recar-navy);">2. Giấy tờ đối chiếu khi nhận xe</h4>
+                    <p class="text-secondary small" style="line-height: 1.8;">
+                        Tại thời điểm bàn giao xe, Khách thuê có nghĩa vụ xuất trình các giấy tờ gốc để Chủ xe đối chiếu tính xác thực:
+                    </p>
+                    <div class="row g-3 small mb-3">
+                        <div class="col-md-6">
+                            <div class="p-3 rounded-3 border bg-light h-100">
+                                <strong class="text-dark d-block mb-1"><i class="bi bi-person-badge text-primary me-1"></i> Đối với công dân Việt Nam:</strong>
+                                <div>- CCCD gắn chip (đối chiếu trực tiếp hoặc qua VNeID mức 2).</div>
+                                <div>- Giấy phép lái xe ô tô hạng B1/B2 trở lên (bản gốc còn hạn).</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="p-3 rounded-3 border bg-light h-100">
+                                <strong class="text-dark d-block mb-1"><i class="bi bi-globe text-primary me-1"></i> Đối với du khách quốc tế:</strong>
+                                <div>- Hộ chiếu (Passport) bản gốc còn hạn ít nhất 6 tháng.</div>
+                                <div>- Giấy phép lái xe quốc tế (IDP) kèm GPLX quốc gia bản gốc.</div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <hr class="my-4 text-muted" />
+
+                <!-- Điều 3 -->
+                <section id="sec-deposit" class="mb-5">
+                    <h4 class="fw-bold text-dark mb-3" style="color: var(--recar-navy);">3. Quy chế đặt cọc & Thanh toán</h4>
+                    <ul class="text-secondary small ps-3" style="line-height: 1.8;">
+                        <li><strong>Tiền đặt cọc giữ xe (30%):</strong> Thanh toán trực tuyến an toàn qua Cổng VNPay (hoặc xác nhận giữ chỗ) tại thời điểm tạo đơn. Khoản tiền cọc này được ReCar lưu ký để bảo đảm quyền lợi nhận xe cho khách.</li>
+                        <li><strong>Thanh toán phần còn lại (70%):</strong> Khách thuê thanh toán trực tiếp cho Chủ xe ngay khi hoàn tất kiểm tra xe và ký biên bản bàn giao.</li>
+                        <li><strong>Tài sản thế chấp:</strong> Tùy từng dòng xe, Chủ xe có thể yêu cầu gửi lại xe máy kèm cà-vẹt gốc hoặc khoản tiền mặt thế chấp (từ 10.000.000đ đến 20.000.000đ). Khoản thế chấp này sẽ được hoàn trả 100% ngay khi kết thúc hợp đồng thuê xe.</li>
+                    </ul>
+                </section>
+
+                <hr class="my-4 text-muted" />
+
+                <!-- Điều 4 -->
+                <section id="sec-handover" class="mb-5">
+                    <h4 class="fw-bold text-dark mb-3" style="color: var(--recar-navy);">4. Biên bản bàn giao điện tử (Digital Check-in)</h4>
+                    <p class="text-secondary small" style="line-height: 1.8;">
+                        ReCar ứng dụng quy trình <strong>Biên bản bàn giao kỹ thuật số 2 chiều</strong> nhằm loại bỏ hoàn toàn các tranh chấp phát sinh:
+                    </p>
+                    <ul class="text-secondary small ps-3" style="line-height: 1.8;">
+                        <li><strong>Lúc giao xe (Check-in):</strong> Chủ xe và Khách thuê cùng ghi nhận số km trên đồng hồ ODO, vạch xăng/pin, và chụp 4 góc ảnh thực tế của xe (Đầu xe, Đuôi xe, Sườn trái, Sườn phải) lưu trực tiếp vào hệ thống.</li>
+                        <li><strong>Lúc trả xe (Check-out):</strong> Hệ thống tự động so khớp ODO và mức nhiên liệu lúc trả với lúc giao, tính toán số km đã di chuyển và đối soát phụ phí (nếu có).</li>
+                    </ul>
+                </section>
+
+                <hr class="my-4 text-muted" />
+
+                <!-- Điều 5 -->
+                <section id="sec-mileage" class="mb-5">
+                    <h4 class="fw-bold text-dark mb-3" style="color: var(--recar-navy);">5. Hạn mức quãng đường & Phụ phí phát sinh</h4>
+                    <div class="table-responsive small">
+                        <table class="table table-bordered align-middle">
+                            <thead class="bg-light">
+                                <tr>
+                                    <th>Danh mục</th>
+                                    <th>Quy định tiêu chuẩn</th>
+                                    <th>Ghi chú</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>Giới hạn quãng đường</strong></td>
+                                    <td>350 km / ngày thuê</td>
+                                    <td>Đo đếm qua ODO trên Biên bản điện tử</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Phụ phí vượt quãng đường</strong></td>
+                                    <td>Từ 3.000đ - 5.000đ / km vượt</td>
+                                    <td>Căn cứ theo mức quy định cụ thể của từng xe</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Mức nhiên liệu</strong></td>
+                                    <td>Hoàn trả cùng mức vạch xăng/pin lúc nhận</td>
+                                    <td>Thiếu hụt thanh toán theo giá niêm yết hiện hành</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Vệ sinh xe</strong></td>
+                                    <td>Xe bùn đất nặng, rác bẩn: 100.000đ</td>
+                                    <td>Khách trả xe trong tình trạng vệ sinh sạch sẽ cơ bản</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Khử mùi thuốc lá</strong></td>
+                                    <td>300.000đ - 500.000đ</td>
+                                    <td>ReCar khuyến nghị không hút thuốc trong khoang xe</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <hr class="my-4 text-muted" />
+
+                <!-- Điều 6 -->
+                <section id="sec-cancel">
+                    <h4 class="fw-bold text-dark mb-3" style="color: var(--recar-navy);">6. Chính sách hủy chuyến</h4>
+                    <p class="text-secondary small" style="line-height: 1.8;">
+                        Nhằm bảo đảm quyền chủ động kế hoạch kinh doanh của Chủ xe và lịch trình của Khách thuê, ReCar áp dụng khung thời gian hoàn cọc như sau:
+                    </p>
+                    <ul class="text-secondary small ps-3 mb-0" style="line-height: 1.8;">
+                        <li><strong>Hủy trước 48 giờ trước giờ nhận xe:</strong> Hoàn 100% tiền đặt cọc giữ xe.</li>
+                        <li><strong>Hủy trong vòng 24h - 48h trước giờ nhận xe:</strong> Hoàn 50% tiền cọc (50% còn lại chuyển bồi hoàn cho chủ xe vì đã giữ lịch).</li>
+                        <li><strong>Hủy trong vòng 24 giờ trước giờ nhận xe:</strong> Không hoàn lại tiền cọc giữ chỗ.</li>
+                    </ul>
+                </section>
+            </div>
+        </div>
+    </div>
+</div>

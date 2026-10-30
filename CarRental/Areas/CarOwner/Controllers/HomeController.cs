@@ -1,4 +1,4 @@
-using CarRental.Models;
+﻿using CarRental.Models;
 using CarRental.Utilities;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -132,6 +132,16 @@ namespace CarRental.Areas.CarOwner.Controllers
             Function.ClearCarOwnerSession(HttpContext.Session);
             return RedirectToAction("Index", "Home", new { area = "" });
         }
+        // GET: /CarOwner/Home/Roadmap (Lộ trình tính năng tương lai theo template)
+        public IActionResult Roadmap()
+        {
+            if (!Function.IsLogin(HttpContext.Session))
+            {
+                return RedirectToAction("Index", "Login", new { area = "" });
+            }
+            return View();
+        }
+
     }
 }
 

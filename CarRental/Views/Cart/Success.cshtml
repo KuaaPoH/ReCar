@@ -1,44 +1,169 @@
-﻿
+@using CarRental.Utilities
+@using Microsoft.EntityFrameworkCore
+@inject CarRental.Models.DbRenalCarContext DbContext
 @{
-    ViewData["Title"] = "Success";
+    ViewData["Title"] = "Đặt cọc giữ xe thành công – ReCar";
     Layout = "~/Views/Shared/_Layout.cshtml";
+
+    int customerId = Function.GetAccountId(Context.Session);
+    CarRental.Models.CarRentalOrder? latestOrder = null;
+    if (customerId > 0)
+    {
+        latestOrder = DbContext.CarRentalOrders
+            .Include(o => o.Status)
+            .Include(o => o.OrderDetails)
+                .ThenInclude(od => od.Car)
+            .Where(o => o.CustomerId == customerId)
+            .OrderByDescending(o => o.OrderId)
+            .FirstOrDefault();
+    }
+
+    var firstDetail = latestOrder?.OrderDetails?.FirstOrDefault();
+    decimal depositAmt = latestOrder?.Deposit ?? 0;
+    decimal remainAmt = latestOrder?.Payment ?? 0;
+    decimal totalAmt = depositAmt + remainAmt;
+    string alertMsg = TempData["Message"] as string ?? "Khoản đặt cọc 30% giữ xe của bạn đã được hệ thống ghi nhận thành công.";
 }
 
-<!-- Breadcrumb Area Start Here -->
-<div class="breadcrumbs-area position-relative">
-    <div class="container">
-        <div class="row">
-            <div class="col-12 text-center">
-                <div class="breadcrumb-content position-relative section-content">
-                    <h3 class="title-3">Error 404</h3>
-                    <ul>
-                        <li><a href="index.html">Home</a></li>
-                        <li>Error 404</li>
-                    </ul>
-                </div>
-            </div>
+<div class="py-5" style="background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%); min-height: 78vh;">
+    <div class="container" style="max-width: 820px;">
+        <!-- Tiến trình đặt xe (Stepper) -->
+        <div class="d-flex justify-content-center align-items-center gap-2 gap-md-4 mb-4 small fw-semibold">
+            <span class="text-success d-flex align-items-center gap-1">
+                <i class="bi bi-check-circle-fill"></i> 1. Chọn xe &amp; Lịch trình
+            </span>
+            <i class="bi bi-chevron-right text-muted"></i>
+            <span class="text-success d-flex align-items-center gap-1">
+                <i class="bi bi-check-circle-fill"></i> 2. Xác nhận &amp; Đặt cọc 30%
+            </span>
+            <i class="bi bi-chevron-right text-muted"></i>
+            <span class="badge bg-success rounded-pill px-3 py-2 shadow-sm">
+                <i class="bi bi-patch-check-fill me-1"></i> 3. Hoàn tất giữ xe
+            </span>
         </div>
-    </div>
-</div>
-<!-- Breadcrumb Area End Here -->
-<!-- Error 404 Area Start Here -->
-<div class="error-area">
-    <div class="container">
-        <div class="row">
-            <div class="col-12">
-                <div class="error_form">
-                    <h1>ĐẶT HÀNG THÀNH CÔNG!</h1>
-                    <h2>Vui lòng vào vào Profile để xem đơn hàng!</h2>
-                    <p>Sorry but the page you are looking for does not exist, have been<br> removed, name changed or is temporarily unavailable.</p>
-                    <form action="#">
-                        <input placeholder="Search..." type="text">
-                        <button type="submit"><i class="fa fa-search"></i></button>
-                    </form>
-                    <a href="index.html">Back to home page</a>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-<!-- Error 404 Area End Here -->
 
+        <!-- Card Kết quả thành công -->
+        <div class="card border rounded-4 shadow-sm overflow-hidden bg-white">
+            <div class="p-4 p-md-5 text-center border-bottom" style="background: radial-gradient(circle at top, #ecfdf5 0%, #ffffff 75%);">
+                <div class="mx-auto mb-3 rounded-circle bg-success bg-opacity-10 text-success d-flex align-items-center justify-content-center shadow-sm"
+                     style="width: 84px; height: 84px; border: 2px solid rgba(16, 185, 129, 0.25);">
+                    <i class="bi bi-check-lg" style="font-size: 44px; line-height: 1;"></i>
+                </div>
+                <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-1 mb-2 fw-semibold">
+                    Đã xác nhận đặt cọc giữ chỗ
+                </span>
+                <h1 class="fs-2 fw-bold mb-2" style="color: var(--recar-navy);">Đặt thuê xe thành công!</h1>
+                <p class="text-secondary mb-0 mx-auto" style="max-width: 560px; font-size: 15px;">
+                    @alertMsg Chủ xe đối tác ReCar đã nhận được thông báo và sẽ liên hệ với bạn trong thời gian sớm nhất để chuẩn bị bàn giao xe.
+                </p>
+            </div>
+
+            <div class="p-4 p-md-5">
+                @if (latestOrder != null)
+                {
+                    <!-- Tóm tắt thông tin đơn thuê vừa tạo -->
+                    <div class="p-3 p-md-4 rounded-4 border bg-light mb-4">
+                        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 pb-3 mb-3 border-bottom">
+                            <div>
+                                <span class="text-muted small d-block">Mã đơn thuê xe</span>
+                                <strong class="fs-5" style="color: var(--recar-navy);">#RC-@latestOrder.OrderId</strong>
+                            </div>
+                            <div class="text-md-end">
+                                <span class="text-muted small d-block">Trạng thái thanh toán</span>
+                                <span class="badge bg-success rounded-pill px-3 py-1">
+                                    <i class="bi bi-shield-check me-1"></i> @(latestOrder.StatusId == 3 ? "Đã thanh toán cọc 30% (VNPay)" : "Đã ghi nhận đơn đặt xe")
+                                </span>
+                            </div>
+                        </div>
+
+                        @if (firstDetail != null)
+                        {
+                            <div class="d-flex flex-wrap align-items-center gap-3 pb-3 mb-3 border-bottom">
+                                <img src="@(string.IsNullOrEmpty(firstDetail.Car?.Image) ? "/images/cars/car-sedan.jpg" : firstDetail.Car.Image)"
+                                     alt="@(firstDetail.Car?.CarName ?? "Xe thuê")"
+                                     class="rounded-3 border object-fit-cover"
+                                     style="width: 96px; height: 64px;"
+                                     onerror="this.onerror=null;this.src='/images/cars/car-sedan.jpg';" />
+                                <div class="flex-grow-1">
+                                    <h6 class="fw-bold text-dark mb-1">@(firstDetail.Car?.CarName ?? "Phương tiện thuê trên ReCar")</h6>
+                                    <div class="small text-muted d-flex flex-wrap gap-3">
+                                        <span>
+                                            <i class="bi bi-calendar-event text-primary me-1"></i>
+                                            Nhận xe: <strong>@(firstDetail.PickupDate?.ToString("dd/MM/yyyy") ?? DateTime.Now.ToString("dd/MM/yyyy"))</strong>
+                                        </span>
+                                        <span>
+                                            <i class="bi bi-calendar-check text-primary me-1"></i>
+                                            Trả xe: <strong>@(firstDetail.ReturnDate?.ToString("dd/MM/yyyy") ?? DateTime.Now.AddDays(2).ToString("dd/MM/yyyy"))</strong>
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+
+                        <div class="row g-3 small">
+                            <div class="col-sm-4">
+                                <div class="p-3 bg-white rounded-3 border h-100">
+                                    <span class="text-muted d-block mb-1">Tổng giá trị đơn thuê</span>
+                                    <strong class="fs-6 text-dark">@totalAmt.ToString("N0")đ</strong>
+                                </div>
+                            </div>
+                            <div class="col-sm-4">
+                                <div class="p-3 bg-white rounded-3 border border-success-subtle h-100">
+                                    <span class="text-success fw-semibold d-block mb-1">Tiền cọc giữ chỗ (30%)</span>
+                                    <strong class="fs-6 text-success">@depositAmt.ToString("N0")đ</strong>
+                                </div>
+                            </div>
+                            <div class="col-sm-4">
+                                <div class="p-3 bg-white rounded-3 border h-100">
+                                    <span class="text-muted d-block mb-1">Thanh toán khi nhận xe (70%)</span>
+                                    <strong class="fs-6 text-primary">@remainAmt.ToString("N0")đ</strong>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+
+                <!-- Hướng dẫn 3 bước tiếp theo -->
+                <h5 class="fs-6 fw-bold mb-3" style="color: var(--recar-navy);">
+                    <i class="bi bi-compass text-primary me-2"></i>Quy trình nhận bàn giao xe tiếp theo
+                </h5>
+                <div class="row g-3 mb-4">
+                    <div class="col-md-4">
+                        <div class="p-3 rounded-3 border h-100 bg-white">
+                            <div class="badge bg-primary-subtle text-primary rounded-pill mb-2">Bước 1</div>
+                            <h6 class="fw-bold text-dark small mb-1">Chủ xe liên hệ xác nhận</h6>
+                            <p class="text-muted small m-0">Chủ xe sẽ gọi điện hoặc nhắn tin qua Chat trên ReCar để chốt địa điểm và giờ giao xe.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="p-3 rounded-3 border h-100 bg-white">
+                            <div class="badge bg-primary-subtle text-primary rounded-pill mb-2">Bước 2</div>
+                            <h6 class="fw-bold text-dark small mb-1">Kiểm tra xe &amp; Giấy tờ</h6>
+                            <p class="text-muted small m-0">Xuất trình CCCD gắn chip &amp; GPLX bản gốc, đồng kiểm ngoại thất, ODO và nhiên liệu (Digital Check-in).</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="p-3 rounded-3 border h-100 bg-white">
+                            <div class="badge bg-primary-subtle text-primary rounded-pill mb-2">Bước 3</div>
+                            <h6 class="fw-bold text-dark small mb-1">Ký hợp đồng &amp; Nhận xe</h6>
+                            <p class="text-muted small m-0">Ký hợp đồng thuê xe điện tử, thanh toán 70% phần tiền còn lại và bắt đầu hành trình.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Các nút điều hướng -->
+                <div class="d-flex flex-wrap justify-content-center gap-3 pt-2">
+                    <a href="/Accounts/Index?tab=orders" class="btn btn-primary rounded-pill px-4 py-2 fw-semibold shadow-sm">
+                        <i class="bi bi-file-earmark-text me-1"></i> Xem đơn thuê &amp; Hợp đồng
+                    </a>
+                    <a href="/Product" class="btn btn-outline-primary rounded-pill px-4 py-2 fw-semibold">
+                        <i class="bi bi-car-front me-1"></i> Tiếp tục xem xe khác
+                    </a>
+                    <a href="/" class="btn btn-light border rounded-pill px-4 py-2 fw-semibold text-secondary">
+                        Về trang chủ
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

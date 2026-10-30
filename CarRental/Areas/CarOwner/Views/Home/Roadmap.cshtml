@@ -1,0 +1,110 @@
+@{
+    ViewData["Title"] = "Tính năng tương lai — ReCar Host Pro";
+    Layout = "~/Areas/CarOwner/Views/Shared/_Layout.cshtml";
+
+    var items = new[]
+    {
+        (
+            Icon: "calendar-days",
+            Title: "Lịch xe trực quan",
+            Route: "/CarOwner/Calendar",
+            Description: "Lịch tháng/tuần theo từng xe; chặn lịch thủ công khi bận việc cá nhân hoặc bảo dưỡng định kỳ."
+        ),
+        (
+            Icon: "clipboard-check",
+            Title: "Biên bản bàn giao điện tử",
+            Route: "/CarOwner/Orders/Details/{id}#digitalInspectionSection",
+            Description: "Chụp 4 góc xe, ghi nhận ODO, mức xăng/pin; tự động tính phụ phí vượt km (đã tích hợp vào đơn thuê)."
+        ),
+        (
+            Icon: "tags",
+            Title: "Giá thông minh theo lịch",
+            Route: "/CarOwner/Pricing",
+            Description: "Tự động tăng giá thuê vào dịp cuối tuần, lễ Tết; chiết khấu ưu đãi cho khách thuê dài ngày."
+        ),
+        (
+            Icon: "messages-square",
+            Title: "Trung tâm tin nhắn 2 chiều",
+            Route: "/Chat",
+            Description: "Trao đổi tức thì với khách thuê theo từng xe qua WebSockets SignalR."
+        ),
+        (
+            Icon: "wallet",
+            Title: "Ví đối tác & Đối soát",
+            Route: "/CarOwner/Wallet",
+            Description: "Theo dõi số dư quyết toán, doanh thu ròng 90% và lịch sử chuyển khoản định kỳ từ sàn."
+        ),
+        (
+            Icon: "bar-chart-3",
+            Title: "Phân tích hiệu suất xe",
+            Route: "/CarOwner/Analytics",
+            Description: "Báo cáo tỷ lệ lấp đầy, doanh thu theo từng dòng xe và đánh giá sao trung bình của khách."
+        ),
+        (
+            Icon: "star",
+            Title: "Đánh giá khách thuê",
+            Route: "/CarOwner/Orders/ReviewGuest/{id}",
+            Description: "Chấm điểm uy tín, giữ gìn vệ sinh và văn hóa ứng xử của khách sau mỗi hành trình hoàn tất."
+        )
+    };
+}
+
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+        <div>
+            <h1 class="h4 fw-bold text-dark mb-1">Lộ trình tính năng tương lai</h1>
+            <p class="text-muted small mb-0">Các tính năng đang được nghiên cứu và thiết kế nâng cao dành riêng cho Đối tác Chủ xe ReCar.</p>
+        </div>
+        <span class="badge rounded-pill px-3 py-1.5 fw-semibold" style="background: #e0f2fe; color: #0284c7; font-size: 0.8rem;">
+            <i data-lucide="sparkles" class="d-inline me-1" style="width: 14px; height: 14px;"></i> ReCar Roadmap 2026
+        </span>
+    </div>
+
+    <!-- Grid Card Items theo đúng CarOwner.Roadmap.tsx -->
+    <div class="row g-3.5">
+        @foreach (var it in items)
+        {
+            <div class="col-12 col-md-6 col-xl-4">
+                <div class="card-surface p-4 h-100 d-flex flex-column justify-content-between">
+                    <div>
+                        <div class="d-flex align-items-center justify-content-between mb-3">
+                            <span class="rounded-xl d-inline-flex align-items-center justify-content-center" 
+                                  style="width: 42px; height: 42px; background: #e0f2fe; color: #0284c7;">
+                                <i data-lucide="@it.Icon" style="width: 20px; height: 20px;"></i>
+                            </span>
+                            @if (it.Title.Contains("Biên bản bàn giao") || it.Title.Contains("Trung tâm tin nhắn"))
+                            {
+                                <span class="badge rounded-pill px-2.5 py-1 text-xs fw-semibold" style="background: #dcfce7; color: #15803d; font-size: 0.72rem;">
+                                    ✓ Đã tích hợp
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="badge rounded-pill px-2.5 py-1 text-xs fw-semibold" style="background: #f1f5f9; color: #64748b; font-size: 0.72rem;">
+                                    Sắp ra mắt
+                                </span>
+                            }
+                        </div>
+                        <h3 class="h6 fw-bold text-dark mb-1.5">@it.Title</h3>
+                        <p class="text-muted small mb-3" style="font-size: 0.82rem; line-height: 1.5;">@it.Description</p>
+                    </div>
+                    <div>
+                        <p class="font-monospace text-muted small mb-0 pt-2 border-top" style="font-size: 0.7rem;">@it.Route</p>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+        });
+    </script>
+}
+

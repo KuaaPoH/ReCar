@@ -555,11 +555,109 @@ Nhằm giúp đồ án tạo được ấn tượng mạnh mẽ với hội đ�
 
 ---
 
-## 13. TỔNG KẾT & TRẠNG THÁI HỆ THỐNG
-- **Dự án ASP.NET Core (.NET 9):** Biên dịch sạch sẽ `0 Error(s)`.
-- **Cơ sở dữ liệu SQL Server (`dbrenalcar.sql`):** Đã cập nhật cấu trúc bảng và dữ liệu mẫu đồng bộ.
-- **Dọn dẹp mã nguồn:** Đã gỡ bỏ các tệp rác `.git` thừa trong thư mục template clone, giữ repository gọn gàng chuẩn mực.
-- **Sẵn sàng:** Toàn bộ mã nguồn đã được commit và đồng bộ lên remote GitHub `origin/main`.
+## 13. CẬP NHẬT TIẾN TRÌNH PHIÊN LÀM VIỆC (NGÀY 30 THÁNG 10 NĂM 2026)
+
+### 13.1. Hoàn Thiện Đồng Bộ Tiện Nghi (`car_amenities`) & Quy Định Vận Hành Động (`CarPolicy`) Cho Chủ Xe
+1. **Đồng bộ hiển thị tiện nghi từ bảng liên kết `car_amenities`:**
+   - Cập nhật [CarsController.cs](file:///d:/CarRental_TTCN/CarRental/Areas/CarOwner/Controllers/CarsController.cs): Truy vấn đầy đủ đối tượng [`Amenity`](file:///d:/CarRental_TTCN/CarRental/Models/Amenity.cs) (bao gồm `Name`, `Icon`, `IconColor`, `DisplayOrder`) từ bảng [`CarAmenity`](file:///d:/CarRental_TTCN/CarRental/Models/CarAmenity.cs) cho cả trang Chi tiết xe (`Details`), trang Ngừng kinh doanh/Xóa xe (`Delete`) và đồng bộ tên tiện nghi từ `AmenityIds` khi tạo xe mới (`Create`).
+   - Cập nhật [Details.cshtml](file:///d:/CarRental_TTCN/CarRental/Areas/CarOwner/Views/Cars/Details.cshtml) và [Delete.cshtml](file:///d:/CarRental_TTCN/CarRental/Areas/CarOwner/Views/Cars/Delete.cshtml): Hiển thị danh sách tiện nghi kèm biểu tượng Bootstrap Icons và màu sắc trực quan lấy từ CSDL thay vì danh sách tĩnh cố định.
+2. **Trích xuất Quy định vận hành động ([`CarPolicy.cs`](file:///d:/CarRental_TTCN/CarRental/Utilities/CarPolicy.cs)):**
+   - Tự động bóc tách Giới hạn quãng đường (`km/ngày`), Phụ phí vượt quãng đường (`VNĐ/km`), Hỗ trợ giao xe tận nơi & Phí giao xe, và Mức tiêu hao nhiên liệu của từng xe để hiển thị chính xác trên `Details.cshtml` và nạp lại vào biểu mẫu `Edit.cshtml`.
+
+### 13.2. Triển Khai Biên Bản Bàn Giao & Đối Chiếu Hiện Trạng Xe Có Ảnh (Digital Check-in / Check-out)
+1. **Cơ sở dữ liệu & Model ([`VehicleInspection.cs`](file:///d:/CarRental_TTCN/CarRental/Models/VehicleInspection.cs)):**
+   - Bổ sung bảng `vehicle_inspections` (tự động khởi tạo trong [Program.cs](file:///d:/CarRental_TTCN/CarRental/Program.cs) và đăng ký trong [`DbRenalCarContext.cs`](file:///d:/CarRental_TTCN/CarRental/Models/DbRenalCarContext.cs)).
+   - Lưu trữ biên bản theo 2 mốc của mỗi đơn thuê: `handover` (Lúc giao xe - Check-in) và `return` (Lúc nhận lại xe - Check-out), gồm: Số công tơ mét (`Odometer`), Mức xăng/pin (`FuelLevel` 0-100%), 4 ảnh chụp 4 góc xe thực tế (`FrontImage`, `RearImage`, `LeftImage`, `RightImage`), Ghi chú hiện trạng (`Notes`) và dấu thời gian.
+2. **Nghiệp vụ Backend ([OrdersController.cs](file:///d:/CarRental_TTCN/CarRental/Areas/CarOwner/Controllers/OrdersController.cs)):**
+   - Tích hợp lưu biên bản và upload 4 ảnh góc xe (`/files/inspections/`) trực tiếp vào luồng `ConfirmHandover`, `ConfirmReturn` và bổ sung endpoint `SaveInspection` cho phép cập nhật/bổ sung biên bản bất cứ lúc nào.
+   - Tự động đối chiếu số km lúc nhận lại so với lúc giao xe (`drivenKm = returnOdo - handoverOdo`), so sánh với hạn mức miễn phí (`Số ngày × Giới hạn km/ngày`) và tự động tính phụ phí vượt km theo quy định của xe.
+3. **Giao diện Trực quan & Modal Chụp 4 Góc Xe ([Orders/Details.cshtml](file:///d:/CarRental_TTCN/CarRental/Areas/CarOwner/Views/Orders/Details.cshtml) & [Orders/Index.cshtml](file:///d:/CarRental_TTCN/CarRental/Areas/CarOwner/Views/Orders/Index.cshtml)):**
+   - Nối trực tiếp nút lập biên bản vào thẻ **Checklist bàn giao an toàn** và thanh thao tác trên cùng.
+   - **Modal Biên bản điện tử (`#digitalInspectionModal`):** Hỗ trợ nhập ODO, thanh trượt + nút chọn nhanh mức xăng/pin (`25%`, `50%`, `75%`, `100%`), lưới 4 ô chụp/tải ảnh 4 góc xe (Đầu xe, Đuôi xe, Thân trái, Thân phải) có xem trước tức thì (`Live Preview`) và tính toán tự động số km vượt + phụ phí ngay khi gõ ODO lúc nhận xe.
+   - **Bảng Đối chiếu 2 chiều (Check-in vs Check-out):** Đặt song song biên bản lúc giao và lúc nhận lại xe kèm album 4 góc ảnh (hỗ trợ phóng to Lightbox) và hộp tổng hợp chênh lệch quãng đường, phụ phí vượt km và mức nhiên liệu.
+
+### 13.3. Tái Thiết Kế Trang Hồ Sơ Pháp Lý & Ngân Hàng Theo Chuẩn Mẫu Template (`PartnerProfile.tsx`)
+1. **Khung Layout & Bố cục:**
+   - Chuyển đổi toàn diện trang `/CarOwner/Register/Pending` sang sử dụng layout **Dashboard Shell của Host Pro** (`Areas/CarOwner/Views/Shared/_Layout.cshtml`).
+   - Thiết kế chuẩn 100% theo component `PartnerProfile.tsx` với 3 trạng thái banner trực quan:
+     - `Approved`: Banner xanh lá xác nhận hồ sơ đối tác đã được duyệt.
+     - `Pending`: Banner vàng thông báo hồ sơ đang xét duyệt kèm dấu thời gian.
+     - `Rejected`: Banner đỏ thông báo lý do bị từ chối và danh sách tài liệu cần bổ sung.
+2. **Cấu trúc 2 Card đối xứng hiện đại:**
+   - **Cột 1 - Hồ sơ định danh:** Họ tên, số CCCD mask (`079****8921`), số GPLX mask (`7901****1042`), hạng GPLX (`B2`) và lưới 4 ô tài liệu (*CCCD mặt trước, CCCD mặt sau, GPLX mặt trước, GPLX mặt sau*) có tích hợp xem ảnh phóng to Modal Lightbox.
+   - **Cột 2 - Tài khoản nhận tiền:** Biểu mẫu cho phép chủ xe cập nhật Tên ngân hàng (có datalist gợi ý 35+ ngân hàng tại VN), Số tài khoản và Tên chủ tài khoản IN HOA KHÔNG DẤU.
+3. **Nghiệp vụ Backend ([RegisterController.cs](file:///d:/CarRental_TTCN/CarRental/Areas/CarOwner/Controllers/RegisterController.cs)):**
+   - Bổ sung action `POST /CarOwner/Register/UpdateBank` xử lý cập nhật tài khoản ngân hàng thụ hưởng, đồng bộ với bảng `Customers` và tự động gửi lại hồ sơ xét duyệt khi bị từ chối (`Status = "Pending"`).
+   - Tự động fallback nạp thông tin hồ sơ của chủ xe đang đăng nhập ngay cả khi là tài khoản mẫu đã kích hoạt.
+
+### 13.4. Nâng Cấp Trang Chi Tiết Thuê Xe Khách Hàng (`/Product/Details.cshtml`) Đồng Bộ 100%
+1. **Dải ảnh Album 4 góc xe (Gallery Thumbnails):**
+   - Đọc toàn bộ ảnh từ bảng `CarImages` (hỗ trợ cả cấu trúc đa cột `Image1`..`Image4` và đa dòng), nạp danh sách vào `ViewBag.GalleryImages`.
+   - Bổ sung dải thumbnail nằm ngay dưới ảnh lớn, hỗ trợ bấm vào ảnh nhỏ đổi ảnh chính tức thì kèm hiệu ứng chuyển tiếp mượt mà.
+2. **Hiển thị thông số vận hành chuẩn xác:**
+   - Thay thế các giá trị tĩnh bằng dữ liệu thực tế từ CSDL: Hộp số (`Model.Transmission`), Nhiên liệu (`Model.Fuel`), Địa điểm bàn giao xe (`Model.Location`).
+3. **Tiện nghi trang bị động từ `car_amenities`:**
+   - Truy vấn danh sách tiện nghi thực tế theo xe từ `car_amenities` nạp qua `ViewBag.AmenityItems`.
+   - Hiển thị huy hiệu tổng số tiện ích kèm icon Bootstrap Icons và tên tiện nghi rõ ràng, đồng thời hiển thị mô tả bổ sung từ chủ xe.
+4. **Quy định hành trình & Dịch vụ giao nhận xe (`CarPolicy`):**
+   - Thêm khối **"Quy định hành trình & Giao xe"** nổi bật: Giới hạn quãng đường (`km/ngày`), Phụ phí vượt quãng đường (`VNĐ/km`), Thông tin dịch vụ giao xe tận nơi (kèm mức phí nếu có) và Mức tiêu hao nhiên liệu công bố.
+   - Bổ sung chỉ số hạn mức di chuyển vào Sticky Booking Widget bên phải để khách hàng dễ dàng theo dõi trước khi tiến hành đặt cọc.
+
+### 13.5. Rà Soát Toàn Diện Phân Hệ Khách Hàng (User Portal) & Khắc Phục Lỗi Tiềm Ẩn
+1. **Khắc phục lỗi fallback tiện ích tĩnh giả định:**
+   - Xóa bỏ hoàn toàn khối render 6 tiện ích cứng mặc định khi xe chưa có tiện nghi.
+   - Hiển thị thông báo nhã nhặn, trung thực khi xe chưa có tiện nghi; đồng thời lọc bỏ chuỗi nối thông số cũ (`Tự động · Điện...`) khỏi mô tả chi tiết.
+2. **Đồng bộ tính toán phụ phí tài xế trong giỏ hàng & Checkout ([`CartController.cs`](file:///d:/CarRental_TTCN/CarRental/Controllers/CartController.cs)):**
+   - Sửa lỗi tính `total` tại GET `Checkout` và `CheckoutSummary` từ `item.Price` sang `item.PriceTotal`, đảm bảo phụ phí tài xế (+500k/ngày) hiển thị khớp 100% giữa giao diện xem trước và số tiền cọc thực tế khi submit.
+3. **Phân quyền Menu tài khoản trên Header ([`_Layout.cshtml`](file:///d:/CarRental_TTCN/CarRental/Views/Shared/_Layout.cshtml)):**
+   - Chỉ hiển thị mục *"Trang chủ xe"* khi tài khoản có quyền Chủ xe (`CarOwnerAccountId > 0`) và *"Quản trị"* khi tài khoản là Admin (`IsAdmin`). Tránh việc tài khoản khách hàng thông thường thấy các mục phân hệ quản trị.
+4. **Nâng cấp trang Điều khoản dịch vụ & Chính sách thuê xe ([`Privacy.cshtml`](file:///d:/CarRental_TTCN/CarRental/Views/Home/Privacy.cshtml)):**
+   - Thay thế trang mặc định rỗng của Visual Studio thành văn bản quy chuẩn pháp lý chuyên nghiệp: Quy định chung, Giấy tờ đối chiếu, Quy chế đặt cọc 30% & 70% thanh toán khi bàn giao, Biên bản điện tử Digital Check-in/Check-out, Hạn mức quãng đường (350 km/ngày), Bảng phụ phí và Chính sách hoàn hủy chuyến.
+5. **Tối ưu thư viện JavaScript:**
+   - Gỡ bỏ script jQuery nạp trùng lặp trong `Checkout.cshtml` để tránh xung đột sự kiện với instance jQuery chuẩn đã nạp tại Layout.
+
+### 13.6. Hoàn Thiện Các Giao Diện Còn Thiếu Ở Phân Hệ Khách Hàng Theo Thiết Kế Tổng Thể ReCar
+1. **Khối "Các mẫu xe tương tự cùng phân khúc" & Lightbox xem ảnh lớn ([`Views/Product/Details.cshtml`](file:///d:/CarRental_TTCN/CarRental/Views/Product/Details.cshtml)):**
+   - Chuyển đổi toàn bộ thẻ xe tương tự từ các class cũ bị thiếu style sang cấu trúc `.recar-car-card` chuẩn 100% (hiển thị ảnh xe, badge ưu đãi/xe điện/trạng thái bận, 3 thông số chỗ ngồi – hộp số – nhiên liệu, địa điểm, đánh giá sao, giá thuê và 2 nút *Xem chi tiết* / *Thuê ngay*).
+   - Bổ sung nút *"Xem ảnh lớn"* và Modal Lightbox (`#carGalleryLightboxModal`) hỗ trợ phóng to ảnh xe, chuyển ảnh trái/phải và thanh chọn nhanh thumbnail.
+2. **Nâng cấp danh sách Cẩm nang (`/Blog`) & Tin tức (`/News`) kèm liên kết Trang chủ:**
+   - Cập nhật [`Views/Home/Index.cshtml`](file:///d:/CarRental_TTCN/CarRental/Views/Home/Index.cshtml): Gắn liên kết trực tiếp cho 3 bài viết Cẩm nang & Tin tức dẫn thẳng tới trang đọc chi tiết bài viết.
+   - Thiết kế lại [`Views/Blog/Index.cshtml`](file:///d:/CarRental_TTCN/CarRental/Views/Blog/Index.cshtml), [`Views/Shared/Components/Blog/Default.cshtml`](file:///d:/CarRental_TTCN/CarRental/Views/Shared/Components/Blog/Default.cshtml), [`Views/News/Index.cshtml`](file:///d:/CarRental_TTCN/CarRental/Views/News/Index.cshtml) và [`Views/Shared/Components/News/Default.cshtml`](file:///d:/CarRental_TTCN/CarRental/Views/Shared/Components/News/Default.cshtml): Bổ sung thanh tìm kiếm bài viết tức thì, các nút lọc chủ đề (Filter Pills), thẻ **Bài viết tiêu điểm (Featured Article)** 2 cột nổi bật và lưới bài viết 3 cột hiện đại.
+3. **Thiết kế mới hoàn toàn Trang chi tiết bài viết Cẩm nang & Tin tức ([`Views/Blog/Details.cshtml`](file:///d:/CarRental_TTCN/CarRental/Views/Blog/Details.cshtml), [`Views/News/Details.cshtml`](file:///d:/CarRental_TTCN/CarRental/Views/News/Details.cshtml)):**
+   - Xóa bỏ hoàn toàn giao diện bán hoa FloSun cũ.
+   - Xây dựng bố cục tạp chí 2 cột sang trọng của ReCar: Breadcrumb, huy hiệu chuyên mục, thông tin tác giả/ngày đăng/thời gian đọc, nội dung bài viết tự động co giãn ảnh (`max-width: 100%`), khu vực bình luận AJAX thời gian thực (SweetAlert2 tiếng Việt), kèm Sidebar đặt xe nhanh và danh sách bài viết liên quan từ [`BlogController.cs`](file:///d:/CarRental_TTCN/CarRental/Controllers/BlogController.cs) & [`NewsController.cs`](file:///d:/CarRental_TTCN/CarRental/Controllers/NewsController.cs).
+4. **Thiết kế mới Trang kết quả thanh toán ([`Views/Cart/Success.cshtml`](file:///d:/CarRental_TTCN/CarRental/Views/Cart/Success.cshtml) & [`Views/Cart/PaymentFail.cshtml`](file:///d:/CarRental_TTCN/CarRental/Views/Cart/PaymentFail.cshtml)):**
+   - Xóa bỏ giao diện `Error 404` tiếng Anh cũ của FloSun.
+   - Trang `Success.cshtml`: Hiển thị thanh tiến trình 3 bước, xác nhận đặt cọc 30% thành công, tóm tắt mã đơn thuê `#RC-...` vừa tạo, hướng dẫn 3 bước nhận bàn giao xe tiếp theo và nút dẫn thẳng tới *Đơn thuê & Hợp đồng*.
+   - Trang `PaymentFail.cshtml`: Hiển thị chi tiết phản hồi từ cổng thanh toán VNPay, nguyên nhân phổ biến & cách khắc phục nhanh kèm các nút điều hướng hỗ trợ.
+
+---
+
+## 14. TỔNG KẾT PHIÊN LÀM VIỆC (NGÀY 30 - 31 THÁNG 10 NĂM 2026)
+- **Hoàn thành phân hệ Chủ xe (CarOwner Portal):**
+  - Chuyển đổi 100% giao diện sang bộ template SaaS mới của ReCar Host Pro.
+  - Tích hợp quản lý tiện nghi qua CSDL (`car_amenities`), quy định vận hành động (`CarPolicy`), quy trình xóa an toàn (Soft Delete), biên bản bàn giao xe điện tử có ảnh 4 góc đối chiếu (Digital Check-in / Check-out).
+  - Trang hồ sơ đối tác & tài khoản ngân hàng thụ hưởng (`PartnerProfile.tsx` / `Register/Pending.cshtml`) hoàn chỉnh.
+- **Hoàn thành rà soát & thiết kế bổ sung phân hệ Khách hàng (User Portal):**
+  - Khối xe tương tự chuẩn `.recar-car-card` & Lightbox xem ảnh lớn trên trang chi tiết xe (`Product/Details.cshtml`).
+  - Giao diện Cẩm nang (`/Blog`) và Tin tức (`/News`) hiện đại với Featured Article, thanh tìm kiếm từ khóa, pill lọc chủ đề và trang chi tiết tạp chí xóa sạch code FloSun.
+  - Trang kết quả thanh toán đặt cọc 30% (`Cart/Success.cshtml` & `Cart/PaymentFail.cshtml`) chuẩn ReCar, loại bỏ hoàn toàn lỗi 404 FloSun cũ.
+  - Chuẩn hóa chính sách pháp lý & điều khoản dịch vụ tại `Home/Privacy.cshtml`.
+- **Chất lượng mã nguồn:** Dự án ASP.NET Core (.NET 9) biên dịch sạch `0 Error(s)`.
+- **Cơ sở dữ liệu:** Đồng bộ đầy đủ các bảng và dữ liệu seed (`banks`, `amenities`, `car_amenities`, `vehicle_inspections`, `orderstatuses`).
+
+---
+
+## 15. KẾ HOẠCH & CÁC HẠNG MỤC NÊN THỰC HIỆN Ở PHIÊN TIẾP THEO
+
+1. **Phân hệ Quản trị viên (Admin Portal - `Areas/Admin`):**
+   - Rà soát giao diện các trang trong Admin (`/Admin/Home`, `/Admin/Product`, `/Admin/Orders`, `/Admin/UserManagement`, `/Admin/Blogs`, `/Admin/CarTypes`).
+   - Kiểm tra và đồng bộ giao diện Admin về chung phong cách Design System ReCar (bảng màu xanh navy `#0f172a`, xanh dương `#0284c7`, font chữ, card bo góc, typography).
+   - Tối ưu màn hình duyệt hồ sơ chủ xe mới (`CarOwner Approval`) và duyệt xe mới đăng tải.
+2. **Trang Quản lý Tài khoản Khách hàng (`/Accounts/Index`):**
+   - Kiểm tra tab "Đơn thuê của tôi" và tab "Hợp đồng": Đảm bảo hiển thị đầy đủ thông tin biên bản bàn giao xe điện tử (Check-in / Check-out) mà chủ xe đã tải lên để khách hàng cùng theo dõi minh bạch.
+3. **Kiểm thử Luồng End-to-End (E2E Testing):**
+   - Thực hiện 1 vòng kiểm thử trọn vẹn từ Khách hàng tìm xe -> Đặt cọc 30% VNPay -> Nhận thông báo Realtime -> Chủ xe bàn giao xe (chụp 4 ảnh check-in) -> Chủ xe nhận xe (check-out tính km) -> Admin theo dõi đơn hàng.
 
 
 

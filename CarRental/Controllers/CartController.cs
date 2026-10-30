@@ -110,7 +110,7 @@ namespace CarRental.Controllers
             }
 
             // Tính tổng tiền thuê xe
-            decimal total = cart.Sum(item => item.Price);
+            decimal total = cart.Sum(item => item.PriceTotal);
            
 
             decimal deposit = total * 0.3m; // Tiền đặt cọc 30%
@@ -183,7 +183,7 @@ namespace CarRental.Controllers
                 return RedirectToAction("Index", "Cart"); // Chuyển hướng nếu giỏ hàng trống
             }
             // Tính tổng tiền thuê xe
-            decimal total = cart.Sum(item => item.Price);
+            decimal total = cart.Sum(item => item.PriceTotal);
 
 
             decimal deposit = total * 0.3m; // Tiền đặt cọc 30%

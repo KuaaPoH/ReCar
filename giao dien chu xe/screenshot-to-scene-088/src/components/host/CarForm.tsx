@@ -27,7 +27,7 @@ const STEPS = ["Thông tin cơ bản", "Giá thuê", "Quy định", "Tiện nghi
 const PLATE_RE = /^\d{2}[A-Z]{1,2}-\d{3}\.\d{2}$/;
 const ACCEPT = ["image/jpeg", "image/png", "image/webp"];
 
-const ErrCtx = createContext<Record<string, string>>({});
+const ErrCtx = createContext<Record<string, string | undefined>>({});
 function F({ id, label, children }: { id: string; label: string; children: React.ReactNode }) {
   const errors = useContext(ErrCtx);
   return (
@@ -47,8 +47,9 @@ export function emptyForm(): CarFormValues {
   };
 }
 
-export function validateStep(step: number, v: CarFormValues): Record<string, string> {
-  const e: Record<string, string> = {};
+type Errs = Partial<Record<keyof CarFormValues | "registration" | "inspection" | "insurance", string>>;
+export function validateStep(step: number, v: CarFormValues): Errs {
+  const e: Errs = {};
   if (step === 0) {
     if (v.name.trim().length < 3) e.name = "Nhập tên xe (tối thiểu 3 ký tự).";
     if (!v.brand) e.brand = "Chọn hãng xe.";
@@ -70,22 +71,22 @@ export function validateStep(step: number, v: CarFormValues): Record<string, str
   }
   if (step === 4) {
     if (!v.image) e.image = "Cần ảnh đại diện.";
-    DOCS.forEach(([k, l]) => { if (!v.docs[k]) e[k] = `Thiếu ảnh ${l.toLowerCase()}.`; });
+    DOCS.forEach(([k, l]) => { if (!v.docs[k]) e[k as keyof Errs] = `Thiếu ảnh ${l.toLowerCase()}.`; });
   }
   return e;
 }
 
-export function CarForm({ initial, submitLabel, onSubmit, rejectReason }: { initial: CarFormValues; submitLabel: string; onSubmit: (v: CarFormValues) => void; rejectReason?: string }) {
+export function CarForm({ initial, submitLabel, onSubmit, rejectReason }: { initial: CarFormValues; submitLabel: string; onSubmit: (v: CarFormValues) => void; rejectReason?: string | undefined }) {
   const [v, setV] = useState(initial);
   const [step, setStep] = useState(0);
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [errors, setErrors] = useState<Errs>({});
   const [busy, setBusy] = useState(false);
   const set = <K extends keyof CarFormValues>(k: K, val: CarFormValues[K]) => setV((s) => ({ ...s, [k]: val }));
 
   const next = () => {
     const e = validateStep(step, v);
     setErrors(e);
-    if (Object.keys(e).length) return toast.error("Vui lòng kiểm tra lại thông tin", { description: Object.values(e)[0] });
+    if (Object.keys(e).length) return void toast.error("Vui lòng kiểm tra lại thông tin", { description: Object.values(e)[0] });
     setStep((s) => Math.min(s + 1, STEPS.length - 1));
   };
   const pick = (files: FileList | null, cb: (urls: string[]) => void) => {
@@ -97,7 +98,7 @@ export function CarForm({ initial, submitLabel, onSubmit, rejectReason }: { init
   const submit = async () => {
     for (let s = 0; s < 5; s++) {
       const e = validateStep(s, v);
-      if (Object.keys(e).length) { setErrors(e); setStep(s); return toast.error("Hồ sơ chưa đầy đủ", { description: Object.values(e)[0] }); }
+      if (Object.keys(e).length) { setErrors(e); setStep(s); return void toast.error("Hồ sơ chưa đầy đủ", { description: Object.values(e)[0] }); }
     }
     setBusy(true);
     await new Promise((r) => setTimeout(r, 900));
@@ -108,11 +109,11 @@ export function CarForm({ initial, submitLabel, onSubmit, rejectReason }: { init
   const num = (k: keyof CarFormValues) => ({
     id: k, type: "number", min: 0, value: (v[k] as number | null) ?? "",
     onChange: (e: React.ChangeEvent<HTMLInputElement>) => set(k, (e.target.value === "" ? (k === "salePrice" ? null : 0) : Number(e.target.value)) as never),
-    "aria-invalid": !!errors[k],
+    "aria-invalid": !!errors[k as keyof Errs],
   });
 
   return (
-    <ErrCtx.Provider value={errors}>
+    <ErrCtx.Provider value={errors as Record<string, string | undefined>}>
     <div className="grid gap-6 lg:grid-cols-[240px_1fr]">
       <ol className="card-surface h-fit space-y-1 p-3">
         {STEPS.map((s, i) => (
@@ -237,11 +238,11 @@ export function CarForm({ initial, submitLabel, onSubmit, rejectReason }: { init
             <div className="grid gap-3 sm:grid-cols-3">
               {DOCS.map(([k, l]) => (
                 <div key={k}>
-                  <label className={cn("flex h-32 cursor-pointer flex-col items-center justify-center gap-1 overflow-hidden rounded-xl border border-dashed text-sm text-muted-foreground hover:bg-muted", errors[k] && "border-destructive")}>
+                  <label className={cn("flex h-32 cursor-pointer flex-col items-center justify-center gap-1 overflow-hidden rounded-xl border border-dashed text-sm text-muted-foreground hover:bg-muted", errors[k as keyof Errs] && "border-destructive")}>
                     {v.docs[k] ? <img src={v.docs[k]!} alt="" className="size-full object-cover" /> : <><ImagePlus />{l}</>}
                     <input type="file" accept={ACCEPT.join(",")} className="hidden" onChange={(e) => pick(e.target.files, (u) => u[0] && set("docs", { ...v.docs, [k]: u[0] }))} />
                   </label>
-                  {errors[k] && <p className="mt-1 text-xs font-medium text-destructive">{errors[k]}</p>}
+                  {errors[k as keyof Errs] && <p className="mt-1 text-xs font-medium text-destructive">{errors[k as keyof Errs]}</p>}
                 </div>
               ))}
             </div>

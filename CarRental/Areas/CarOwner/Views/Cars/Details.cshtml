@@ -5,7 +5,9 @@
     Layout = "~/Areas/CarOwner/Views/Shared/_Layout.cshtml";
 
     var galleryImages = ViewBag.GalleryImages as List<string> ?? new List<string>();
+    var amenityItems = ViewBag.AmenityItems as List<CarRental.Models.Amenity> ?? new List<CarRental.Models.Amenity>();
     var amenities = ViewBag.Amenities as List<string> ?? new List<string>();
+    var carPolicy = ViewBag.CarPolicy as CarRental.Utilities.CarPolicy ?? CarRental.Utilities.CarPolicy.Parse(Model);
     var carOrders = ViewBag.CarOrders as List<CarRental.Models.OrderDetail> ?? new List<CarRental.Models.OrderDetail>();
 
     var reviews = Model.CarReviews?.ToList() ?? new List<CarRental.Models.CarReview>();
@@ -201,35 +203,45 @@
                     <dd class="col-6 fw-semibold text-dark mb-1">@(string.IsNullOrEmpty(Model.Fuel) ? "Xăng" : Model.Fuel)</dd>
 
                     <dt class="col-6 text-muted fw-normal">Mức tiêu thụ:</dt>
-                    <dd class="col-6 fw-semibold text-dark mb-1">@(Model.Descriptions ?? "6.5L/100km")</dd>
+                    <dd class="col-6 fw-semibold text-dark mb-1">@(carPolicy.FuelConsumption ?? "6.5L/100km")</dd>
 
                     <dt class="col-6 text-muted fw-normal">Giới hạn quãng đường:</dt>
-                    <dd class="col-6 fw-semibold text-dark mb-1">350 km/ngày</dd>
+                    <dd class="col-6 fw-semibold text-dark mb-1">@carPolicy.MileageLimit km/ngày</dd>
 
                     <dt class="col-6 text-muted fw-normal">Phụ phí vượt quãng đường:</dt>
-                    <dd class="col-6 fw-semibold text-dark mb-1">3.000đ/km</dd>
+                    <dd class="col-6 fw-semibold text-dark mb-1">@carPolicy.ExtraFeePerKm.ToString("N0")đ/km</dd>
 
                     <dt class="col-6 text-muted fw-normal">Hỗ trợ giao xe tận nơi:</dt>
-                    <dd class="col-6 fw-semibold text-dark mb-1">Có hỗ trợ (100.000đ)</dd>
+                    <dd class="col-6 fw-semibold text-dark mb-1">@(carPolicy.DeliverySupported ? $"Có hỗ trợ ({carPolicy.DeliveryFee:N0}đ)" : "Nhận xe trực tiếp tại bãi")</dd>
                 </dl>
 
-                <h4 class="h6 fw-bold text-dark mb-2">Tiện nghi trang bị</h4>
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <h4 class="h6 fw-bold text-dark mb-0">Tiện nghi trang bị (@(amenityItems.Any() ? amenityItems.Count : amenities.Count))</h4>
+                    <span class="badge bg-light text-muted border small" style="font-size: 0.7rem;">Đồng bộ từ CSDL</span>
+                </div>
                 <div class="d-flex flex-wrap gap-2">
-                    @if (amenities.Any())
+                    @if (amenityItems.Any())
+                    {
+                        foreach (var am in amenityItems)
+                        {
+                            <span class="rounded-pill px-3 py-1.5 text-xs fw-semibold text-dark d-inline-flex align-items-center gap-1.5" style="background: #f0f9ff; border: 1px solid #bae6fd; font-size: 0.8rem;">
+                                <i class="bi @(string.IsNullOrEmpty(am.Icon) ? "bi-check-circle-fill" : am.Icon) @(string.IsNullOrEmpty(am.IconColor) ? "text-primary" : am.IconColor)"></i>
+                                <span>@am.Name</span>
+                            </span>
+                        }
+                    }
+                    else if (amenities.Any())
                     {
                         foreach (var am in amenities)
                         {
                             <span class="rounded-pill px-3 py-1 text-xs fw-semibold text-primary" style="background: #f0f9ff; border: 1px solid #bae6fd; font-size: 0.78rem;">
-                                @am
+                                <i class="bi bi-check-circle-fill me-1"></i>@am
                             </span>
                         }
                     }
                     else
                     {
-                        <span class="rounded-pill px-3 py-1 text-xs fw-semibold text-primary" style="background: #f0f9ff; border: 1px solid #bae6fd; font-size: 0.78rem;">Bản đồ định vị</span>
-                        <span class="rounded-pill px-3 py-1 text-xs fw-semibold text-primary" style="background: #f0f9ff; border: 1px solid #bae6fd; font-size: 0.78rem;">Bluetooth</span>
-                        <span class="rounded-pill px-3 py-1 text-xs fw-semibold text-primary" style="background: #f0f9ff; border: 1px solid #bae6fd; font-size: 0.78rem;">Camera lùi</span>
-                        <span class="rounded-pill px-3 py-1 text-xs fw-semibold text-primary" style="background: #f0f9ff; border: 1px solid #bae6fd; font-size: 0.78rem;">Điều hòa mát</span>
+                        <span class="text-muted small fst-italic">Chưa cập nhật tiện nghi cho xe này. Bấm Chỉnh sửa xe để chọn tiện nghi.</span>
                     }
                 </div>
             </div>

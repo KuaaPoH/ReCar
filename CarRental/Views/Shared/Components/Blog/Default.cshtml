@@ -1,31 +1,99 @@
-@model IEnumerable<Blog>
+@model IEnumerable<CarRental.Models.Blog>
 
 @if (Model != null && Model.Any())
 {
-    foreach (var item in Model)
+    var blogList = Model.ToList();
+    var featured = blogList.First();
+    string featUrl = $"/blog/{featured.Alias}-{featured.BlogId}.html";
+    string featImg = string.IsNullOrEmpty(featured.Image) ? "/images/cars/car-sedan.jpg" : featured.Image;
+    string featDate = featured.CreatedDate.HasValue ? featured.CreatedDate.Value.ToString("dd/MM/yyyy") : "08/10/2026";
+    string featTopic = !string.IsNullOrEmpty(featured.SeoKeywords) ? featured.SeoKeywords : "Kinh nghiệm thuê xe";
+    string featAuthor = !string.IsNullOrEmpty(featured.CreatedBy) ? featured.CreatedBy : "Ban biên tập ReCar";
+
+    <!-- Bài viết tiêu điểm (Featured Article) -->
+    <div class="col-12 blog-article-item" data-topic="@featTopic" data-search="@($"{featured.Title} {featured.Description} {featTopic}")">
+        <article class="rounded-4 border bg-white overflow-hidden shadow-sm">
+            <div class="row g-0 align-items-stretch">
+                <div class="col-lg-7 position-relative overflow-hidden" style="min-height: 300px;">
+                    <a href="@featUrl" class="d-block w-100 h-100">
+                        <img src="@featImg" alt="@featured.Title"
+                             class="w-100 h-100"
+                             style="object-fit: cover; max-height: 400px; transition: transform 0.35s;"
+                             onmouseover="this.style.transform='scale(1.03)'"
+                             onmouseout="this.style.transform='scale(1)'"
+                             onerror="this.onerror=null;this.src='/images/cars/car-sedan.jpg';" />
+                    </a>
+                    <span class="badge bg-primary position-absolute top-0 start-0 m-3 rounded-pill px-3 py-2 shadow-sm">
+                        <i class="bi bi-star-fill me-1 text-warning"></i> Bài viết tiêu điểm
+                    </span>
+                </div>
+                <div class="col-lg-5 p-4 p-xl-5 d-flex flex-column justify-content-center">
+                    <div class="d-flex flex-wrap align-items-center gap-2 small text-muted mb-2">
+                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-2 py-1">@featTopic</span>
+                        <span>·</span>
+                        <span><i class="bi bi-calendar3 me-1"></i>@featDate</span>
+                        <span>·</span>
+                        <span><i class="bi bi-clock me-1"></i>5 phút đọc</span>
+                    </div>
+                    <h2 class="fs-4 fw-bold mb-3" style="line-height: 1.4;">
+                        <a href="@featUrl" class="text-decoration-none" style="color: var(--recar-navy);">@featured.Title</a>
+                    </h2>
+                    <p class="text-secondary mb-4" style="font-size: 15px; line-height: 1.65;">
+                        @(string.IsNullOrEmpty(featured.Description) ? "Tổng hợp những kinh nghiệm thực tế giúp bạn chủ động kiểm tra xe, chuẩn bị giấy tờ và tận hưởng chuyến đi an toàn cùng ReCar." : featured.Description)
+                    </p>
+                    <div class="d-flex align-items-center justify-content-between pt-3 border-top mt-auto">
+                        <div class="d-flex align-items-center gap-2 small text-muted">
+                            <span class="rounded-circle bg-primary text-white d-inline-flex align-items-center justify-content-center fw-bold" style="width: 30px; height: 30px; font-size: 12px;">RC</span>
+                            <span class="fw-medium text-dark">@featAuthor</span>
+                        </div>
+                        <a href="@featUrl" class="btn btn-primary btn-sm rounded-pill px-4 py-2 fw-semibold">
+                            Đọc chi tiết <i class="bi bi-arrow-right ms-1"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </article>
+    </div>
+
+    <!-- Danh sách các bài viết Cẩm nang -->
+    @foreach (var item in blogList.Skip(1))
     {
         string url = $"/blog/{item.Alias}-{item.BlogId}.html";
         string img = string.IsNullOrEmpty(item.Image) ? "/images/cars/car-sedan.jpg" : item.Image;
-        string dateStr = item.CreatedDate.HasValue ? item.CreatedDate.Value.ToString("dd/MM/yyyy") : "08/10/2026";
+        string dateStr = item.CreatedDate.HasValue ? item.CreatedDate.Value.ToString("dd/MM/yyyy") : "02/10/2026";
+        string topic = !string.IsNullOrEmpty(item.SeoKeywords) ? item.SeoKeywords : "Kinh nghiệm thuê xe";
+        string author = !string.IsNullOrEmpty(item.CreatedBy) ? item.CreatedBy : "Ban biên tập ReCar";
 
-        <div class="col-12 col-md-6 col-lg-4">
-            <article class="h-100 rounded-3 border bg-white overflow-hidden shadow-sm" style="display: flex; flex-direction: column; transition: transform 0.2s, box-shadow 0.2s;">
-                <a href="@url" class="d-block overflow-hidden" style="aspect-ratio: 16/9;">
-                    <img src="@img" alt="@item.Title" class="w-100 h-100" style="object-fit: cover; transition: transform 0.3s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'" loading="lazy" />
+        <div class="col-12 col-md-6 col-lg-4 blog-article-item" data-topic="@topic" data-search="@($"{item.Title} {item.Description} {topic}")">
+            <article class="h-100 rounded-4 border bg-white overflow-hidden shadow-sm" style="display: flex; flex-direction: column; transition: transform 0.2s, box-shadow 0.2s;">
+                <a href="@url" class="d-block position-relative overflow-hidden" style="aspect-ratio: 16/9;">
+                    <img src="@img" alt="@item.Title"
+                         class="w-100 h-100"
+                         style="object-fit: cover; transition: transform 0.3s;"
+                         onmouseover="this.style.transform='scale(1.05)'"
+                         onmouseout="this.style.transform='scale(1)'"
+                         loading="lazy"
+                         onerror="this.onerror=null;this.src='/images/cars/car-sedan.jpg';" />
+                    <span class="badge bg-dark bg-opacity-75 text-white position-absolute top-0 start-0 m-3 rounded-pill px-3 py-1">@topic</span>
                 </a>
                 <div class="p-4 d-flex flex-column flex-grow-1">
-                    <p class="small text-muted mb-2" style="font-size: 13px;">
-                        Cẩm nang · @dateStr
-                    </p>
-                    <h5 class="fw-bold mb-2" style="font-size: 17px; line-height: 1.4;">
+                    <div class="d-flex align-items-center gap-2 small text-muted mb-2" style="font-size: 13px;">
+                        <span><i class="bi bi-calendar3 me-1"></i>@dateStr</span>
+                        <span>·</span>
+                        <span><i class="bi bi-person me-1"></i>@author</span>
+                    </div>
+                    <h5 class="fw-bold mb-2" style="font-size: 17px; line-height: 1.45;">
                         <a href="@url" class="text-decoration-none" style="color: var(--recar-navy);">@item.Title</a>
                     </h5>
-                    <p class="small text-muted mb-3 flex-grow-1" style="font-size: 14px; line-height: 1.5;">
-                        @(string.IsNullOrEmpty(item.Description) ? "Kinh nghiệm thực tế giúp bạn chủ động hơn trên mọi hành trình." : item.Description)
+                    <p class="small text-muted mb-3 flex-grow-1" style="font-size: 14px; line-height: 1.6;">
+                        @(string.IsNullOrEmpty(item.Description) ? "Kinh nghiệm thực tế giúp bạn chủ động hơn trên mọi hành trình thuê xe tự lái." : item.Description)
                     </p>
-                    <a href="@url" class="text-decoration-none fw-semibold small mt-auto" style="color: var(--recar-primary);">
-                        Đọc thêm →
-                    </a>
+                    <div class="pt-3 border-top mt-auto d-flex justify-content-between align-items-center">
+                        <span class="text-muted" style="font-size: 12px;"><i class="bi bi-clock me-1"></i>4 phút đọc</span>
+                        <a href="@url" class="text-decoration-none fw-semibold small d-inline-flex align-items-center gap-1" style="color: var(--recar-primary);">
+                            Đọc bài viết <i class="bi bi-arrow-right"></i>
+                        </a>
+                    </div>
                 </div>
             </article>
         </div>

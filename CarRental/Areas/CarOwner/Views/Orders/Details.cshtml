@@ -41,6 +41,20 @@
 
     string gplxFull = !string.IsNullOrEmpty(customer?.LicenseNumber) ? customer.LicenseNumber : "790158291042";
     string gplxMasked = gplxFull.Length > 4 ? gplxFull.Substring(0, gplxFull.Length - 4) + "****" : gplxFull;
+
+    var handoverInspection = ViewBag.HandoverInspection as CarRental.Models.VehicleInspection;
+    var returnInspection = ViewBag.ReturnInspection as CarRental.Models.VehicleInspection;
+    var carPolicy = ViewBag.CarPolicy as CarRental.Utilities.CarPolicy ?? CarRental.Utilities.CarPolicy.Parse(car);
+
+    int allowedKmTotal = days * carPolicy.MileageLimit;
+    int? drivenKm = (handoverInspection != null && returnInspection != null && returnInspection.Odometer >= handoverInspection.Odometer && handoverInspection.Odometer > 0)
+        ? (returnInspection.Odometer - handoverInspection.Odometer)
+        : (int?)null;
+    int overKm = drivenKm.HasValue ? Math.Max(0, drivenKm.Value - allowedKmTotal) : 0;
+    decimal overKmFee = overKm * carPolicy.ExtraFeePerKm;
+    int? fuelDiff = (handoverInspection != null && returnInspection != null)
+        ? (returnInspection.FuelLevel - handoverInspection.FuelLevel)
+        : (int?)null;
 }
 
 @Html.AntiForgeryToken()
@@ -165,6 +179,63 @@
         justify-content: center;
         flex-shrink: 0;
     }
+
+    /* Digital Check-in Photo Slots */
+    .inspection-slot {
+        position: relative;
+        border: 1.5px dashed #cbd5e1;
+        border-radius: 12px;
+        background: #f8fafc;
+        overflow: hidden;
+        aspect-ratio: 4 / 3;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+    }
+    .inspection-slot:hover {
+        border-color: #0284c7;
+        background: #f0f9ff;
+    }
+    .inspection-slot.has-img {
+        border-style: solid;
+        border-color: #10b981;
+    }
+    .inspection-slot img.slot-preview {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    .inspection-slot .slot-badge {
+        position: absolute;
+        top: 6px;
+        left: 6px;
+        background: rgba(15, 23, 42, 0.72);
+        color: #fff;
+        font-size: 0.68rem;
+        font-weight: 600;
+        padding: 2px 8px;
+        border-radius: 999px;
+        z-index: 2;
+        backdrop-filter: blur(4px);
+    }
+    .inspection-thumb {
+        width: 100%;
+        aspect-ratio: 4 / 3;
+        object-fit: cover;
+        border-radius: 8px;
+        border: 1px solid #e2e8f0;
+        cursor: zoom-in;
+        transition: transform 0.15s ease;
+    }
+    .inspection-thumb:hover {
+        transform: scale(1.02);
+    }
 </style>
 
 <div class="space-y-4">
@@ -255,22 +326,26 @@
 
                 <!-- Thao tác nhanh -->
                 <div class="pt-3 border-top d-flex flex-wrap gap-2">
-                    @if (Model.StatusId == 3)
+                    @if (Model.StatusId == 3 || Model.StatusId == 1)
                     {
                         <button type="button" class="btn btn-success rounded-xl px-4 py-2 fw-semibold d-inline-flex align-items-center gap-2 shadow-xs"
-                                onclick="quickHandover(@Model.OrderId, '@(car?.CarName)', '@custName')" style="background-color: #10b981; border-color: #10b981;">
-                            <i data-lucide="key-round" style="width: 18px; height: 18px;"></i>
-                            <span>Bàn giao xe cho khách</span>
+                                onclick="openInspectionModal('handover', true)" style="background-color: #10b981; border-color: #10b981;">
+                            <i data-lucide="camera" style="width: 18px; height: 18px;"></i>
+                            <span>Bàn giao xe & Lập biên bản Check-in</span>
                         </button>
                     }
                     else if (Model.StatusId == 4)
                     {
                         <button type="button" class="btn btn-primary rounded-xl px-4 py-2 fw-semibold d-inline-flex align-items-center gap-2 shadow-xs"
-                                onclick="quickReturn(@Model.OrderId, '@(car?.CarName)')" style="background-color: #0284c7; border-color: #0284c7;">
-                            <i data-lucide="check-circle-2" style="width: 18px; height: 18px;"></i>
-                            <span>Nhận xe & Hoàn tất chuyến</span>
+                                onclick="openInspectionModal('return', true)" style="background-color: #0284c7; border-color: #0284c7;">
+                            <i data-lucide="clipboard-check" style="width: 18px; height: 18px;"></i>
+                            <span>Nhận xe & Lập biên bản Check-out</span>
                         </button>
                     }
+                    <a href="#digitalInspectionSection" class="btn btn-outline-primary rounded-xl px-3 py-2 fw-semibold d-inline-flex align-items-center gap-1.5">
+                        <i data-lucide="file-check-2" style="width: 16px; height: 16px;"></i>
+                        <span>Xem biên bản hiện trạng</span>
+                    </a>
                     <a href="/Product/Details/@(car?.CarId)" target="_blank" class="btn btn-light border rounded-xl px-3 py-2 fw-medium text-secondary d-inline-flex align-items-center gap-1.5">
                         <i data-lucide="external-link" style="width: 16px; height: 16px;"></i>
                         <span>Xem xe trên sàn</span>
@@ -360,23 +435,51 @@
                         </li>
                         <li class="d-flex align-items-start mb-3" style="gap: 14px;">
                             <span class="d-inline-flex align-items-center justify-content-center flex-shrink-0" 
-                                  style="width: 20px; height: 20px; margin-top: 1px; color: @(Model.StatusId >= 4 ? "#10b981" : "#94a3b8") !important;">
+                                  style="width: 20px; height: 20px; margin-top: 1px; color: @(handoverInspection != null || Model.StatusId >= 4 ? "#10b981" : "#94a3b8") !important;">
                                 <i data-lucide="check-circle-2" style="width: 19px; height: 19px; stroke-width: 2;"></i>
                             </span>
-                            <span class="text-dark" style="line-height: 1.45;">Chụp ảnh 4 góc xe, tình trạng lốp & số km (ODO).</span>
+                            <span class="text-dark" style="line-height: 1.45;">
+                                Chụp ảnh 4 góc xe, mức xăng/pin & số km (ODO).
+                                @if (handoverInspection != null)
+                                {
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle ms-1" style="font-size: 0.68rem;">ODO: @handoverInspection.Odometer.ToString("N0") km · @handoverInspection.FuelLevel%</span>
+                                }
+                            </span>
                         </li>
                         <li class="d-flex align-items-start mb-1" style="gap: 14px;">
                             <span class="d-inline-flex align-items-center justify-content-center flex-shrink-0" 
-                                  style="width: 20px; height: 20px; margin-top: 1px; color: @(Model.StatusId >= 4 ? "#10b981" : "#94a3b8") !important;">
+                                  style="width: 20px; height: 20px; margin-top: 1px; color: @(handoverInspection != null || Model.StatusId >= 4 ? "#10b981" : "#94a3b8") !important;">
                                 <i data-lucide="check-circle-2" style="width: 19px; height: 19px; stroke-width: 2;"></i>
                             </span>
                             <span class="text-dark" style="line-height: 1.45;">Ký xác nhận biên bản bàn giao xe thực tế.</span>
                         </li>
                     </ul>
                 </div>
-                <p class="text-muted mb-0 border-top pt-2" style="font-size: 0.75rem;">
-                    Checklist được xác nhận trong hộp thoại Bàn giao xe.
-                </p>
+                <div class="border-top pt-2.5 d-flex align-items-center justify-content-between gap-2">
+                    @if (Model.StatusId == 3 || Model.StatusId == 1)
+                    {
+                        <button type="button" class="btn btn-sm btn-primary rounded-pill px-3 py-1.5 fw-semibold w-100 d-inline-flex align-items-center justify-content-center gap-1.5"
+                                style="background-color: #0284c7; border-color: #0284c7;" onclick="openInspectionModal('handover', true)">
+                            <i data-lucide="camera" style="width: 14px; height: 14px;"></i>
+                            <span>Lập biên bản bàn giao (Digital Check-in)</span>
+                        </button>
+                    }
+                    else if (Model.StatusId == 4)
+                    {
+                        <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3 py-1.5 fw-semibold w-100 d-inline-flex align-items-center justify-content-center gap-1.5"
+                                onclick="openInspectionModal('return', true)">
+                            <i data-lucide="clipboard-check" style="width: 14px; height: 14px;"></i>
+                            <span>Lập biên bản nhận lại xe (Check-out)</span>
+                        </button>
+                    }
+                    else
+                    {
+                        <a href="#digitalInspectionSection" class="text-primary text-decoration-none small fw-semibold d-inline-flex align-items-center gap-1">
+                            <i data-lucide="file-check-2" style="width: 14px; height: 14px;"></i>
+                            <span>Đã lưu biên bản bàn giao điện tử</span>
+                        </a>
+                    }
+                </div>
             </div>
         </div>
 
@@ -419,6 +522,274 @@
                 <p class="text-muted mb-0 border-top pt-2" style="font-size: 0.72rem;">
                     Tỷ lệ theo cấu hình nghiệp vụ hiện tại; số liệu chính thức do hệ thống đối soát xác nhận.
                 </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2.5. BIÊN BẢN BÀN GIAO & ĐỐI CHIẾU HIỆN TRẠNG PHƯƠNG TIỆN (DIGITAL CHECK-IN / CHECK-OUT) -->
+    <div id="digitalInspectionSection" class="card-surface p-4 mb-4">
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4 pb-3 border-bottom">
+            <div class="d-flex align-items-center gap-2.5">
+                <span class="rounded-3 d-inline-flex align-items-center justify-content-center" style="width: 40px; height: 40px; background: #e0f2fe; color: #0284c7;">
+                    <i data-lucide="camera" style="width: 20px; height: 20px;"></i>
+                </span>
+                <div>
+                    <h2 class="h6 fw-bold text-dark mb-0" style="font-size: 1.05rem;">Biên bản bàn giao & Đối chiếu hiện trạng xe (Digital Check-in / Check-out)</h2>
+                    <p class="text-muted mb-0" style="font-size: 0.78rem;">Lưu trữ công tơ mét (ODO), mức xăng/pin và 4 góc ảnh thực tế lúc giao & nhận lại xe để chống tranh chấp.</p>
+                </div>
+            </div>
+            <div class="d-flex flex-wrap gap-2">
+                <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3 py-1.5 fw-semibold d-inline-flex align-items-center gap-1.5"
+                        onclick="openInspectionModal('handover', @(Model.StatusId == 3 || Model.StatusId == 1 ? "true" : "false"))">
+                    <i data-lucide="camera" style="width: 14px; height: 14px;"></i>
+                    <span>@(handoverInspection != null ? "Cập nhật biên bản giao xe" : "Lập biên bản giao xe (Check-in)")</span>
+                </button>
+                @if (Model.StatusId >= 4 || returnInspection != null)
+                {
+                    <button type="button" class="btn btn-sm btn-primary rounded-pill px-3 py-1.5 fw-semibold d-inline-flex align-items-center gap-1.5"
+                            style="background-color: #0284c7; border-color: #0284c7;"
+                            onclick="openInspectionModal('return', @(Model.StatusId == 4 ? "true" : "false"))">
+                        <i data-lucide="clipboard-check" style="width: 14px; height: 14px;"></i>
+                        <span>@(returnInspection != null ? "Cập nhật biên bản nhận xe" : "Lập biên bản nhận xe (Check-out)")</span>
+                    </button>
+                }
+            </div>
+        </div>
+
+        <!-- Hộp đối chiếu nhanh ODO & Nhiên liệu nếu đã có cả 2 biên bản -->
+        @if (handoverInspection != null && returnInspection != null)
+        {
+            <div class="p-3 rounded-3 mb-4" style="background: @(overKm > 0 ? "#fffbeb" : "#f0fdf4"); border: 1px solid @(overKm > 0 ? "#fde68a" : "#bbf7d0");">
+                <div class="row g-3 align-items-center">
+                    <div class="col-12 col-md-3">
+                        <div class="text-muted small">Quãng đường đã di chuyển</div>
+                        <div class="h5 fw-bold text-dark mb-0">@(drivenKm.HasValue ? $"{drivenKm.Value:N0} km" : "—")</div>
+                        <div class="text-muted" style="font-size: 0.72rem;">Hạn mức miễn phí: @allowedKmTotal.ToString("N0") km (@days ngày × @carPolicy.MileageLimit km)</div>
+                    </div>
+                    <div class="col-12 col-md-3">
+                        <div class="text-muted small">Vượt hạn mức quãng đường</div>
+                        @if (overKm > 0)
+                        {
+                            <div class="h5 fw-bold text-danger mb-0">+@overKm.ToString("N0") km</div>
+                            <div class="text-danger fw-semibold" style="font-size: 0.75rem;">Phụ phí: +@overKmFee.ToString("N0")đ (@carPolicy.ExtraFeePerKm.ToString("N0")đ/km)</div>
+                        }
+                        else
+                        {
+                            <div class="h6 fw-bold text-success mb-0">Trong hạn mức cho phép ✓</div>
+                            <div class="text-muted" style="font-size: 0.72rem;">Không phát sinh phụ phí km</div>
+                        }
+                    </div>
+                    <div class="col-12 col-md-3">
+                        <div class="text-muted small">Đối chiếu mức xăng / pin</div>
+                        <div class="fw-bold text-dark">
+                            @handoverInspection.FuelLevel% → @returnInspection.FuelLevel%
+                            @if (fuelDiff.HasValue)
+                            {
+                                <span class="badge @(fuelDiff.Value < 0 ? "bg-warning text-dark" : "bg-success-subtle text-success") ms-1">
+                                    @(fuelDiff.Value >= 0 ? $"+{fuelDiff.Value}%" : $"{fuelDiff.Value}%")
+                                </span>
+                            }
+                        </div>
+                        <div class="text-muted" style="font-size: 0.72rem;">@(fuelDiff < -10 ? "Khách trả xe hụt nhiên liệu so với lúc nhận" : "Mức nhiên liệu bàn giao đạt yêu cầu")</div>
+                    </div>
+                    <div class="col-12 col-md-3 text-md-end">
+                        <span class="badge rounded-pill px-3 py-2 fw-semibold" style="background: #0f172a; color: #fff; font-size: 0.78rem;">
+                            <i class="bi bi-shield-check me-1 text-info"></i>Đã đối chiếu 2 chiều
+                        </span>
+                    </div>
+                </div>
+            </div>
+        }
+
+        <div class="row g-4">
+            <!-- CỘT 1: BIÊN BẢN LÚC BÀN GIAO XE (CHECK-IN) -->
+            <div class="col-12 col-lg-6">
+                <div class="p-3.5 rounded-3 h-100" style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 1.25rem;">
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge rounded-pill px-2.5 py-1 fw-semibold" style="background: #dcfce7; color: #15803d;">1. LÚC GIAO XE (CHECK-IN)</span>
+                            @if (handoverInspection != null)
+                            {
+                                <span class="text-muted" style="font-size: 0.75rem;">@handoverInspection.CreatedAt.ToString("HH:mm - dd/MM/yyyy")</span>
+                            }
+                        </div>
+                        @if (handoverInspection != null)
+                        {
+                            <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none small fw-semibold" onclick="openInspectionModal('handover', false)">
+                                <i class="bi bi-pencil-square me-1"></i>Sửa
+                            </button>
+                        }
+                    </div>
+
+                    @if (handoverInspection != null)
+                    {
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <div class="p-2.5 bg-white rounded-3 border">
+                                    <div class="text-muted" style="font-size: 0.72rem;">Số công tơ mét (ODO)</div>
+                                    <div class="fw-bold text-dark fs-6 font-monospace">@handoverInspection.Odometer.ToString("N0") km</div>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="p-2.5 bg-white rounded-3 border">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span class="text-muted" style="font-size: 0.72rem;">Mức xăng / pin</span>
+                                        <span class="fw-bold text-primary small">@handoverInspection.FuelLevel%</span>
+                                    </div>
+                                    <div class="progress mt-1.5" style="height: 7px;">
+                                        <div class="progress-bar bg-info" role="progressbar" style="width: @(handoverInspection.FuelLevel)%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="text-muted fw-semibold mb-1.5" style="font-size: 0.75rem;">Ảnh chụp 4 góc xe lúc bàn giao:</div>
+                            <div class="row g-2">
+                                @{
+                                    var hSlots = new[] {
+                                        (Label: "Đầu xe", Url: handoverInspection.FrontImage),
+                                        (Label: "Đuôi xe", Url: handoverInspection.RearImage),
+                                        (Label: "Thân trái", Url: handoverInspection.LeftImage),
+                                        (Label: "Thân phải", Url: handoverInspection.RightImage)
+                                    };
+                                }
+                                @foreach (var s in hSlots)
+                                {
+                                    <div class="col-6 col-sm-3">
+                                        <div class="position-relative">
+                                            @if (!string.IsNullOrEmpty(s.Url))
+                                            {
+                                                <img src="@s.Url" alt="@s.Label" class="inspection-thumb" onclick="previewLightbox('@s.Url', 'Lúc giao xe — @s.Label')" />
+                                            }
+                                            else
+                                            {
+                                                <div class="d-flex flex-column align-items-center justify-content-center bg-white rounded-2 border text-muted" style="aspect-ratio: 4/3; font-size: 0.7rem;">
+                                                    <i class="bi bi-camera mb-1"></i>@s.Label
+                                                </div>
+                                            }
+                                            <span class="badge bg-dark bg-opacity-75 position-absolute bottom-0 start-0 m-1" style="font-size: 0.62rem;">@s.Label</span>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+
+                        <div class="p-2.5 bg-white rounded-3 border small">
+                            <span class="text-muted fw-semibold">Ghi chú hiện trạng:</span>
+                            <span class="text-dark">@(string.IsNullOrWhiteSpace(handoverInspection.Notes) ? "Ngoại thất nguyên vẹn, lốp căng đều, đầy đủ giấy tờ xe." : handoverInspection.Notes)</span>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center py-4">
+                            <i data-lucide="camera" class="text-muted mb-2" style="width: 32px; height: 32px; opacity: 0.45;"></i>
+                            <p class="text-muted small mb-3">Chưa có biên bản bàn giao (Check-in) cho đơn này.</p>
+                            <button type="button" class="btn btn-sm btn-success rounded-pill px-3 py-1.5 fw-semibold"
+                                    onclick="openInspectionModal('handover', @(Model.StatusId == 3 || Model.StatusId == 1 ? "true" : "false"))">
+                                <i class="bi bi-camera-fill me-1"></i>Chụp 4 góc xe & Nhập ODO lúc giao
+                            </button>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- CỘT 2: BIÊN BẢN LÚC NHẬN LẠI XE (CHECK-OUT) -->
+            <div class="col-12 col-lg-6">
+                <div class="p-3.5 rounded-3 h-100" style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 1.25rem;">
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge rounded-pill px-2.5 py-1 fw-semibold" style="background: #e0f2fe; color: #0369a1;">2. LÚC NHẬN LẠI XE (CHECK-OUT)</span>
+                            @if (returnInspection != null)
+                            {
+                                <span class="text-muted" style="font-size: 0.75rem;">@returnInspection.CreatedAt.ToString("HH:mm - dd/MM/yyyy")</span>
+                            }
+                        </div>
+                        @if (returnInspection != null)
+                        {
+                            <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none small fw-semibold" onclick="openInspectionModal('return', false)">
+                                <i class="bi bi-pencil-square me-1"></i>Sửa
+                            </button>
+                        }
+                    </div>
+
+                    @if (returnInspection != null)
+                    {
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <div class="p-2.5 bg-white rounded-3 border">
+                                    <div class="text-muted" style="font-size: 0.72rem;">Số công tơ mét lúc trả (ODO)</div>
+                                    <div class="fw-bold text-dark fs-6 font-monospace">@returnInspection.Odometer.ToString("N0") km</div>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="p-2.5 bg-white rounded-3 border">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span class="text-muted" style="font-size: 0.72rem;">Mức xăng / pin lúc trả</span>
+                                        <span class="fw-bold text-primary small">@returnInspection.FuelLevel%</span>
+                                    </div>
+                                    <div class="progress mt-1.5" style="height: 7px;">
+                                        <div class="progress-bar bg-primary" role="progressbar" style="width: @(returnInspection.FuelLevel)%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="text-muted fw-semibold mb-1.5" style="font-size: 0.75rem;">Ảnh chụp 4 góc xe lúc nhận lại:</div>
+                            <div class="row g-2">
+                                @{
+                                    var rSlots = new[] {
+                                        (Label: "Đầu xe", Url: returnInspection.FrontImage),
+                                        (Label: "Đuôi xe", Url: returnInspection.RearImage),
+                                        (Label: "Thân trái", Url: returnInspection.LeftImage),
+                                        (Label: "Thân phải", Url: returnInspection.RightImage)
+                                    };
+                                }
+                                @foreach (var s in rSlots)
+                                {
+                                    <div class="col-6 col-sm-3">
+                                        <div class="position-relative">
+                                            @if (!string.IsNullOrEmpty(s.Url))
+                                            {
+                                                <img src="@s.Url" alt="@s.Label" class="inspection-thumb" onclick="previewLightbox('@s.Url', 'Lúc nhận lại xe — @s.Label')" />
+                                            }
+                                            else
+                                            {
+                                                <div class="d-flex flex-column align-items-center justify-content-center bg-white rounded-2 border text-muted" style="aspect-ratio: 4/3; font-size: 0.7rem;">
+                                                    <i class="bi bi-camera mb-1"></i>@s.Label
+                                                </div>
+                                            }
+                                            <span class="badge bg-dark bg-opacity-75 position-absolute bottom-0 start-0 m-1" style="font-size: 0.62rem;">@s.Label</span>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+
+                        <div class="p-2.5 bg-white rounded-3 border small">
+                            <span class="text-muted fw-semibold">Ghi chú nhận xe:</span>
+                            <span class="text-dark">@(string.IsNullOrWhiteSpace(returnInspection.Notes) ? "Xe hoàn trả đúng hiện trạng, không phát sinh trầy xước." : returnInspection.Notes)</span>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center py-4">
+                            <i data-lucide="clipboard-check" class="text-muted mb-2" style="width: 32px; height: 32px; opacity: 0.45;"></i>
+                            <p class="text-muted small mb-3">
+                                @(Model.StatusId < 4 ? "Biên bản nhận lại xe sẽ được mở khi khách hoàn trả phương tiện." : "Chưa lập biên bản nhận lại xe (Check-out).")
+                            </p>
+                            @if (Model.StatusId >= 4)
+                            {
+                                <button type="button" class="btn btn-sm btn-primary rounded-pill px-3 py-1.5 fw-semibold"
+                                        style="background-color: #0284c7; border-color: #0284c7;"
+                                        onclick="openInspectionModal('return', @(Model.StatusId == 4 ? "true" : "false"))">
+                                    <i class="bi bi-clipboard2-check-fill me-1"></i>Chụp 4 góc xe & Đối chiếu ODO lúc trả
+                                </button>
+                            }
+                        </div>
+                    }
+                </div>
             </div>
         </div>
     </div>
@@ -503,6 +874,192 @@
     </div>
 </div>
 
+<!-- MODAL LẬP BIÊN BẢN BÀN GIAO / NHẬN LẠI XE ĐIỆN TỬ (DIGITAL CHECK-IN / CHECK-OUT) -->
+<div class="modal fade" id="digitalInspectionModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+            <div class="modal-header border-bottom px-4 py-3" style="background: #0f172a; color: #ffffff;">
+                <div class="d-flex align-items-center gap-2.5">
+                    <span class="rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 36px; height: 36px; background: rgba(56, 189, 248, 0.2); color: #38bdf8;">
+                        <i class="bi bi-camera-fill"></i>
+                    </span>
+                    <div>
+                        <h5 class="modal-title fw-bold mb-0" id="inspModalTitle" style="font-size: 1.05rem;">Biên bản bàn giao xe điện tử (Digital Check-in)</h5>
+                        <div class="small" style="color: #94a3b8; font-size: 0.76rem;" id="inspModalSubtitle">Đơn #RC-@Model.OrderId · @(car?.CarName) (@(car?.LicensePlate))</div>
+                    </div>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <form id="digitalInspectionForm" enctype="multipart/form-data">
+                    <input type="hidden" name="id" value="@Model.OrderId" />
+                    <input type="hidden" name="InspectionType" id="inspTypeInput" value="handover" />
+
+                    <!-- Bước 1: Xác nhận Checklist nhanh -->
+                    <div class="p-3 rounded-3 mb-3" style="background: #f8fafc; border: 1px solid #e2e8f0;" id="inspChecklistBox">
+                        <div class="fw-bold text-dark small mb-2 d-flex align-items-center gap-1.5">
+                            <i class="bi bi-shield-check text-success"></i>
+                            <span id="inspChecklistHeading">Xác nhận điều kiện an toàn trước khi giao chìa khóa:</span>
+                        </div>
+                        <div class="row g-2 small">
+                            <div class="col-12 col-md-6">
+                                <label class="form-check d-flex align-items-center gap-2 mb-0" style="cursor: pointer;">
+                                    <input class="form-check-input mt-0" type="checkbox" checked id="chkIdVerify" />
+                                    <span>Đã đối chiếu CCCD & GPLX bản gốc/VNeID</span>
+                                </label>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label class="form-check d-flex align-items-center gap-2 mb-0" style="cursor: pointer;">
+                                    <input class="form-check-input mt-0" type="checkbox" checked id="chkPaymentVerify" />
+                                    <span id="chkPaymentLabel">Đã thu 70% tiền thuê còn lại (@remainingToCollect.ToString("N0")đ)</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bước 2: Nhập ODO (km) & Mức xăng/pin (%) -->
+                    <div class="row g-3 mb-3">
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-bold text-dark small mb-1">
+                                <i class="bi bi-speedometer2 text-primary me-1"></i>Số công tơ mét hiện tại — ODO (km) <span class="text-danger">*</span>
+                            </label>
+                            <div class="input-group">
+                                <input type="number" class="form-control fw-bold font-monospace" name="Odometer" id="inspOdometerInput"
+                                       min="0" max="999999" step="1" placeholder="VD: 24500"
+                                       oninput="updateLiveOdoCalc()" required />
+                                <span class="input-group-text bg-light fw-semibold small">km</span>
+                            </div>
+                            <div class="form-text small" id="inspOdoHint">
+                                @if (handoverInspection != null)
+                                {
+                                    <span>ODO lúc bàn giao: <strong>@handoverInspection.Odometer.ToString("N0") km</strong> (Hạn mức @days ngày: @allowedKmTotal.ToString("N0") km)</span>
+                                }
+                                else
+                                {
+                                    <span>Nhập đúng số km trên màn hình taplo lúc bàn giao xe.</span>
+                                }
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <label class="form-label fw-bold text-dark small mb-0">
+                                    <i class="bi bi-fuel-pump-fill text-primary me-1"></i>Mức nhiên liệu / Pin hiện tại (%)
+                                </label>
+                                <span class="badge bg-primary rounded-pill px-2.5 py-1 fw-bold" id="inspFuelBadge">80%</span>
+                            </div>
+                            <input type="range" class="form-range" name="FuelLevel" id="inspFuelInput" min="5" max="100" step="5" value="80"
+                                   oninput="setFuelPreset(this.value)" />
+                            <div class="d-flex justify-content-between gap-1 mt-1">
+                                <button type="button" class="btn btn-xs btn-outline-secondary rounded-pill py-0 px-2" style="font-size: 0.72rem;" onclick="setFuelPreset(25)">1/4 (25%)</button>
+                                <button type="button" class="btn btn-xs btn-outline-secondary rounded-pill py-0 px-2" style="font-size: 0.72rem;" onclick="setFuelPreset(50)">1/2 (50%)</button>
+                                <button type="button" class="btn btn-xs btn-outline-secondary rounded-pill py-0 px-2" style="font-size: 0.72rem;" onclick="setFuelPreset(75)">3/4 (75%)</button>
+                                <button type="button" class="btn btn-xs btn-outline-secondary rounded-pill py-0 px-2" style="font-size: 0.72rem;" onclick="setFuelPreset(100)">Đầy (100%)</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Hộp tính toán tự động quãng đường & phụ phí khi ở chế độ Nhận lại xe (Check-out) -->
+                    <div id="liveReturnCalcBox" class="p-3 rounded-3 mb-3 d-none" style="background: #f0f9ff; border: 1px solid #bae6fd;">
+                        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 small">
+                            <div>
+                                <span class="text-muted">Quãng đường khách đã đi:</span>
+                                <strong class="text-dark ms-1 font-monospace" id="liveDrivenKm">0 km</strong>
+                                <span class="text-muted ms-1">(Miễn phí tối đa @allowedKmTotal.ToString("N0") km)</span>
+                            </div>
+                            <div id="liveOverKmBadge" class="fw-bold text-success">
+                                Trong hạn mức cho phép ✓
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bước 3: Chụp / Tải lên 4 góc ảnh thực tế của xe -->
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <label class="form-label fw-bold text-dark small mb-0">
+                                <i class="bi bi-images text-primary me-1"></i>Ảnh chụp hiện trạng 4 góc xe thực tế
+                            </label>
+                            <span class="text-muted" style="font-size: 0.74rem;">Bấm vào từng ô để chụp từ Camera hoặc chọn ảnh</span>
+                        </div>
+                        <div class="row g-2.5">
+                            <div class="col-6 col-md-3">
+                                <div class="inspection-slot" id="slotBox_Front" onclick="document.getElementById('fileFront').click()">
+                                    <span class="slot-badge">1. Đầu xe</span>
+                                    <img id="preview_Front" class="slot-preview d-none" alt="Đầu xe" />
+                                    <div id="placeholder_Front" class="p-2">
+                                        <i class="bi bi-camera fs-4 text-primary d-block mb-1"></i>
+                                        <span class="small fw-semibold text-dark d-block" style="font-size: 0.76rem;">Mặt trước</span>
+                                        <span class="text-muted" style="font-size: 0.66rem;">Cản trước & Biển số</span>
+                                    </div>
+                                </div>
+                                <input type="file" class="d-none" name="FrontImage" id="fileFront" accept="image/*" capture="environment" onchange="previewInspSlot(this, 'Front')" />
+                            </div>
+
+                            <div class="col-6 col-md-3">
+                                <div class="inspection-slot" id="slotBox_Rear" onclick="document.getElementById('fileRear').click()">
+                                    <span class="slot-badge">2. Đuôi xe</span>
+                                    <img id="preview_Rear" class="slot-preview d-none" alt="Đuôi xe" />
+                                    <div id="placeholder_Rear" class="p-2">
+                                        <i class="bi bi-camera fs-4 text-primary d-block mb-1"></i>
+                                        <span class="small fw-semibold text-dark d-block" style="font-size: 0.76rem;">Mặt sau</span>
+                                        <span class="text-muted" style="font-size: 0.66rem;">Cốp sau & Đèn hậu</span>
+                                    </div>
+                                </div>
+                                <input type="file" class="d-none" name="RearImage" id="fileRear" accept="image/*" capture="environment" onchange="previewInspSlot(this, 'Rear')" />
+                            </div>
+
+                            <div class="col-6 col-md-3">
+                                <div class="inspection-slot" id="slotBox_Left" onclick="document.getElementById('fileLeft').click()">
+                                    <span class="slot-badge">3. Thân trái</span>
+                                    <img id="preview_Left" class="slot-preview d-none" alt="Thân trái" />
+                                    <div id="placeholder_Left" class="p-2">
+                                        <i class="bi bi-camera fs-4 text-primary d-block mb-1"></i>
+                                        <span class="small fw-semibold text-dark d-block" style="font-size: 0.76rem;">Sườn bên lái</span>
+                                        <span class="text-muted" style="font-size: 0.66rem;">Cửa trái & Mâm lốp</span>
+                                    </div>
+                                </div>
+                                <input type="file" class="d-none" name="LeftImage" id="fileLeft" accept="image/*" capture="environment" onchange="previewInspSlot(this, 'Left')" />
+                            </div>
+
+                            <div class="col-6 col-md-3">
+                                <div class="inspection-slot" id="slotBox_Right" onclick="document.getElementById('fileRight').click()">
+                                    <span class="slot-badge">4. Thân phải</span>
+                                    <img id="preview_Right" class="slot-preview d-none" alt="Thân phải" />
+                                    <div id="placeholder_Right" class="p-2">
+                                        <i class="bi bi-camera fs-4 text-primary d-block mb-1"></i>
+                                        <span class="small fw-semibold text-dark d-block" style="font-size: 0.76rem;">Sườn bên phụ</span>
+                                        <span class="text-muted" style="font-size: 0.66rem;">Cửa phải & Mâm lốp</span>
+                                    </div>
+                                </div>
+                                <input type="file" class="d-none" name="RightImage" id="fileRight" accept="image/*" capture="environment" onchange="previewInspSlot(this, 'Right')" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bước 4: Ghi chú hiện trạng -->
+                    <div>
+                        <label class="form-label fw-bold text-dark small mb-1">
+                            <i class="bi bi-journal-text text-primary me-1"></i>Ghi chú hiện trạng ngoại thất, nội thất & phụ kiện bàn giao
+                        </label>
+                        <textarea class="form-control small" name="Notes" id="inspNotesInput" rows="2"
+                                  placeholder="VD: Xe sạch sẽ, không trầy xước, lốp dự phòng + bộ kích lốp + giấy tờ xe đầy đủ..."></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer bg-light px-4 py-3 d-flex justify-content-between">
+                <button type="button" class="btn btn-light border rounded-pill px-3 fw-semibold small" data-bs-dismiss="modal">Đóng</button>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-primary rounded-pill px-4 py-2 fw-bold small d-inline-flex align-items-center gap-1.5"
+                            id="inspSubmitBtn" onclick="submitInspectionForm()">
+                        <i class="bi bi-check2-circle"></i>
+                        <span id="inspSubmitBtnText">Xác nhận Bàn giao xe & Lưu biên bản</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
     <script>
         const cccdFull = '@cccdFull';
@@ -510,6 +1067,202 @@
         const gplxFull = '@gplxFull';
         const gplxMasked = '@gplxMasked';
         let isRevealed = false;
+
+        // Dữ liệu biên bản hiện tại để nạp lên Modal khi chỉnh sửa hoặc đối chiếu
+        const handoverData = {
+            exists: @(handoverInspection != null ? "true" : "false"),
+            odo: @(handoverInspection?.Odometer ?? 25000),
+            fuel: @(handoverInspection?.FuelLevel ?? 85),
+            notes: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(handoverInspection?.Notes ?? "Xe sạch sẽ, ngoại thất nguyên vẹn, lốp căng đều, đầy đủ giấy tờ & bảo hiểm.")),
+            front: '@(handoverInspection?.FrontImage ?? "")',
+            rear: '@(handoverInspection?.RearImage ?? "")',
+            left: '@(handoverInspection?.LeftImage ?? "")',
+            right: '@(handoverInspection?.RightImage ?? "")'
+        };
+
+        const returnData = {
+            exists: @(returnInspection != null ? "true" : "false"),
+            odo: @(returnInspection?.Odometer ?? ((handoverInspection?.Odometer ?? 25000) + 180)),
+            fuel: @(returnInspection?.FuelLevel ?? (handoverInspection?.FuelLevel ?? 85)),
+            notes: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(returnInspection?.Notes ?? "Nhận lại xe đúng hiện trạng, không phát sinh hư hại.")),
+            front: '@(returnInspection?.FrontImage ?? "")',
+            rear: '@(returnInspection?.RearImage ?? "")',
+            left: '@(returnInspection?.LeftImage ?? "")',
+            right: '@(returnInspection?.RightImage ?? "")'
+        };
+
+        const allowedKmTotal = @allowedKmTotal;
+        const extraFeePerKm = @((int)carPolicy.ExtraFeePerKm);
+        let currentInspMode = 'handover'; // 'handover' | 'return'
+        let currentStatusTransition = true; // true: gọi ConfirmHandover/ConfirmReturn, false: chỉ gọi SaveInspection
+
+        function setSlotExistingPreview(slotKey, imgUrl) {
+            const img = document.getElementById('preview_' + slotKey);
+            const ph = document.getElementById('placeholder_' + slotKey);
+            const box = document.getElementById('slotBox_' + slotKey);
+            const fileInput = document.getElementById('file' + slotKey);
+            if (fileInput) fileInput.value = '';
+            if (imgUrl) {
+                img.src = imgUrl;
+                img.classList.remove('d-none');
+                ph.classList.add('d-none');
+                box.classList.add('has-img');
+            } else {
+                img.src = '';
+                img.classList.add('d-none');
+                ph.classList.remove('d-none');
+                box.classList.remove('has-img');
+            }
+        }
+
+        function previewInspSlot(input, slotKey) {
+            if (input.files && input.files[0]) {
+                const url = URL.createObjectURL(input.files[0]);
+                const img = document.getElementById('preview_' + slotKey);
+                const ph = document.getElementById('placeholder_' + slotKey);
+                const box = document.getElementById('slotBox_' + slotKey);
+                img.src = url;
+                img.classList.remove('d-none');
+                ph.classList.add('d-none');
+                box.classList.add('has-img');
+            }
+        }
+
+        function setFuelPreset(val) {
+            const v = Math.min(100, Math.max(5, parseInt(val) || 80));
+            document.getElementById('inspFuelInput').value = v;
+            document.getElementById('inspFuelBadge').innerText = v + '%';
+        }
+
+        function updateLiveOdoCalc() {
+            const calcBox = document.getElementById('liveReturnCalcBox');
+            if (currentInspMode !== 'return') {
+                calcBox.classList.add('d-none');
+                return;
+            }
+            calcBox.classList.remove('d-none');
+            const currentOdo = parseInt(document.getElementById('inspOdometerInput').value) || 0;
+            const startOdo = handoverData.odo || 0;
+            const driven = Math.max(0, currentOdo - startOdo);
+            const over = Math.max(0, driven - allowedKmTotal);
+            document.getElementById('liveDrivenKm').innerText = driven.toLocaleString('vi-VN') + ' km';
+            const badge = document.getElementById('liveOverKmBadge');
+            if (over > 0) {
+                const fee = over * extraFeePerKm;
+                badge.className = 'fw-bold text-danger';
+                badge.innerText = `Vượt ${over.toLocaleString('vi-VN')} km — Phụ phí: +${fee.toLocaleString('vi-VN')}đ`;
+            } else {
+                badge.className = 'fw-bold text-success';
+                badge.innerText = 'Trong hạn mức cho phép ✓';
+            }
+        }
+
+        function openInspectionModal(mode, doTransition) {
+            currentInspMode = mode;
+            currentStatusTransition = !!doTransition;
+            document.getElementById('inspTypeInput').value = mode;
+
+            const titleEl = document.getElementById('inspModalTitle');
+            const btnEl = document.getElementById('inspSubmitBtn');
+            const btnTextEl = document.getElementById('inspSubmitBtnText');
+            const chkPayLabel = document.getElementById('chkPaymentLabel');
+
+            if (mode === 'handover') {
+                titleEl.innerText = 'Biên bản bàn giao xe điện tử (Digital Check-in)';
+                document.getElementById('inspOdometerInput').value = handoverData.odo;
+                setFuelPreset(handoverData.fuel);
+                document.getElementById('inspNotesInput').value = handoverData.notes;
+                setSlotExistingPreview('Front', handoverData.front);
+                setSlotExistingPreview('Rear', handoverData.rear);
+                setSlotExistingPreview('Left', handoverData.left);
+                setSlotExistingPreview('Right', handoverData.right);
+                chkPayLabel.innerText = 'Đã thu 70% tiền thuê còn lại (@remainingToCollect.ToString("N0")đ)';
+                btnEl.style.backgroundColor = '#10b981';
+                btnEl.style.borderColor = '#10b981';
+                btnTextEl.innerText = doTransition ? 'Xác nhận Bàn giao xe & Lưu biên bản' : 'Lưu cập nhật biên bản giao xe';
+            } else {
+                titleEl.innerText = 'Biên bản nhận lại xe điện tử (Digital Check-out)';
+                document.getElementById('inspOdometerInput').value = returnData.odo;
+                setFuelPreset(returnData.fuel);
+                document.getElementById('inspNotesInput').value = returnData.notes;
+                setSlotExistingPreview('Front', returnData.front);
+                setSlotExistingPreview('Rear', returnData.rear);
+                setSlotExistingPreview('Left', returnData.left);
+                setSlotExistingPreview('Right', returnData.right);
+                chkPayLabel.innerText = 'Đã kiểm tra ngoại thất, phụ kiện & đối chiếu công tơ mét';
+                btnEl.style.backgroundColor = '#0284c7';
+                btnEl.style.borderColor = '#0284c7';
+                btnTextEl.innerText = doTransition ? 'Xác nhận Nhận lại xe & Hoàn tất đơn' : 'Lưu cập nhật biên bản nhận xe';
+            }
+
+            updateLiveOdoCalc();
+            const modalEl = document.getElementById('digitalInspectionModal');
+            const bsModal = bootstrap.Modal.getOrCreateInstance(modalEl);
+            bsModal.show();
+        }
+
+        function submitInspectionForm() {
+            const odoVal = parseInt(document.getElementById('inspOdometerInput').value);
+            if (isNaN(odoVal) || odoVal < 0) {
+                Swal.fire({ icon: 'warning', title: 'Thiếu số ODO', text: 'Vui lòng nhập số km công tơ mét hiện tại của xe.' });
+                return;
+            }
+
+            const formEl = document.getElementById('digitalInspectionForm');
+            const formData = new FormData(formEl);
+            formData.append('__RequestVerificationToken', getCsrfToken());
+
+            let endpoint = '/CarOwner/Orders/SaveInspection';
+            if (currentStatusTransition) {
+                endpoint = currentInspMode === 'handover'
+                    ? '/CarOwner/Orders/ConfirmHandover'
+                    : '/CarOwner/Orders/ConfirmReturn';
+            }
+
+            const btn = document.getElementById('inspSubmitBtn');
+            btn.disabled = true;
+
+            fetch(endpoint, {
+                method: 'POST',
+                body: formData
+            })
+            .then(r => r.json())
+            .then(data => {
+                btn.disabled = false;
+                if (data.success) {
+                    const modalEl = document.getElementById('digitalInspectionModal');
+                    const bsModal = bootstrap.Modal.getInstance(modalEl);
+                    if (bsModal) bsModal.hide();
+
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Thành công!',
+                        text: data.message,
+                        timer: 1800,
+                        showConfirmButton: false
+                    }).then(() => {
+                        window.location.reload();
+                    });
+                } else {
+                    Swal.fire({ icon: 'error', title: 'Không thể lưu biên bản', text: data.message });
+                }
+            })
+            .catch(err => {
+                btn.disabled = false;
+                Swal.fire({ icon: 'error', title: 'Lỗi kết nối', text: err.message || 'Vui lòng thử lại.' });
+            });
+        }
+
+        function previewLightbox(imgUrl, caption) {
+            Swal.fire({
+                title: caption,
+                imageUrl: imgUrl,
+                imageAlt: caption,
+                width: 680,
+                showConfirmButton: false,
+                showCloseButton: true
+            });
+        }
 
         function toggleIdentityReveal() {
             isRevealed = !isRevealed;

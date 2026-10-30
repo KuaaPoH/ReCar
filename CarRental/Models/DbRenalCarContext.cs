@@ -73,6 +73,8 @@ public partial class DbRenalCarContext : DbContext
 
     public virtual DbSet<CarAmenity> CarAmenities { get; set; }
 
+    public virtual DbSet<VehicleInspection> VehicleInspections { get; set; }
+
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -488,6 +490,32 @@ public partial class DbRenalCarContext : DbContext
                 .WithMany(p => p.CarAmenities)
                 .HasForeignKey(d => d.AmenityId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<VehicleInspection>(entity =>
+        {
+            entity.HasKey(e => e.InspectionId);
+            entity.ToTable("vehicle_inspections");
+
+            entity.HasIndex(e => new { e.OrderId, e.InspectionType }).IsUnique();
+
+            entity.Property(e => e.InspectionType).HasMaxLength(20).IsRequired();
+            entity.Property(e => e.FrontImage).HasMaxLength(255);
+            entity.Property(e => e.RearImage).HasMaxLength(255);
+            entity.Property(e => e.LeftImage).HasMaxLength(255);
+            entity.Property(e => e.RightImage).HasMaxLength(255);
+            entity.Property(e => e.Notes).HasMaxLength(1000);
+            entity.Property(e => e.CreatedAt).HasColumnType("datetime");
+
+            entity.HasOne(d => d.Order)
+                .WithMany()
+                .HasForeignKey(d => d.OrderId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(d => d.Car)
+                .WithMany()
+                .HasForeignKey(d => d.CarId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
         OnModelCreatingPartial(modelBuilder);

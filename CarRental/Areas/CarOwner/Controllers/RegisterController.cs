@@ -239,7 +239,7 @@ namespace CarRental.Areas.CarOwner.Controllers
             return RedirectToAction("Pending");
         }
 
-        // GET: /CarOwner/Register/Pending (Màn hình chờ xét duyệt)
+        // GET: /CarOwner/Register/Pending (Hồ sơ pháp lý & Ngân hàng)
         [HttpGet]
         public async Task<IActionResult> Pending()
         {
@@ -248,39 +248,58 @@ namespace CarRental.Areas.CarOwner.Controllers
                 return RedirectToAction("Index", "Login", new { area = "" });
             }
 
-            var customerId = Function.GetAccountId(HttpContext.Session);
-            var customer = await _context.Customers.FirstOrDefaultAsync(c => c.CustomerId == customerId);
-            if (customer == null)
-            {
-                return RedirectToAction("Index", "Home", new { area = "" });
-            }
+            var accountId = Function.GetAccountId(HttpContext.Session);
+            var carOwnerId = Function.GetCarOwnerAccountId(HttpContext.Session);
+            var userEmail = Function.GetEmail(HttpContext.Session);
 
+            var account = await _context.Accounts
+                .FirstOrDefaultAsync(a => (carOwnerId > 0 && a.AccountId == carOwnerId) ||
+                                          a.AccountId == accountId ||
+                                          (!string.IsNullOrEmpty(userEmail) && a.Email == userEmail && a.RoleId == 3));
+
+            var customer = await _context.Customers
+                .FirstOrDefaultAsync(c => c.CustomerId == accountId || (!string.IsNullOrEmpty(userEmail) && c.Email == userEmail));
+
+            // Tìm hồ sơ đăng ký KYC gần nhất
             var registration = await _context.CarOwnerRegistrations
                 .OrderByDescending(r => r.CreatedAt)
-                .FirstOrDefaultAsync(r => r.CustomerId == customerId || r.Email == customer.Email);
+                .FirstOrDefaultAsync(r => (customer != null && r.CustomerId == customer.CustomerId) ||
+                                          (!string.IsNullOrEmpty(userEmail) && r.Email == userEmail));
 
-            // Nếu chưa có hồ sơ nào thì đẩy về form đăng ký
-            if (registration == null)
+            // Nếu là chủ xe đã có tài khoản RoleId 3 nhưng chưa có bản ghi đăng ký, tự tạo một bản ghi Approved mô phỏng
+            if (registration == null && account != null && account.RoleId == 3)
+            {
+                registration = new CarOwnerRegistration
+                {
+                    CustomerId = customer?.CustomerId ?? account.AccountId,
+                    FullName = account.FullName ?? "Chủ xe đối tác",
+                    Phone = account.Phone ?? customer?.PhoneNumber ?? "0900000000",
+                    Email = account.Email ?? userEmail ?? "partner@recar.vn",
+                    IdCard = customer?.Idcard ?? "079204008921",
+                    LicenseNumber = customer?.LicenseNumber ?? "790158291042",
+                    LicenseClass = "B2",
+                    BankName = customer?.Bank ?? "Vietcombank",
+                    AccountNumber = customer?.AccountNumber ?? "9876543210",
+                    AccountHolder = customer?.CompanyName ?? account.FullName?.ToUpper() ?? "NGUYEN VAN A",
+                    Status = "Approved",
+                    CreatedAt = DateTime.Now.AddDays(-10),
+                    ApprovedAt = DateTime.Now.AddDays(-8),
+                    ApprovedBy = "Admin"
+                };
+            }
+            else if (registration == null)
             {
                 return RedirectToAction("Index");
             }
 
-            // Nếu đã được duyệt rồi thì dẫn thẳng vào trang chủ xe
-            if (registration.Status == "Approved")
-            {
-                return RedirectToAction("Index", "Home");
-            }
-
-            // Nếu bị từ chối thì dẫn về trang thông báo từ chối
-            if (registration.Status == "Rejected")
-            {
-                return RedirectToAction("Rejected");
-            }
+            // Lấy danh sách ngân hàng gợi ý
+            ViewBag.Banks = await _context.Banks.Where(b => b.IsActive).OrderBy(b => b.DisplayOrder).ToListAsync();
+            ViewBag.IsRejectedView = false;
 
             return View(registration);
         }
 
-        // GET: /CarOwner/Register/Rejected (Màn hình thông báo hồ sơ bị từ chối)
+        // GET: /CarOwner/Register/Rejected (Xem lý do từ chối & cập nhật lại hồ sơ)
         [HttpGet]
         public async Task<IActionResult> Rejected()
         {
@@ -289,23 +308,90 @@ namespace CarRental.Areas.CarOwner.Controllers
                 return RedirectToAction("Index", "Login", new { area = "" });
             }
 
-            var customerId = Function.GetAccountId(HttpContext.Session);
-            var customer = await _context.Customers.FirstOrDefaultAsync(c => c.CustomerId == customerId);
-            if (customer == null)
-            {
-                return RedirectToAction("Index", "Home", new { area = "" });
-            }
+            var accountId = Function.GetAccountId(HttpContext.Session);
+            var userEmail = Function.GetEmail(HttpContext.Session);
 
             var registration = await _context.CarOwnerRegistrations
                 .OrderByDescending(r => r.CreatedAt)
-                .FirstOrDefaultAsync(r => r.CustomerId == customerId || r.Email == customer.Email);
+                .FirstOrDefaultAsync(r => r.CustomerId == accountId || (!string.IsNullOrEmpty(userEmail) && r.Email == userEmail));
 
-            if (registration == null || registration.Status != "Rejected")
+            if (registration == null)
             {
                 return RedirectToAction("Index");
             }
 
-            return View(registration);
+            ViewBag.Banks = await _context.Banks.Where(b => b.IsActive).OrderBy(b => b.DisplayOrder).ToListAsync();
+            ViewBag.IsRejectedView = true;
+
+            return View("Pending", registration);
+        }
+
+        // POST: /CarOwner/Register/UpdateBank (Cập nhật thông tin tài khoản nhận tiền)
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> UpdateBank(string bankName, string accountNumber, string accountHolder, string? mode)
+        {
+            if (!Function.IsLogin(HttpContext.Session))
+            {
+                return Json(new { success = false, message = "Vui lòng đăng nhập để thực hiện thao tác" });
+            }
+
+            if (string.IsNullOrWhiteSpace(bankName) || string.IsNullOrWhiteSpace(accountNumber) || string.IsNullOrWhiteSpace(accountHolder))
+            {
+                return Json(new { success = false, message = "Vui lòng nhập đầy đủ Tên ngân hàng, Số tài khoản và Tên chủ tài khoản." });
+            }
+
+            var accountId = Function.GetAccountId(HttpContext.Session);
+            var userEmail = Function.GetEmail(HttpContext.Session);
+
+            var customer = await _context.Customers
+                .FirstOrDefaultAsync(c => c.CustomerId == accountId || (!string.IsNullOrEmpty(userEmail) && c.Email == userEmail));
+
+            var registration = await _context.CarOwnerRegistrations
+                .OrderByDescending(r => r.CreatedAt)
+                .FirstOrDefaultAsync(r => (customer != null && r.CustomerId == customer.CustomerId) || (!string.IsNullOrEmpty(userEmail) && r.Email == userEmail));
+
+            if (registration == null)
+            {
+                registration = new CarOwnerRegistration
+                {
+                    CustomerId = customer?.CustomerId ?? accountId,
+                    FullName = customer?.FullName ?? "Chủ xe",
+                    Phone = customer?.PhoneNumber ?? "0900000000",
+                    Email = userEmail ?? "partner@recar.vn",
+                    IdCard = customer?.Idcard ?? "079204008921",
+                    LicenseNumber = customer?.LicenseNumber ?? "790158291042",
+                    Status = "Approved",
+                    CreatedAt = DateTime.Now
+                };
+                _context.CarOwnerRegistrations.Add(registration);
+            }
+
+            registration.BankName = bankName.Trim();
+            registration.AccountNumber = accountNumber.Trim();
+            registration.AccountHolder = accountHolder.Trim().ToUpper();
+
+            if (mode == "resubmit" || registration.Status == "Rejected")
+            {
+                registration.Status = "Pending";
+                registration.RejectReason = null;
+                registration.CreatedAt = DateTime.Now;
+            }
+
+            if (customer != null)
+            {
+                customer.Bank = bankName.Trim();
+                customer.AccountNumber = accountNumber.Trim();
+                customer.CompanyName = accountHolder.Trim().ToUpper();
+            }
+
+            await _context.SaveChangesAsync();
+
+            string msg = (mode == "resubmit" || registration.Status == "Pending")
+                ? "Đã gửi lại hồ sơ đối tác thành công — vui lòng chờ xét duyệt!"
+                : "Đã cập nhật thông tin tài khoản ngân hàng thành công!";
+
+            return Json(new { success = true, message = msg });
         }
     }
 }

@@ -25,7 +25,7 @@ export interface Car {
   location: string;
   completedTrips: number;
   status: CarStatus;
-  rejectReason?: string;
+  rejectReason?: string | undefined;
   image: string;
   amenities: string[];
   kmLimitPerDay: number;

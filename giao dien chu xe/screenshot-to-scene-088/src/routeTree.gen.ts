@@ -12,10 +12,13 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as CarOwnerRouteImport } from './routes/CarOwner'
 import { Route as CarOwnerIndexRouteImport } from './routes/CarOwner.index'
+import { Route as CarOwnerRoadmapRouteImport } from './routes/CarOwner.Roadmap'
 import { Route as CarOwnerCarsCreateRouteImport } from './routes/CarOwner.Cars.Create'
 import { Route as CarOwnerCarsIndexRouteImport } from './routes/CarOwner.Cars.Index'
 import { Route as CarOwnerHomeIndexRouteImport } from './routes/CarOwner.Home.Index'
 import { Route as CarOwnerOrdersIndexRouteImport } from './routes/CarOwner.Orders.Index'
+import { Route as CarOwnerRegisterPendingRouteImport } from './routes/CarOwner.Register.Pending'
+import { Route as CarOwnerRegisterRejectedRouteImport } from './routes/CarOwner.Register.Rejected'
 import { Route as CarOwnerCarsDetailsIdRouteImport } from './routes/CarOwner.Cars.Details.$id'
 import { Route as CarOwnerCarsEditIdRouteImport } from './routes/CarOwner.Cars.Edit.$id'
 import { Route as CarOwnerOrdersDetailsIdRouteImport } from './routes/CarOwner.Orders.Details.$id'
@@ -33,6 +36,11 @@ const CarOwnerRoute = CarOwnerRouteImport.update({
 const CarOwnerIndexRoute = CarOwnerIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => CarOwnerRoute,
+} as any)
+const CarOwnerRoadmapRoute = CarOwnerRoadmapRouteImport.update({
+  id: '/Roadmap',
+  path: '/Roadmap',
   getParentRoute: () => CarOwnerRoute,
 } as any)
 const CarOwnerCarsCreateRoute = CarOwnerCarsCreateRouteImport.update({
@@ -55,6 +63,17 @@ const CarOwnerOrdersIndexRoute = CarOwnerOrdersIndexRouteImport.update({
   path: '/Orders/Index',
   getParentRoute: () => CarOwnerRoute,
 } as any)
+const CarOwnerRegisterPendingRoute = CarOwnerRegisterPendingRouteImport.update({
+  id: '/Register/Pending',
+  path: '/Register/Pending',
+  getParentRoute: () => CarOwnerRoute,
+} as any)
+const CarOwnerRegisterRejectedRoute =
+  CarOwnerRegisterRejectedRouteImport.update({
+    id: '/Register/Rejected',
+    path: '/Register/Rejected',
+    getParentRoute: () => CarOwnerRoute,
+  } as any)
 const CarOwnerCarsDetailsIdRoute = CarOwnerCarsDetailsIdRouteImport.update({
   id: '/Cars/Details/$id',
   path: '/Cars/Details/$id',
@@ -74,22 +93,28 @@ const CarOwnerOrdersDetailsIdRoute = CarOwnerOrdersDetailsIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/CarOwner': typeof CarOwnerRouteWithChildren
+  '/CarOwner/Roadmap': typeof CarOwnerRoadmapRoute
   '/CarOwner/': typeof CarOwnerIndexRoute
   '/CarOwner/Cars/Create': typeof CarOwnerCarsCreateRoute
   '/CarOwner/Cars/Index': typeof CarOwnerCarsIndexRoute
   '/CarOwner/Home/Index': typeof CarOwnerHomeIndexRoute
   '/CarOwner/Orders/Index': typeof CarOwnerOrdersIndexRoute
+  '/CarOwner/Register/Pending': typeof CarOwnerRegisterPendingRoute
+  '/CarOwner/Register/Rejected': typeof CarOwnerRegisterRejectedRoute
   '/CarOwner/Cars/Details/$id': typeof CarOwnerCarsDetailsIdRoute
   '/CarOwner/Cars/Edit/$id': typeof CarOwnerCarsEditIdRoute
   '/CarOwner/Orders/Details/$id': typeof CarOwnerOrdersDetailsIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/CarOwner/Roadmap': typeof CarOwnerRoadmapRoute
   '/CarOwner': typeof CarOwnerIndexRoute
   '/CarOwner/Cars/Create': typeof CarOwnerCarsCreateRoute
   '/CarOwner/Cars/Index': typeof CarOwnerCarsIndexRoute
   '/CarOwner/Home/Index': typeof CarOwnerHomeIndexRoute
   '/CarOwner/Orders/Index': typeof CarOwnerOrdersIndexRoute
+  '/CarOwner/Register/Pending': typeof CarOwnerRegisterPendingRoute
+  '/CarOwner/Register/Rejected': typeof CarOwnerRegisterRejectedRoute
   '/CarOwner/Cars/Details/$id': typeof CarOwnerCarsDetailsIdRoute
   '/CarOwner/Cars/Edit/$id': typeof CarOwnerCarsEditIdRoute
   '/CarOwner/Orders/Details/$id': typeof CarOwnerOrdersDetailsIdRoute
@@ -98,11 +123,14 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/CarOwner': typeof CarOwnerRouteWithChildren
+  '/CarOwner/Roadmap': typeof CarOwnerRoadmapRoute
   '/CarOwner/': typeof CarOwnerIndexRoute
   '/CarOwner/Cars/Create': typeof CarOwnerCarsCreateRoute
   '/CarOwner/Cars/Index': typeof CarOwnerCarsIndexRoute
   '/CarOwner/Home/Index': typeof CarOwnerHomeIndexRoute
   '/CarOwner/Orders/Index': typeof CarOwnerOrdersIndexRoute
+  '/CarOwner/Register/Pending': typeof CarOwnerRegisterPendingRoute
+  '/CarOwner/Register/Rejected': typeof CarOwnerRegisterRejectedRoute
   '/CarOwner/Cars/Details/$id': typeof CarOwnerCarsDetailsIdRoute
   '/CarOwner/Cars/Edit/$id': typeof CarOwnerCarsEditIdRoute
   '/CarOwner/Orders/Details/$id': typeof CarOwnerOrdersDetailsIdRoute
@@ -112,22 +140,28 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/CarOwner'
+    | '/CarOwner/Roadmap'
     | '/CarOwner/'
     | '/CarOwner/Cars/Create'
     | '/CarOwner/Cars/Index'
     | '/CarOwner/Home/Index'
     | '/CarOwner/Orders/Index'
+    | '/CarOwner/Register/Pending'
+    | '/CarOwner/Register/Rejected'
     | '/CarOwner/Cars/Details/$id'
     | '/CarOwner/Cars/Edit/$id'
     | '/CarOwner/Orders/Details/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/CarOwner/Roadmap'
     | '/CarOwner'
     | '/CarOwner/Cars/Create'
     | '/CarOwner/Cars/Index'
     | '/CarOwner/Home/Index'
     | '/CarOwner/Orders/Index'
+    | '/CarOwner/Register/Pending'
+    | '/CarOwner/Register/Rejected'
     | '/CarOwner/Cars/Details/$id'
     | '/CarOwner/Cars/Edit/$id'
     | '/CarOwner/Orders/Details/$id'
@@ -135,11 +169,14 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/CarOwner'
+    | '/CarOwner/Roadmap'
     | '/CarOwner/'
     | '/CarOwner/Cars/Create'
     | '/CarOwner/Cars/Index'
     | '/CarOwner/Home/Index'
     | '/CarOwner/Orders/Index'
+    | '/CarOwner/Register/Pending'
+    | '/CarOwner/Register/Rejected'
     | '/CarOwner/Cars/Details/$id'
     | '/CarOwner/Cars/Edit/$id'
     | '/CarOwner/Orders/Details/$id'
@@ -173,6 +210,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CarOwnerIndexRouteImport
       parentRoute: typeof CarOwnerRoute
     }
+    '/CarOwner/Roadmap': {
+      id: '/CarOwner/Roadmap'
+      path: '/Roadmap'
+      fullPath: '/CarOwner/Roadmap'
+      preLoaderRoute: typeof CarOwnerRoadmapRouteImport
+      parentRoute: typeof CarOwnerRoute
+    }
     '/CarOwner/Cars/Create': {
       id: '/CarOwner/Cars/Create'
       path: '/Cars/Create'
@@ -201,6 +245,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CarOwnerOrdersIndexRouteImport
       parentRoute: typeof CarOwnerRoute
     }
+    '/CarOwner/Register/Pending': {
+      id: '/CarOwner/Register/Pending'
+      path: '/Register/Pending'
+      fullPath: '/CarOwner/Register/Pending'
+      preLoaderRoute: typeof CarOwnerRegisterPendingRouteImport
+      parentRoute: typeof CarOwnerRoute
+    }
+    '/CarOwner/Register/Rejected': {
+      id: '/CarOwner/Register/Rejected'
+      path: '/Register/Rejected'
+      fullPath: '/CarOwner/Register/Rejected'
+      preLoaderRoute: typeof CarOwnerRegisterRejectedRouteImport
+      parentRoute: typeof CarOwnerRoute
+    }
     '/CarOwner/Cars/Details/$id': {
       id: '/CarOwner/Cars/Details/$id'
       path: '/Cars/Details/$id'
@@ -226,22 +284,28 @@ declare module '@tanstack/react-router' {
 }
 
 interface CarOwnerRouteChildren {
+  CarOwnerRoadmapRoute: typeof CarOwnerRoadmapRoute
   CarOwnerIndexRoute: typeof CarOwnerIndexRoute
   CarOwnerCarsCreateRoute: typeof CarOwnerCarsCreateRoute
   CarOwnerCarsIndexRoute: typeof CarOwnerCarsIndexRoute
   CarOwnerHomeIndexRoute: typeof CarOwnerHomeIndexRoute
   CarOwnerOrdersIndexRoute: typeof CarOwnerOrdersIndexRoute
+  CarOwnerRegisterPendingRoute: typeof CarOwnerRegisterPendingRoute
+  CarOwnerRegisterRejectedRoute: typeof CarOwnerRegisterRejectedRoute
   CarOwnerCarsDetailsIdRoute: typeof CarOwnerCarsDetailsIdRoute
   CarOwnerCarsEditIdRoute: typeof CarOwnerCarsEditIdRoute
   CarOwnerOrdersDetailsIdRoute: typeof CarOwnerOrdersDetailsIdRoute
 }
 
 const CarOwnerRouteChildren: CarOwnerRouteChildren = {
+  CarOwnerRoadmapRoute: CarOwnerRoadmapRoute,
   CarOwnerIndexRoute: CarOwnerIndexRoute,
   CarOwnerCarsCreateRoute: CarOwnerCarsCreateRoute,
   CarOwnerCarsIndexRoute: CarOwnerCarsIndexRoute,
   CarOwnerHomeIndexRoute: CarOwnerHomeIndexRoute,
   CarOwnerOrdersIndexRoute: CarOwnerOrdersIndexRoute,
+  CarOwnerRegisterPendingRoute: CarOwnerRegisterPendingRoute,
+  CarOwnerRegisterRejectedRoute: CarOwnerRegisterRejectedRoute,
   CarOwnerCarsDetailsIdRoute: CarOwnerCarsDetailsIdRoute,
   CarOwnerCarsEditIdRoute: CarOwnerCarsEditIdRoute,
   CarOwnerOrdersDetailsIdRoute: CarOwnerOrdersDetailsIdRoute,

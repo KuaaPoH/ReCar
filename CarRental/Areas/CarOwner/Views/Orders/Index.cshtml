@@ -453,11 +453,25 @@
                         <div class="text-danger fw-semibold mb-1">
                             <i data-lucide="alert-triangle" class="d-inline size-4 me-1"></i>Lưu ý trước khi giao chìa khóa:
                         </div>
-                        <ul class="ps-3 mb-0 text-muted">
+                        <ul class="ps-3 mb-2 text-muted">
                             <li>Đã đối chiếu bản gốc CCCD & GPLX của người thuê.</li>
                             <li>Đã thu 70% số tiền thuê còn lại (tiền mặt / chuyển khoản).</li>
-                            <li>Đã kiểm tra số km (ODO) và mức xăng/pin hiện tại.</li>
                         </ul>
+                        <div class="row g-2 mb-2">
+                            <div class="col-6">
+                                <label class="form-label fw-semibold mb-1" style="font-size:0.75rem;">Số ODO lúc giao (km)</label>
+                                <input type="number" id="swalOdo" class="form-control form-control-sm" value="25000" min="0" />
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label fw-semibold mb-1" style="font-size:0.75rem;">Mức xăng/pin (%)</label>
+                                <input type="number" id="swalFuel" class="form-control form-control-sm" value="85" min="5" max="100" />
+                            </div>
+                        </div>
+                        <div class="mt-2 pt-2 border-top text-center">
+                            <a href="/CarOwner/Orders/Details/${orderId}#digitalInspectionSection" class="text-primary fw-semibold text-decoration-none">
+                                📸 Mở biên bản đầy đủ có chụp ảnh 4 góc xe →
+                            </a>
+                        </div>
                     </div>
                 `,
                 icon: 'question',
@@ -465,12 +479,20 @@
                 confirmButtonColor: '#10b981',
                 cancelButtonColor: '#64748b',
                 confirmButtonText: 'Xác nhận bàn giao',
-                cancelButtonText: 'Đóng lại'
+                cancelButtonText: 'Đóng lại',
+                preConfirm: () => {
+                    return {
+                        odo: document.getElementById('swalOdo') ? document.getElementById('swalOdo').value : '',
+                        fuel: document.getElementById('swalFuel') ? document.getElementById('swalFuel').value : ''
+                    };
+                }
             }).then((result) => {
                 if (result.isConfirmed) {
                     Swal.showLoading();
                     var formData = new FormData();
                     formData.append('id', orderId);
+                    if (result.value && result.value.odo) formData.append('Odometer', result.value.odo);
+                    if (result.value && result.value.fuel) formData.append('FuelLevel', result.value.fuel);
                     formData.append('__RequestVerificationToken', getCsrfToken());
 
                     fetch('/CarOwner/Orders/ConfirmHandover', {
@@ -524,11 +546,25 @@
                         <div class="text-success fw-semibold mb-1">
                             <i data-lucide="shield-check" class="d-inline size-4 me-1"></i>Kiểm tra phương tiện hoàn trả:
                         </div>
-                        <ul class="ps-3 mb-0 text-muted">
+                        <ul class="ps-3 mb-2 text-muted">
                             <li>Kiểm tra tình trạng ngoại thất, lốp và phụ kiện kèm xe.</li>
-                            <li>Đối chiếu mức xăng/pin và số km phát sinh nếu có.</li>
                             <li>Xe sẽ tự động chuyển về <strong>Sẵn sàng</strong> trên sàn (+1 chuyến đi thành công).</li>
                         </ul>
+                        <div class="row g-2 mb-2">
+                            <div class="col-6">
+                                <label class="form-label fw-semibold mb-1" style="font-size:0.75rem;">Số ODO lúc trả (km)</label>
+                                <input type="number" id="swalReturnOdo" class="form-control form-control-sm" value="25180" min="0" />
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label fw-semibold mb-1" style="font-size:0.75rem;">Mức xăng/pin lúc trả (%)</label>
+                                <input type="number" id="swalReturnFuel" class="form-control form-control-sm" value="85" min="5" max="100" />
+                            </div>
+                        </div>
+                        <div class="mt-2 pt-2 border-top text-center">
+                            <a href="/CarOwner/Orders/Details/${orderId}#digitalInspectionSection" class="text-primary fw-semibold text-decoration-none">
+                                📸 Mở biên bản nhận xe có chụp ảnh 4 góc & tính phụ phí km →
+                            </a>
+                        </div>
                     </div>
                 `,
                 icon: 'info',
@@ -536,12 +572,20 @@
                 confirmButtonColor: '#0284c7',
                 cancelButtonColor: '#64748b',
                 confirmButtonText: 'Xác nhận nhận lại xe',
-                cancelButtonText: 'Để sau'
+                cancelButtonText: 'Để sau',
+                preConfirm: () => {
+                    return {
+                        odo: document.getElementById('swalReturnOdo') ? document.getElementById('swalReturnOdo').value : '',
+                        fuel: document.getElementById('swalReturnFuel') ? document.getElementById('swalReturnFuel').value : ''
+                    };
+                }
             }).then((result) => {
                 if (result.isConfirmed) {
                     Swal.showLoading();
                     var formData = new FormData();
                     formData.append('id', orderId);
+                    if (result.value && result.value.odo) formData.append('Odometer', result.value.odo);
+                    if (result.value && result.value.fuel) formData.append('FuelLevel', result.value.fuel);
                     formData.append('__RequestVerificationToken', getCsrfToken());
 
                     fetch('/CarOwner/Orders/ConfirmReturn', {

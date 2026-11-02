@@ -109,14 +109,14 @@
                             </div>
                             <div class="col-sm-4">
                                 <div class="p-3 bg-white rounded-3 border border-success-subtle h-100">
-                                    <span class="text-success fw-semibold d-block mb-1">Tiền cọc giữ chỗ (30%)</span>
+                                    <span class="text-success fw-semibold d-block mb-1">@(remainAmt == 0 ? "Đã thanh toán qua sàn (100%)" : "Tiền cọc giữ chỗ (30%)")</span>
                                     <strong class="fs-6 text-success">@depositAmt.ToString("N0")đ</strong>
                                 </div>
                             </div>
                             <div class="col-sm-4">
                                 <div class="p-3 bg-white rounded-3 border h-100">
-                                    <span class="text-muted d-block mb-1">Thanh toán khi nhận xe (70%)</span>
-                                    <strong class="fs-6 text-primary">@remainAmt.ToString("N0")đ</strong>
+                                    <span class="text-muted d-block mb-1">Thanh toán khi nhận xe</span>
+                                    <strong class="fs-6 @(remainAmt == 0 ? "text-success" : "text-primary")">@(remainAmt == 0 ? "0đ (Đã thanh toán đủ)" : remainAmt.ToString("N0") + "đ")</strong>
                                 </div>
                             </div>
                         </div>

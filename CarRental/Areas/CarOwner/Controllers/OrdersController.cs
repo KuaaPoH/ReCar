@@ -235,7 +235,7 @@ namespace CarRental.Areas.CarOwner.Controllers
                     OrderId = orderId,
                     CarId = carId,
                     InspectionType = inspectionType,
-                    CreatedAt = DateTime.Now,
+                    CreatedAt = Function.NowVn,
                     CreatedBy = ownerId
                 };
                 _context.VehicleInspections.Add(record);
@@ -254,7 +254,7 @@ namespace CarRental.Areas.CarOwner.Controllers
             if (vm.RightImage != null && vm.RightImage.Length > 0)
                 record.RightImage = "/files/inspections/" + Function.UploadImage(vm.RightImage, "inspections");
 
-            record.CreatedAt = DateTime.Now;
+            record.CreatedAt = Function.NowVn;
             record.CreatedBy = ownerId;
             return record;
         }
@@ -354,7 +354,7 @@ namespace CarRental.Areas.CarOwner.Controllers
                 var record = await UpsertInspectionAsync(order.OrderId, firstCar.CarId, ownerId, VehicleInspection.TypeHandover, vm);
                 if (record != null)
                 {
-                    string checkInLog = $"[Check-in {DateTime.Now:dd/MM/yyyy HH:mm}]: ODO {record.Odometer:N0} km, Nhiên liệu {record.FuelLevel}%";
+                    string checkInLog = $"[Check-in {Function.NowVn:dd/MM/yyyy HH:mm}]: ODO {record.Odometer:N0} km, Nhiên liệu {record.FuelLevel}%";
                     order.Notes = string.IsNullOrEmpty(order.Notes) ? checkInLog : $"{order.Notes} | {checkInLog}";
                 }
             }
@@ -410,7 +410,7 @@ namespace CarRental.Areas.CarOwner.Controllers
 
                 // Cập nhật trạng thái đơn hàng sang 5: Hoàn tất
                 order.StatusId = 5;
-                order.ReturnDate = DateOnly.FromDateTime(DateTime.Now);
+                order.ReturnDate = DateOnly.FromDateTime(Function.NowVn);
 
                 Car? firstCar = null;
                 // Cập nhật trạng thái xe trở về "Sẵn sàng", mở lại trên sàn và tăng Trips + 1
@@ -453,7 +453,7 @@ namespace CarRental.Areas.CarOwner.Controllers
                                 : $" (Đã đi {drivenKm:N0} km, trong hạn mức {allowedKm:N0} km)";
                         }
 
-                        string checkOutLog = $"[Check-out {DateTime.Now:dd/MM/yyyy HH:mm}]: ODO {record.Odometer:N0} km, Nhiên liệu {record.FuelLevel}%{summaryExtra}";
+                        string checkOutLog = $"[Check-out {Function.NowVn:dd/MM/yyyy HH:mm}]: ODO {record.Odometer:N0} km, Nhiên liệu {record.FuelLevel}%{summaryExtra}";
                         order.Notes = string.IsNullOrEmpty(order.Notes) ? checkOutLog : $"{order.Notes} | {checkOutLog}";
                     }
                 }
@@ -512,8 +512,8 @@ namespace CarRental.Areas.CarOwner.Controllers
             order.StatusId = 2; // Đã Huỷ
             string cancelNote = string.IsNullOrWhiteSpace(reason) ? "Theo thỏa thuận giữa hai bên" : reason.Trim();
             order.Notes = string.IsNullOrEmpty(order.Notes) 
-                ? $"[Chủ xe hủy đơn lúc {DateTime.Now:dd/MM/yyyy HH:mm}: {cancelNote}]"
-                : $"{order.Notes} | [Chủ xe hủy đơn lúc {DateTime.Now:dd/MM/yyyy HH:mm}: {cancelNote}]";
+                ? $"[Chủ xe hủy đơn lúc {Function.NowVn:dd/MM/yyyy HH:mm}: {cancelNote}]"
+                : $"{order.Notes} | [Chủ xe hủy đơn lúc {Function.NowVn:dd/MM/yyyy HH:mm}: {cancelNote}]";
 
             // Giải phóng xe về "Sẵn sàng"
             foreach (var detail in order.OrderDetails.Where(od => od.Car != null && od.Car.OwnerId == ownerId))

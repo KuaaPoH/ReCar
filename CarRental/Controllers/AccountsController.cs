@@ -353,37 +353,102 @@ namespace CarRental.Controllers
         [HttpGet]
         public IActionResult OrderDetails(int id)
         {
+            // Kiểm tra trạng thái đăng nhập
+            if (!Function.IsLogin(HttpContext.Session))
+            {
+                return RedirectToAction("Index", "Login", new { returnUrl = HttpContext.Request.Path });
+            }
+
+            var customerId = Function.GetAccountId(HttpContext.Session);
+            var userEmail = Function.GetEmail(HttpContext.Session);
+            var customer = _context.Customers.FirstOrDefault(c => c.CustomerId == customerId || (!string.IsNullOrEmpty(userEmail) && c.Email == userEmail));
+            if (customer != null)
+            {
+                customerId = customer.CustomerId;
+            }
+
             var order = _context.CarRentalOrders
                 .Include(o => o.Status)
+                .Include(o => o.Customer)
                 .FirstOrDefault(p => p.OrderId == id);
             
             if (order == null)
             {
                 return NotFound();
             }
-            
-            var orderItems = _context.OrderDetails
-                .Where(od => od.OrderId == id)
-                .Join(_context.Cars,
-                        od => od.CarId,
-                        c => c.CarId,
-                        (od, c) => new OrderDetailVM
-                        {
-                            OrderDetailID = od.OrderId,
-                            CarName = c.CarName,
-                            Image = c.Image,
-                            Quantity = (int)od.Quantity,
-                            pickupDate = (DateTime)od.PickupDate,
-                            returnDate = (DateTime)od.ReturnDate,
 
-                        })
+            // Bảo vệ quyền riêng tư: chỉ người đặt hoặc Quản trị viên mới được xem chi tiết đơn
+            if (order.CustomerId != customerId && !Function.IsAdmin(HttpContext.Session))
+            {
+                return RedirectToAction("Index", "Accounts");
+            }
+            
+            var orderDetailsQuery = _context.OrderDetails
+                .Include(od => od.Car)
+                    .ThenInclude(c => c.Owner)
+                .Where(od => od.OrderId == id)
                 .ToList();
-            ViewBag.OrderId = id; // Lưu OrderId vào ViewBag
-            ViewBag.StatusId = (int)(order.StatusId ?? 0); // Lưu StatusId vào ViewBag (StatusId = 2 là đã hủy)
-            ViewBag.StatusDescription = order.Status?.StatusDescription ?? ""; // Lưu mô tả trạng thái
+
+            var orderItems = orderDetailsQuery
+                .Select(od => new OrderDetailVM
+                {
+                    OrderDetailID = od.OrderId,
+                    CarName = od.Car?.CarName ?? "Ô tô ReCar",
+                    Image = od.Car?.Image ?? "/images/cars/car-sedan.jpg",
+                    Quantity = (int)(od.Quantity ?? 1),
+                    Price = od.Car?.Price ?? 0,
+                    pickupDate = od.PickupDate ?? DateTime.Now,
+                    returnDate = od.ReturnDate ?? DateTime.Now.AddDays(1)
+                })
+                .ToList();
+
+            var firstDetail = orderDetailsQuery.FirstOrDefault();
+            var car = firstDetail?.Car;
+            ViewBag.Car = car;
+            var carPolicy = CarPolicy.Parse(car);
+            ViewBag.CarPolicy = carPolicy;
+
+            int rentalDays = 1;
+            if (firstDetail?.PickupDate.HasValue == true && firstDetail?.ReturnDate.HasValue == true)
+            {
+                rentalDays = Math.Max(1, (int)(firstDetail.ReturnDate.Value.Date - firstDetail.PickupDate.Value.Date).TotalDays);
+            }
+            ViewBag.RentalDays = rentalDays;
+            int allowedKmTotal = rentalDays * carPolicy.MileageLimit;
+            ViewBag.AllowedKmTotal = allowedKmTotal;
+
+            // Truy vấn Biên bản bàn giao & đối chiếu xe (Check-in / Check-out)
+            var inspections = _context.VehicleInspections
+                .Where(vi => vi.OrderId == id)
+                .ToList();
+            var handover = inspections.FirstOrDefault(vi => vi.InspectionType == VehicleInspection.TypeHandover);
+            var returnInsp = inspections.FirstOrDefault(vi => vi.InspectionType == VehicleInspection.TypeReturn);
+            ViewBag.HandoverInspection = handover;
+            ViewBag.ReturnInspection = returnInsp;
+
+            int? drivenKm = (handover != null && returnInsp != null && returnInsp.Odometer >= handover.Odometer && handover.Odometer > 0)
+                ? (returnInsp.Odometer - handover.Odometer)
+                : (int?)null;
+            ViewBag.DrivenKm = drivenKm;
+
+            int overKm = drivenKm.HasValue ? Math.Max(0, drivenKm.Value - allowedKmTotal) : 0;
+            ViewBag.OverKm = overKm;
+            decimal overKmFee = overKm * carPolicy.ExtraFeePerKm;
+            ViewBag.OverKmFee = overKmFee;
+
+            int? fuelDiff = (handover != null && returnInsp != null)
+                ? (returnInsp.FuelLevel - handover.FuelLevel)
+                : (int?)null;
+            ViewBag.FuelDiff = fuelDiff;
+
+            ViewBag.OrderId = id;
+            ViewBag.StatusId = (int)(order.StatusId ?? 0);
+            ViewBag.StatusDescription = order.Status?.StatusDescription ?? "";
             ViewBag.Notes = order.Notes ?? "";
             ViewBag.Deposit = order.Deposit ?? 0;
             ViewBag.Payment = order.Payment ?? 0;
+            ViewBag.Customer = order.Customer;
+
             return View(orderItems);
         }
         [HttpPost]

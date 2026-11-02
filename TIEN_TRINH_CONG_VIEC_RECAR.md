@@ -641,23 +641,93 @@ Nhằm giúp đồ án tạo được ấn tượng mạnh mẽ với hội đ�
 - **Hoàn thành rà soát & thiết kế bổ sung phân hệ Khách hàng (User Portal):**
   - Khối xe tương tự chuẩn `.recar-car-card` & Lightbox xem ảnh lớn trên trang chi tiết xe (`Product/Details.cshtml`).
   - Giao diện Cẩm nang (`/Blog`) và Tin tức (`/News`) hiện đại với Featured Article, thanh tìm kiếm từ khóa, pill lọc chủ đề và trang chi tiết tạp chí xóa sạch code FloSun.
-  - Trang kết quả thanh toán đặt cọc 30% (`Cart/Success.cshtml` & `Cart/PaymentFail.cshtml`) chuẩn ReCar, loại bỏ hoàn toàn lỗi 404 FloSun cũ.
+  - Trang kết quả thanh toán đặt cọc 30% (`Cart/Success.cshtml` & `Cart/PaymentFail.cshtml`) chuẩn ReCar, loại bỏ #hoàn toàn lỗi 404 FloSun cũ
+
   - Chuẩn hóa chính sách pháp lý & điều khoản dịch vụ tại `Home/Privacy.cshtml`.
 - **Chất lượng mã nguồn:** Dự án ASP.NET Core (.NET 9) biên dịch sạch `0 Error(s)`.
 - **Cơ sở dữ liệu:** Đồng bộ đầy đủ các bảng và dữ liệu seed (`banks`, `amenities`, `car_amenities`, `vehicle_inspections`, `orderstatuses`).
 
 ---
 
-## 15. KẾ HOẠCH & CÁC HẠNG MỤC NÊN THỰC HIỆN Ở PHIÊN TIẾP THEO
+## 15. CẬP NHẬT TIẾN TRÌNH: ĐỒNG BỘ BIÊN BẢN BÀN GIAO & ĐỐI CHIẾU ODO VÀO PHÂN HỆ KHÁCH HÀNG (NGÀY 02/11/2026)
 
-1. **Phân hệ Quản trị viên (Admin Portal - `Areas/Admin`):**
-   - Rà soát giao diện các trang trong Admin (`/Admin/Home`, `/Admin/Product`, `/Admin/Orders`, `/Admin/UserManagement`, `/Admin/Blogs`, `/Admin/CarTypes`).
-   - Kiểm tra và đồng bộ giao diện Admin về chung phong cách Design System ReCar (bảng màu xanh navy `#0f172a`, xanh dương `#0284c7`, font chữ, card bo góc, typography).
-   - Tối ưu màn hình duyệt hồ sơ chủ xe mới (`CarOwner Approval`) và duyệt xe mới đăng tải.
-2. **Trang Quản lý Tài khoản Khách hàng (`/Accounts/Index`):**
-   - Kiểm tra tab "Đơn thuê của tôi" và tab "Hợp đồng": Đảm bảo hiển thị đầy đủ thông tin biên bản bàn giao xe điện tử (Check-in / Check-out) mà chủ xe đã tải lên để khách hàng cùng theo dõi minh bạch.
-3. **Kiểm thử Luồng End-to-End (E2E Testing):**
-   - Thực hiện 1 vòng kiểm thử trọn vẹn từ Khách hàng tìm xe -> Đặt cọc 30% VNPay -> Nhận thông báo Realtime -> Chủ xe bàn giao xe (chụp 4 ảnh check-in) -> Chủ xe nhận xe (check-out tính km) -> Admin theo dõi đơn hàng.
+### 15.1. Nâng Cấp Backend Truy Vấn Đối Chiếu ([AccountsController.cs](file:///d:/CarRental_TTCN/CarRental/Controllers/AccountsController.cs))
+1. **Kiểm soát bảo mật:** Bổ sung ràng buộc session đăng nhập và kiểm tra quyền sở hữu đơn hàng (chỉ khách đặt hoặc Quản trị viên mới được xem chi tiết đơn).
+2. **Truy vấn CSDL biên bản bàn giao (`VehicleInspections`):**
+   - Lấy đồng thời cả 2 mốc `handover` (Lúc nhận bàn giao xe) và `return` (Lúc hoàn tất trả xe).
+   - Nạp thông tin xe và cấu hình quy định vận hành (`CarPolicy`) gồm: Giới hạn km/ngày, Đơn giá phụ phí vượt km, Mức tiêu hao nhiên liệu.
+3. **Tự động tính toán số liệu hành trình:**
+   - Tính tổng hạn mức cho phép: `Tổng km = Số ngày thuê × Giới hạn km/ngày`.
+   - Tính quãng đường thực tế đã đi: `drivenKm = returnOdo - handoverOdo`.
+   - Tự động bắt phạt phụ phí vượt km: `overKm = drivenKm - allowedKm` ➜ `Phụ phí = overKm × Đơn giá phụ phí/km`.
+   - Đối chiếu mức hụt/đủ nhiên liệu xăng/pin (`fuelDiff`).
+
+### 15.2. Nâng Cấp Giao Diện Chi Tiết Đơn Thuê ([Views/Accounts/OrderDetails.cshtml](file:///d:/CarRental_TTCN/CarRental/Views/Accounts/OrderDetails.cshtml))
+1. **Thẻ Biên bản Bàn giao & Đối chiếu ODO Hiện trạng Xe (Check-in / Check-out):**
+   - Bảng 2 cột song song hiển thị đầy đủ chỉ số ODO monospace, mức xăng/pin có progress bar và ghi chú hiện trạng ở 2 mốc: *Lúc Nhận Xe* vs *Lúc Trả Xe*.
+   - Hỗ trợ hiển thị album ảnh thực tế (nếu chủ xe có chụp) kèm tính năng phóng to Modal Lightbox.
+2. **Hộp Tổng kết Đối chiếu Hành trình & Phụ phí Tự động:**
+   - Khi có đầy đủ 2 mốc ODO: Hệ thống hiển thị bảng tổng kết quãng đường đã đi so với hạn mức hợp đồng.
+   - Nếu vượt hạn mức: Hiển thị cảnh báo màu hổ phách bóc tách rõ số km vượt và số tiền phụ phí cần thanh toán thêm cho chủ xe.
+   - Nếu trong hạn mức: Hiển thị thông báo xanh lá xác nhận không phát sinh phụ phí.
+3. **Cập nhật Hợp đồng điện tử A4:**
+   - Bổ sung *Điều 3: Quy định hành trình & Đối chiếu công tơ mét (ODO)* vào bản in A4 của hợp đồng điện tử để đảm bảo tính pháp lý hoàn chỉnh.
+
+### 15.3. Tối Ưu Hóa Trang Danh Sách Đơn Hàng ([Views/Accounts/Index.cshtml](file:///d:/CarRental_TTCN/CarRental/Views/Accounts/Index.cshtml))
+- Bổ sung huy hiệu tinh tế `Có ODO` với biểu tượng đồng hồ tốc độ trên các đơn đã được chủ xe bàn giao.
+- Chuẩn hóa màu sắc trạng thái đơn hàng (Đã cọc 30%, Đang thuê, Hoàn tất, Đã hủy).
+
+### 15.4. Nâng Cấp Gói Thanh Toán Tại Trang Checkout ([Views/Cart/Checkout.cshtml](file:///d:/CarRental_TTCN/CarRental/Views/Cart/Checkout.cshtml) & [CartController.cs](file:///d:/CarRental_TTCN/CarRental/Controllers/CartController.cs))
+1. **Xóa bỏ tùy chọn "Đặt giữ chỗ 0đ không cọc" bất hợp lý:** Trong thực tế thuê xe ô tô, không có sàn nào cho phép giữ chỗ 0 đồng vì rủi ro bỏ bom xe rất cao.
+2. **Cung cấp 2 gói thanh toán chuẩn thương mại điện tử:**
+   - **Gói 1: Thanh toán đặt cọc 30% qua VNPay (Khuyên dùng):** Thanh toán trước 30% qua VNPay để khóa lịch xe, 70% còn lại thanh toán cho chủ xe khi nhận bàn giao xe.
+   - **Gói 2: Thanh toán toàn bộ 100% qua VNPay (Trọn gói):** Thanh toán đủ 100% qua VNPay một lần duy nhất, khi nhận xe không cần trả thêm tiền thuê xe (tiền cần thu khi nhận xe = 0 đ).
+3. **Đồng bộ bảng tính tiền tương tác thời gian thực:** Khi người dùng chuyển đổi giữa 2 gói, bảng chi tiết thanh toán và nút xác nhận tự động cập nhật số tiền tương ứng mà không cần tải lại trang.
+4. **Đồng bộ phân hệ Chủ xe & Chi tiết đơn:** Khi khách chọn thanh toán 100%, chủ xe khi mở đơn sẽ thấy ngay thông báo *"Khách đã thanh toán 100% qua sàn (Không thu thêm tiền thuê khi giao xe)"*.
+
+### 15.5. Nâng Cấp Chuẩn Hóa Múi Giờ Việt Nam (UTC+7 / ICT) & Timeline Trạng Thái Đơn Hàng
+1. **Cơ chế thời gian chuẩn Việt Nam ([`Function.cs`](file:///d:/CarRental_TTCN/CarRental/Utilities/Function.cs)):**
+   - Bổ sung thuộc tính `Function.NowVn` tự động phát hiện múi giờ hệ thống (`SE Asia Standard Time` / `Asia/Ho_Chi_Minh` / fallback `UTC+7`).
+   - Xây dựng hàm `FormatSafeDateTime`: Tự động nhận diện trường hợp ngày thuần túy (giờ mặc định `00:00`) và chuyển đổi sang khung giờ tiêu chuẩn ban ngày (`09:00` khi nhận xe, `18:00` khi trả xe), xóa bỏ hoàn toàn hiện tượng hiển thị giờ nửa đêm `00:00`.
+   - Nâng cấp hàm `ExtractTimeFromNotes`: Hỗ trợ mảng từ khóa đa dạng (tiếng Việt có dấu, không dấu, viết tắt, chống lỗi mã hóa encoding) và regex thông minh để bóc tách chính xác mốc giờ phút `HH:mm - dd/MM/yyyy`.
+2. **Đồng bộ hóa Backend ghi nhận thời gian ([`OrdersController.cs`](file:///d:/CarRental_TTCN/CarRental/Areas/CarOwner/Controllers/OrdersController.cs) & [`CartController.cs`](file:///d:/CarRental_TTCN/CarRental/Controllers/CartController.cs)):**
+   - Thay thế toàn bộ `DateTime.Now` bằng `Function.NowVn` khi tạo đơn mới, khi VNPay callback xác nhận thanh toán, khi lập biên bản Check-in bàn giao xe và Check-out nhận lại xe.
+3. **Trực quan hóa Timeline 4 mốc chuẩn giờ Việt Nam ([`Orders/Details.cshtml`](file:///d:/CarRental_TTCN/CarRental/Areas/CarOwner/Views/Orders/Details.cshtml)):**
+   - Cập nhật cả 2 khối Lịch trình nhận xe / Trả xe ở banner đầu trang và 4 mốc sự kiện trong Card *Lịch sử trạng thái*:
+     - **Mốc 1 (Đặt xe thành công):** Hiển thị `HH:mm - dd/MM/yyyy` theo giờ tạo đơn thực tế.
+     - **Mốc 2 (Đã thanh toán):** Hiển thị `HH:mm - dd/MM/yyyy` theo giờ ghi nhận VNPay.
+     - **Mốc 3 (Bàn giao xe):** Hiển thị chính xác giờ phút thực tế chủ xe lập biên bản Check-in (`handoverInspection.CreatedAt`), không còn `00:00`.
+     - **Mốc 4 (Hoàn tất):** Xóa bỏ dòng thời gian dự kiến khi chưa hoàn tất; chỉ hiển thị giờ phút thực tế kèm thông điệp hoàn thành khi chủ xe đã lập biên bản Check-out nhận xe.
+
+---
+
+## 16. KẾ HOẠCH & CÁC HẠNG MỤC NÊN LÀM TRONG TƯƠNG LAI
+
+1. **Kiểm thử Luồng Thuê xe Toàn trình E2E (End-to-End Testing):**
+   - Rà soát toàn bộ vòng đời tương tác giữa **Khách hàng (User)** và **Chủ xe (Host)**:
+     - Khách tìm kiếm xe, lọc tiện nghi, chọn lịch trình -> Checkout chọn gói Cọc 30% hoặc Trọn gói 100% qua VNPay -> Nhận thông báo Real-time SignalR.
+     - Chủ xe nhận đơn -> Chuẩn bị xe -> Lập biên bản bàn giao xe (Check-in ODO, mức xăng/pin, 4 góc ảnh) -> Khách hàng xem và đối chiếu Hợp đồng điện tử A4 và ODO.
+     - Chủ xe nhận lại xe (Check-out ODO) -> Hệ thống tự động tính quãng đường, phụ phí vượt km và chênh lệch nhiên liệu -> Hoàn tất đơn.
+
+2. **Rà soát & Sửa lại CSS / Giao diện nhất quán (Design System Polish):**
+   - Rà soát toàn bộ CSS responsive trên thiết bị di động (Mobile) và máy tính bảng (Tablet).
+   - Chuẩn hóa màu sắc bảng mã ReCar: Nền Dark Slate `#0f172a`, màu nhấn Cyan `#0284c7`, thẻ Card bề mặt `#ffffff` bo góc mềm mại `rounded-4`.
+   - Cân chỉnh chi tiết icon (Lucide & Bootstrap Icons), font chữ, độ tương phản và loại bỏ hoàn toàn các đoạn CSS dư thừa từ template cũ.
+
+3. **Cập nhật & Bổ sung tính năng cho Phân hệ Chủ xe (Car Owner Portal):**
+   - Bổ sung trang thống kê tài chính, biểu đồ dòng tiền & lịch sử nhận tiền đối soát chi tiết hơn.
+   - Thêm tính năng quản lý lịch bận của xe (Car Calendar / Block dates) cho phép chủ xe chủ động khóa ngày xe bận bảo dưỡng hoặc việc cá nhân.
+   - Bổ sung xuất file PDF / In biên bản bàn giao ODO và Hợp đồng thuê xe trực tiếp từ phía chủ xe.
+
+4. **Rà soát & Hoàn thiện Phân hệ Quản trị Toàn sàn (`Areas/Admin`):**
+   - Đồng bộ giao diện các trang trong Admin (`/Admin/Home`, `/Admin/Product`, `/Admin/Orders`, `/Admin/UserManagement`, `/Admin/Blogs`, `/Admin/CarTypes`) theo đúng Design System chuẩn ReCar.
+   - Kiểm tra và hoàn thiện màn hình duyệt hồ sơ đối tác chủ xe mới (`/Admin/CarOwners`) và quy trình duyệt xe mới đăng tải hoặc duyệt cập nhật xe.
+   - Bảng quản trị cấu hình chính sách sàn (tỷ lệ hoa hồng 10%, giới hạn km mặc định, hotline cứu hộ).
+
+5. **Đóng gói Mã nguồn & Đẩy lên GitHub (Git Commit & Push):**
+   - Rà soát file `.gitignore` để loại bỏ các thư mục rác (như `bin/`, `obj/`, `.vs/`, file build tạm).
+   - Kiểm tra lại chuỗi kết nối `appsettings.json` đảm bảo không để lộ thông tin nhạy cảm.
+   - Tạo commit có thông điệp rõ ràng theo chuẩn Conventional Commits và đẩy lên repository GitHub khi người dùng yêu cầu.
 
 
 

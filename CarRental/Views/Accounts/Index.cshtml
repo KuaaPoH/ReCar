@@ -306,12 +306,22 @@
                                                 @{
                                                     var badgeClass = "bg-warning-subtle text-warning";
                                                     if (item.StatusId == 2) badgeClass = "bg-danger-subtle text-danger";
-                                                    else if (item.StatusId == 3) badgeClass = "bg-success-subtle text-success";
+                                                    else if (item.StatusId == 3) badgeClass = "bg-warning-subtle text-warning";
                                                     else if (item.StatusId == 4) badgeClass = "bg-primary-subtle text-primary";
+                                                    else if (item.StatusId == 5) badgeClass = "bg-success-subtle text-success";
+                                                    bool hasCheckIn = !string.IsNullOrEmpty(item.Notes) && item.Notes.Contains("[Check-in");
                                                 }
-                                                <span class="status-badge-custom @badgeClass">
-                                                    <i class="bi bi-dot fs-5"></i> @(item.Status?.StatusDescription ?? "Đang xử lý")
-                                                </span>
+                                                <div class="d-flex align-items-center gap-2">
+                                                    @if (hasCheckIn)
+                                                    {
+                                                        <span class="badge bg-light text-dark border px-2 py-1" style="font-size: 11px;" title="Đã có biên bản đối chiếu ODO">
+                                                            <i class="bi bi-speedometer2 text-primary me-1"></i> Có ODO
+                                                        </span>
+                                                    }
+                                                    <span class="status-badge-custom @badgeClass">
+                                                        <i class="bi bi-dot fs-5"></i> @(item.Status?.StatusDescription ?? "Đang xử lý")
+                                                    </span>
+                                                </div>
                                             </div>
                                         </div>
 

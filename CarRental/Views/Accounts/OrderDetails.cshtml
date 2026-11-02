@@ -1,5 +1,6 @@
 @model IEnumerable<CarRental.ViewModels.OrderDetailVM>
 @using CarRental.Utilities;
+@using CarRental.Models;
 @{
     ViewData["Title"] = "Chi tiết đơn thuê xe #" + ViewBag.OrderId;
     Layout = "~/Views/Shared/_Layout.cshtml";
@@ -9,6 +10,17 @@
     bool isCancelled = statusId == 2 || (!string.IsNullOrEmpty(statusDescription) && (statusLower.Contains("hủy") || statusLower.Contains("huy") || statusDescription.Contains("Huỷ")));
     string orderNotes = ViewBag.Notes != null ? ViewBag.Notes.ToString() : "";
     bool isWithDriver = orderNotes.Contains("Có tài xế");
+
+    var handover = ViewBag.HandoverInspection as VehicleInspection;
+    var returnInsp = ViewBag.ReturnInspection as VehicleInspection;
+    var carPolicy = ViewBag.CarPolicy as CarPolicy ?? new CarPolicy();
+    var carObj = ViewBag.Car as Car;
+    int rentalDays = ViewBag.RentalDays != null ? (int)ViewBag.RentalDays : 1;
+    int allowedKmTotal = ViewBag.AllowedKmTotal != null ? (int)ViewBag.AllowedKmTotal : (rentalDays * carPolicy.MileageLimit);
+    int? drivenKm = ViewBag.DrivenKm as int?;
+    int overKm = ViewBag.OverKm != null ? (int)ViewBag.OverKm : 0;
+    decimal overKmFee = ViewBag.OverKmFee != null ? (decimal)ViewBag.OverKmFee : 0;
+    int? fuelDiff = ViewBag.FuelDiff as int?;
 }
 
 <style>
@@ -62,6 +74,20 @@
         border-bottom: 1px solid #e2e8f0;
         padding-bottom: 4px;
     }
+
+    .insp-photo-thumb {
+        width: 100%;
+        aspect-ratio: 4 / 3;
+        object-fit: cover;
+        border-radius: 8px;
+        border: 1px solid #e2e8f0;
+        cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .insp-photo-thumb:hover {
+        transform: scale(1.03);
+        box-shadow: 0 6px 14px rgba(0,0,0,0.12);
+    }
 </style>
 
 <!-- Breadcrumb Area -->
@@ -77,7 +103,7 @@
         <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
             <div>
                 <h2 class="fw-bold mb-1" style="color: var(--recar-dark);">Đơn thuê xe #@ViewBag.OrderId</h2>
-                <p class="text-muted mb-0">Theo dõi thông tin phương tiện, lịch trình nhận - trả xe và hợp đồng điện tử</p>
+                <p class="text-muted mb-0">Theo dõi thông tin phương tiện, lịch trình nhận - trả xe, biên bản ODO và hợp đồng điện tử</p>
             </div>
             <div class="d-flex align-items-center gap-2">
                 @if (isCancelled)
@@ -88,14 +114,26 @@
                 }
                 else if (statusId == 3)
                 {
+                    <span class="order-status-pill" style="background: #fef3c7; color: #92400e;">
+                        <i class="bi bi-clock-history"></i> Đã cọc 30% · Chờ nhận xe
+                    </span>
+                }
+                else if (statusId == 4)
+                {
+                    <span class="order-status-pill status-badge-delivery">
+                        <i class="bi bi-key-fill"></i> Đang cho thuê
+                    </span>
+                }
+                else if (statusId == 5)
+                {
                     <span class="order-status-pill status-badge-paid">
-                        <i class="bi bi-check-circle-fill"></i> Đã đặt cọc / Hoàn thành
+                        <i class="bi bi-check-circle-fill"></i> Chuyến đi hoàn tất
                     </span>
                 }
                 else
                 {
                     <span class="order-status-pill status-badge-pending">
-                        <i class="bi bi-clock-history"></i> @(string.IsNullOrEmpty(statusDescription) ? "Đang xử lý" : statusDescription)
+                        <i class="bi bi-hourglass-split"></i> @(string.IsNullOrEmpty(statusDescription) ? "Đang xử lý" : statusDescription)
                     </span>
                 }
             </div>
@@ -106,8 +144,9 @@
 <div class="recar-section py-5">
     <div class="container">
         <div class="row g-4">
-            <!-- Cột trái: Danh sách xe trong đơn -->
+            <!-- Cột trái: Danh sách xe trong đơn & Biên bản bàn giao ODO -->
             <div class="col-lg-8">
+                <!-- Card 1: Phương tiện trong đơn -->
                 <div class="card border-0 shadow-sm rounded-4 p-4 mb-4">
                     <h5 class="fw-bold mb-3 d-flex align-items-center">
                         <i class="bi bi-car-front text-primary me-2"></i>
@@ -131,6 +170,10 @@
                                         {
                                             <span class="badge bg-primary text-white"><i class="bi bi-car-front"></i> Tự lái</span>
                                         }
+                                        @if (carObj != null && !string.IsNullOrEmpty(carObj.LicensePlate))
+                                        {
+                                            <span class="badge bg-dark-subtle text-dark font-monospace"><i class="bi bi-credit-card-2-front me-1"></i>@carObj.LicensePlate</span>
+                                        }
                                     </div>
                                     <div class="row g-2 small text-muted mt-1">
                                         <div class="col-sm-6">
@@ -140,7 +183,7 @@
                                             <i class="bi bi-calendar-x text-danger me-1"></i> <strong>Trả xe:</strong> @item.returnDate.ToString("dd/MM/yyyy")
                                         </div>
                                         <div class="col-sm-6">
-                                            <i class="bi bi-clock-history text-primary me-1"></i> <strong>Thời gian:</strong> @((item.returnDate - item.pickupDate).Days > 0 ? (item.returnDate - item.pickupDate).Days : 1) ngày
+                                            <i class="bi bi-clock-history text-primary me-1"></i> <strong>Thời gian:</strong> @rentalDays ngày
                                         </div>
                                         <div class="col-sm-6">
                                             <i class="bi bi-cash-stack text-warning me-1"></i> <strong>Số lượng:</strong> @item.Quantity xe
@@ -150,6 +193,285 @@
                             </div>
                         }
                     </div>
+                </div>
+
+                <!-- Card 2: Biên bản Bàn giao & Đối chiếu ODO Hiện trạng Xe (Check-in / Check-out) -->
+                <div class="card border-0 shadow-sm rounded-4 p-4 mb-4">
+                    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+                        <div>
+                            <h5 class="fw-bold mb-1 d-flex align-items-center">
+                                <i class="bi bi-speedometer2 text-primary me-2"></i>
+                                Biên bản Bàn giao & Đối chiếu ODO Hiện trạng Xe
+                            </h5>
+                            <p class="text-muted small mb-0">Minh bạch chỉ số công tơ mét, mức nhiên liệu/pin và đối chiếu quãng đường thực tế</p>
+                        </div>
+                        <div>
+                            @if (handover != null && returnInsp != null)
+                            {
+                                <span class="badge bg-success-subtle text-success px-3 py-2 rounded-pill fw-semibold">
+                                    <i class="bi bi-check-all me-1"></i> Đã hoàn tất đối chiếu 2 chiều
+                                </span>
+                            }
+                            else if (handover != null)
+                            {
+                                <span class="badge bg-primary-subtle text-primary px-3 py-2 rounded-pill fw-semibold">
+                                    <i class="bi bi-key-fill me-1"></i> Đã nhận xe · Chờ trả xe
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-warning-subtle text-warning px-3 py-2 rounded-pill fw-semibold">
+                                    <i class="bi bi-clock me-1"></i> Chờ bàn giao chìa khóa
+                                </span>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- Dải tóm tắt hạn mức & quy định hành trình -->
+                    <div class="bg-light rounded-3 p-3 mb-4 border">
+                        <div class="row g-3 small">
+                            <div class="col-md-4">
+                                <div class="text-muted">Hạn mức di chuyển:</div>
+                                <div class="fw-bold text-dark fs-6">@carPolicy.MileageLimit km <span class="fw-normal text-muted" style="font-size: 13px;">/ ngày</span></div>
+                                <div class="text-secondary" style="font-size: 12px;">(Tổng hạn mức chuyến @rentalDays ngày: <strong>@allowedKmTotal km</strong>)</div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="text-muted">Phụ phí quá quãng đường:</div>
+                                <div class="fw-bold text-danger fs-6">@carPolicy.ExtraFeePerKm.ToString("N0") đ <span class="fw-normal text-muted" style="font-size: 13px;">/ km</span></div>
+                                <div class="text-secondary" style="font-size: 12px;">(Tự động tính khi ODO trả vượt hạn mức)</div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="text-muted">Mức tiêu hao công bố:</div>
+                                <div class="fw-bold text-dark fs-6">@(string.IsNullOrEmpty(carPolicy.FuelConsumption) ? "Tiêu chuẩn nhà sản xuất" : carPolicy.FuelConsumption)</div>
+                                <div class="text-secondary" style="font-size: 12px;">(Hoàn trả tương đương mức lúc nhận)</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bảng 2 cột đối chiếu: Lúc nhận vs Lúc trả -->
+                    <div class="row g-3">
+                        <!-- Cột Lúc Nhận Xe (Check-in) -->
+                        <div class="col-md-6">
+                            <div class="border rounded-3 p-3 h-100 bg-white">
+                                <div class="d-flex align-items-center justify-content-between mb-2">
+                                    <span class="badge bg-primary text-white"><i class="bi bi-box-arrow-in-down-right me-1"></i> Lúc Nhận Xe (Check-in)</span>
+                                    @if (handover != null)
+                                    {
+                                        <span class="text-muted small">@handover.CreatedAt.ToString("dd/MM/yyyy HH:mm")</span>
+                                    }
+                                </div>
+
+                                @if (handover != null)
+                                {
+                                    <div class="my-3">
+                                        <div class="d-flex justify-content-between align-items-baseline mb-2">
+                                            <span class="text-muted small">Đồng hồ ODO nhận:</span>
+                                            <span class="font-monospace fw-bold text-dark fs-5">@handover.Odometer.ToString("N0") km</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                            <span class="text-muted small">Nhiên liệu / Pin:</span>
+                                            <span class="fw-bold text-success">@handover.FuelLevel%</span>
+                                        </div>
+                                        <div class="progress" style="height: 6px;">
+                                            <div class="progress-bar bg-success" style="width: @handover.FuelLevel%;"></div>
+                                        </div>
+                                        <div class="mt-3">
+                                            <span class="text-muted small d-block">Ghi chú hiện trạng:</span>
+                                            <div class="bg-light p-2 rounded small text-secondary fst-italic">
+                                                @(string.IsNullOrWhiteSpace(handover.Notes) ? "Xe sạch sẽ, hiện trạng vận hành bình thường." : handover.Notes)
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    @if (!string.IsNullOrEmpty(handover.FrontImage) || !string.IsNullOrEmpty(handover.RearImage) ||
+                                         !string.IsNullOrEmpty(handover.LeftImage) || !string.IsNullOrEmpty(handover.RightImage))
+                                    {
+                                        <div class="mt-3">
+                                            <div class="text-muted small mb-2"><i class="bi bi-camera me-1"></i> Ảnh chụp lúc nhận xe:</div>
+                                            <div class="row g-2">
+                                                @if (!string.IsNullOrEmpty(handover.FrontImage))
+                                                {
+                                                    <div class="col-3">
+                                                        <img src="@handover.FrontImage" alt="Đầu xe" class="insp-photo-thumb" onclick="showLightbox(this.src, 'Ảnh đầu xe (Lúc nhận)')">
+                                                    </div>
+                                                }
+                                                @if (!string.IsNullOrEmpty(handover.RearImage))
+                                                {
+                                                    <div class="col-3">
+                                                        <img src="@handover.RearImage" alt="Đuôi xe" class="insp-photo-thumb" onclick="showLightbox(this.src, 'Ảnh đuôi xe (Lúc nhận)')">
+                                                    </div>
+                                                }
+                                                @if (!string.IsNullOrEmpty(handover.LeftImage))
+                                                {
+                                                    <div class="col-3">
+                                                        <img src="@handover.LeftImage" alt="Thân trái" class="insp-photo-thumb" onclick="showLightbox(this.src, 'Ảnh thân trái (Lúc nhận)')">
+                                                    </div>
+                                                }
+                                                @if (!string.IsNullOrEmpty(handover.RightImage))
+                                                {
+                                                    <div class="col-3">
+                                                        <img src="@handover.RightImage" alt="Thân phải" class="insp-photo-thumb" onclick="showLightbox(this.src, 'Ảnh thân phải (Lúc nhận)')">
+                                                    </div>
+                                                }
+                                            </div>
+                                        </div>
+                                    }
+                                }
+                                else
+                                {
+                                    <div class="text-center py-4 text-muted">
+                                        <i class="bi bi-clock-history fs-3 d-block mb-2 text-secondary opacity-50"></i>
+                                        <div class="fw-semibold small">Chưa bàn giao chìa khóa</div>
+                                        <div style="font-size: 12px;" class="mt-1">Chủ xe sẽ ghi nhận số ODO và mức xăng/pin cùng bạn khi giao xe.</div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+
+                        <!-- Cột Lúc Trả Xe (Check-out) -->
+                        <div class="col-md-6">
+                            <div class="border rounded-3 p-3 h-100 bg-white">
+                                <div class="d-flex align-items-center justify-content-between mb-2">
+                                    <span class="badge bg-success text-white"><i class="bi bi-box-arrow-up-left me-1"></i> Lúc Trả Xe (Check-out)</span>
+                                    @if (returnInsp != null)
+                                    {
+                                        <span class="text-muted small">@returnInsp.CreatedAt.ToString("dd/MM/yyyy HH:mm")</span>
+                                    }
+                                </div>
+
+                                @if (returnInsp != null)
+                                {
+                                    <div class="my-3">
+                                        <div class="d-flex justify-content-between align-items-baseline mb-2">
+                                            <span class="text-muted small">Đồng hồ ODO hoàn trả:</span>
+                                            <span class="font-monospace fw-bold text-primary fs-5">@returnInsp.Odometer.ToString("N0") km</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                            <span class="text-muted small">Nhiên liệu / Pin:</span>
+                                            <span class="fw-bold @(fuelDiff.HasValue && fuelDiff.Value < 0 ? "text-danger" : "text-success")">@returnInsp.FuelLevel%</span>
+                                        </div>
+                                        <div class="progress" style="height: 6px;">
+                                            <div class="progress-bar @(fuelDiff.HasValue && fuelDiff.Value < 0 ? "bg-warning" : "bg-success")" style="width: @returnInsp.FuelLevel%;"></div>
+                                        </div>
+                                        <div class="mt-3">
+                                            <span class="text-muted small d-block">Ghi chú lúc trả xe:</span>
+                                            <div class="bg-light p-2 rounded small text-secondary fst-italic">
+                                                @(string.IsNullOrWhiteSpace(returnInsp.Notes) ? "Hoàn trả xe đúng hiện trạng." : returnInsp.Notes)
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    @if (!string.IsNullOrEmpty(returnInsp.FrontImage) || !string.IsNullOrEmpty(returnInsp.RearImage) ||
+                                         !string.IsNullOrEmpty(returnInsp.LeftImage) || !string.IsNullOrEmpty(returnInsp.RightImage))
+                                    {
+                                        <div class="mt-3">
+                                            <div class="text-muted small mb-2"><i class="bi bi-camera me-1"></i> Ảnh chụp lúc trả xe:</div>
+                                            <div class="row g-2">
+                                                @if (!string.IsNullOrEmpty(returnInsp.FrontImage))
+                                                {
+                                                    <div class="col-3">
+                                                        <img src="@returnInsp.FrontImage" alt="Đầu xe" class="insp-photo-thumb" onclick="showLightbox(this.src, 'Ảnh đầu xe (Lúc trả)')">
+                                                    </div>
+                                                }
+                                                @if (!string.IsNullOrEmpty(returnInsp.RearImage))
+                                                {
+                                                    <div class="col-3">
+                                                        <img src="@returnInsp.RearImage" alt="Đuôi xe" class="insp-photo-thumb" onclick="showLightbox(this.src, 'Ảnh đuôi xe (Lúc trả)')">
+                                                    </div>
+                                                }
+                                                @if (!string.IsNullOrEmpty(returnInsp.LeftImage))
+                                                {
+                                                    <div class="col-3">
+                                                        <img src="@returnInsp.LeftImage" alt="Thân trái" class="insp-photo-thumb" onclick="showLightbox(this.src, 'Ảnh thân trái (Lúc trả)')">
+                                                    </div>
+                                                }
+                                                @if (!string.IsNullOrEmpty(returnInsp.RightImage))
+                                                {
+                                                    <div class="col-3">
+                                                        <img src="@returnInsp.RightImage" alt="Thân phải" class="insp-photo-thumb" onclick="showLightbox(this.src, 'Ảnh thân phải (Lúc trả)')">
+                                                    </div>
+                                                }
+                                            </div>
+                                        </div>
+                                    }
+                                }
+                                else
+                                {
+                                    <div class="text-center py-4 text-muted">
+                                        @if (statusId == 4)
+                                        {
+                                            <i class="bi bi-car-front-fill fs-3 d-block mb-2 text-primary"></i>
+                                            <div class="fw-semibold small text-primary">Xe đang trong hành trình</div>
+                                            <div style="font-size: 12px;" class="mt-1">Khi kết thúc hành trình, chủ xe sẽ đối chiếu số ODO trả xe để chốt quyết toán.</div>
+                                        }
+                                        else
+                                        {
+                                            <i class="bi bi-hourglass fs-3 d-block mb-2 text-secondary opacity-50"></i>
+                                            <div class="fw-semibold small">Chưa đến lịch hoàn trả</div>
+                                            <div style="font-size: 12px;" class="mt-1">Chỉ số ODO trả xe sẽ được cập nhật khi kết thúc chuyến đi.</div>
+                                        }
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Khối Tự Động Đối Chiếu Quãng Đường & Phụ Phí Phát Sinh -->
+                    @if (handover != null && returnInsp != null && drivenKm.HasValue)
+                    {
+                        <div class="mt-4 pt-3 border-top">
+                            <h6 class="fw-bold mb-3 d-flex align-items-center">
+                                <i class="bi bi-calculator text-primary me-2"></i>
+                                Tổng kết Đối chiếu Hành trình & Phụ phí
+                            </h6>
+
+                            <div class="row g-3">
+                                <div class="col-sm-4">
+                                    <div class="p-2 bg-light rounded text-center">
+                                        <div class="text-muted small">Quãng đường đã đi:</div>
+                                        <div class="fs-5 fw-bold text-dark font-monospace">@drivenKm.Value.ToString("N0") km</div>
+                                    </div>
+                                </div>
+                                <div class="col-sm-4">
+                                    <div class="p-2 bg-light rounded text-center">
+                                        <div class="text-muted small">Hạn mức hợp đồng:</div>
+                                        <div class="fs-5 fw-bold text-primary font-monospace">@allowedKmTotal.ToString("N0") km</div>
+                                    </div>
+                                </div>
+                                <div class="col-sm-4">
+                                    <div class="p-2 bg-light rounded text-center">
+                                        <div class="text-muted small">Chênh lệch xăng/pin:</div>
+                                        <div class="fs-5 fw-bold font-monospace @(fuelDiff.HasValue && fuelDiff.Value < 0 ? "text-danger" : "text-success")">
+                                            @(fuelDiff.HasValue ? (fuelDiff.Value >= 0 ? "+" + fuelDiff.Value : fuelDiff.Value.ToString()) : "0")%
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            @if (overKm > 0)
+                            {
+                                <div class="alert alert-warning border-warning d-flex align-items-center justify-content-between p-3 rounded-3 mt-3 mb-0">
+                                    <div>
+                                        <strong class="text-dark"><i class="bi bi-exclamation-triangle-fill text-warning me-1"></i> Vượt hạn mức hành trình: @overKm.ToString("N0") km</strong>
+                                        <div class="small text-muted mt-1">Phụ phí phát sinh (@carPolicy.ExtraFeePerKm.ToString("N0") đ/km) được thanh toán trực tiếp cho chủ xe khi trả xe.</div>
+                                    </div>
+                                    <div class="text-end ps-3">
+                                        <span class="fs-4 fw-bold text-danger">@overKmFee.ToString("N0") đ</span>
+                                    </div>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="alert alert-success border-success d-flex align-items-center p-3 rounded-3 mt-3 mb-0">
+                                    <i class="bi bi-check-circle-fill fs-4 text-success me-2"></i>
+                                    <div>
+                                        <strong class="text-success">Quãng đường nằm trong hạn mức cho phép (@allowedKmTotal km)</strong>
+                                        <div class="small text-muted">Không phát sinh bất kỳ khoản phụ phí quãng đường nào cho chuyến đi này ✓</div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
                 </div>
 
                 <!-- Cam kết an toàn & hỗ trợ cứu hộ -->
@@ -191,11 +513,32 @@
                         <span class="text-secondary small">@(string.IsNullOrEmpty(Function.GetAddress(Context.Session)) ? "Nhận tại địa chỉ bàn giao ReCar" : Function.GetAddress(Context.Session))</span>
                     </div>
 
-                    <hr class="my-3">
+                    @{
+                        decimal depositVal = (decimal)(ViewBag.Deposit ?? 0);
+                        decimal paymentVal = (decimal)(ViewBag.Payment ?? 0);
+                        bool isOrderFullPaid = paymentVal == 0 && depositVal > 0;
+                    }
+                    <div class="p-3 bg-light rounded-3 border mb-4">
+                        <div class="d-flex justify-content-between mb-2 small">
+                            <span class="text-muted">@(isOrderFullPaid ? "Đã thanh toán qua sàn (100%):" : "Tiền cọc giữ chỗ (30%):")</span>
+                            <span class="fw-bold text-success">@depositVal.ToString("N0") đ</span>
+                        </div>
+                        <div class="d-flex justify-content-between small">
+                            <span class="text-muted">Thanh toán khi nhận xe:</span>
+                            <span class="fw-bold @(isOrderFullPaid ? "text-success" : "text-primary")">@(isOrderFullPaid ? "0 đ (Đã thanh toán đủ)" : paymentVal.ToString("N0") + " đ")</span>
+                        </div>
+                        @if (overKmFee > 0)
+                        {
+                            <div class="d-flex justify-content-between small border-top pt-2 mt-2">
+                                <span class="text-danger fw-semibold">Phụ phí vượt km (@overKm km):</span>
+                                <span class="fw-bold text-danger">+@overKmFee.ToString("N0") đ</span>
+                            </div>
+                        }
+                    </div>
 
                     <!-- Nút xem hợp đồng điện tử -->
                     <button type="button" class="btn btn-outline-primary w-100 rounded-3 py-2 fw-bold mb-3" data-bs-toggle="modal" data-bs-target="#contractModal">
-                        <i class="bi bi-file-earmark-text-fill me-1"></i> Xem Hợp đồng điện tử
+                        <i class="bi bi-file-earmark-text-fill me-1"></i> Xem Hợp đồng & Biên bản
                     </button>
 
                     @if (isCancelled)
@@ -204,7 +547,7 @@
                             <i class="bi bi-info-circle me-1"></i> Đơn hàng này đã được hủy thành công.
                         </div>
                     }
-                    else
+                    else if (statusId == 1 || statusId == 3)
                     {
                         <form id="cancelOrderForm">
                             <input type="hidden" id="orderId" value="@ViewBag.OrderId" />
@@ -232,7 +575,7 @@
             <div class="modal-header border-bottom">
                 <h5 class="modal-title fw-bold" id="contractModalLabel">
                     <i class="bi bi-file-earmark-check text-primary me-2"></i>
-                    Hợp đồng điện tử thuê xe ô tô #@ViewBag.OrderId
+                    Hợp đồng điện tử & Biên bản bàn giao #@ViewBag.OrderId
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
@@ -283,6 +626,7 @@
                         <thead class="table-light">
                             <tr>
                                 <th>Tên xe</th>
+                                <th>Biển số</th>
                                 <th>Hình thức</th>
                                 <th>Ngày nhận</th>
                                 <th>Ngày hoàn trả</th>
@@ -293,6 +637,7 @@
                             @foreach(var item in Model) {
                                 <tr>
                                     <td><strong>@item.CarName</strong></td>
+                                    <td>@(carObj != null && !string.IsNullOrEmpty(carObj.LicensePlate) ? carObj.LicensePlate : "N/A")</td>
                                     <td>@(isWithDriver ? "Có tài xế" : "Tự lái")</td>
                                     <td>@item.pickupDate.ToString("dd/MM/yyyy")</td>
                                     <td>@item.returnDate.ToString("dd/MM/yyyy")</td>
@@ -304,15 +649,41 @@
 
                     <div class="contract-section-title">ĐIỀU 2: GIÁ THUÊ VÀ ĐẶT CỌC</div>
                     <ul>
-                        <li>Bên B có nghĩa vụ thanh toán khoản tiền cọc 30% qua cổng thanh toán do ReCar bảo lãnh để xác nhận đặt xe.</li>
+                        @if (isOrderFullPaid)
+                        {
+                            <li>Bên B đã hoàn tất thanh toán <strong>100% trọn gói giá trị hợp đồng thuê xe (@depositVal.ToString("N0") VNĐ)</strong> qua cổng thanh toán VNPay do sàn ReCar bảo lãnh.</li>
+                            <li>Bên B không cần thanh toán thêm tiền thuê xe khi nhận bàn giao xe từ Bên A (ngoại trừ phụ phí vượt hạn mức km hoặc chi phí nhiên liệu phát sinh thực tế nếu có).</li>
+                        }
+                        else
+                        {
+                            <li>Bên B có nghĩa vụ thanh toán khoản tiền cọc 30% (@depositVal.ToString("N0") VNĐ) qua cổng thanh toán do ReCar bảo lãnh để xác nhận đặt xe.</li>
+                            <li>Số tiền còn lại 70% (@paymentVal.ToString("N0") VNĐ) sẽ được Bên B thanh toán trực tiếp cho Chủ xe (Bên A) ngay khi nhận bàn giao xe và đối chiếu thực tế.</li>
+                        }
                         @if (isWithDriver)
                         {
                             <li>Chi phí đơn hàng đã bao gồm tiền thuê phương tiện và <strong>phụ phí tài xế</strong> (500.000đ/ngày).</li>
                         }
-                        <li>Số tiền còn lại (70%) sẽ được Bên B thanh toán trực tiếp cho Chủ xe (Bên A) ngay khi nhận bàn giao xe và đối chiếu thực tế.</li>
                     </ul>
 
-                    <div class="contract-section-title">ĐIỀU 3: TRÁCH NHIỆM VÀ CAM KẾT CỦA CÁC BÊN</div>
+                    <div class="contract-section-title">ĐIỀU 3: QUY ĐỊNH HÀNH TRÌNH & ĐỐI CHIẾU CÔNG TƠ MÉT (ODO)</div>
+                    <ul>
+                        <li><strong>Giới hạn quãng đường:</strong> @carPolicy.MileageLimit km/ngày. Tổng hạn mức chuyến đi @rentalDays ngày là <strong>@allowedKmTotal km</strong>.</li>
+                        <li><strong>Phụ phí vượt quãng đường:</strong> Nếu vượt quá hạn mức trên, Bên B có nghĩa vụ thanh toán phụ phí <strong>@carPolicy.ExtraFeePerKm.ToString("N0") VNĐ/km</strong> trực tiếp cho Bên A khi bàn giao hoàn trả xe.</li>
+                        @if (handover != null)
+                        {
+                            <li><strong>Chỉ số ODO lúc nhận xe:</strong> <span class="fw-bold">@handover.Odometer.ToString("N0") km</span> (Mức nhiên liệu: @handover.FuelLevel%) ghi nhận lúc @handover.CreatedAt.ToString("dd/MM/yyyy HH:mm").</li>
+                        }
+                        @if (returnInsp != null)
+                        {
+                            <li><strong>Chỉ số ODO lúc trả xe:</strong> <span class="fw-bold">@returnInsp.Odometer.ToString("N0") km</span> (Mức nhiên liệu: @returnInsp.FuelLevel%) ghi nhận lúc @returnInsp.CreatedAt.ToString("dd/MM/yyyy HH:mm").</li>
+                            @if (drivenKm.HasValue)
+                            {
+                                <li><strong>Quãng đường thực tế đã đi:</strong> @drivenKm.Value.ToString("N0") km. @(overKm > 0 ? $"Vượt hạn mức {overKm:N0} km ➜ Phụ phí phát sinh: {overKmFee:N0} VNĐ." : "Nằm trong hạn mức cho phép (Không phát sinh phụ phí).")</li>
+                            }
+                        }
+                    </ul>
+
+                    <div class="contract-section-title">ĐIỀU 4: TRÁCH NHIỆM VÀ CAM KẾT CỦA CÁC BÊN</div>
                     <ul>
                         @if (isWithDriver)
                         {
@@ -358,9 +729,31 @@
     </div>
 </div>
 
+<!-- Modal Lightbox Xem Ảnh Biên Bản Phóng To -->
+<div class="modal fade" id="inspPhotoLightboxModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content rounded-4 border-0 shadow">
+            <div class="modal-header border-0 pb-0">
+                <h6 class="modal-title fw-bold" id="inspPhotoLightboxTitle">Ảnh hiện trạng bàn giao</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center p-3">
+                <img id="inspPhotoLightboxImg" src="" alt="Ảnh hiện trạng" class="img-fluid rounded-3 shadow-sm" style="max-height: 75vh; object-fit: contain;">
+            </div>
+        </div>
+    </div>
+</div>
+
 @section scripts{
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
+        function showLightbox(imgUrl, title) {
+            document.getElementById('inspPhotoLightboxImg').src = imgUrl;
+            document.getElementById('inspPhotoLightboxTitle').innerText = title || 'Ảnh hiện trạng bàn giao xe';
+            const modal = new bootstrap.Modal(document.getElementById('inspPhotoLightboxModal'));
+            modal.show();
+        }
+
         $(document).on('submit', '#cancelOrderForm', function (e) {
             e.preventDefault();
             var orderId = $('#orderId').val();

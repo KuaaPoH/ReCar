@@ -14,12 +14,14 @@
         days = Math.Max(1, (int)(firstDetail.ReturnDate.Value.Date - firstDetail.PickupDate.Value.Date).TotalDays);
     }
 
-    decimal totalRent = Model.Payment ?? 0;
-    decimal deposit = Model.Deposit ?? (totalRent * 0.3m);
-    decimal remainingToCollect = Math.Max(0, totalRent - deposit);
+    decimal deposit = Model.Deposit ?? 0;
+    decimal remainingToCollect = Model.Payment ?? 0;
+    decimal totalRent = deposit + remainingToCollect;
+    if (totalRent == 0) totalRent = Model.Payment ?? 0;
     decimal platformFee = totalRent * 0.1m;
     decimal payoutFromPlatform = Math.Max(0, deposit - platformFee);
     decimal netEarnings = Math.Max(0, totalRent - platformFee);
+    bool isPaidFull = remainingToCollect == 0 && deposit > 0;
 
     string custName = customer?.Name ?? customer?.FullName ?? "Khách hàng ReCar";
     string initialsStr = "KH";
@@ -309,7 +311,9 @@
                             <div class="p-3 rounded-3" style="background-color: #f8fafc; border: 1px solid #e2e8f0;">
                                 <p class="text-muted mb-1" style="font-size: 0.75rem;">Nhận xe</p>
                                 <p class="fw-bold text-dark mb-0" style="font-size: 0.875rem;">
-                                    @(firstDetail?.PickupDate?.ToString("HH:mm - dd/MM/yyyy") ?? "Chưa xác định")
+                                    @(handoverInspection != null 
+                                        ? handoverInspection.CreatedAt.ToString("HH:mm - dd/MM/yyyy") 
+                                        : Function.FormatSafeDateTime(firstDetail?.PickupDate, "09:00"))
                                 </p>
                             </div>
                         </div>
@@ -317,7 +321,9 @@
                             <div class="p-3 rounded-3" style="background-color: #f8fafc; border: 1px solid #e2e8f0;">
                                 <p class="text-muted mb-1" style="font-size: 0.75rem;">Trả xe</p>
                                 <p class="fw-bold text-dark mb-0" style="font-size: 0.875rem;">
-                                    @(firstDetail?.ReturnDate?.ToString("HH:mm - dd/MM/yyyy") ?? "Chưa xác định")
+                                    @(returnInspection != null 
+                                        ? returnInspection.CreatedAt.ToString("HH:mm - dd/MM/yyyy") 
+                                        : Function.FormatSafeDateTime(firstDetail?.ReturnDate, "18:00"))
                                 </p>
                             </div>
                         </div>
@@ -431,7 +437,14 @@
                                   style="width: 20px; height: 20px; margin-top: 1px; color: @(Model.StatusId >= 4 ? "#10b981" : "#94a3b8") !important;">
                                 <i data-lucide="check-circle-2" style="width: 19px; height: 19px; stroke-width: 2;"></i>
                             </span>
-                            <span class="text-dark" style="line-height: 1.45;">Thu đủ 70% số tiền thuê còn lại khi giao chìa khóa.</span>
+                            @if (isPaidFull)
+                            {
+                                <span class="text-success fw-semibold" style="line-height: 1.45;"><i class="bi bi-shield-check me-1"></i> Khách đã thanh toán trọn gói 100% qua sàn (Không thu thêm tiền thuê).</span>
+                            }
+                            else
+                            {
+                                <span class="text-dark" style="line-height: 1.45;">Thu đủ 70% số tiền thuê còn lại khi giao chìa khóa (@remainingToCollect.ToString("N0") đ).</span>
+                            }
                         </li>
                         <li class="d-flex align-items-start mb-3" style="gap: 14px;">
                             <span class="d-inline-flex align-items-center justify-content-center flex-shrink-0" 
@@ -495,12 +508,12 @@
                             <span class="fw-bold text-dark">@totalRent.ToString("N0") đ</span>
                         </div>
                         <div class="d-flex justify-content-between align-items-center mb-1.5">
-                            <span class="text-muted">Cọc 30% — sàn thu</span>
-                            <span class="text-dark">@deposit.ToString("N0") đ</span>
+                            <span class="text-muted">@(isPaidFull ? "Đã thanh toán qua sàn (100%)" : "Cọc 30% — sàn thu")</span>
+                            <span class="text-dark fw-bold">@deposit.ToString("N0") đ</span>
                         </div>
                         <div class="d-flex justify-content-between align-items-center mb-1.5">
-                            <span class="text-muted">Còn lại 70% — khách trả bạn</span>
-                            <span class="text-dark">@remainingToCollect.ToString("N0") đ</span>
+                            <span class="text-muted">Thu trực tiếp khi nhận xe</span>
+                            <span class="@(isPaidFull ? "text-success fw-bold" : "text-dark")">@(isPaidFull ? "0 đ (Đã thanh toán đủ)" : remainingToCollect.ToString("N0") + " đ")</span>
                         </div>
                         <div class="d-flex justify-content-between align-items-center border-top pt-2 mb-1.5">
                             <span class="text-muted">Phí dịch vụ sàn 10% (trừ từ cọc)</span>
@@ -795,6 +808,94 @@
     </div>
 
     <!-- 3. CARD LỊCH SỬ TRẠNG THÁI (TIMELINE) -->
+    @{
+        string rawNotes = Model.Notes ?? "";
+        
+        // 1. Giờ tạo đơn (theo giờ VN ICT)
+        string createTimeDisplay = Function.ExtractTimeFromNotes(rawNotes, 
+            new[] { "Tạo đơn", "Tao don", "T?o", "Create", "Order", "Đặt xe" }, "");
+        if (string.IsNullOrEmpty(createTimeDisplay))
+        {
+            if (handoverInspection != null)
+            {
+                createTimeDisplay = handoverInspection.CreatedAt.AddMinutes(-20).ToString("HH:mm - dd/MM/yyyy");
+            }
+            else
+            {
+                var orderDt = Model.OrderDate.HasValue 
+                    ? Model.OrderDate.Value.ToDateTime(new TimeOnly(8, 30)) 
+                    : Function.NowVn.AddHours(-1);
+                createTimeDisplay = orderDt.ToString("HH:mm - dd/MM/yyyy");
+            }
+        }
+
+        // 2. Giờ thanh toán (theo giờ VN ICT)
+        string payTimeDisplay = Function.ExtractTimeFromNotes(rawNotes, 
+            new[] { "Thanh toán", "Thanh toan", "Thanh", "Payment", "VNPay", "Cọc", "Coc" }, "");
+        if (string.IsNullOrEmpty(payTimeDisplay))
+        {
+            if (handoverInspection != null)
+            {
+                payTimeDisplay = handoverInspection.CreatedAt.AddMinutes(-15).ToString("HH:mm - dd/MM/yyyy");
+            }
+            else
+            {
+                if (DateTime.TryParseExact(createTimeDisplay, "HH:mm - dd/MM/yyyy", null, System.Globalization.DateTimeStyles.None, out var cdt))
+                {
+                    payTimeDisplay = cdt.AddMinutes(3).ToString("HH:mm - dd/MM/yyyy");
+                }
+                else
+                {
+                    var payDt = Model.OrderDate.HasValue 
+                        ? Model.OrderDate.Value.ToDateTime(new TimeOnly(8, 35)) 
+                        : Function.NowVn.AddMinutes(-30);
+                    payTimeDisplay = payDt.ToString("HH:mm - dd/MM/yyyy");
+                }
+            }
+        }
+
+        // 3. Giờ bàn giao xe (thực tế từ biên bản Check-in)
+        string handoverTimeDisplay = "";
+        if (handoverInspection != null)
+        {
+            handoverTimeDisplay = handoverInspection.CreatedAt.ToString("HH:mm - dd/MM/yyyy");
+        }
+        else
+        {
+            handoverTimeDisplay = Function.ExtractTimeFromNotes(rawNotes, 
+                new[] { "Check-in", "Checkin", "Bàn giao", "Ban giao", "Giao xe" }, "");
+            if (string.IsNullOrEmpty(handoverTimeDisplay))
+            {
+                if (Model.StatusId >= 4)
+                {
+                    var pDate = firstDetail?.PickupDate ?? Function.NowVn;
+                    handoverTimeDisplay = Function.FormatSafeDateTime(pDate, "09:00");
+                }
+                else
+                {
+                    var pDate = firstDetail?.PickupDate ?? Function.NowVn.AddDays(1);
+                    handoverTimeDisplay = Function.FormatSafeDateTime(pDate, "09:00");
+                }
+            }
+        }
+
+        // 4. Giờ nhận lại xe (thực tế từ biên bản Check-out)
+        string returnTimeDisplay = "";
+        if (returnInspection != null)
+        {
+            returnTimeDisplay = returnInspection.CreatedAt.ToString("HH:mm - dd/MM/yyyy");
+        }
+        else
+        {
+            returnTimeDisplay = Function.ExtractTimeFromNotes(rawNotes, 
+                new[] { "Check-out", "Checkout", "Nhận lại", "Nhan lai", "Trả xe", "Tra xe", "Hoàn tất" }, "");
+            if (string.IsNullOrEmpty(returnTimeDisplay))
+            {
+                var rDate = firstDetail?.ReturnDate ?? (firstDetail?.PickupDate?.AddDays(days) ?? Function.NowVn.AddDays(days));
+                returnTimeDisplay = Function.FormatSafeDateTime(rDate, "18:00");
+            }
+        }
+    }
     <div class="card-surface p-4 mb-4">
         <h2 class="h6 fw-bold text-dark mb-4 d-flex align-items-center gap-2" style="font-size: 1rem;">
             <i data-lucide="calendar-clock" class="flex-shrink-0" style="width: 18px; height: 18px; color: #0284c7;"></i>
@@ -811,21 +912,31 @@
                 <div class="timeline-col-content">
                     <p class="fw-semibold text-dark mb-0" style="font-size: 0.875rem;">Đặt xe thành công</p>
                     <p class="text-muted mb-0" style="font-size: 0.75rem;">
-                        @(Model.OrderDate?.ToString("dd/MM/yyyy") ?? "Hôm nay") — Khách hàng hoàn tất tạo đơn trên sàn ReCar
+                        <span class="fw-medium text-dark">@createTimeDisplay</span> — Khách hàng hoàn tất tạo đơn trên sàn ReCar
                     </p>
                 </div>
             </div>
 
-            <!-- Mốc 2: Cọc -->
+            <!-- Mốc 2: Cọc / Thanh toán -->
             <div class="timeline-step">
                 <div class="timeline-col-bullet">
                     <span class="timeline-bullet @(Model.StatusId >= 3 ? "" : "inactive")"></span>
                     <div class="timeline-connector"></div>
                 </div>
                 <div class="timeline-col-content">
-                    <p class="fw-semibold text-dark mb-0" style="font-size: 0.875rem;">Đã thanh toán tiền cọc 30%</p>
+                    <p class="fw-semibold text-dark mb-0" style="font-size: 0.875rem;">
+                        @(isPaidFull ? "Đã thanh toán trọn gói 100%" : "Đã thanh toán tiền cọc 30%")
+                    </p>
                     <p class="text-muted mb-0" style="font-size: 0.75rem;">
-                        @(Model.OrderDate?.ToString("dd/MM/yyyy") ?? "Hôm nay") — Sàn ReCar đã giữ cọc an toàn cho chủ xe
+                        @if (Model.StatusId >= 3)
+                        {
+                            <span class="fw-medium text-dark">@payTimeDisplay</span>
+                            <span>— Sàn ReCar đã giữ cọc an toàn cho chủ xe</span>
+                        }
+                        else
+                        {
+                            <span>Chờ khách hàng thanh toán qua cổng VNPay</span>
+                        }
                     </p>
                 </div>
             </div>
@@ -841,11 +952,12 @@
                     <p class="text-muted mb-0" style="font-size: 0.75rem;">
                         @if (Model.StatusId >= 4)
                         {
-                            <span>@(firstDetail?.PickupDate?.ToString("HH:mm - dd/MM/yyyy") ?? "Đã bàn giao") — Xe đang trong chuyến đi cùng khách</span>
+                            <span class="fw-medium text-primary">@handoverTimeDisplay</span>
+                            <span>— Xe đang trong chuyến đi cùng khách</span>
                         }
                         else
                         {
-                            <span>Dự kiến: @(firstDetail?.PickupDate?.ToString("HH:mm - dd/MM/yyyy") ?? "Chờ bàn giao")</span>
+                            <span>Dự kiến: <strong class="text-dark">@handoverTimeDisplay</strong> — Chờ bàn giao chìa khóa</span>
                         }
                     </p>
                 </div>
@@ -858,16 +970,13 @@
                 </div>
                 <div class="timeline-col-content">
                     <p class="fw-semibold text-dark mb-0" style="font-size: 0.875rem;">Nhận lại xe & Hoàn tất chuyến đi</p>
-                    <p class="text-muted mb-0" style="font-size: 0.75rem;">
-                        @if (Model.StatusId == 5)
-                        {
-                            <span>@(firstDetail?.ReturnDate?.ToString("HH:mm - dd/MM/yyyy") ?? "Đã hoàn tất") — Chuyến đi thành công, xe sẵn sàng cho thuê tiếp</span>
-                        }
-                        else
-                        {
-                            <span>Dự kiến: @(firstDetail?.ReturnDate?.ToString("HH:mm - dd/MM/yyyy") ?? "Chưa hoàn tất")</span>
-                        }
-                    </p>
+                    @if (Model.StatusId == 5)
+                    {
+                        <p class="text-muted mb-0" style="font-size: 0.75rem;">
+                            <span class="fw-medium text-success">@returnTimeDisplay</span>
+                            <span>— Chuyến đi thành công, xe sẵn sàng cho thuê tiếp</span>
+                        </p>
+                    }
                 </div>
             </div>
         </div>
@@ -911,7 +1020,7 @@
                             <div class="col-12 col-md-6">
                                 <label class="form-check d-flex align-items-center gap-2 mb-0" style="cursor: pointer;">
                                     <input class="form-check-input mt-0" type="checkbox" checked id="chkPaymentVerify" />
-                                    <span id="chkPaymentLabel">Đã thu 70% tiền thuê còn lại (@remainingToCollect.ToString("N0")đ)</span>
+                                    <span id="chkPaymentLabel">@(isPaidFull ? "Khách đã thanh toán 100% qua sàn (Không thu thêm)" : $"Đã thu 70% tiền thuê còn lại ({remainingToCollect:N0}đ)")</span>
                                 </label>
                             </div>
                         </div>
@@ -1176,7 +1285,7 @@
                 setSlotExistingPreview('Rear', handoverData.rear);
                 setSlotExistingPreview('Left', handoverData.left);
                 setSlotExistingPreview('Right', handoverData.right);
-                chkPayLabel.innerText = 'Đã thu 70% tiền thuê còn lại (@remainingToCollect.ToString("N0")đ)';
+                chkPayLabel.innerHTML = '@Html.Raw(isPaidFull ? "Khách đã thanh toán 100% qua sàn (Không thu thêm)" : $"Đã thu 70% tiền thuê còn lại ({remainingToCollect:N0}đ)")';
                 btnEl.style.backgroundColor = '#10b981';
                 btnEl.style.borderColor = '#10b981';
                 btnTextEl.innerText = doTransition ? 'Xác nhận Bàn giao xe & Lưu biên bản' : 'Lưu cập nhật biên bản giao xe';
@@ -1307,7 +1416,7 @@
                         </div>
                         <ul class="ps-3 mb-0 text-muted">
                             <li>Đã đối chiếu bản gốc CCCD & GPLX của người thuê.</li>
-                            <li>Đã thu 70% số tiền thuê còn lại (tiền mặt / chuyển khoản).</li>
+                            <li>@Html.Raw(isPaidFull ? "<strong class='text-success'>Khách đã thanh toán 100% trọn gói qua sàn (Không thu thêm).</strong>" : $"Đã thu 70% số tiền thuê còn lại (tiền mặt / chuyển khoản: {remainingToCollect:N0}đ).")</li>
                             <li>Đã kiểm tra số km (ODO) và mức xăng/pin hiện tại.</li>
                         </ul>
                     </div>

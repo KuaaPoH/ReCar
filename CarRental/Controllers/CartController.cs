@@ -265,18 +265,23 @@ namespace CarRental.Controllers
 
                 
                 decimal price = cart.Sum(p => p.PriceTotal);
-                decimal deposit = (30*price)/100;
-                decimal payments = price - deposit;
+                bool isFullPayment = model.paymentmethod == "full_100" || 
+                                     model.paymentmethod == "Thanh toán 100%" ||
+                                     model.paymentmethod == "Thanh toán toàn bộ 100%";
+
+                decimal deposit = isFullPayment ? price : Math.Round((price * 30m) / 100m, 0);
+                decimal payments = isFullPayment ? 0 : (price - deposit);
 
                 var driveModeSummary = string.Join("; ", cart.Select(c => $"Hình thức: {c.DriveMode}" + (c.DriverFee > 0 ? $" (Phụ phí tài xế: {c.DriverFee:N0}đ)" : "")));
-                string combinedNotes = driveModeSummary + (!string.IsNullOrWhiteSpace(model.Notes) ? $" | Ghi chú khách: {model.Notes}" : "");
+                string paymentPlanText = isFullPayment ? "Gói thanh toán: Trọn gói 100% qua VNPay" : "Gói thanh toán: Đặt cọc 30% qua VNPay";
+                string nowVnTime = Function.NowVn.ToString("dd/MM/yyyy HH:mm");
+                string combinedNotes = $"[Tạo đơn {nowVnTime}] | " + driveModeSummary + $" | [{paymentPlanText}]" + (!string.IsNullOrWhiteSpace(model.Notes) ? $" | Ghi chú khách: {model.Notes}" : "");
 
                 var order = new CarRentalOrder
                 {
                     CustomerId = customerID,
-                    OrderDate = DateOnly.FromDateTime(DateTime.Now),
+                    OrderDate = DateOnly.FromDateTime(Function.NowVn),
                     Deposit = deposit,
-                    //ReturnDate = DateOnly.FromDateTime(cart.Max(p => p.returnDate)),
                     StatusId = 1,
                     Payment = payments,
                     Notes = combinedNotes
@@ -320,14 +325,18 @@ namespace CarRental.Controllers
                         _context.SaveChanges(); // Lưu thay đổi
                         HttpContext.Session.Set<List<CartItemsVM>>(CART_KEY, new List<CartItemsVM>());
                         transaction.Commit();
-                        if (model.paymentmethod == "Thanh toán VNPay")
+                        bool isVnPay = model.paymentmethod != "cod" && model.paymentmethod != "Thanh toán COD";
+                        if (isVnPay)
                         {
                             bool isBypass = _config.GetValue<bool>("VnPay:BypassPayment", false);
                             if (isBypass)
                             {
-                                // Chế độ giả lập test: Xác nhận cọc 30% thành công ngay lập tức
+                                // Chế độ giả lập test: Xác nhận thanh toán thành công ngay lập tức
                                 order.StatusId = 3; // Đã thanh toán / cọc thành công
-                                order.Notes = (order.Notes ?? "") + " | [VNPay Test] Đã thanh toán đặt cọc 30% thành công";
+                                string testLog = isFullPayment
+                                    ? $"[Thanh toán {Function.NowVn:dd/MM/yyyy HH:mm}] | [VNPay Test] Đã thanh toán trọn gói 100% qua VNPay thành công"
+                                    : $"[Thanh toán {Function.NowVn:dd/MM/yyyy HH:mm}] | [VNPay Test] Đã thanh toán đặt cọc 30% qua VNPay thành công";
+                                order.Notes = (order.Notes ?? "") + " | " + testLog;
                                 _context.SaveChanges();
 
                                 // Bắn thông báo thời gian thực tới Admin và Chủ xe
@@ -339,15 +348,17 @@ namespace CarRental.Controllers
                                     success = true, 
                                     redirectUrl = ordersUrlMock, 
                                     isVnpay = false,
-                                    title = "Thanh toán VNPay thành công!",
-                                    message = "Bạn đã đặt cọc 30% thành công qua cổng VNPay (Chế độ giả lập để kiểm thử). Đơn hàng đã chuyển sang trạng thái Đã thanh toán!"
+                                    title = isFullPayment ? "Thanh toán trọn gói 100% thành công!" : "Đặt cọc 30% qua VNPay thành công!",
+                                    message = isFullPayment
+                                        ? $"Bạn đã thanh toán trọn gói 100% ({price:N0}đ) thành công qua VNPay (Chế độ giả lập). Không cần thanh toán thêm tiền thuê khi nhận xe!"
+                                        : $"Bạn đã đặt cọc 30% ({deposit:N0}đ) thành công qua VNPay (Chế độ giả lập). Đơn hàng đã chuyển sang trạng thái Đã thanh toán!"
                                 });
                             }
 
                             var vnPayModel = new VnPaymentRequestModel
                             {
                                 Amount = (double)deposit,
-                                CreatedDate = DateTime.Now,
+                                CreatedDate = Function.NowVn,
                                 Description = $"{Function.GetUserName(HttpContext.Session)} {Function.GetPhone(HttpContext.Session)}",
                                 FullName = Function.GetUserName(HttpContext.Session),
                                 OrderId = order.OrderId
@@ -408,7 +419,7 @@ namespace CarRental.Controllers
                 var order = new CarRentalOrder
                 {
                     CustomerId = customerID,
-                    OrderDate = DateOnly.FromDateTime(DateTime.Now),
+                    OrderDate = DateOnly.FromDateTime(Function.NowVn),
                     Deposit = model.Depostit,
                     Payment = cart.Sum(p => p.Price),
                     ReturnDate = DateOnly.FromDateTime((DateTime)model.OrderReturn),
@@ -477,7 +488,12 @@ namespace CarRental.Controllers
                 if (order != null)
                 {
                     order.StatusId = 3; // Trạng thái: Đã thanh toán / cọc thành công
-                    order.Notes = (order.Notes ?? "") + $" | Đã thanh toán cọc qua VNPay (Mã GD: {response.TransactionId})";
+                    bool isFull = (order.Payment ?? 0) == 0;
+                    string nowPayStr = Function.NowVn.ToString("dd/MM/yyyy HH:mm");
+                    string noteSuffix = isFull
+                        ? $" | [Thanh toán {nowPayStr}] | Đã thanh toán trọn gói 100% qua VNPay (Mã GD: {response.TransactionId})"
+                        : $" | [Thanh toán {nowPayStr}] | Đã thanh toán cọc 30% qua VNPay (Mã GD: {response.TransactionId})";
+                    order.Notes = (order.Notes ?? "") + noteSuffix;
                     _context.SaveChanges();
 
                     // Bắn thông báo Realtime

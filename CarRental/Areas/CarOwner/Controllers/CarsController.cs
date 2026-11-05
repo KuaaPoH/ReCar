@@ -1,4 +1,4 @@
-using CarRental.Models;
+﻿using CarRental.Models;
 using CarRental.Utilities;
 using CarRental.ViewModels;
 using CarRental.Hubs;
@@ -63,6 +63,19 @@ namespace CarRental.Areas.CarOwner.Controllers
                 .Where(c => c.OwnerId == ownerId)
                 .OrderByDescending(c => c.CarId)
                 .ToList();
+
+            var now = DateTime.Now;
+            var carIds = cars.Select(c => c.CarId).ToList();
+            List<CarCalendarBlock> activeBlocks = new();
+            try
+            {
+                activeBlocks = _context.CarCalendarBlocks
+                    .Where(b => carIds.Contains(b.CarId) && b.EndTime >= now)
+                    .OrderBy(b => b.StartTime)
+                    .ToList();
+            }
+            catch { }
+            ViewBag.ActiveBlocks = activeBlocks;
 
             return View(cars);
         }

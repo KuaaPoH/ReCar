@@ -1,4 +1,4 @@
-@model CarRental.Models.News
+﻿@model CarRental.Models.News
 @{
     ViewData["Title"] = (Model.Title ?? "Chi tiết bản tin") + " – Tin tức ReCar";
     Layout = "~/Views/Shared/_Layout.cshtml";
@@ -11,39 +11,6 @@
     string categoryName = !string.IsNullOrEmpty(Model.SeoKeywords) ? Model.SeoKeywords : "Tin tức & Hành trình";
 }
 
-<style>
-    .recar-article-content {
-        font-size: 16px;
-        line-height: 1.85;
-        color: #1e293b;
-    }
-    .recar-article-content h2,
-    .recar-article-content h3,
-    .recar-article-content h4 {
-        color: var(--recar-navy);
-        font-weight: 700;
-        margin-top: 1.75rem;
-        margin-bottom: 0.75rem;
-    }
-    .recar-article-content p {
-        margin-bottom: 1.15rem;
-    }
-    .recar-article-content ul,
-    .recar-article-content ol {
-        margin-bottom: 1.25rem;
-        padding-left: 1.4rem;
-    }
-    .recar-article-content li {
-        margin-bottom: 0.5rem;
-    }
-    .recar-article-content img {
-        max-width: 100% !important;
-        height: auto !important;
-        border-radius: 12px;
-        margin: 1rem 0;
-        box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
-    }
-</style>
 
 <!-- Breadcrumb Area -->
 <div class="py-3 bg-light border-bottom mb-4">

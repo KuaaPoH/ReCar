@@ -9,6 +9,8 @@ import { DEMO_TODAY } from "@/lib/host/mock-data";
 export const Route = createFileRoute("/CarOwner/Cars/Create")({
   head: () => ({
     meta: [
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
       { title: "Thêm xe mới — ReCar Host Pro" },
       { name: "description", content: "Đăng ký xe mới vào đội xe và gửi hồ sơ phê duyệt." },
       { property: "og:title", content: "Thêm xe mới — ReCar Host Pro" },

@@ -1,0 +1,521 @@
+@model CarRental.Areas.CarOwner.Controllers.WalletIndexVm
+@{
+    ViewData["Title"] = "Ví đối tác & Đối soát";
+    Layout = "~/Areas/CarOwner/Views/Shared/_Layout.cshtml";
+
+    string FmtVnd(decimal v) => string.Format("{0:N0} ₫", v).Replace(",", ".");
+}
+
+<div class="d-flex flex-column gap-4">
+    <!-- Header & Filter Bar -->
+    <div class="d-flex flex-wrap align-items-end justify-content-between gap-3">
+        <div>
+            <h1 class="host-page-title">Ví đối tác &amp; Đối soát</h1>
+            <p class="host-page-subtitle">Theo dõi dòng tiền cọc 30%, phí nền tảng 10% và lịch sử quyết toán tự động về ngân hàng</p>
+        </div>
+        <form method="get" action="/CarOwner/Wallet/Index" class="d-flex flex-wrap align-items-end gap-2">
+            <input type="hidden" name="tab" value="@Model.ActiveTab" id="walletTabInput" />
+            <div>
+                <label class="host-form-label">Từ ngày</label>
+                <input type="date" name="start" value="@Model.StartDate" class="host-input" onchange="this.form.submit()" />
+            </div>
+            <div>
+                <label class="host-form-label">Đến ngày</label>
+                <input type="date" name="end" value="@Model.EndDate" class="host-input" onchange="this.form.submit()" />
+            </div>
+            <div>
+                <label class="host-form-label">Trạng thái quyết toán</label>
+                <select name="status" class="host-select" onchange="this.form.submit()">
+                    <option value="all" selected="@(Model.StatusFilter == "all")">Tất cả trạng thái</option>
+                    <option value="pending" selected="@(Model.StatusFilter == "pending")">Chờ thanh toán</option>
+                    <option value="processing" selected="@(Model.StatusFilter == "processing")">Đang xử lý</option>
+                    <option value="paid" selected="@(Model.StatusFilter == "paid")">Đã thanh toán</option>
+                </select>
+            </div>
+            <a href="/CarOwner/Wallet/ExportCsv?start=@Model.StartDate&end=@Model.EndDate" class="host-btn-outline">
+                <i class="bi bi-file-earmark-spreadsheet text-success"></i> Xuất Excel / CSV
+            </a>
+            <button type="button" onclick="window.print()" class="host-btn-outline">
+                <i class="bi bi-printer"></i> In đối soát
+            </button>
+        </form>
+    </div>
+
+    <!-- 4 Stat Cards -->
+    <div class="row g-3">
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="host-stat-card">
+                <div class="host-stat-label">
+                    <span>Số dư chờ đối soát</span>
+                    <button type="button" class="host-info-btn" data-bs-toggle="tooltip" data-bs-placement="top" title="Khoản 20% tiền cọc còn lại (sau khi trừ 10% phí nền tảng từ 30% cọc VNPay) sàn đang giữ và sẽ chuyển khoản cho chủ xe vào kỳ đối soát tiếp theo.">i</button>
+                </div>
+                <div class="host-stat-value text-warning">@FmtVnd(Model.PendingBalance + Model.ProcessingBalance)</div>
+                <div class="host-stat-sub">Chờ thanh toán: @FmtVnd(Model.PendingBalance) · Đang xử lý: @FmtVnd(Model.ProcessingBalance)</div>
+            </div>
+        </div>
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="host-stat-card">
+                <div class="host-stat-label">
+                    <span>Sàn đã chuyển kỳ này</span>
+                    <button type="button" class="host-info-btn" data-bs-toggle="tooltip" data-bs-placement="top" title="Tổng số tiền đối soát (20% giá trị đơn) mà ReCar đã giải ngân thành công vào tài khoản ngân hàng thụ hưởng của bạn trong kỳ lọc.">i</button>
+                </div>
+                <div class="host-stat-value text-success">@FmtVnd(Model.PaidTotal)</div>
+                <div class="host-stat-sub">Đã thanh toán vào tài khoản ngân hàng</div>
+            </div>
+        </div>
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="host-stat-card">
+                <div class="host-stat-label">
+                    <span>Thực nhận chủ xe (90%)</span>
+                    <button type="button" class="host-info-btn" data-bs-toggle="tooltip" data-bs-placement="top" title="Tổng thu nhập ròng 90% của chủ xe từ các chuyến hoàn thành trong kỳ: bao gồm 70% khách trả trực tiếp khi nhận xe + 20% sàn chuyển đối soát.">i</button>
+                </div>
+                <div class="host-stat-value" style="color: #0284c7;">@FmtVnd(Model.NetInPeriod)</div>
+                <div class="host-stat-sub">70% thu trực tiếp + 20% sàn đối soát</div>
+            </div>
+        </div>
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="host-stat-card">
+                <div class="host-stat-label">
+                    <span>Phí sàn 10%</span>
+                    <button type="button" class="host-info-btn" data-bs-toggle="tooltip" data-bs-placement="top" title="Phí vận hành & bảo hiểm nền tảng 10% tính trên tổng giá trị đơn hoàn thành. Khoản này được khấu trừ trực tiếp từ 30% tiền cọc khách đóng qua sàn.">i</button>
+                </div>
+                <div class="host-stat-value text-danger">@FmtVnd(Model.FeeInPeriod)</div>
+                <div class="host-stat-sub">Trên tổng giá trị đơn @FmtVnd(Model.GrossInPeriod)</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notice Banner -->
+    <div class="host-notice">
+        <i class="bi bi-info-circle-fill me-1"></i>
+        Khách đặt cọc <strong>30%</strong> qua VNPay, thanh toán <strong>70%</strong> trực tiếp khi nhận xe. Phí nền tảng <strong>10%</strong> chỉ khấu trừ một lần trên khoản cọc 30%; sàn hoàn trả <strong>20%</strong> còn lại cho chủ xe theo kỳ đối soát.
+    </div>
+
+    <!-- Dòng tiền trong kỳ + Tài khoản nhận tiền -->
+    <div class="row g-3">
+        <div class="col-12 col-lg-8">
+            <div class="host-section-card h-100">
+                <div class="host-section-header">
+                    <div>
+                        <h3 class="host-section-title">Dòng tiền trong kỳ</h3>
+                        <p class="host-section-sub">Tổng hợp từ các đơn hoàn thành và đang vận hành trong khoảng thời gian đã chọn</p>
+                    </div>
+                </div>
+                <div class="host-section-body">
+                    <div class="row g-3">
+                        <div class="col-12 col-md-6">
+                            <div class="rounded-3 border bg-light p-3 h-100">
+                                <div class="d-flex justify-content-between py-1.5 border-bottom pb-2 mb-2 small">
+                                    <span class="text-secondary">Tổng giá trị đơn (100%)</span>
+                                    <span class="fw-bold text-dark">@FmtVnd(Model.GrossInPeriod)</span>
+                                </div>
+                                <div class="d-flex justify-content-between py-1 small mb-2">
+                                    <span class="text-secondary">Khách cọc qua sàn (30%)</span>
+                                    <span class="fw-semibold text-primary">@FmtVnd(Model.DepositInPeriod)</span>
+                                </div>
+                                <div class="d-flex justify-content-between py-1 small">
+                                    <span class="text-secondary">Khách trả trực tiếp khi nhận xe (70%)</span>
+                                    <span class="fw-semibold text-dark">@FmtVnd(Model.DirectInPeriod)</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <div class="rounded-3 border p-3 h-100" style="background: rgba(236, 253, 245, 0.5); border-color: #a7f3d0 !important;">
+                                <div class="d-flex justify-content-between py-1.5 border-bottom pb-2 mb-2 small">
+                                    <span class="text-secondary">Phí dịch vụ nền tảng (-10%)</span>
+                                    <span class="fw-semibold text-danger">-@FmtVnd(Model.FeeInPeriod)</span>
+                                </div>
+                                <div class="d-flex justify-content-between py-1 small mb-2">
+                                    <span class="text-secondary">Thực nhận của chủ xe (90%)</span>
+                                    <span class="fw-bold text-success">@FmtVnd(Model.NetInPeriod)</span>
+                                </div>
+                                <div class="d-flex justify-content-between py-1 small">
+                                    <span class="text-secondary">Sàn chuyển sau khấu trừ phí (20%)</span>
+                                    <span class="fw-bold" style="color: #0284c7;">@FmtVnd(Model.PayoutFromPlatformInPeriod)</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-lg-4">
+            <div class="host-section-card h-100">
+                <div class="host-section-header">
+                    <div>
+                        <h3 class="host-section-title">Tài khoản nhận tiền</h3>
+                        <p class="host-section-sub">Tự động chuyển khoản theo kỳ đối soát</p>
+                    </div>
+                </div>
+                <div class="host-section-body">
+                    <div class="rounded-3 border bg-light p-3 small">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-secondary">Ngân hàng</span>
+                            <span class="fw-bold text-dark">@Model.BankName</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-secondary">Số tài khoản</span>
+                            <span class="font-monospace fw-bold text-dark">@Model.BankAccount</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-secondary">Chủ tài khoản</span>
+                            <span class="fw-semibold text-dark">@Model.BankHolder</span>
+                        </div>
+                        <div class="d-flex justify-content-between pt-2 border-top">
+                            <span class="text-secondary">Kỳ đối soát</span>
+                            <span class="text-dark fw-medium">Ngày 01 &amp; 16 hàng tháng</span>
+                        </div>
+                    </div>
+                    <a href="/CarOwner/Register/Pending" class="d-inline-block mt-3 small fw-semibold text-decoration-none" style="color: #0284c7;">
+                        Cập nhật hồ sơ ngân hàng &rarr;
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabs Switcher -->
+    <div>
+        <div class="host-tab-group">
+            <button type="button" class="host-tab-btn @(Model.ActiveTab == "transactions" ? "active" : "")" onclick="switchWalletTab('transactions')" id="btnTabTransactions">
+                Biến động giao dịch (@Model.Transactions.Count)
+            </button>
+            <button type="button" class="host-tab-btn @(Model.ActiveTab == "payouts" ? "active" : "")" onclick="switchWalletTab('payouts')" id="btnTabPayouts">
+                Lịch sử quyết toán (@Model.Payouts.Count)
+            </button>
+        </div>
+    </div>
+
+    <!-- Tab 1: Biến động giao dịch -->
+    <div id="panelTransactions" class="host-section-card" style="display: @(Model.ActiveTab == "transactions" ? "block" : "none");">
+        <div class="host-section-header">
+            <div>
+                <h3 class="host-section-title">Biến động giao dịch</h3>
+                <p class="host-section-sub">Chi tiết từng đơn hoàn thành và các đợt sàn chuyển khoản đối soát</p>
+            </div>
+        </div>
+        <div class="table-responsive">
+            <table class="host-table">
+                <thead>
+                    <tr>
+                        <th>Mã GD</th>
+                        <th>Thời gian</th>
+                        <th>Loại giao dịch</th>
+                        <th>Mô tả</th>
+                        <th class="text-end">Tổng đơn</th>
+                        <th class="text-end">Phí sàn (10%)</th>
+                        <th class="text-end">Chủ xe nhận (90%)</th>
+                        <th class="text-end">Sàn đối soát (20%)</th>
+                        <th>Trạng thái</th>
+                        <th class="text-end">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!Model.Transactions.Any())
+                    {
+                        <tr>
+                            <td colspan="10" class="text-center py-5 text-muted">
+                                Không có giao dịch nào trong khoảng thời gian đã chọn.
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        foreach (var t in Model.Transactions)
+                        {
+                            <tr>
+                                <td class="font-monospace fw-bold text-dark" style="font-size: 12px;">@t.Id</td>
+                                <td class="text-secondary" style="font-size: 12px;">@t.CreatedAt.ToString("dd/MM/yyyy HH:mm")</td>
+                                <td>
+                                    @if (t.Type == "earning")
+                                    {
+                                        <span class="host-badge emerald">Thu nhập chuyến</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="host-badge sky">Sàn chuyển đối soát</span>
+                                    }
+                                </td>
+                                <td>
+                                    <div class="fw-medium text-dark">@t.Description</div>
+                                    @if (t.OrderId > 0)
+                                    {
+                                        <a href="/CarOwner/Orders/Details/@t.OrderId" class="small text-decoration-none" style="color: #0284c7; font-size: 11.5px;">Xem đơn @t.OrderCode &rarr;</a>
+                                    }
+                                </td>
+                                <td class="text-end fw-medium">@(t.GrossAmount > 0 ? FmtVnd(t.GrossAmount) : "—")</td>
+                                <td class="text-end text-danger">@(t.PlatformFee > 0 ? "-" + FmtVnd(t.PlatformFee) : "—")</td>
+                                <td class="text-end fw-bold text-success">@(t.Type == "earning" ? FmtVnd(t.NetAmount) : "—")</td>
+                                <td class="text-end fw-bold" style="color: #0284c7;">
+                                    @(t.Type == "earning" ? "+" + FmtVnd(t.PlatformPayoutAmount) : FmtVnd(t.PlatformPayoutAmount))
+                                </td>
+                                <td>
+                                    @if (t.Status == "completed")
+                                    {
+                                        <span class="host-badge emerald">Hoàn tất</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="host-badge amber">Chờ đối soát</span>
+                                    }
+                                </td>
+                                <td class="text-end">
+                                    <button type="button" class="btn btn-sm btn-light border text-secondary py-1 px-2.5" style="font-size: 11.5px;"
+                                            onclick="openTxDetailModal('@t.Id', '@t.CreatedAt.ToString("dd/MM/yyyy HH:mm")', '@t.Type', '@Html.Raw((t.Description ?? "").Replace("'", "\\'"))', '@FmtVnd(t.GrossAmount)', '@FmtVnd(t.DepositAmount)', '@FmtVnd(t.DirectCollectAmount)', '@FmtVnd(t.PlatformFee)', '@FmtVnd(t.NetAmount)', '@FmtVnd(t.PlatformPayoutAmount)', @t.OrderId, '@t.OrderCode')">
+                                        Chi tiết
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Tab 2: Lịch sử quyết toán -->
+    <div id="panelPayouts" class="host-section-card" style="display: @(Model.ActiveTab == "payouts" ? "block" : "none");">
+        <div class="host-section-header">
+            <div>
+                <h3 class="host-section-title">Lịch sử quyết toán</h3>
+                <p class="host-section-sub">Các đợt đối soát tiền cọc 30% sau khi trừ 10% phí nền tảng</p>
+            </div>
+        </div>
+        <div class="table-responsive">
+            <table class="host-table">
+                <thead>
+                    <tr>
+                        <th>Mã kỳ</th>
+                        <th>Kỳ đối soát</th>
+                        <th class="text-end">Số đơn</th>
+                        <th class="text-end">Cọc sàn giữ (30%)</th>
+                        <th class="text-end">Phí sàn (10%)</th>
+                        <th class="text-end">Số tiền chuyển (20%)</th>
+                        <th>Trạng thái</th>
+                        <th>Ngày chuyển</th>
+                        <th class="text-end">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!Model.Payouts.Any())
+                    {
+                        <tr>
+                            <td colspan="9" class="text-center py-5 text-muted">
+                                Không có kỳ quyết toán nào khớp bộ lọc.
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        foreach (var p in Model.Payouts)
+                        {
+                            string ordersJoined = string.Join(", ", p.Orders);
+                            <tr>
+                                <td class="font-monospace fw-bold text-dark" style="font-size: 12px;">@p.Id</td>
+                                <td class="fw-semibold text-dark">@p.Period</td>
+                                <td class="text-end">@p.OrderCount đơn</td>
+                                <td class="text-end">@FmtVnd(p.DepositTotal)</td>
+                                <td class="text-end text-danger">-@FmtVnd(p.PlatformFeeTotal)</td>
+                                <td class="text-end fw-bold text-success">@FmtVnd(p.Amount)</td>
+                                <td>
+                                    @if (p.Status == "paid")
+                                    {
+                                        <span class="host-badge emerald">Đã thanh toán</span>
+                                    }
+                                    else if (p.Status == "processing")
+                                    {
+                                        <span class="host-badge sky">Đang xử lý</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="host-badge amber">Chờ thanh toán</span>
+                                    }
+                                </td>
+                                <td class="text-secondary" style="font-size: 12px;">
+                                    @(p.PaidAt.HasValue ? p.PaidAt.Value.ToString("dd/MM/yyyy") : "Dự kiến kỳ tới")
+                                </td>
+                                <td class="text-end">
+                                    <button type="button" class="btn btn-sm btn-light border text-secondary py-1 px-2.5" style="font-size: 11.5px;"
+                                            onclick="openPayoutDetailModal('@p.Id', '@p.Period', '@p.BankName', '@p.BankAccount', '@p.BankHolder', '@FmtVnd(p.DepositTotal)', '@FmtVnd(p.PlatformFeeTotal)', '@FmtVnd(p.Amount)', '@ordersJoined')">
+                                        Xem đơn
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Chi tiết giao dịch -->
+<div class="modal fade" id="txDetailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 16px;">
+            <div class="modal-header border-bottom px-4 py-3">
+                <div>
+                    <h5 class="modal-title fw-bold text-dark mb-0" id="txModalTitle">Chi tiết giao dịch</h5>
+                    <p class="text-muted small mb-0" id="txModalTime"></p>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+            </div>
+            <div class="modal-body p-4">
+                <p class="fw-medium text-dark mb-3" id="txModalDesc"></p>
+                <div class="rounded-3 border bg-light p-3 small">
+                    <div class="d-flex justify-content-between mb-2" id="txRowGross">
+                        <span class="text-secondary">Tổng giá trị đơn (100%)</span>
+                        <span class="fw-bold text-dark" id="txModalGross"></span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-secondary">Khách cọc qua VNPay (30%)</span>
+                        <span class="fw-semibold text-primary" id="txModalDeposit"></span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2" id="txRowDirect">
+                        <span class="text-secondary">Khách trả trực tiếp chủ xe (70%)</span>
+                        <span class="fw-semibold text-dark" id="txModalDirect"></span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2" id="txRowFee">
+                        <span class="text-secondary">Phí nền tảng (10%)</span>
+                        <span class="fw-semibold text-danger" id="txModalFee"></span>
+                    </div>
+                    <div class="d-flex justify-content-between pt-2 border-top mb-1" id="txRowNet">
+                        <span class="fw-semibold text-dark">Thực nhận chủ xe (90%)</span>
+                        <span class="fw-bold text-success" id="txModalNet"></span>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span class="fw-semibold text-dark">Sàn chuyển đối soát (20%)</span>
+                        <span class="fw-bold" style="color: #0284c7;" id="txModalPayout"></span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-top px-4 py-2.5">
+                <a href="#" id="txModalOrderLink" class="host-btn-outline">Mở chi tiết đơn</a>
+                <button type="button" class="host-btn-primary" data-bs-dismiss="modal">Đóng</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Chi tiết kỳ quyết toán -->
+<div class="modal fade" id="payoutDetailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 16px;">
+            <div class="modal-header border-bottom px-4 py-3">
+                <div>
+                    <h5 class="modal-title fw-bold text-dark mb-0" id="poModalTitle">Kỳ quyết toán</h5>
+                    <p class="text-muted small mb-0" id="poModalPeriod"></p>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="rounded-3 border bg-light p-3 small mb-3">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-secondary">Ngân hàng nhận</span>
+                        <span class="fw-bold text-dark" id="poModalBank"></span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-secondary">Chủ tài khoản</span>
+                        <span class="fw-semibold text-dark" id="poModalHolder"></span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-secondary">Tổng cọc sàn giữ (30%)</span>
+                        <span class="fw-semibold text-dark" id="poModalDeposit"></span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-secondary">Tổng phí sàn khấu trừ (10%)</span>
+                        <span class="fw-semibold text-danger" id="poModalFee"></span>
+                    </div>
+                    <div class="d-flex justify-content-between pt-2 border-top">
+                        <span class="fw-bold text-dark">Số tiền sàn chuyển (20%)</span>
+                        <span class="fw-bold text-success" id="poModalAmount"></span>
+                    </div>
+                </div>
+                <div class="small fw-semibold text-secondary mb-2">Danh sách đơn trong kỳ:</div>
+                <div class="d-flex flex-wrap gap-1.5" id="poModalOrders"></div>
+            </div>
+            <div class="modal-footer border-top px-4 py-2.5">
+                <button type="button" class="host-btn-primary" data-bs-dismiss="modal">Đóng</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+        });
+
+        function switchWalletTab(tabName) {
+            document.getElementById('walletTabInput').value = tabName;
+            document.getElementById('panelTransactions').style.display = (tabName === 'transactions') ? 'block' : 'none';
+            document.getElementById('panelPayouts').style.display = (tabName === 'payouts') ? 'block' : 'none';
+            document.getElementById('btnTabTransactions').classList.toggle('active', tabName === 'transactions');
+            document.getElementById('btnTabPayouts').classList.toggle('active', tabName === 'payouts');
+        }
+
+        function openTxDetailModal(id, time, type, desc, gross, dep, direct, fee, net, payout, orderId, orderCode) {
+            document.getElementById('txModalTitle').textContent = 'Chi tiết giao dịch ' + id;
+            document.getElementById('txModalTime').textContent = 'Thời gian: ' + time;
+            document.getElementById('txModalDesc').textContent = desc;
+            document.getElementById('txModalGross').textContent = gross;
+            document.getElementById('txModalDeposit').textContent = dep;
+            document.getElementById('txModalDirect').textContent = direct;
+            document.getElementById('txModalFee').textContent = '-' + fee;
+            document.getElementById('txModalNet').textContent = net;
+            document.getElementById('txModalPayout').textContent = payout;
+
+            var isEarning = (type === 'earning');
+            document.getElementById('txRowGross').style.display = isEarning ? 'flex' : 'none';
+            document.getElementById('txRowDirect').style.display = isEarning ? 'flex' : 'none';
+            document.getElementById('txRowFee').style.display = isEarning ? 'flex' : 'none';
+            document.getElementById('txRowNet').style.display = isEarning ? 'flex' : 'none';
+
+            var orderLink = document.getElementById('txModalOrderLink');
+            if (orderId && orderId > 0) {
+                orderLink.style.display = 'inline-flex';
+                orderLink.href = '/CarOwner/Orders/Details/' + orderId;
+                orderLink.textContent = 'Mở đơn ' + orderCode;
+            } else {
+                orderLink.style.display = 'none';
+            }
+
+            var modal = new bootstrap.Modal(document.getElementById('txDetailModal'));
+            modal.show();
+        }
+
+        function openPayoutDetailModal(id, period, bankName, bankAcc, bankHolder, dep, fee, amount, ordersStr) {
+            document.getElementById('poModalTitle').textContent = 'Kỳ quyết toán ' + id;
+            document.getElementById('poModalPeriod').textContent = 'Chu kỳ: ' + period;
+            document.getElementById('poModalBank').textContent = bankName + ' · ' + bankAcc;
+            document.getElementById('poModalHolder').textContent = bankHolder;
+            document.getElementById('poModalDeposit').textContent = dep;
+            document.getElementById('poModalFee').textContent = '-' + fee;
+            document.getElementById('poModalAmount').textContent = amount;
+
+            var container = document.getElementById('poModalOrders');
+            container.innerHTML = '';
+            if (ordersStr) {
+                ordersStr.split(',').forEach(function (c) {
+                    var code = c.trim();
+                    if (!code) return;
+                    var numId = code.replace('#RC-', '');
+                    var a = document.createElement('a');
+                    a.href = '/CarOwner/Orders/Details/' + parseInt(numId, 10);
+                    a.className = 'badge bg-light text-primary border text-decoration-none px-2.5 py-1.5 font-monospace';
+                    a.textContent = code;
+                    container.appendChild(a);
+                });
+            }
+
+            var modal = new bootstrap.Modal(document.getElementById('payoutDetailModal'));
+            modal.show();
+        }
+    </script>
+}
+

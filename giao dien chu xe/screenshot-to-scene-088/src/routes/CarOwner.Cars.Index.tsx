@@ -20,6 +20,8 @@ import type { Car, CarStatus } from "@/lib/host/types";
 export const Route = createFileRoute("/CarOwner/Cars/Index")({
   head: () => ({
     meta: [
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
       { title: "Quản lý xe — ReCar Host Pro" },
       { name: "description", content: "Danh sách xe, trạng thái, giá thuê và thao tác nhanh cho chủ xe." },
       { property: "og:title", content: "Quản lý xe — ReCar Host Pro" },

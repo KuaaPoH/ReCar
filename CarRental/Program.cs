@@ -321,6 +321,19 @@ static void EnsureAllTablesExist(DbRenalCarContext context, ILogger logger)
                 INDEX `IX_Inspection_Car` (`CarId`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
 
+        // Lịch chặn xe bận / bảo dưỡng của Chủ xe
+        tablesToCheck["car_calendar_blocks"] = @"CREATE TABLE IF NOT EXISTS `car_calendar_blocks` (
+                `BlockId` INT NOT NULL AUTO_INCREMENT,
+                `CarId` INT NOT NULL,
+                `StartTime` DATETIME NOT NULL,
+                `EndTime` DATETIME NOT NULL,
+                `Kind` VARCHAR(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'personal',
+                `Note` VARCHAR(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL,
+                `CreatedAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (`BlockId`),
+                INDEX `IX_CalendarBlock_Car` (`CarId`, `StartTime`, `EndTime`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+
         foreach (var table in tablesToCheck)
         {
             try

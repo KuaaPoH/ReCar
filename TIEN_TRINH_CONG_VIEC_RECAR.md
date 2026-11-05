@@ -772,3 +772,80 @@ Nhằm giúp đồ án tạo được ấn tượng mạnh mẽ với hội đ�
 3. **Xóa Form Tự do tại Trang Chi tiết Xe ([`Views/Product/Details.cshtml`](file:///d:/CarRental_TTCN/CarRental/Views/Product/Details.cshtml)):**
    - Xóa bỏ form tự do *"Gửi đánh giá trải nghiệm của bạn"*.
    - Khẳng định nghiệp vụ: Chỉ những khách hàng đã thuê xe và hoàn tất chuyến đi (hóa đơn Status 5) mới được đánh giá xe thông qua hóa đơn trong tài khoản cá nhân.
+
+
+---
+
+## 18. CẬP NHẬT TIẾN TRÌNH: TÁCH CSS DÙNG CHUNG, TRIỂN KHAI 3 PHÂN HỆ MỚI CHO CHỦ XE & ĐỒNG BỘ LỊCH CHẶN TOÀN HỆ THỐNG (NGÀY 06/11/2026)
+
+### 18.1. Bóc Tách Toàn Bộ Inline CSS Sang 3 File Stylesheet Riêng Biệt (Phương Án 1)
+1. **Kiểm tra và chuẩn hóa:** Đã loại bỏ 100% các thẻ `<style>` inline nhúng trong toàn bộ 18 file `.cshtml` trên cả 3 cổng giao diện (Admin, CarOwner, Customer).
+2. **Cấu trúc 3 file CSS trong `wwwroot/assets/css/`:**
+   - [`recar.css`](file:///d:/CarRental_TTCN/CarRental/wwwroot/assets/css/recar.css): Toàn bộ style cho khách hàng (Trang chủ, Thuê xe, Chi tiết xe, Giỏ hàng, Tài khoản cá nhân, Tin tức, Bài viết).
+   - [`recar-admin.css`](file:///d:/CarRental_TTCN/CarRental/wwwroot/assets/css/recar-admin.css): Toàn bộ style cho phân hệ Admin (Layout và trang duyệt xe).
+   - [`recar-carowner.css`](file:///d:/CarRental_TTCN/CarRental/wwwroot/assets/css/recar-carowner.css): Toàn bộ style cho phân hệ Chủ xe (Layout, Quản lý xe, Thêm/Sửa/Xóa xe, Đơn hàng, Biên bản bàn giao Check-in/Check-out, Hồ sơ đối tác).
+3. **Kết quả xác nhận:** Lệnh quét `Get-ChildItem -Recurse -Filter "*.cshtml" | Select-String "<style\b"` trả về đúng **0** thẻ.
+
+---
+
+### 18.2. Triển Khai 3 Phân Hệ Mới Cho Phân Hệ Chủ Xe (Ưu Tiên 1, 2, 3 Từ Template React)
+
+#### 1. Ưu Tiên 1: Ví Đối Tác & Đối Soát (`/CarOwner/Wallet/Index`)
+- **Controller:** [`WalletController.cs`](file:///d:/CarRental_TTCN/CarRental/Areas/CarOwner/Controllers/WalletController.cs).
+- **Giao diện:** [`Areas/CarOwner/Views/Wallet/Index.cshtml`](file:///d:/CarRental_TTCN/CarRental/Areas/CarOwner/Views/Wallet/Index.cshtml).
+- **Nghiệp vụ tài chính:**
+  - Tổng giá trị đơn thuê (100%): Khách cọc 30% qua VNPay, thanh toán 70% trực tiếp cho chủ xe khi nhận chìa khóa.
+  - Phí dịch vụ sàn 10%: Khấu trừ một lần trực tiếp từ 30% tiền cọc.
+  - Sàn chuyển đối soát 20% còn lại về tài khoản ngân hàng của chủ xe vào ngày 01 & 16 hàng tháng.
+  - Chủ xe thực nhận 90% (70% tiền mặt/CK trực tiếp + 20% đối soát từ sàn).
+- **Tính năng giao diện:**
+  - 4 Stat Cards kèm tooltip giải thích chi tiết cơ chế dòng tiền.
+  - Bảng tổng hợp dòng tiền trong kỳ & Thông tin tài khoản thụ hưởng của chủ xe.
+  - Tab *Biến động giao dịch* (`TN-#RC-...`, `CK-PO-...`) và Tab *Lịch sử quyết toán* (Nhóm theo kỳ nửa tháng `PO-YYYYMM-01`).
+  - Modal chi tiết từng giao dịch, Modal chi tiết kỳ quyết toán kèm danh sách đơn.
+  - Xuất báo cáo CSV/Excel (`/CarOwner/Wallet/ExportCsv`) và in phiếu đối soát (`window.print()`).
+
+#### 2. Ưu Tiên 2: Lịch Xe & Chặn Ngày Bận (`/CarOwner/Calendar/Index`)
+- **Database & Model:** Tạo model [`CarCalendarBlock.cs`](file:///d:/CarRental_TTCN/CarRental/Models/CarCalendarBlock.cs), đăng ký bảng `car_calendar_blocks` trong `DbRenalCarContext` và tự động tạo bảng trong `Program.cs`.
+- **Controller:** [`CalendarController.cs`](file:///d:/CarRental_TTCN/CarRental/Areas/CarOwner/Controllers/CalendarController.cs).
+- **Giao diện:** [`Areas/CarOwner/Views/Calendar/Index.cshtml`](file:///d:/CarRental_TTCN/CarRental/Areas/CarOwner/Views/Calendar/Index.cshtml).
+- **Tính năng:**
+  - 2 chế độ hiển thị: Lưới 42 ô lịch Tháng và Bảng Lịch Tuần theo từng xe.
+  - Phân loại màu sắc trực quan: Còn trống (kèm giá ngày), Đã đặt (Cọc 30%), Đang giao xe, Hoàn tất, Bảo dưỡng định kỳ, Bận việc cá nhân.
+  - Chức năng thêm/xóa chặn lịch kèm tự động kiểm tra xung đột: Ngăn chặn chủ xe khóa ngày trùng vào các đơn khách đã cọc hoặc lịch đã chặn trước đó.
+
+#### 3. Ưu Tiên 3: Phân Tích Hiệu Suất & Tỷ Lệ Lấp Đầy (`/CarOwner/Analytics/Index`)
+- **Controller:** [`AnalyticsController.cs`](file:///d:/CarRental_TTCN/CarRental/Areas/CarOwner/Controllers/AnalyticsController.cs).
+- **Giao diện:** [`Areas/CarOwner/Views/Analytics/Index.cshtml`](file:///d:/CarRental_TTCN/CarRental/Areas/CarOwner/Views/Analytics/Index.cshtml).
+- **Công thức Tỷ lệ lấp đầy (Occupancy Rate):**
+  $$\text{Tỷ lệ lấp đầy (\%)} = \frac{\text{Số ngày có khách thuê}}{\text{Tổng số ngày khả dụng trong kỳ (đã trừ ngày chủ xe chặn bận/bảo dưỡng)}} \times 100$$
+  *(Ví dụ: Trong kỳ 6 tháng gồm 183 ngày, nếu xe bị chặn 2 ngày thì số ngày khả dụng là 181 ngày; nếu khách thuê 8 ngày thì lấp đầy = 8/181 ≈ 4%).*
+- **Tính năng:**
+  - 5 Stat Cards tổng quan: Lấp đầy %, Tổng doanh thu 100%, Doanh thu ròng 90%, Chuyến hoàn thành, Đánh giá trung bình.
+  - Biểu đồ đường (Line Chart): Xu hướng Doanh thu theo thời gian qua các tháng.
+  - Biểu đồ cột ngang (Bar Chart): So sánh tỷ lệ lấp đầy từng xe trong đội xe.
+  - Bảng hiệu suất chi tiết từng xe kèm thanh progress bar.
+  - Phân bổ đánh giá 1–5 sao và Gợi ý vận hành tự động theo hiệu suất thực tế của từng xe.
+
+---
+
+### 18.3. Đồng Bộ Luồng Lịch Chặn Toàn Hệ Thống (Quản Lý Xe & Giao Diện Khách Hàng)
+1. **Tại Quản lý xe của Chủ xe ([`Areas/CarOwner/Views/Cars/Index.cshtml`](file:///d:/CarRental_TTCN/CarRental/Areas/CarOwner/Views/Cars/Index.cshtml)):**
+   - Xe đang trong khoảng ngày bảo dưỡng $\rightarrow$ Tự động chuyển badge sang màu đỏ **"Bảo dưỡng"**.
+   - Xe đang trong khoảng ngày bận việc cá nhân $\rightarrow$ Tự động hiển thị badge **"Chặn lịch"**.
+   - Menu 3 chấm $(\dots)$ bổ sung nút bấm nhanh **"Lịch & Chặn ngày"** chuyển thẳng đến lịch của xe đó.
+2. **Tại Chi tiết xe phía Khách hàng ([`Views/Product/Details.cshtml`](file:///d:/CarRental_TTCN/CarRental/Views/Product/Details.cshtml)):**
+   - Hiển thị danh sách các khoảng ngày xe bị khóa/bảo dưỡng ngay dưới ô chọn ngày nhận – trả xe.
+   - Kiểm tra Real-time trên client: Nếu khách chọn khoảng ngày trùng lịch bận/bảo dưỡng, hệ thống trượt cảnh báo đỏ và **khóa nút đặt cọc giữ xe**.
+   - Nếu hôm nay xe đang trong đợt bảo dưỡng $\rightarrow$ Hiển thị nhãn *"Đang bảo trì định kỳ"* và vô hiệu hóa nút đặt cọc trực tuyến.
+3. **Tại Controller Giỏ hàng ([`CartController.cs`](file:///d:/CarRental_TTCN/CarRental/Controllers/CartController.cs)):**
+   - Kiểm tra lịch chặn ngay trong hàm `AddToCart` (không cho thêm vào giỏ nếu trùng ngày bận).
+   - Kiểm tra chốt chặn an toàn tại hàm `Checkout` trước khi tạo đơn và sinh link thanh toán VNPay.
+4. **Tinh chỉnh Sidebar Chủ xe:** Đã xóa bỏ mục *"Sắp ra mắt / Tính năng tương lai"* tại [`_Layout.cshtml`](file:///d:/CarRental_TTCN/CarRental/Areas/CarOwner/Views/Shared/_Layout.cshtml), tinh gọn sidebar chỉ còn các tính năng thực tế.
+
+---
+
+### 18.4. Ghi Chú Kiến Trúc Cho Ca Làm Việc Tiếp Theo
+- **Bài toán thay đổi tỷ lệ phí sàn (Snapshot Pattern):**
+  - Khi triển khai tính năng Admin cấu hình tỷ lệ phí sàn (ví dụ tăng từ 10% lên 20%), cần bổ sung 2 cột `PlatformFeeRate` và `PlatformFee` vào bảng `carrentalorders` để lưu lại "ảnh chụp" tỷ lệ phí tại thời điểm khách tạo đơn.
+  - Đảm bảo các đơn hàng cũ trong lịch sử vẫn giữ nguyên 10%, và các đơn hàng mới tạo sau thời điểm Admin thay đổi sẽ tự động áp dụng 20%, không làm sai lệch số liệu kế toán.

@@ -1,11 +1,35 @@
 import { Link, useLocation } from "@tanstack/react-router";
 import { useState, type ReactNode } from "react";
 import {
-  Bell, Car, CarFront, ChevronRight, FileBadge, LayoutDashboard, LogOut, Menu, PlusCircle, ShieldCheck, Sparkles, Store, CalendarRange, BadgeCheck,
+  Bell,
+  Car,
+  CarFront,
+  ChevronRight,
+  FileBadge,
+  LayoutDashboard,
+  LogOut,
+  Menu,
+  PlusCircle,
+  ShieldCheck,
+  Sparkles,
+  Store,
+  CalendarRange,
+  BadgeCheck,
+  CalendarDays,
+  Tags,
+  ChartNoAxesCombined,
+  Wallet,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useHost } from "@/lib/host/store";
 import { isTrustedHost } from "@/lib/host/rules";
 import { formatDateTime } from "@/lib/host/format";
@@ -19,13 +43,32 @@ const groups = [
       { to: "/CarOwner/Home/Index", label: "Tổng quan", icon: LayoutDashboard },
       { to: "/CarOwner/Cars/Index", label: "Quản lý xe", icon: Car, match: "/CarOwner/Cars" },
       { to: "/CarOwner/Cars/Create", label: "Thêm xe mới", icon: PlusCircle, badge: "+ Mới" },
+      { to: "/CarOwner/Calendar/Index", label: "Lịch xe", icon: CalendarDays },
     ],
   },
   {
     label: "Kinh doanh & Thu nhập",
     items: [
-      { to: "/CarOwner/Orders/Index", label: "Lịch trình & Đơn xe", icon: CalendarRange, match: "/CarOwner/Orders" },
-      { to: "/CarOwner/Register/Pending", label: "Hồ sơ pháp lý & Ngân hàng", icon: FileBadge, match: "/CarOwner/Register" },
+      {
+        to: "/CarOwner/Orders/Index",
+        label: "Lịch trình & Đơn xe",
+        icon: CalendarRange,
+        match: "/CarOwner/Orders",
+      },
+      { to: "/CarOwner/Pricing/Index", label: "Giá thông minh", icon: Tags },
+      { to: "/CarOwner/Analytics/Index", label: "Phân tích hiệu suất", icon: ChartNoAxesCombined },
+      { to: "/CarOwner/Wallet/Index", label: "Ví đối tác & Đối soát", icon: Wallet },
+    ],
+  },
+  {
+    label: "Hồ sơ đối tác",
+    items: [
+      {
+        to: "/CarOwner/Register/Pending",
+        label: "Hồ sơ pháp lý & Ngân hàng",
+        icon: FileBadge,
+        match: "/CarOwner/Register",
+      },
     ],
   },
   {
@@ -35,6 +78,10 @@ const groups = [
 ] as const;
 
 const titles: [string, string, string][] = [
+  ["/CarOwner/Calendar", "Lịch xe", "Quản trị phương tiện / Lịch xe"],
+  ["/CarOwner/Pricing", "Giá thông minh", "Kinh doanh & Thu nhập / Giá thông minh"],
+  ["/CarOwner/Analytics", "Phân tích hiệu suất", "Kinh doanh & Thu nhập / Phân tích hiệu suất"],
+  ["/CarOwner/Wallet", "Ví đối tác & Đối soát", "Kinh doanh & Thu nhập / Ví đối tác"],
   ["/CarOwner/Home", "Tổng quan", "Tổng quan"],
   ["/CarOwner/Cars/Create", "Thêm xe mới", "Quản lý xe / Thêm xe mới"],
   ["/CarOwner/Cars/Edit", "Chỉnh sửa xe", "Quản lý xe / Chỉnh sửa"],
@@ -52,7 +99,11 @@ function SidebarBody({ onNav }: { onNav?: () => void }) {
   const trips = cars.reduce((s, c) => s + c.completedTrips, 0);
   const avg = reviews.length ? reviews.reduce((s, r) => s + r.stars, 0) / reviews.length : 0;
   const trusted = isTrustedHost(avg, reviews.length, trips, owner.verified === "approved");
-  const verifyLabel = { approved: "Đã xác minh", pending: "Đang xét duyệt", rejected: "Cần bổ sung" }[owner.verified];
+  const verifyLabel = {
+    approved: "Đã xác minh",
+    pending: "Đang xét duyệt",
+    rejected: "Cần bổ sung",
+  }[owner.verified];
 
   return (
     <div className="flex h-full flex-col bg-sidebar text-sidebar-foreground">
@@ -61,16 +112,22 @@ function SidebarBody({ onNav }: { onNav?: () => void }) {
           <CarFront className="size-5" />
         </div>
         <div>
-          <p className="text-[15px] font-bold leading-tight text-sidebar-accent-foreground">ReCar Host Pro</p>
+          <p className="text-[15px] font-bold leading-tight text-sidebar-accent-foreground">
+            ReCar Host Pro
+          </p>
           <p className="text-xs text-sidebar-muted">Đối tác Chủ xe</p>
         </div>
       </div>
 
       <div className="mx-4 mb-4 rounded-xl bg-sidebar-accent p-3">
         <div className="flex items-center gap-3">
-          <div className="grid size-10 shrink-0 place-items-center rounded-full bg-primary text-sm font-bold text-primary-foreground">{owner.initials}</div>
+          <div className="grid size-10 shrink-0 place-items-center rounded-full bg-primary text-sm font-bold text-primary-foreground">
+            {owner.initials}
+          </div>
           <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-sidebar-accent-foreground">{owner.fullName}</p>
+            <p className="truncate text-sm font-semibold text-sidebar-accent-foreground">
+              {owner.fullName}
+            </p>
             <p className="flex items-center gap-1 text-xs text-sidebar-muted">
               <ShieldCheck className="size-3.5" /> {verifyLabel}
             </p>
@@ -86,11 +143,17 @@ function SidebarBody({ onNav }: { onNav?: () => void }) {
       <nav className="flex-1 space-y-5 overflow-y-auto px-3">
         {groups.map((g) => (
           <div key={g.label}>
-            <p className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-sidebar-muted">{g.label}</p>
+            <p className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-sidebar-muted">
+              {g.label}
+            </p>
             <ul className="space-y-1">
               {g.items.map((it) => {
                 const m = "match" in it ? it.match : it.to;
-                const active = it.to === "/CarOwner/Cars/Create" ? path === it.to : path.startsWith(m) && !(m === "/CarOwner/Cars" && path === "/CarOwner/Cars/Create");
+                const active =
+                  it.to === "/CarOwner/Cars/Create"
+                    ? path === it.to
+                    : path.startsWith(m) &&
+                      !(m === "/CarOwner/Cars" && path === "/CarOwner/Cars/Create");
                 const Icon = it.icon;
                 return (
                   <li key={it.to}>
@@ -99,13 +162,22 @@ function SidebarBody({ onNav }: { onNav?: () => void }) {
                       onClick={onNav}
                       className={cn(
                         "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
-                        active ? "bg-sidebar-primary text-sidebar-primary-foreground" : "text-sidebar-foreground hover:bg-sidebar-accent",
+                        active
+                          ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                          : "text-sidebar-foreground hover:bg-sidebar-accent",
                       )}
                     >
                       <Icon className="size-4.5 shrink-0" />
                       <span className="flex-1">{it.label}</span>
                       {"badge" in it && (
-                        <span className={cn("rounded-md px-1.5 py-0.5 text-[10px] font-bold", active ? "bg-sidebar/15" : "bg-sidebar-primary/20 text-sidebar-primary")}>{it.badge}</span>
+                        <span
+                          className={cn(
+                            "rounded-md px-1.5 py-0.5 text-[10px] font-bold",
+                            active ? "bg-sidebar/15" : "bg-sidebar-primary/20 text-sidebar-primary",
+                          )}
+                        >
+                          {it.badge}
+                        </span>
                       )}
                     </Link>
                   </li>
@@ -117,11 +189,25 @@ function SidebarBody({ onNav }: { onNav?: () => void }) {
       </nav>
 
       <div className="space-y-1 border-t border-sidebar-border p-3">
-        <a href="/" onClick={(e) => { e.preventDefault(); toast.info("Chuyển về sàn khách thuê ReCar", { description: DEMO_NOTE }); }} className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium hover:bg-sidebar-accent">
+        <a
+          href="/"
+          onClick={(e) => {
+            e.preventDefault();
+            toast.info("Chuyển về sàn khách thuê ReCar", { description: DEMO_NOTE });
+          }}
+          className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium hover:bg-sidebar-accent"
+        >
           <Store className="size-4.5" /> Về sàn khách thuê
         </a>
         {/* Production: <form method="post" action="/Account/Logout"> with antiforgery token */}
-        <button onClick={() => toast.info("Đăng xuất", { description: "Sẽ gửi POST /Account/Logout khi tích hợp ASP.NET Core." })} className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-muted hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
+        <button
+          onClick={() =>
+            toast.info("Đăng xuất", {
+              description: "Sẽ gửi POST /Account/Logout khi tích hợp ASP.NET Core.",
+            })
+          }
+          className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-muted hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+        >
           <LogOut className="size-4.5" /> Đăng xuất
         </button>
       </div>
@@ -149,55 +235,101 @@ export function HostShell({ children }: { children: ReactNode }) {
 
       <div className="lg:pl-[260px]">
         <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b bg-card/90 px-4 backdrop-blur sm:px-8">
-          <button className="rounded-lg p-2 hover:bg-muted lg:hidden" onClick={() => setOpen(true)} aria-label="Mở menu">
+          <button
+            className="rounded-lg p-2 hover:bg-muted lg:hidden"
+            onClick={() => setOpen(true)}
+            aria-label="Mở menu"
+          >
             <Menu className="size-5" />
           </button>
           <div className="min-w-0 flex-1">
             <p className="flex items-center gap-1 text-xs text-muted-foreground">
-              Host Pro {crumb.split(" / ").map((c) => (<span key={c} className="flex items-center gap-1"><ChevronRight className="size-3" />{c}</span>))}
+              Host Pro{" "}
+              {crumb.split(" / ").map((c) => (
+                <span key={c} className="flex items-center gap-1">
+                  <ChevronRight className="size-3" />
+                  {c}
+                </span>
+              ))}
             </p>
             <p className="truncate text-base font-bold">{title}</p>
           </div>
 
           {/* SignalR hub (/hubs/carowner-notifications) sẽ đẩy thông báo vào đây khi tích hợp backend */}
           <DropdownMenu>
-            <DropdownMenuTrigger className="relative rounded-full p-2.5 hover:bg-muted" aria-label="Thông báo">
+            <DropdownMenuTrigger
+              className="relative rounded-full p-2.5 hover:bg-muted"
+              aria-label="Thông báo"
+            >
               <Bell className="size-5" />
-              {unread > 0 && <span className="absolute right-1 top-1 grid min-w-4.5 place-items-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground">{unread}</span>}
+              {unread > 0 && (
+                <span className="absolute right-1 top-1 grid min-w-4.5 place-items-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground">
+                  {unread}
+                </span>
+              )}
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-80">
               <div className="flex items-center justify-between px-2 py-1.5">
                 <DropdownMenuLabel className="p-0">Thông báo</DropdownMenuLabel>
-                <button onClick={markAllRead} className="text-xs font-medium text-primary">Đánh dấu đã đọc</button>
+                <button onClick={markAllRead} className="text-xs font-medium text-primary">
+                  Đánh dấu đã đọc
+                </button>
               </div>
               <DropdownMenuSeparator />
               {notifications.map((n) => (
                 <DropdownMenuItem key={n.id} asChild>
-                  <Link to={n.orderId ? "/CarOwner/Orders/Details/$id" : "/CarOwner/Cars/Index"} params={{ id: n.orderId ?? "" }} className="flex items-start gap-2 py-2">
-                    <span className={cn("mt-1.5 size-2 shrink-0 rounded-full", n.read ? "bg-border" : "bg-primary")} />
+                  <Link
+                    to={n.orderId ? "/CarOwner/Orders/Details/$id" : "/CarOwner/Cars/Index"}
+                    params={{ id: n.orderId ?? "" }}
+                    className="flex items-start gap-2 py-2"
+                  >
+                    <span
+                      className={cn(
+                        "mt-1.5 size-2 shrink-0 rounded-full",
+                        n.read ? "bg-border" : "bg-primary",
+                      )}
+                    />
                     <span>
                       <span className="block text-sm font-semibold">{n.title}</span>
                       <span className="block text-xs text-muted-foreground">{n.body}</span>
-                      <span className="block text-[11px] text-muted-foreground">{formatDateTime(n.at)}</span>
+                      <span className="block text-[11px] text-muted-foreground">
+                        {formatDateTime(n.at)}
+                      </span>
                     </span>
                   </Link>
                 </DropdownMenuItem>
               ))}
               <DropdownMenuSeparator />
-              <p className="px-2 py-1 text-[11px] text-muted-foreground">Thông báo mẫu — thời gian thực qua SignalR chưa được kết nối.</p>
+              <p className="px-2 py-1 text-[11px] text-muted-foreground">
+                Thông báo mẫu — thời gian thực qua SignalR chưa được kết nối.
+              </p>
             </DropdownMenuContent>
           </DropdownMenu>
 
           <DropdownMenu>
             <DropdownMenuTrigger className="flex items-center gap-2 rounded-full py-1 pl-1 pr-3 hover:bg-muted">
-              <span className="grid size-8 place-items-center rounded-full bg-primary text-xs font-bold text-primary-foreground">{owner.initials}</span>
+              <span className="grid size-8 place-items-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
+                {owner.initials}
+              </span>
               <span className="hidden text-sm font-semibold sm:block">{owner.fullName}</span>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-52">
-              <DropdownMenuItem asChild><Link to="/CarOwner/Register/Pending">Hồ sơ đối tác</Link></DropdownMenuItem>
-              <DropdownMenuItem asChild><Link to="/CarOwner/Cars/Index">Đội xe của tôi</Link></DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link to="/CarOwner/Register/Pending">Hồ sơ đối tác</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link to="/CarOwner/Cars/Index">Đội xe của tôi</Link>
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => toast.info("Đăng xuất", { description: "Sẽ gửi POST /Account/Logout khi tích hợp." })}>Đăng xuất</DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() =>
+                  toast.info("Đăng xuất", {
+                    description: "Sẽ gửi POST /Account/Logout khi tích hợp.",
+                  })
+                }
+              >
+                Đăng xuất
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </header>

@@ -1,75 +1,11 @@
-@model CarRental.Models.CarRentalOrder
+﻿@model CarRental.Models.CarRentalOrder
 @using CarRental.Utilities
 @{
     ViewData["Title"] = "Cập nhật đơn hàng";
     Layout = "~/Areas/CarOwner/Views/Shared/_Layout.cshtml";
 }
 
-<style>
-    .order-update-card {
-        border: none;
-        border-radius: 18px;
-        box-shadow: 0 18px 45px rgba(15, 23, 42, 0.08);
-        overflow: hidden;
-    }
 
-    .order-update-card .card-header {
-        background: linear-gradient(135deg, #4f46e5, #e72463);
-        color: #fff;
-        padding: 20px 24px;
-        border-bottom: none;
-    }
-
-    .order-update-card .card-header h4 {
-        margin: 0;
-        font-weight: 600;
-        font-size: 20px;
-    }
-
-    .order-update-card .card-body {
-        padding: 24px 24px 20px;
-        background: #f9fafb;
-    }
-
-    .order-field-label {
-        font-size: 13px;
-        font-weight: 600;
-        color: #6b7280;
-        margin-bottom: 4px;
-    }
-
-    .order-field-readonly {
-        background-color: #f3f4f6;
-        border-radius: 10px;
-        border: 1px solid #e5e7eb;
-        font-size: 14px;
-        color: #111827;
-    }
-
-    .order-field-readonly[readonly] {
-        cursor: default;
-    }
-
-    .order-status-select {
-        border-radius: 10px;
-        font-size: 14px;
-    }
-
-    .order-actions {
-        display: flex;
-        gap: 10px;
-    }
-
-    .order-actions .btn-primary {
-        border-radius: 999px;
-        padding-inline: 24px;
-    }
-
-    .order-actions .btn-danger {
-        border-radius: 999px;
-        padding-inline: 20px;
-    }
-</style>
 
 <div id="main">
     <header class="mb-3">

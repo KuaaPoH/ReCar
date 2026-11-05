@@ -24,51 +24,6 @@
 
 @Html.AntiForgeryToken()
 
-<style>
-    .bg-success-soft {
-        background-color: #f0fdf4;
-        border: 1px solid #bbf7d0;
-        color: #15803d;
-    }
-    .bg-warning-soft {
-        background-color: #fffbeb;
-        border: 1px solid #fde68a;
-        color: #b45309;
-    }
-    .bg-destructive-soft {
-        background-color: #fef2f2;
-        border: 1px solid #fecaca;
-        color: #b91c1c;
-    }
-    .doc-slot-box {
-        height: 106px;
-        border-radius: 12px;
-        border: 1px dashed #cbd5e1;
-        background: #f8fafc;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        text-align: center;
-        padding: 0.5rem;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        position: relative;
-        overflow: hidden;
-    }
-    .doc-slot-box:hover {
-        border-color: #0284c7;
-        background: #f0f9ff;
-    }
-    .doc-slot-box img {
-        position: absolute;
-        inset: 0;
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-    }
-</style>
-
 <div class="space-y-6">
     <!-- Header Page Header -->
     <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">

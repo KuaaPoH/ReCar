@@ -1,0 +1,482 @@
+@model CarRental.Areas.CarOwner.Controllers.AnalyticsIndexVm
+@{
+    ViewData["Title"] = "Phân tích hiệu suất";
+    Layout = "~/Areas/CarOwner/Views/Shared/_Layout.cshtml";
+
+    string FmtVnd(decimal v) => string.Format("{0:N0} ₫", v).Replace(",", ".");
+}
+
+<div class="d-flex flex-column gap-4">
+    <!-- Header & Filter Bar -->
+    <div class="d-flex flex-wrap align-items-end justify-content-between gap-3">
+        <div>
+            <h1 class="host-page-title">Phân tích hiệu suất</h1>
+            <p class="host-page-subtitle">Đánh giá tỷ lệ lấp đầy, doanh thu và điểm đánh giá theo từng xe</p>
+        </div>
+
+        <form method="get" action="/CarOwner/Analytics/Index" class="d-flex flex-wrap align-items-end gap-2">
+            <div>
+                <label class="host-form-label">Kỳ báo cáo</label>
+                <select name="period" class="host-select" onchange="this.form.submit()">
+                    <option value="7" selected="@(Model.Period == "7")">7 ngày</option>
+                    <option value="30" selected="@(Model.Period == "30")">30 ngày</option>
+                    <option value="month" selected="@(Model.Period == "month")">Tháng này</option>
+                    <option value="prev" selected="@(Model.Period == "prev")">Tháng trước</option>
+                    <option value="6m" selected="@(Model.Period == "6m")">6 tháng</option>
+                    <option value="custom" selected="@(Model.Period == "custom")">Tùy chỉnh</option>
+                </select>
+            </div>
+
+            @if (Model.Period == "custom")
+            {
+                <div>
+                    <label class="host-form-label">Từ ngày</label>
+                    <input type="date" name="start" value="@Model.StartDate" class="host-input" onchange="this.form.submit()" />
+                </div>
+                <div>
+                    <label class="host-form-label">Đến ngày</label>
+                    <input type="date" name="end" value="@Model.EndDate" class="host-input" onchange="this.form.submit()" />
+                </div>
+            }
+
+            <div>
+                <label class="host-form-label">Xe</label>
+                <select name="carId" class="host-select" onchange="this.form.submit()">
+                    <option value="">Tất cả xe (@Model.OwnerCars.Count)</option>
+                    @foreach (var c in Model.OwnerCars)
+                    {
+                        <option value="@c.CarId" selected="@(Model.SelectedCarId == c.CarId)">@c.CarName · @c.LicensePlate</option>
+                    }
+                </select>
+            </div>
+
+            <div>
+                <label class="host-form-label">Hãng xe</label>
+                <select name="brand" class="host-select" onchange="this.form.submit()">
+                    <option value="all">Tất cả hãng</option>
+                    @foreach (var b in Model.Brands)
+                    {
+                        <option value="@b" selected="@(Model.BrandFilter == b)">@b</option>
+                    }
+                </select>
+            </div>
+
+            <div>
+                <label class="host-form-label">Phân khúc</label>
+                <select name="segment" class="host-select" onchange="this.form.submit()">
+                    <option value="all">Tất cả phân khúc</option>
+                    @foreach (var s in Model.Segments)
+                    {
+                        <option value="@s" selected="@(Model.SegmentFilter == s)">@s</option>
+                    }
+                </select>
+            </div>
+
+            <div>
+                <label class="host-form-label">Sắp xếp bảng</label>
+                <select name="sort" class="host-select" onchange="this.form.submit()">
+                    <option value="net_desc" selected="@(Model.SortBy == "net_desc")">Doanh thu ròng cao &rarr; thấp</option>
+                    <option value="occupancy_desc" selected="@(Model.SortBy == "occupancy_desc")">Lấp đầy cao &rarr; thấp</option>
+                    <option value="occupancy_asc" selected="@(Model.SortBy == "occupancy_asc")">Lấp đầy thấp &rarr; cao</option>
+                    <option value="trips_desc" selected="@(Model.SortBy == "trips_desc")">Số chuyến nhiều &rarr; ít</option>
+                    <option value="rating_desc" selected="@(Model.SortBy == "rating_desc")">Điểm đánh giá cao &rarr; thấp</option>
+                </select>
+            </div>
+        </form>
+    </div>
+
+    <!-- 5 Stat Cards -->
+    <div class="row g-3">
+        <div class="col-12 col-sm-6 col-xl">
+            <div class="host-stat-card">
+                <div class="host-stat-label">
+                    <span>Tỷ lệ lấp đầy</span>
+                    <button type="button" class="host-info-btn" data-bs-toggle="tooltip" title="Tỷ lệ lấp đầy = Số ngày có khách thuê / Số ngày xe khả dụng (đã trừ ngày chặn lịch/bảo dưỡng).">i</button>
+                </div>
+                <div class="host-stat-value" style="color: #0284c7;">@Model.OverallOccupancyPct%</div>
+                <div class="host-stat-sub">@Model.TotalRentedDays/@Model.TotalAvailableDays ngày khả dụng</div>
+            </div>
+        </div>
+        <div class="col-12 col-sm-6 col-xl">
+            <div class="host-stat-card">
+                <div class="host-stat-label">
+                    <span>Tổng doanh thu</span>
+                    <button type="button" class="host-info-btn" data-bs-toggle="tooltip" title="Tổng giá trị 100% các đơn thuê hoàn thành trước khi khấu trừ phí dịch vụ nền tảng 10%.">i</button>
+                </div>
+                <div class="host-stat-value text-dark">@FmtVnd(Model.TotalGross)</div>
+                <div class="host-stat-sub">Từ các đơn hoàn thành trong kỳ</div>
+            </div>
+        </div>
+        <div class="col-12 col-sm-6 col-xl">
+            <div class="host-stat-card">
+                <div class="host-stat-label">
+                    <span>Doanh thu ròng (90%)</span>
+                    <button type="button" class="host-info-btn" data-bs-toggle="tooltip" title="Thu nhập thực nhận của chủ xe = 90% tổng giá trị đơn (gồm 70% khách trả khi nhận xe + 20% sàn đối soát).">i</button>
+                </div>
+                <div class="host-stat-value text-success">@FmtVnd(Model.TotalNet)</div>
+                <div class="host-stat-sub">Sau phí nền tảng 10%</div>
+            </div>
+        </div>
+        <div class="col-12 col-sm-6 col-xl">
+            <div class="host-stat-card">
+                <div class="host-stat-label">
+                    <span>Chuyến hoàn thành</span>
+                    <button type="button" class="host-info-btn" data-bs-toggle="tooltip" title="Tổng số chuyến hoàn thành và thời lượng thuê trung bình mỗi chuyến trong kỳ đã chọn.">i</button>
+                </div>
+                <div class="host-stat-value text-dark">@Model.TotalTrips chuyến</div>
+                <div class="host-stat-sub">TB @Model.AvgDaysPerTrip ngày/chuyến</div>
+            </div>
+        </div>
+        <div class="col-12 col-sm-6 col-xl">
+            <div class="host-stat-card">
+                <div class="host-stat-label">
+                    <span>Đánh giá trung bình</span>
+                    <button type="button" class="host-info-btn" data-bs-toggle="tooltip" title="Điểm đánh giá trung bình từ khách thuê sau khi hoàn thành chuyến đi.">i</button>
+                </div>
+                <div class="host-stat-value text-warning">@Model.OverallRating.ToString("0.0") &#9733;</div>
+                <div class="host-stat-sub">@Model.TotalReviewsCount đánh giá khách thuê</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2 Charts Row -->
+    <div class="row g-3">
+        <!-- Biểu đồ đường: Doanh thu theo thời gian -->
+        <div class="col-12 col-xl-7">
+            <div class="host-section-card h-100">
+                <div class="host-section-header">
+                    <div>
+                        <h3 class="host-section-title">Doanh thu theo thời gian</h3>
+                        <p class="host-section-sub">Theo dõi biến động tổng doanh thu (100%) và thực nhận chủ xe (90%) qua các tháng</p>
+                    </div>
+                </div>
+                <div class="host-section-body">
+                    <div style="height: 290px; position: relative;">
+                        <canvas id="revenueLineChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Biểu đồ cột ngang: Tỷ lệ lấp đầy từng xe -->
+        <div class="col-12 col-xl-5">
+            <div class="host-section-card h-100">
+                <div class="host-section-header">
+                    <div>
+                        <h3 class="host-section-title">Tỷ lệ lấp đầy từng xe</h3>
+                        <p class="host-section-sub">Tỷ lệ ngày có khách trên tổng số ngày khả dụng</p>
+                    </div>
+                </div>
+                <div class="host-section-body">
+                    <div style="height: 290px; position: relative;">
+                        <canvas id="occupancyBarChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Table: Hiệu suất từng xe -->
+    <div class="host-section-card">
+        <div class="host-section-header">
+            <div>
+                <h3 class="host-section-title">Hiệu suất từng xe</h3>
+                <p class="host-section-sub">Đối chiếu số chuyến, tỷ lệ lấp đầy, doanh thu và điểm đánh giá của đội xe</p>
+            </div>
+        </div>
+        <div class="table-responsive">
+            <table class="host-table">
+                <thead>
+                    <tr>
+                        <th>Xe</th>
+                        <th class="text-end">Số chuyến</th>
+                        <th class="text-end">Ngày có khách / khả dụng</th>
+                        <th>Tỷ lệ lấp đầy</th>
+                        <th class="text-end">Tổng doanh thu</th>
+                        <th class="text-end">Thực nhận (90%)</th>
+                        <th class="text-end">Đánh giá</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!Model.CarRows.Any())
+                    {
+                        <tr>
+                            <td colspan="7" class="text-center py-4 text-muted">
+                                Không có phương tiện nào khớp bộ lọc.
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        foreach (var r in Model.CarRows)
+                        {
+                            string barColor = r.OccupancyPct >= 65 ? "#10b981" : (r.OccupancyPct >= 40 ? "#0ea5e9" : "#f59e0b");
+                            <tr>
+                                <td>
+                                    <div class="fw-bold text-dark">@r.CarName</div>
+                                    <div class="font-monospace text-secondary" style="font-size: 11.5px;">@r.LicensePlate · @r.Segment</div>
+                                </td>
+                                <td class="text-end fw-semibold text-dark">@r.Trips chuyến</td>
+                                <td class="text-end text-secondary">
+                                    @r.RentedDays/@r.AvailableDays ngày
+                                    @if (r.BlockedDays > 0)
+                                    {
+                                        <span class="text-muted" style="font-size: 11px;">(chặn @r.BlockedDays ngày)</span>
+                                    }
+                                </td>
+                                <td>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="rounded-pill bg-light overflow-hidden" style="width: 110px; height: 8px; border: 1px solid #e2e8f0;">
+                                            <div style="width: @(Math.Min(100, r.OccupancyPct))%; height: 100%; background: @barColor; border-radius: 999px;"></div>
+                                        </div>
+                                        <span class="fw-bold text-dark" style="font-size: 12px;">@r.OccupancyPct%</span>
+                                    </div>
+                                </td>
+                                <td class="text-end text-dark">@FmtVnd(r.Gross)</td>
+                                <td class="text-end fw-bold text-success">@FmtVnd(r.Net)</td>
+                                <td class="text-end fw-bold text-warning">
+                                    @r.Rating.ToString("0.0") &#9733;
+                                    <span class="text-muted fw-normal" style="font-size: 11px;">(@r.ReviewCount)</span>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Bottom Row: Đánh giá khách thuê & Gợi ý tham khảo -->
+    <div class="row g-3">
+        <!-- Đánh giá khách thuê -->
+        <div class="col-12 col-xl-6">
+            <div class="host-section-card h-100">
+                <div class="host-section-header">
+                    <div>
+                        <h3 class="host-section-title">Đánh giá khách thuê</h3>
+                        <p class="host-section-sub">Phân bổ điểm sao và nhận xét gần đây từ khách hàng</p>
+                    </div>
+                </div>
+                <div class="host-section-body">
+                    <div class="row g-3 align-items-center mb-3">
+                        <div class="col-4">
+                            <div class="rounded-3 border text-center p-3" style="background: #fffbeb; border-color: #fde68a !important;">
+                                <div class="fw-extrabold" style="font-size: 28px; font-weight: 800; color: #b45309;">@Model.OverallRating.ToString("0.0")</div>
+                                <div class="small fw-semibold" style="color: #92400e;">trên 5.0 &#9733;</div>
+                                <div class="text-muted mt-1" style="font-size: 11px;">@Model.TotalReviewsCount đánh giá</div>
+                            </div>
+                        </div>
+                        <div class="col-8">
+                            @for (int star = 5; star >= 1; star--)
+                            {
+                                int countStar = Model.Reviews.Count(r => r.Star == star);
+                                int pctStar = Model.TotalReviewsCount > 0 ? (int)Math.Round((countStar * 100.0) / Model.TotalReviewsCount) : (star == 5 ? 100 : 0);
+                                <div class="d-flex align-items-center gap-2 mb-1.5 small">
+                                    <span class="text-secondary fw-semibold" style="width: 34px; font-size: 11.5px;">@star &#9733;</span>
+                                    <div class="flex-grow-1 rounded-pill bg-light overflow-hidden" style="height: 7px;">
+                                        <div style="width: @pctStar%; height: 100%; background: #f59e0b; border-radius: 999px;"></div>
+                                    </div>
+                                    <span class="text-muted text-end" style="width: 24px; font-size: 11.5px;">@countStar</span>
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="d-flex flex-column gap-2" style="max-height: 250px; overflow-y: auto;">
+                        @if (!Model.Reviews.Any())
+                        {
+                            <div class="text-center py-4 text-muted small">
+                                Chưa có nhận xét chi tiết nào từ khách thuê.
+                            </div>
+                        }
+                        else
+                        {
+                            foreach (var rev in Model.Reviews.Take(6))
+                            {
+                                <div class="rounded-3 border bg-light p-2.5 small">
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <span class="fw-bold text-dark">
+                                            @(rev.Name ?? "Khách thuê") · <span class="text-secondary fw-normal">@(rev.Car?.CarName ?? "Xe tự lái")</span>
+                                        </span>
+                                        <span class="fw-bold text-warning">@(rev.Star ?? 5) &#9733;</span>
+                                    </div>
+                                    <p class="text-secondary mb-1">@rev.Detail</p>
+                                    <div class="text-muted" style="font-size: 11px;">@(rev.CreatedDate?.ToString("dd/MM/yyyy") ?? "")</div>
+                                </div>
+                            }
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gợi ý tham khảo -->
+        <div class="col-12 col-xl-6">
+            <div class="host-section-card h-100">
+                <div class="host-section-header">
+                    <div>
+                        <h3 class="host-section-title">Gợi ý vận hành đội xe</h3>
+                        <p class="host-section-sub">Nhận xét tự động dựa trên dữ liệu lấp đầy, lịch chặn và đánh giá của từng xe</p>
+                    </div>
+                </div>
+                <div class="host-section-body d-flex flex-column gap-2.5">
+                    @foreach (var r in Model.CarRows)
+                    {
+                        string advice;
+                        string badgeTone;
+                        string badgeLabel;
+
+                        if (r.OccupancyPct >= 60)
+                        {
+                            advice = $"Xe có nhu cầu thuê cao ({r.OccupancyPct}% lấp đầy). Bạn nên chủ động lên lịch bảo dưỡng định kỳ trên mục Lịch xe và giữ mức giá niêm yết ổn định.";
+                            badgeTone = "emerald";
+                            badgeLabel = "Hiệu suất cao";
+                        }
+                        else if (r.OccupancyPct >= 30)
+                        {
+                            advice = $"Tỷ lệ lấp đầy đạt {r.OccupancyPct}% ({r.Trips} chuyến). Hãy mở trống lịch các ngày cuối tuần (Thứ 6 – Chủ nhật) để thu hút thêm khách đặt chuyến ngắn ngày.";
+                            badgeTone = "sky";
+                            badgeLabel = "Ổn định";
+                        }
+                        else
+                        {
+                            advice = $"Tỷ lệ lấp đầy hiện ở mức {r.OccupancyPct}%. Bạn có thể kiểm tra lại giá niêm yết ({FmtVnd(r.BasePrice)}/ngày), bổ sung ảnh chụp nội thất rõ nét hoặc mở thêm ngày trống trên lịch.";
+                            badgeTone = "amber";
+                            badgeLabel = "Cần tối ưu";
+                        }
+
+                        <div class="rounded-3 border bg-white p-3 small">
+                            <div class="d-flex align-items-center justify-content-between mb-1.5">
+                                <span class="fw-bold text-dark">@r.CarName · <span class="font-monospace text-secondary fw-normal">@r.LicensePlate</span></span>
+                                <span class="host-badge @badgeTone">@badgeLabel · @r.OccupancyPct%</span>
+                            </div>
+                            <p class="text-secondary mb-2">@advice</p>
+                            <div class="d-flex gap-3" style="font-size: 11.5px;">
+                                <a href="/CarOwner/Calendar/Index?carId=@r.CarId" class="fw-semibold text-decoration-none" style="color: #0284c7;">Mở lịch xe &rarr;</a>
+                                <a href="/CarOwner/Cars/Edit/@r.CarId" class="fw-semibold text-secondary text-decoration-none">Cập nhật thông tin &amp; giá xe &rarr;</a>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            tooltipTriggerList.map(function (el) {
+                return new bootstrap.Tooltip(el);
+            });
+
+            var trendLabels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.TrendLabels));
+            var trendGross = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.TrendGross));
+            var trendNet = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.TrendNet));
+
+            var revCtx = document.getElementById('revenueLineChart');
+            if (revCtx && typeof Chart !== 'undefined') {
+                new Chart(revCtx, {
+                    type: 'line',
+                    data: {
+                        labels: trendLabels,
+                        datasets: [
+                            {
+                                label: 'Thực nhận chủ xe (90%)',
+                                data: trendNet,
+                                borderColor: '#10b981',
+                                backgroundColor: 'rgba(16, 185, 129, 0.12)',
+                                borderWidth: 2.5,
+                                tension: 0.32,
+                                fill: true,
+                                pointRadius: 4
+                            },
+                            {
+                                label: 'Tổng doanh thu (100%)',
+                                data: trendGross,
+                                borderColor: '#0284c7',
+                                backgroundColor: 'transparent',
+                                borderWidth: 2,
+                                borderDash: [5, 4],
+                                tension: 0.32,
+                                pointRadius: 3
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { position: 'bottom' },
+                            tooltip: {
+                                callbacks: {
+                                    label: function (ctx) {
+                                        var val = ctx.parsed.y || 0;
+                                        return ctx.dataset.label + ': ' + val.toLocaleString('vi-VN') + ' ₫';
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    callback: function (v) {
+                                        return (v / 1000000).toFixed(1) + 'tr';
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            var occLabels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.OccupancyChartRows.Select(r => $"{r.CarName} ({r.LicensePlate})")));
+            var occValues = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.OccupancyChartRows.Select(r => r.OccupancyPct)));
+
+            var occCtx = document.getElementById('occupancyBarChart');
+            if (occCtx && typeof Chart !== 'undefined') {
+                new Chart(occCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: occLabels,
+                        datasets: [{
+                            label: 'Tỷ lệ lấp đầy (%)',
+                            data: occValues,
+                            backgroundColor: '#0ea5e9',
+                            borderRadius: 6,
+                            maxBarThickness: 26
+                        }]
+                    },
+                    options: {
+                        indexAxis: 'y',
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                callbacks: {
+                                    label: function (ctx) {
+                                        return 'Lấp đầy: ' + (ctx.parsed.x || 0) + '%';
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                beginAtZero: true,
+                                max: 100,
+                                ticks: {
+                                    callback: function (v) { return v + '%'; }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        });
+    </script>
+}
+

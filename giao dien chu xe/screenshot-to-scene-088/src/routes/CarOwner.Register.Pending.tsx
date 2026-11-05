@@ -5,6 +5,8 @@ import { PartnerProfile } from "@/components/host/PartnerProfile";
 export const Route = createFileRoute("/CarOwner/Register/Pending")({
   head: () => ({
     meta: [
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
       { title: "Hồ sơ pháp lý & Ngân hàng — ReCar Host Pro" },
       { name: "description", content: "Trạng thái xác minh đối tác và tài khoản nhận tiền của chủ xe." },
       { property: "og:title", content: "Hồ sơ pháp lý & Ngân hàng — ReCar Host Pro" },

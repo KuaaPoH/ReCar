@@ -73,6 +73,8 @@ public virtual DbSet<Blog> Blogs { get; set; }
 
     public virtual DbSet<VehicleInspection> VehicleInspections { get; set; }
 
+    public virtual DbSet<CarCalendarBlock> CarCalendarBlocks { get; set; }
+
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -507,6 +509,25 @@ modelBuilder.Entity<Blog>(entity =>
                 .WithMany()
                 .HasForeignKey(d => d.CarId)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<CarCalendarBlock>(entity =>
+        {
+            entity.HasKey(e => e.BlockId);
+            entity.ToTable("car_calendar_blocks");
+
+            entity.HasIndex(e => new { e.CarId, e.StartTime, e.EndTime });
+
+            entity.Property(e => e.Kind).HasMaxLength(30).IsRequired();
+            entity.Property(e => e.Note).HasMaxLength(500);
+            entity.Property(e => e.StartTime).HasColumnType("datetime");
+            entity.Property(e => e.EndTime).HasColumnType("datetime");
+            entity.Property(e => e.CreatedAt).HasColumnType("datetime");
+
+            entity.HasOne(d => d.Car)
+                .WithMany()
+                .HasForeignKey(d => d.CarId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         OnModelCreatingPartial(modelBuilder);

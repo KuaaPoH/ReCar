@@ -1,0 +1,525 @@
+@model CarRental.Areas.CarOwner.Controllers.CalendarIndexVm
+@{
+    ViewData["Title"] = "Lịch xe";
+    Layout = "~/Areas/CarOwner/Views/Shared/_Layout.cshtml";
+
+    string FmtVnd(decimal v) => string.Format("{0:N0} ₫", v).Replace(",", ".");
+    string FmtShortPrice(decimal v) => $"{Math.Round(v / 1000m, 0):N0}k".Replace(",", ".");
+
+    string[] weekdayNames = new[] { "T2", "T3", "T4", "T5", "T6", "T7", "CN" };
+    int defaultCarId = Model.SelectedCarId ?? (Model.OwnerCars.FirstOrDefault()?.CarId ?? 0);
+}
+
+<div class="d-flex flex-column gap-4">
+    <!-- Header -->
+    <div class="d-flex flex-wrap align-items-end justify-content-between gap-3">
+        <div>
+            <h1 class="host-page-title">Lịch xe</h1>
+            <p class="host-page-subtitle">Xem lịch trống, lịch đã đặt và chặn thời gian xe bận hoặc bảo dưỡng</p>
+        </div>
+        <button type="button" class="host-btn-primary" onclick="openAddBlockModal(@defaultCarId, '@DateTime.Today.AddDays(1).ToString("yyyy-MM-dd")T08:00', '@DateTime.Today.AddDays(2).ToString("yyyy-MM-dd")T20:00')">
+            <i class="bi bi-calendar-plus"></i> + Chặn lịch
+        </button>
+    </div>
+
+    <!-- Thông báo kết quả thao tác -->
+    @if (TempData["CalSuccess"] != null)
+    {
+        <div class="host-notice tone-success">
+            <i class="bi bi-check-circle-fill me-1"></i> @TempData["CalSuccess"]
+        </div>
+    }
+    @if (TempData["CalError"] != null)
+    {
+        <div class="host-notice tone-danger">
+            <i class="bi bi-exclamation-triangle-fill me-1"></i> @TempData["CalError"]
+        </div>
+    }
+
+    <!-- Filter Bar -->
+    <div class="host-filter-bar d-flex flex-wrap align-items-center justify-content-between gap-3">
+        <div class="d-flex flex-wrap align-items-center gap-2">
+            <a href="/CarOwner/Calendar/Index?mode=@Model.Mode&carId=@Model.SelectedCarId&status=@Model.StatusFilter" class="host-btn-outline">
+                Hôm nay
+            </a>
+
+            @if (Model.Mode == "month")
+            {
+                <div class="d-inline-flex align-items-center rounded-3 border bg-white p-1">
+                    <a href="/CarOwner/Calendar/Index?month=@Model.PrevMonthKey&mode=month&carId=@Model.SelectedCarId&status=@Model.StatusFilter"
+                       class="btn btn-sm btn-light border-0 px-2.5 py-1 text-secondary fw-bold">&larr;</a>
+                    <span class="px-3 small fw-bold text-dark" style="min-width: 130px; text-align: center;">@Model.MonthLabel</span>
+                    <a href="/CarOwner/Calendar/Index?month=@Model.NextMonthKey&mode=month&carId=@Model.SelectedCarId&status=@Model.StatusFilter"
+                       class="btn btn-sm btn-light border-0 px-2.5 py-1 text-secondary fw-bold">&rarr;</a>
+                </div>
+            }
+            else
+            {
+                <div class="d-inline-flex align-items-center rounded-3 border bg-white p-1">
+                    <a href="/CarOwner/Calendar/Index?week=@Model.PrevWeekKey&mode=week&carId=@Model.SelectedCarId&status=@Model.StatusFilter"
+                       class="btn btn-sm btn-light border-0 px-2.5 py-1 text-secondary fw-bold">&larr;</a>
+                    <span class="px-3 small fw-bold text-dark" style="min-width: 165px; text-align: center;">@Model.WeekLabel</span>
+                    <a href="/CarOwner/Calendar/Index?week=@Model.NextWeekKey&mode=week&carId=@Model.SelectedCarId&status=@Model.StatusFilter"
+                       class="btn btn-sm btn-light border-0 px-2.5 py-1 text-secondary fw-bold">&rarr;</a>
+                </div>
+            }
+
+            <div class="host-tab-group">
+                <a href="/CarOwner/Calendar/Index?month=@Model.MonthKey&mode=month&carId=@Model.SelectedCarId&status=@Model.StatusFilter"
+                   class="host-tab-btn @(Model.Mode == "month" ? "active" : "")">Tháng</a>
+                <a href="/CarOwner/Calendar/Index?week=@Model.WeekKey&mode=week&carId=@Model.SelectedCarId&status=@Model.StatusFilter"
+                   class="host-tab-btn @(Model.Mode == "week" ? "active" : "")">Tuần</a>
+            </div>
+        </div>
+
+        <form method="get" action="/CarOwner/Calendar/Index" class="d-flex flex-wrap align-items-center gap-2">
+            <input type="hidden" name="month" value="@Model.MonthKey" />
+            <input type="hidden" name="week" value="@Model.WeekKey" />
+            <input type="hidden" name="mode" value="@Model.Mode" />
+
+            <select name="carId" class="host-select" onchange="this.form.submit()">
+                <option value="">Tất cả xe (@Model.OwnerCars.Count)</option>
+                @foreach (var c in Model.OwnerCars)
+                {
+                    <option value="@c.CarId" selected="@(Model.SelectedCarId == c.CarId)">@c.CarName · @c.LicensePlate</option>
+                }
+            </select>
+
+            <select name="status" class="host-select" onchange="this.form.submit()">
+                <option value="all" selected="@(Model.StatusFilter == "all")">Tất cả trạng thái</option>
+                <option value="free" selected="@(Model.StatusFilter == "free")">Còn trống</option>
+                <option value="booked" selected="@(Model.StatusFilter == "booked")">Đã đặt</option>
+                <option value="handover" selected="@(Model.StatusFilter == "handover")">Đang giao xe</option>
+                <option value="completed" selected="@(Model.StatusFilter == "completed")">Hoàn thành</option>
+                <option value="blocked" selected="@(Model.StatusFilter == "blocked")">Chặn / bảo dưỡng</option>
+            </select>
+        </form>
+    </div>
+
+    <!-- Legend Bar -->
+    <div class="d-flex flex-wrap align-items-center gap-3 rounded-3 border bg-white px-3 py-2.5 small text-secondary">
+        <span class="d-inline-flex align-items-center gap-1.5">
+            <span class="rounded-circle d-inline-block" style="width: 10px; height: 10px; background: #10b981;"></span> Còn trống
+        </span>
+        <span class="d-inline-flex align-items-center gap-1.5">
+            <span class="rounded-circle d-inline-block" style="width: 10px; height: 10px; background: #0ea5e9;"></span> Đã đặt (Đã cọc 30%)
+        </span>
+        <span class="d-inline-flex align-items-center gap-1.5">
+            <span class="rounded-circle d-inline-block" style="width: 10px; height: 10px; background: #f59e0b;"></span> Đang giao xe
+        </span>
+        <span class="d-inline-flex align-items-center gap-1.5">
+            <span class="rounded-circle d-inline-block" style="width: 10px; height: 10px; background: #047857;"></span> Hoàn thành
+        </span>
+        <span class="d-inline-flex align-items-center gap-1.5">
+            <span class="rounded-circle d-inline-block" style="width: 10px; height: 10px; background: #f43f5e;"></span> Bảo dưỡng
+        </span>
+        <span class="d-inline-flex align-items-center gap-1.5">
+            <span class="rounded-circle d-inline-block" style="width: 10px; height: 10px; background: #64748b;"></span> Bận cá nhân
+        </span>
+        <span class="ms-auto text-muted">Giá hiển thị trên ô trống là giá niêm yết của xe</span>
+    </div>
+
+    <!-- Calendar View: Month or Week -->
+    @if (Model.Mode == "month")
+    {
+        <div class="host-section-card">
+            <div class="host-cal-grid-header">
+                @foreach (var wd in weekdayNames)
+                {
+                    <div>@wd</div>
+                }
+            </div>
+            <div class="host-cal-grid-body">
+                @foreach (var cell in Model.DaysGrid)
+                {
+                    var visibleOrders = cell.Orders.Where(o =>
+                        Model.StatusFilter == "all" ||
+                        (Model.StatusFilter == "booked" && (o.StatusId == 1 || o.StatusId == 3)) ||
+                        (Model.StatusFilter == "handover" && o.StatusId == 4) ||
+                        (Model.StatusFilter == "completed" && o.StatusId == 5)
+                    ).ToList();
+
+                    var visibleBlocks = (Model.StatusFilter == "all" || Model.StatusFilter == "blocked")
+                        ? cell.Blocks
+                        : new List<CarRental.Models.CarCalendarBlock>();
+
+                    bool showFreeSlot = (Model.StatusFilter == "all" || Model.StatusFilter == "free") && cell.FreeCarCount > 0;
+                    string quickStart = cell.Date.ToString("yyyy-MM-dd") + "T08:00";
+                    string quickEnd = cell.Date.AddDays(1).ToString("yyyy-MM-dd") + "T20:00";
+
+                    <div class="host-cal-cell @(!cell.InCurrentMonth ? "out-month" : "") @(cell.IsToday ? "is-today" : "")">
+                        <div class="d-flex align-items-center justify-content-between mb-1">
+                            <span class="host-cal-day-num @(cell.IsToday ? "today" : "")">@cell.Date.Day</span>
+                            @if (cell.FreeCarCount > 0 && Model.MinVisiblePrice.HasValue && Model.MinVisiblePrice.Value > 0)
+                            {
+                                <span style="font-size: 10.5px; font-weight: 700; color: #059669;">
+                                    @FmtShortPrice(Model.MinVisiblePrice.Value)@(Model.SelectedCarId == null && Model.VisibleCars.Count > 1 ? "+" : "")
+                                </span>
+                            }
+                        </div>
+
+                        <div class="d-flex flex-column gap-1">
+                            @foreach (var o in visibleOrders)
+                            {
+                                string itemCls = o.StatusId == 4 ? "order-handover" : (o.StatusId == 5 ? "order-completed" : "order-booked");
+                                <button type="button" class="host-cal-item @itemCls"
+                                        onclick="openOrderModal(@o.OrderId, '@o.Code', '@Html.Raw(o.CarName.Replace("'", "\\'"))', '@o.LicensePlate', '@Html.Raw(o.CustomerName.Replace("'", "\\'"))', '@o.CustomerPhone', '@o.PickupAt.ToString("dd/MM/yyyy HH:mm")', '@o.ReturnAt.ToString("dd/MM/yyyy HH:mm")', '@o.StatusLabel', '@FmtVnd(o.TotalAmount)', '@FmtVnd(o.OwnerNet)')">
+                                    @o.Code · @o.CarName
+                                </button>
+                            }
+
+                            @foreach (var b in visibleBlocks)
+                            {
+                                string bCls = b.Kind == "maintenance" ? "block-maintenance" : "block-personal";
+                                string kLabel = CarRental.Areas.CarOwner.Controllers.CalendarController.GetKindLabel(b.Kind);
+                                string plate = b.Car?.LicensePlate ?? "";
+                                string carName = b.Car?.CarName ?? "";
+                                <button type="button" class="host-cal-item @bCls"
+                                        onclick="openBlockModal(@b.BlockId, '@Html.Raw(carName.Replace("'", "\\'"))', '@plate', '@kLabel', '@b.StartTime.ToString("dd/MM/yyyy HH:mm")', '@b.EndTime.ToString("dd/MM/yyyy HH:mm")', '@Html.Raw((b.Note ?? "").Replace("'", "\\'"))')">
+                                    @kLabel · @plate
+                                </button>
+                            }
+
+                            @if (showFreeSlot && visibleOrders.Count == 0 && visibleBlocks.Count == 0)
+                            {
+                                <button type="button" class="host-cal-free-btn"
+                                        onclick="openAddBlockModal(@defaultCarId, '@quickStart', '@quickEnd')">
+                                    + @cell.FreeCarCount xe trống · Chặn nhanh
+                                </button>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+    else
+    {
+        <!-- Week View -->
+        <div class="host-section-card">
+            <div class="table-responsive">
+                <table class="host-table">
+                    <thead>
+                        <tr>
+                            <th style="min-width: 190px;">Xe</th>
+                            @for (int i = 0; i < Model.WeekDays.Count; i++)
+                            {
+                                var wd = Model.WeekDays[i];
+                                <th>@weekdayNames[i] @wd.ToString("dd/MM")</th>
+                            }
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var c in Model.VisibleCars)
+                        {
+                            <tr>
+                                <td>
+                                    <div class="fw-bold text-dark">@c.CarName</div>
+                                    <div class="font-monospace text-secondary" style="font-size: 11.5px;">@c.LicensePlate · @FmtVnd(c.Price ?? 0m)/ngày</div>
+                                </td>
+                                @foreach (var wd in Model.WeekDays)
+                                {
+                                    DateTime dayStart = wd.Date;
+                                    DateTime dayEnd = wd.Date.AddDays(1).AddSeconds(-1);
+                                    var dayOrders = Model.AllOrders.Where(o => o.CarId == c.CarId && o.PickupAt <= dayEnd && o.ReturnAt >= dayStart).ToList();
+                                    var dayBlocks = Model.AllBlocks.Where(b => b.CarId == c.CarId && b.StartTime <= dayEnd && b.EndTime >= dayStart).ToList();
+                                    string quickStart = wd.ToString("yyyy-MM-dd") + "T08:00";
+                                    string quickEnd = wd.AddDays(1).ToString("yyyy-MM-dd") + "T20:00";
+
+                                    <td class="align-top">
+                                        <div class="d-flex flex-column gap-1">
+                                            @foreach (var o in dayOrders)
+                                            {
+                                                string itemCls = o.StatusId == 4 ? "order-handover" : (o.StatusId == 5 ? "order-completed" : "order-booked");
+                                                <button type="button" class="host-cal-item @itemCls"
+                                                        onclick="openOrderModal(@o.OrderId, '@o.Code', '@Html.Raw(o.CarName.Replace("'", "\\'"))', '@o.LicensePlate', '@Html.Raw(o.CustomerName.Replace("'", "\\'"))', '@o.CustomerPhone', '@o.PickupAt.ToString("dd/MM/yyyy HH:mm")', '@o.ReturnAt.ToString("dd/MM/yyyy HH:mm")', '@o.StatusLabel', '@FmtVnd(o.TotalAmount)', '@FmtVnd(o.OwnerNet)')">
+                                                    @o.Code · @o.CustomerName
+                                                </button>
+                                            }
+                                            @foreach (var b in dayBlocks)
+                                            {
+                                                string bCls = b.Kind == "maintenance" ? "block-maintenance" : "block-personal";
+                                                string kLabel = CarRental.Areas.CarOwner.Controllers.CalendarController.GetKindLabel(b.Kind);
+                                                <button type="button" class="host-cal-item @bCls"
+                                                        onclick="openBlockModal(@b.BlockId, '@Html.Raw((c.CarName ?? "").Replace("'", "\\'"))', '@c.LicensePlate', '@kLabel', '@b.StartTime.ToString("dd/MM/yyyy HH:mm")', '@b.EndTime.ToString("dd/MM/yyyy HH:mm")', '@Html.Raw((b.Note ?? "").Replace("'", "\\'"))')">
+                                                    @kLabel
+                                                </button>
+                                            }
+                                            @if (dayOrders.Count == 0 && dayBlocks.Count == 0)
+                                            {
+                                                <button type="button" class="host-cal-free-btn"
+                                                        onclick="openAddBlockModal(@c.CarId, '@quickStart', '@quickEnd')">
+                                                    + Chặn ngày
+                                                </button>
+                                            }
+                                        </div>
+                                    </td>
+                                }
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+
+    <!-- Danh sách Lịch đã chặn -->
+    <div class="host-section-card">
+        <div class="host-section-header">
+            <div>
+                <h3 class="host-section-title">Lịch đã chặn</h3>
+                <p class="host-section-sub">Các khoảng thời gian xe không nhận khách trên sàn</p>
+            </div>
+        </div>
+        <div class="table-responsive">
+            <table class="host-table">
+                <thead>
+                    <tr>
+                        <th>Xe</th>
+                        <th>Loại chặn</th>
+                        <th>Bắt đầu</th>
+                        <th>Kết thúc</th>
+                        <th>Ghi chú</th>
+                        <th class="text-end">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!Model.AllBlocks.Any())
+                    {
+                        <tr>
+                            <td colspan="6" class="text-center py-4 text-muted">
+                                Chưa có lịch chặn nào. Nhấn nút <strong>+ Chặn lịch</strong> hoặc chọn ngày trống trên lịch để thêm.
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        foreach (var b in Model.AllBlocks)
+                        {
+                            string kLabel = CarRental.Areas.CarOwner.Controllers.CalendarController.GetKindLabel(b.Kind);
+                            <tr>
+                                <td>
+                                    <div class="fw-bold text-dark">@b.Car?.CarName</div>
+                                    <div class="font-monospace text-secondary" style="font-size: 11.5px;">@b.Car?.LicensePlate</div>
+                                </td>
+                                <td>
+                                    @if (b.Kind == "maintenance")
+                                    {
+                                        <span class="host-badge rose">@kLabel</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="host-badge slate">@kLabel</span>
+                                    }
+                                </td>
+                                <td class="text-secondary">@b.StartTime.ToString("dd/MM/yyyy HH:mm")</td>
+                                <td class="text-secondary">@b.EndTime.ToString("dd/MM/yyyy HH:mm")</td>
+                                <td class="text-dark">@b.Note</td>
+                                <td class="text-end">
+                                    <form method="post" action="/CarOwner/Calendar/RemoveBlock" class="d-inline">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="blockId" value="@b.BlockId" />
+                                        <input type="hidden" name="returnMonth" value="@Model.MonthKey" />
+                                        <input type="hidden" name="returnMode" value="@Model.Mode" />
+                                        <input type="hidden" name="filterCarId" value="@Model.SelectedCarId" />
+                                        <button type="submit" class="btn btn-sm btn-outline-danger py-1 px-2.5" style="font-size: 11.5px;">
+                                            Mở lại lịch
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Thêm lịch chặn -->
+<div class="modal fade" id="addBlockModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 16px;">
+            <form method="post" action="/CarOwner/Calendar/AddBlock">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="returnMonth" value="@Model.MonthKey" />
+                <input type="hidden" name="returnMode" value="@Model.Mode" />
+                <input type="hidden" name="filterCarId" value="@Model.SelectedCarId" />
+
+                <div class="modal-header border-bottom px-4 py-3">
+                    <div>
+                        <h5 class="modal-title fw-bold text-dark mb-0">Chặn lịch xe</h5>
+                        <p class="text-muted small mb-0">Hệ thống tự động kiểm tra không cho phép chặn trùng đơn đã đặt</p>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="row g-3">
+                        <div class="col-12 col-sm-6">
+                            <label class="host-form-label">Chọn xe</label>
+                            <select name="carId" id="blockCarId" class="host-select w-100" required>
+                                @foreach (var c in Model.OwnerCars)
+                                {
+                                    <option value="@c.CarId">@c.CarName (@c.LicensePlate)</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-12 col-sm-6">
+                            <label class="host-form-label">Lý do chặn</label>
+                            <select name="kind" id="blockKind" class="host-select w-100">
+                                <option value="personal">Bận việc cá nhân</option>
+                                <option value="maintenance">Bảo dưỡng định kỳ</option>
+                                <option value="other">Tạm ngưng nhận chuyến</option>
+                            </select>
+                        </div>
+                        <div class="col-12 col-sm-6">
+                            <label class="host-form-label">Bắt đầu</label>
+                            <input type="datetime-local" name="startTime" id="blockStartTime" class="host-input w-100" required />
+                        </div>
+                        <div class="col-12 col-sm-6">
+                            <label class="host-form-label">Kết thúc</label>
+                            <input type="datetime-local" name="endTime" id="blockEndTime" class="host-input w-100" required />
+                        </div>
+                        <div class="col-12">
+                            <label class="host-form-label">Ghi chú</label>
+                            <input type="text" name="note" id="blockNote" class="host-input w-100" placeholder="VD: Bảo dưỡng 20.000 km tại xưởng hãng" />
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-top px-4 py-2.5">
+                    <button type="button" class="host-btn-outline" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="host-btn-primary">Lưu lịch chặn</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Chi tiết Đơn trên lịch -->
+<div class="modal fade" id="calOrderModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 16px;">
+            <div class="modal-header border-bottom px-4 py-3">
+                <div>
+                    <h5 class="modal-title fw-bold text-dark mb-0" id="calOrderTitle">Đơn thuê</h5>
+                    <p class="text-muted small mb-0" id="calOrderCar"></p>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="rounded-3 border bg-light p-3 small">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-secondary">Khách thuê</span>
+                        <span class="fw-bold text-dark" id="calOrderGuest"></span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-secondary">Nhận xe</span>
+                        <span class="fw-medium text-dark" id="calOrderPickup"></span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-secondary">Trả xe</span>
+                        <span class="fw-medium text-dark" id="calOrderReturn"></span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-secondary">Trạng thái</span>
+                        <span class="fw-semibold text-primary" id="calOrderStatus"></span>
+                    </div>
+                    <div class="d-flex justify-content-between pt-2 border-top">
+                        <span class="text-secondary">Tổng đơn / Thực nhận (90%)</span>
+                        <span class="fw-bold text-success" id="calOrderMoney"></span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-top px-4 py-2.5">
+                <a href="#" id="calOrderDetailLink" class="host-btn-primary">Mở chi tiết đơn</a>
+                <button type="button" class="host-btn-outline" data-bs-dismiss="modal">Đóng</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Chi tiết Lịch chặn -->
+<div class="modal fade" id="calBlockModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 16px;">
+            <div class="modal-header border-bottom px-4 py-3">
+                <div>
+                    <h5 class="modal-title fw-bold text-dark mb-0" id="calBlockTitle">Lịch chặn</h5>
+                    <p class="text-muted small mb-0" id="calBlockCar"></p>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="rounded-3 border bg-light p-3 small">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-secondary">Bắt đầu</span>
+                        <span class="fw-medium text-dark" id="calBlockStart"></span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-secondary">Kết thúc</span>
+                        <span class="fw-medium text-dark" id="calBlockEnd"></span>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span class="text-secondary">Ghi chú</span>
+                        <span class="fw-semibold text-dark" id="calBlockNote"></span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-top px-4 py-2.5">
+                <form method="post" action="/CarOwner/Calendar/RemoveBlock" class="d-inline">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="blockId" id="calBlockRemoveId" value="" />
+                    <input type="hidden" name="returnMonth" value="@Model.MonthKey" />
+                    <input type="hidden" name="returnMode" value="@Model.Mode" />
+                    <input type="hidden" name="filterCarId" value="@Model.SelectedCarId" />
+                    <button type="submit" class="btn btn-danger btn-sm px-3 py-2 fw-semibold rounded-3">Mở lại lịch này</button>
+                </form>
+                <button type="button" class="host-btn-outline" data-bs-dismiss="modal">Đóng</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function openAddBlockModal(carId, startStr, endStr) {
+            if (carId && carId > 0) {
+                var sel = document.getElementById('blockCarId');
+                if (sel) sel.value = carId;
+            }
+            if (startStr) document.getElementById('blockStartTime').value = startStr;
+            if (endStr) document.getElementById('blockEndTime').value = endStr;
+            document.getElementById('blockNote').value = '';
+
+            var modal = new bootstrap.Modal(document.getElementById('addBlockModal'));
+            modal.show();
+        }
+
+        function openOrderModal(orderId, code, carName, plate, guestName, guestPhone, pickup, ret, statusLabel, total, net) {
+            document.getElementById('calOrderTitle').textContent = 'Đơn thuê ' + code;
+            document.getElementById('calOrderCar').textContent = carName + ' · ' + plate;
+            document.getElementById('calOrderGuest').textContent = guestName + (guestPhone ? ' · ' + guestPhone : '');
+            document.getElementById('calOrderPickup').textContent = pickup;
+            document.getElementById('calOrderReturn').textContent = ret;
+            document.getElementById('calOrderStatus').textContent = statusLabel;
+            document.getElementById('calOrderMoney').textContent = total + ' / ' + net;
+            document.getElementById('calOrderDetailLink').href = '/CarOwner/Orders/Details/' + orderId;
+
+            var modal = new bootstrap.Modal(document.getElementById('calOrderModal'));
+            modal.show();
+        }
+
+        function openBlockModal(blockId, carName, plate, kindLabel, startStr, endStr, note) {
+            document.getElementById('calBlockTitle').textContent = kindLabel;
+            document.getElementById('calBlockCar').textContent = carName + ' · ' + plate;
+            document.getElementById('calBlockStart').textContent = startStr;
+            document.getElementById('calBlockEnd').textContent = endStr;
+            document.getElementById('calBlockNote').textContent = note || kindLabel;
+            document.getElementById('calBlockRemoveId').value = blockId;
+
+            var modal = new bootstrap.Modal(document.getElementById('calBlockModal'));
+            modal.show();
+        }
+    </script>
+}
+

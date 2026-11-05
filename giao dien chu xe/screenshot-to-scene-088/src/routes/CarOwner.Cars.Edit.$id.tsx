@@ -10,6 +10,8 @@ import { DEMO_NOTE } from "@/lib/host/api";
 export const Route = createFileRoute("/CarOwner/Cars/Edit/$id")({
   head: () => ({
     meta: [
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
       { title: "Chỉnh sửa xe — ReCar Host Pro" },
       { name: "description", content: "Cập nhật thông tin, giá, quy định và hình ảnh của xe." },
       { property: "og:title", content: "Chỉnh sửa xe — ReCar Host Pro" },

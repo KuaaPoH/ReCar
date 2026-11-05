@@ -1,4 +1,4 @@
-using CarRental.Extensions;
+﻿using CarRental.Extensions;
 using CarRental.Models;
 using CarRental.Services;
 using CarRental.Utilities;
@@ -264,6 +264,28 @@ namespace CarRental.Controllers
 
 
                 
+                // Kiểm tra lịch chặn xe của Chủ xe (CarCalendarBlocks)
+                try
+                {
+                    foreach (var item in cart)
+                    {
+                        var blockedSlot = _context.CarCalendarBlocks
+                            .FirstOrDefault(b => b.CarId == item.CartId && item.pickupDate < b.EndTime && item.returnDate > b.StartTime);
+                        if (blockedSlot != null)
+                        {
+                            return Json(new
+                            {
+                                success = false,
+                                message = $"Xe {item.CarName} đã được chủ xe khóa lịch ({blockedSlot.StartTime:dd/MM/yyyy} – {blockedSlot.EndTime:dd/MM/yyyy}). Vui lòng chọn khung giờ khác."
+                            });
+                        }
+                    }
+                }
+                catch
+                {
+                    // Bỏ qua nếu bảng lịch chặn chưa khởi tạo
+                }
+
                 decimal price = cart.Sum(p => p.PriceTotal);
                 bool isFullPayment = model.paymentmethod == "full_100" || 
                                      model.paymentmethod == "Thanh toán 100%" ||

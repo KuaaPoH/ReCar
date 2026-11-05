@@ -15,6 +15,18 @@ export const API = {
   receiveBack: (id: string) => `POST /CarOwner/Orders/Complete/${id}`,
   cancel: (id: string) => `POST /CarOwner/Orders/Cancel/${id}`,
   registerUpdate: "POST /CarOwner/Register/Update",
+  pricingList: "GET /CarOwner/Pricing/Index",
+  pricingSave: "POST /CarOwner/Pricing/Save (rules; owner inferred from session)",
+  pricingPreview:
+    "POST /CarOwner/Pricing/Preview (CarId, PickupAt, ReturnAt; server calculates final price)",
+  calendarList: "GET /CarOwner/Calendar/Index?start=&end=&carId=",
+  calendarBlock: "POST /CarOwner/Calendar/Block (recheck ownership and conflicts atomically)",
+  calendarUnblock: "POST /CarOwner/Calendar/Unblock/{id} (antiforgery token)",
+  analytics: "GET /CarOwner/Analytics/Index?start=&end=&carId=&brand=&segment=",
+  wallet: "GET /CarOwner/Wallet/Index?start=&end=&status=",
+  payoutDetails: "GET /CarOwner/Wallet/PayoutDetails/{id}",
+  exportExcel: "GET /CarOwner/Wallet/ExportExcel?start=&end=",
+  exportPdf: "GET /CarOwner/Wallet/ExportPdf?start=&end=",
   signalRHub: "/hubs/carowner-notifications",
   logout: "POST /Account/Logout (antiforgery token)",
 } as const;

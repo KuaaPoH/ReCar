@@ -1,67 +1,10 @@
-@model CarRental.ViewModels.CartVM
+﻿@model CarRental.ViewModels.CartVM
 @{
     ViewData["Title"] = "Xác nhận & Thanh toán";
     Layout = "~/Views/Shared/_Layout.cshtml";
     List<CarRentalOrder> carRentalOrders = ViewBag.Order;
 }
 
-<style>
-    .checkout-step-badge {
-        width: 28px;
-        height: 28px;
-        border-radius: 50%;
-        background: var(--recar-primary);
-        color: #fff;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: 700;
-        font-size: 14px;
-        margin-right: 10px;
-    }
-    .payment-option-card {
-        border: 2px solid #e2e8f0;
-        border-radius: 12px;
-        padding: 16px 20px;
-        margin-bottom: 14px;
-        cursor: pointer;
-        transition: all 0.25s ease;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-    }
-    .payment-option-card:hover {
-        border-color: var(--recar-primary);
-        background: #f8fafc;
-    }
-    .payment-option-card.selected {
-        border-color: var(--recar-primary);
-        background: rgba(37, 99, 235, 0.04);
-        box-shadow: 0 4px 14px rgba(37, 99, 235, 0.08);
-    }
-    .payment-option-card input[type="radio"] {
-        width: 20px;
-        height: 20px;
-        accent-color: var(--recar-primary);
-    }
-    .doc-check-box {
-        background: linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%);
-        border: 1px solid #bfdbfe;
-        border-radius: 12px;
-        padding: 18px 20px;
-    }
-    .price-breakdown-row {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 10px 0;
-        border-bottom: 1px dashed #e2e8f0;
-        font-size: 15px;
-    }
-    .price-breakdown-row:last-child {
-        border-bottom: none;
-    }
-</style>
 
 <!-- Hero / Breadcrumb Header -->
 <div class="recar-section bg-light py-4 border-bottom">

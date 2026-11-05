@@ -1,4 +1,4 @@
-@model IList<CarRental.Models.Car>
+﻿@model IList<CarRental.Models.Car>
 @using CarRental.Utilities
 @{
     ViewData["Title"] = "Quản lý xe";
@@ -244,6 +244,11 @@
                                         <i class="bi bi-three-dots"></i>
                                     </button>
                                     <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 p-2" style="border-radius: 12px; font-size: 0.84rem;">
+                                        <li>
+                                            <a class="dropdown-item rounded-2 py-2" href="/CarOwner/Calendar/Index?carId=@car.CarId">
+                                                <i class="bi bi-calendar3 me-2 text-info"></i>Lá»‹ch & Cháº·n ngĂ y
+                                            </a>
+                                        </li>
                                         <li>
                                             <a class="dropdown-item rounded-2 py-2" href="/CarOwner/Cars/Details/@car.CarId">
                                                 <i class="bi bi-eye me-2 text-primary"></i>Chi tiết xe

@@ -11,6 +11,8 @@ import { formatDate, formatDateTime, formatVND } from "@/lib/host/format";
 export const Route = createFileRoute("/CarOwner/Cars/Details/$id")({
   head: () => ({
     meta: [
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
       { title: "Chi tiết xe — ReCar Host Pro" },
       { name: "description", content: "Thông số, giá thuê, tiện nghi, đánh giá và lịch sử của xe." },
       { property: "og:title", content: "Chi tiết xe — ReCar Host Pro" },

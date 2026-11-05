@@ -1,4 +1,4 @@
-@using CarRental.Models
+﻿@using CarRental.Models
 @{
     ViewData["Title"] = "ReCar – Chủ động mọi hành trình | Thuê ô tô trực tuyến";
     List<Car> productFeatured = ViewBag.productFeatured ?? new List<Car>();
@@ -9,96 +9,6 @@
     string nextDayStr = DateTime.Now.AddDays(2).ToString("yyyy-MM-dd");
 }
 
-<style>
-    /* Hero Section Styling (Pixel-perfect Ảnh 1) */
-    .hero-banner-wrap {
-        position: relative;
-        background-color: var(--recar-navy);
-        overflow: hidden;
-    }
-    .hero-bg-img {
-        position: absolute;
-        inset: 0;
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        opacity: 0.85;
-    }
-    .hero-gradient-overlay {
-        position: absolute;
-        inset: 0;
-        background: linear-gradient(to right, #0f172a 0%, rgba(15, 23, 42, 0.75) 60%, rgba(15, 23, 42, 0.2) 100%);
-    }
-    .hero-container {
-        position: relative;
-        max-width: 1280px;
-        margin: 0 auto;
-        padding: 80px 16px 140px 16px;
-    }
-    .hero-pill-tag {
-        display: inline-block;
-        border-radius: 9999px;
-        background: rgba(2, 132, 199, 0.25);
-        color: #ffffff;
-        font-size: 14px;
-        font-weight: 500;
-        padding: 6px 18px;
-        margin-bottom: 20px;
-    }
-    .hero-main-title {
-        font-size: 48px;
-        font-weight: 800;
-        color: #ffffff;
-        line-height: 1.15;
-        max-width: 720px;
-        margin-bottom: 18px;
-    }
-    .hero-sub-title {
-        font-size: 18px;
-        color: rgba(255, 255, 255, 0.85);
-        max-width: 540px;
-        line-height: 1.5;
-        margin-bottom: 0;
-    }
-
-    /* Floating Search Box */
-    .search-box-float {
-        position: relative;
-        z-index: 20;
-        max-width: 1280px;
-        margin: -80px auto 0 auto;
-        padding: 0 16px;
-    }
-
-    /* Grid tìm kiếm xe chuẩn tỉ lệ cân đối, giờ nhận/trả không bao giờ bị cắt */
-    .recar-search-grid {
-        display: grid;
-        grid-template-columns: 2.2fr 1.6fr 1.3fr 1.6fr 1.3fr 1.8fr;
-        gap: 12px;
-        align-items: end;
-    }
-
-    .recar-search-grid .recar-field-input {
-        width: 100%;
-        padding: 9px 8px;
-        font-size: 13.5px;
-    }
-
-    @@media (max-width: 1100px) {
-        .recar-search-grid {
-            grid-template-columns: 1fr 1fr 1fr;
-        }
-    }
-
-    @@media (max-width: 768px) {
-        .hero-main-title { font-size: 32px; }
-        .hero-container { padding: 50px 16px 100px 16px; }
-        .search-box-float { margin-top: -50px; }
-        .recar-search-grid {
-            grid-template-columns: 1fr;
-        }
-    }
-</style>
 
 <!-- Hero Section (Ảnh 1) -->
 <section class="hero-banner-wrap">

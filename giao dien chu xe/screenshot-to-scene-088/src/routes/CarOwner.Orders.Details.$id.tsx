@@ -12,6 +12,8 @@ import { formatDateTime, formatVND, initials, maskTail } from "@/lib/host/format
 export const Route = createFileRoute("/CarOwner/Orders/Details/$id")({
   head: () => ({
     meta: [
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
       { title: "Chi tiết đơn thuê — ReCar Host Pro" },
       { name: "description", content: "Thông tin xe, khách thuê, tài chính và thao tác của đơn thuê." },
       { property: "og:title", content: "Chi tiết đơn thuê — ReCar Host Pro" },

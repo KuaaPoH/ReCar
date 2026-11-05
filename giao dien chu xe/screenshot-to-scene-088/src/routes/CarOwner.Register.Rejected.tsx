@@ -5,6 +5,8 @@ import { PartnerProfile } from "@/components/host/PartnerProfile";
 export const Route = createFileRoute("/CarOwner/Register/Rejected")({
   head: () => ({
     meta: [
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
       { title: "Hồ sơ cần bổ sung — ReCar Host Pro" },
       { name: "description", content: "Lý do từ chối và thông tin cần bổ sung cho hồ sơ đối tác." },
       { property: "og:title", content: "Hồ sơ cần bổ sung — ReCar Host Pro" },

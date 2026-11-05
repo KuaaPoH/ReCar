@@ -1,4 +1,4 @@
-using CarRental.Extensions;
+﻿using CarRental.Extensions;
 using CarRental.Models;
 using CarRental.Utilities;
 using Microsoft.AspNetCore.Http;
@@ -309,6 +309,26 @@ namespace CarRental.Controllers
                     od.ReturnDate
                 })
                 .ToList();
+
+            // Láº¥y danh sĂ¡ch lá»‹ch báº­n / báº£o dÆ°á»¡ng cá»§a xe tá»« car_calendar_blocks
+            var now = DateTime.Now;
+            var calendarBlocks = await _context.CarCalendarBlocks
+                .Where(b => b.CarId == id && b.EndTime >= now)
+                .OrderBy(b => b.StartTime)
+                .Select(b => new
+                {
+                    b.BlockId,
+                    b.StartTime,
+                    b.EndTime,
+                    b.Kind,
+                    b.Note
+                })
+                .ToListAsync();
+            ViewBag.CalendarBlocks = calendarBlocks;
+
+            // Kiá»ƒm tra xem hiá»‡n táº¡i xe cĂ³ Ä‘ang trong Ä‘á»£t báº£o dÆ°á»¡ng khĂ´ng
+            bool isCurrentUnderMaintenance = calendarBlocks.Any(b => b.Kind == "maintenance" && b.StartTime <= now && b.EndTime >= now);
+            ViewBag.IsUnderMaintenance = isCurrentUnderMaintenance;
 
             // Truyá»n dá»¯ liá»‡u sang View
             ViewBag.RentalDates = rentalDates;

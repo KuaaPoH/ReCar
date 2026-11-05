@@ -5,6 +5,8 @@ import { PageHeader } from "@/components/host/PageHeader";
 export const Route = createFileRoute("/CarOwner/Roadmap")({
   head: () => ({
     meta: [
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
       { title: "Tính năng tương lai — ReCar Host Pro" },
       { name: "description", content: "Lộ trình các tính năng mở rộng dành cho chủ xe ReCar." },
       { property: "og:title", content: "Tính năng tương lai — ReCar Host Pro" },
@@ -27,13 +29,13 @@ const items = [
 function Roadmap() {
   return (
     <>
-      <PageHeader title="Tính năng tương lai" description="Các tính năng đang được thiết kế — chưa kết nối hệ thống và chưa hoạt động." />
+      <PageHeader title="Tính năng tương lai" description="Lộ trình phát triển; các mục mới đã có bản mẫu, chưa kết nối hệ thống." />
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {items.map(([Icon, t, path, d]) => (
           <div key={t} className="card-surface p-5">
             <div className="flex items-center justify-between">
               <span className="grid size-10 place-items-center rounded-xl bg-primary-soft text-primary"><Icon className="size-5" /></span>
-              <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground">Sắp ra mắt</span>
+              <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground">{['/CarOwner/Calendar', '/CarOwner/Pricing', '/CarOwner/Wallet', '/CarOwner/Analytics'].includes(path) ? 'Đã có bản mẫu' : 'Sắp ra mắt'}</span>
             </div>
             <h3 className="mt-4 font-bold">{t}</h3>
             <p className="mt-1 text-sm text-muted-foreground">{d}</p>

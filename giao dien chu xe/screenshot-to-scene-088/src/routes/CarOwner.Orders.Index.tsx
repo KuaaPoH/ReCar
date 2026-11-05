@@ -15,6 +15,8 @@ import type { OrderStatus } from "@/lib/host/types";
 export const Route = createFileRoute("/CarOwner/Orders/Index")({
   head: () => ({
     meta: [
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
       { title: "Lịch trình & Đơn xe — ReCar Host Pro" },
       { name: "description", content: "Theo dõi, bàn giao, nhận lại và hủy đơn thuê xe." },
       { property: "og:title", content: "Lịch trình & Đơn xe — ReCar Host Pro" },

@@ -13,12 +13,16 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as CarOwnerRouteImport } from './routes/CarOwner'
 import { Route as CarOwnerIndexRouteImport } from './routes/CarOwner.index'
 import { Route as CarOwnerRoadmapRouteImport } from './routes/CarOwner.Roadmap'
+import { Route as CarOwnerAnalyticsIndexRouteImport } from './routes/CarOwner.Analytics.Index'
+import { Route as CarOwnerCalendarIndexRouteImport } from './routes/CarOwner.Calendar.Index'
 import { Route as CarOwnerCarsCreateRouteImport } from './routes/CarOwner.Cars.Create'
 import { Route as CarOwnerCarsIndexRouteImport } from './routes/CarOwner.Cars.Index'
 import { Route as CarOwnerHomeIndexRouteImport } from './routes/CarOwner.Home.Index'
 import { Route as CarOwnerOrdersIndexRouteImport } from './routes/CarOwner.Orders.Index'
+import { Route as CarOwnerPricingIndexRouteImport } from './routes/CarOwner.Pricing.Index'
 import { Route as CarOwnerRegisterPendingRouteImport } from './routes/CarOwner.Register.Pending'
 import { Route as CarOwnerRegisterRejectedRouteImport } from './routes/CarOwner.Register.Rejected'
+import { Route as CarOwnerWalletIndexRouteImport } from './routes/CarOwner.Wallet.Index'
 import { Route as CarOwnerCarsDetailsIdRouteImport } from './routes/CarOwner.Cars.Details.$id'
 import { Route as CarOwnerCarsEditIdRouteImport } from './routes/CarOwner.Cars.Edit.$id'
 import { Route as CarOwnerOrdersDetailsIdRouteImport } from './routes/CarOwner.Orders.Details.$id'
@@ -43,6 +47,16 @@ const CarOwnerRoadmapRoute = CarOwnerRoadmapRouteImport.update({
   path: '/Roadmap',
   getParentRoute: () => CarOwnerRoute,
 } as any)
+const CarOwnerAnalyticsIndexRoute = CarOwnerAnalyticsIndexRouteImport.update({
+  id: '/Analytics/Index',
+  path: '/Analytics/Index',
+  getParentRoute: () => CarOwnerRoute,
+} as any)
+const CarOwnerCalendarIndexRoute = CarOwnerCalendarIndexRouteImport.update({
+  id: '/Calendar/Index',
+  path: '/Calendar/Index',
+  getParentRoute: () => CarOwnerRoute,
+} as any)
 const CarOwnerCarsCreateRoute = CarOwnerCarsCreateRouteImport.update({
   id: '/Cars/Create',
   path: '/Cars/Create',
@@ -63,6 +77,11 @@ const CarOwnerOrdersIndexRoute = CarOwnerOrdersIndexRouteImport.update({
   path: '/Orders/Index',
   getParentRoute: () => CarOwnerRoute,
 } as any)
+const CarOwnerPricingIndexRoute = CarOwnerPricingIndexRouteImport.update({
+  id: '/Pricing/Index',
+  path: '/Pricing/Index',
+  getParentRoute: () => CarOwnerRoute,
+} as any)
 const CarOwnerRegisterPendingRoute = CarOwnerRegisterPendingRouteImport.update({
   id: '/Register/Pending',
   path: '/Register/Pending',
@@ -74,6 +93,11 @@ const CarOwnerRegisterRejectedRoute =
     path: '/Register/Rejected',
     getParentRoute: () => CarOwnerRoute,
   } as any)
+const CarOwnerWalletIndexRoute = CarOwnerWalletIndexRouteImport.update({
+  id: '/Wallet/Index',
+  path: '/Wallet/Index',
+  getParentRoute: () => CarOwnerRoute,
+} as any)
 const CarOwnerCarsDetailsIdRoute = CarOwnerCarsDetailsIdRouteImport.update({
   id: '/Cars/Details/$id',
   path: '/Cars/Details/$id',
@@ -95,12 +119,16 @@ export interface FileRoutesByFullPath {
   '/CarOwner': typeof CarOwnerRouteWithChildren
   '/CarOwner/Roadmap': typeof CarOwnerRoadmapRoute
   '/CarOwner/': typeof CarOwnerIndexRoute
+  '/CarOwner/Analytics/Index': typeof CarOwnerAnalyticsIndexRoute
+  '/CarOwner/Calendar/Index': typeof CarOwnerCalendarIndexRoute
   '/CarOwner/Cars/Create': typeof CarOwnerCarsCreateRoute
   '/CarOwner/Cars/Index': typeof CarOwnerCarsIndexRoute
   '/CarOwner/Home/Index': typeof CarOwnerHomeIndexRoute
   '/CarOwner/Orders/Index': typeof CarOwnerOrdersIndexRoute
+  '/CarOwner/Pricing/Index': typeof CarOwnerPricingIndexRoute
   '/CarOwner/Register/Pending': typeof CarOwnerRegisterPendingRoute
   '/CarOwner/Register/Rejected': typeof CarOwnerRegisterRejectedRoute
+  '/CarOwner/Wallet/Index': typeof CarOwnerWalletIndexRoute
   '/CarOwner/Cars/Details/$id': typeof CarOwnerCarsDetailsIdRoute
   '/CarOwner/Cars/Edit/$id': typeof CarOwnerCarsEditIdRoute
   '/CarOwner/Orders/Details/$id': typeof CarOwnerOrdersDetailsIdRoute
@@ -109,12 +137,16 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/CarOwner/Roadmap': typeof CarOwnerRoadmapRoute
   '/CarOwner': typeof CarOwnerIndexRoute
+  '/CarOwner/Analytics/Index': typeof CarOwnerAnalyticsIndexRoute
+  '/CarOwner/Calendar/Index': typeof CarOwnerCalendarIndexRoute
   '/CarOwner/Cars/Create': typeof CarOwnerCarsCreateRoute
   '/CarOwner/Cars/Index': typeof CarOwnerCarsIndexRoute
   '/CarOwner/Home/Index': typeof CarOwnerHomeIndexRoute
   '/CarOwner/Orders/Index': typeof CarOwnerOrdersIndexRoute
+  '/CarOwner/Pricing/Index': typeof CarOwnerPricingIndexRoute
   '/CarOwner/Register/Pending': typeof CarOwnerRegisterPendingRoute
   '/CarOwner/Register/Rejected': typeof CarOwnerRegisterRejectedRoute
+  '/CarOwner/Wallet/Index': typeof CarOwnerWalletIndexRoute
   '/CarOwner/Cars/Details/$id': typeof CarOwnerCarsDetailsIdRoute
   '/CarOwner/Cars/Edit/$id': typeof CarOwnerCarsEditIdRoute
   '/CarOwner/Orders/Details/$id': typeof CarOwnerOrdersDetailsIdRoute
@@ -125,12 +157,16 @@ export interface FileRoutesById {
   '/CarOwner': typeof CarOwnerRouteWithChildren
   '/CarOwner/Roadmap': typeof CarOwnerRoadmapRoute
   '/CarOwner/': typeof CarOwnerIndexRoute
+  '/CarOwner/Analytics/Index': typeof CarOwnerAnalyticsIndexRoute
+  '/CarOwner/Calendar/Index': typeof CarOwnerCalendarIndexRoute
   '/CarOwner/Cars/Create': typeof CarOwnerCarsCreateRoute
   '/CarOwner/Cars/Index': typeof CarOwnerCarsIndexRoute
   '/CarOwner/Home/Index': typeof CarOwnerHomeIndexRoute
   '/CarOwner/Orders/Index': typeof CarOwnerOrdersIndexRoute
+  '/CarOwner/Pricing/Index': typeof CarOwnerPricingIndexRoute
   '/CarOwner/Register/Pending': typeof CarOwnerRegisterPendingRoute
   '/CarOwner/Register/Rejected': typeof CarOwnerRegisterRejectedRoute
+  '/CarOwner/Wallet/Index': typeof CarOwnerWalletIndexRoute
   '/CarOwner/Cars/Details/$id': typeof CarOwnerCarsDetailsIdRoute
   '/CarOwner/Cars/Edit/$id': typeof CarOwnerCarsEditIdRoute
   '/CarOwner/Orders/Details/$id': typeof CarOwnerOrdersDetailsIdRoute
@@ -142,12 +178,16 @@ export interface FileRouteTypes {
     | '/CarOwner'
     | '/CarOwner/Roadmap'
     | '/CarOwner/'
+    | '/CarOwner/Analytics/Index'
+    | '/CarOwner/Calendar/Index'
     | '/CarOwner/Cars/Create'
     | '/CarOwner/Cars/Index'
     | '/CarOwner/Home/Index'
     | '/CarOwner/Orders/Index'
+    | '/CarOwner/Pricing/Index'
     | '/CarOwner/Register/Pending'
     | '/CarOwner/Register/Rejected'
+    | '/CarOwner/Wallet/Index'
     | '/CarOwner/Cars/Details/$id'
     | '/CarOwner/Cars/Edit/$id'
     | '/CarOwner/Orders/Details/$id'
@@ -156,12 +196,16 @@ export interface FileRouteTypes {
     | '/'
     | '/CarOwner/Roadmap'
     | '/CarOwner'
+    | '/CarOwner/Analytics/Index'
+    | '/CarOwner/Calendar/Index'
     | '/CarOwner/Cars/Create'
     | '/CarOwner/Cars/Index'
     | '/CarOwner/Home/Index'
     | '/CarOwner/Orders/Index'
+    | '/CarOwner/Pricing/Index'
     | '/CarOwner/Register/Pending'
     | '/CarOwner/Register/Rejected'
+    | '/CarOwner/Wallet/Index'
     | '/CarOwner/Cars/Details/$id'
     | '/CarOwner/Cars/Edit/$id'
     | '/CarOwner/Orders/Details/$id'
@@ -171,12 +215,16 @@ export interface FileRouteTypes {
     | '/CarOwner'
     | '/CarOwner/Roadmap'
     | '/CarOwner/'
+    | '/CarOwner/Analytics/Index'
+    | '/CarOwner/Calendar/Index'
     | '/CarOwner/Cars/Create'
     | '/CarOwner/Cars/Index'
     | '/CarOwner/Home/Index'
     | '/CarOwner/Orders/Index'
+    | '/CarOwner/Pricing/Index'
     | '/CarOwner/Register/Pending'
     | '/CarOwner/Register/Rejected'
+    | '/CarOwner/Wallet/Index'
     | '/CarOwner/Cars/Details/$id'
     | '/CarOwner/Cars/Edit/$id'
     | '/CarOwner/Orders/Details/$id'
@@ -217,6 +265,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CarOwnerRoadmapRouteImport
       parentRoute: typeof CarOwnerRoute
     }
+    '/CarOwner/Analytics/Index': {
+      id: '/CarOwner/Analytics/Index'
+      path: '/Analytics/Index'
+      fullPath: '/CarOwner/Analytics/Index'
+      preLoaderRoute: typeof CarOwnerAnalyticsIndexRouteImport
+      parentRoute: typeof CarOwnerRoute
+    }
+    '/CarOwner/Calendar/Index': {
+      id: '/CarOwner/Calendar/Index'
+      path: '/Calendar/Index'
+      fullPath: '/CarOwner/Calendar/Index'
+      preLoaderRoute: typeof CarOwnerCalendarIndexRouteImport
+      parentRoute: typeof CarOwnerRoute
+    }
     '/CarOwner/Cars/Create': {
       id: '/CarOwner/Cars/Create'
       path: '/Cars/Create'
@@ -245,6 +307,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CarOwnerOrdersIndexRouteImport
       parentRoute: typeof CarOwnerRoute
     }
+    '/CarOwner/Pricing/Index': {
+      id: '/CarOwner/Pricing/Index'
+      path: '/Pricing/Index'
+      fullPath: '/CarOwner/Pricing/Index'
+      preLoaderRoute: typeof CarOwnerPricingIndexRouteImport
+      parentRoute: typeof CarOwnerRoute
+    }
     '/CarOwner/Register/Pending': {
       id: '/CarOwner/Register/Pending'
       path: '/Register/Pending'
@@ -257,6 +326,13 @@ declare module '@tanstack/react-router' {
       path: '/Register/Rejected'
       fullPath: '/CarOwner/Register/Rejected'
       preLoaderRoute: typeof CarOwnerRegisterRejectedRouteImport
+      parentRoute: typeof CarOwnerRoute
+    }
+    '/CarOwner/Wallet/Index': {
+      id: '/CarOwner/Wallet/Index'
+      path: '/Wallet/Index'
+      fullPath: '/CarOwner/Wallet/Index'
+      preLoaderRoute: typeof CarOwnerWalletIndexRouteImport
       parentRoute: typeof CarOwnerRoute
     }
     '/CarOwner/Cars/Details/$id': {
@@ -286,12 +362,16 @@ declare module '@tanstack/react-router' {
 interface CarOwnerRouteChildren {
   CarOwnerRoadmapRoute: typeof CarOwnerRoadmapRoute
   CarOwnerIndexRoute: typeof CarOwnerIndexRoute
+  CarOwnerAnalyticsIndexRoute: typeof CarOwnerAnalyticsIndexRoute
+  CarOwnerCalendarIndexRoute: typeof CarOwnerCalendarIndexRoute
   CarOwnerCarsCreateRoute: typeof CarOwnerCarsCreateRoute
   CarOwnerCarsIndexRoute: typeof CarOwnerCarsIndexRoute
   CarOwnerHomeIndexRoute: typeof CarOwnerHomeIndexRoute
   CarOwnerOrdersIndexRoute: typeof CarOwnerOrdersIndexRoute
+  CarOwnerPricingIndexRoute: typeof CarOwnerPricingIndexRoute
   CarOwnerRegisterPendingRoute: typeof CarOwnerRegisterPendingRoute
   CarOwnerRegisterRejectedRoute: typeof CarOwnerRegisterRejectedRoute
+  CarOwnerWalletIndexRoute: typeof CarOwnerWalletIndexRoute
   CarOwnerCarsDetailsIdRoute: typeof CarOwnerCarsDetailsIdRoute
   CarOwnerCarsEditIdRoute: typeof CarOwnerCarsEditIdRoute
   CarOwnerOrdersDetailsIdRoute: typeof CarOwnerOrdersDetailsIdRoute
@@ -300,12 +380,16 @@ interface CarOwnerRouteChildren {
 const CarOwnerRouteChildren: CarOwnerRouteChildren = {
   CarOwnerRoadmapRoute: CarOwnerRoadmapRoute,
   CarOwnerIndexRoute: CarOwnerIndexRoute,
+  CarOwnerAnalyticsIndexRoute: CarOwnerAnalyticsIndexRoute,
+  CarOwnerCalendarIndexRoute: CarOwnerCalendarIndexRoute,
   CarOwnerCarsCreateRoute: CarOwnerCarsCreateRoute,
   CarOwnerCarsIndexRoute: CarOwnerCarsIndexRoute,
   CarOwnerHomeIndexRoute: CarOwnerHomeIndexRoute,
   CarOwnerOrdersIndexRoute: CarOwnerOrdersIndexRoute,
+  CarOwnerPricingIndexRoute: CarOwnerPricingIndexRoute,
   CarOwnerRegisterPendingRoute: CarOwnerRegisterPendingRoute,
   CarOwnerRegisterRejectedRoute: CarOwnerRegisterRejectedRoute,
+  CarOwnerWalletIndexRoute: CarOwnerWalletIndexRoute,
   CarOwnerCarsDetailsIdRoute: CarOwnerCarsDetailsIdRoute,
   CarOwnerCarsEditIdRoute: CarOwnerCarsEditIdRoute,
   CarOwnerOrdersDetailsIdRoute: CarOwnerOrdersDetailsIdRoute,

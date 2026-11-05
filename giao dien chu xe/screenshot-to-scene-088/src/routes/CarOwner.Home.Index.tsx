@@ -13,6 +13,8 @@ import { EmptyState } from "@/components/host/PageHeader";
 export const Route = createFileRoute("/CarOwner/Home/Index")({
   head: () => ({
     meta: [
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
       { title: "Tổng quan — ReCar Host Pro" },
       { name: "description", content: "Doanh thu, đội xe, lượt thuê và đánh giá của chủ xe ReCar." },
       { property: "og:title", content: "Tổng quan — ReCar Host Pro" },

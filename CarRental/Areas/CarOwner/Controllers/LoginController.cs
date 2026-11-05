@@ -29,40 +29,45 @@ namespace CarRental.Areas.CarOwner.Controllers
         }
 
         [HttpPost]
-        public IActionResult Index(Account account, string? ReturnUrl)
+        public async Task<IActionResult> Index(string? Email, string? Password, string? ReturnUrl)
         {
-            if (account == null)
+            if (string.IsNullOrWhiteSpace(Email) || string.IsNullOrWhiteSpace(Password))
             {
-                return NotFound();
+                Function.SetMessage(HttpContext.Session, "Vui lòng nhập đầy đủ tài khoản và mật khẩu.");
+                return View();
             }
 
             // Mã hóa mật khẩu trước khi kiểm tra
-            string p = Function.MD5Password(account.Password);
+            string p = Function.MD5Password(Password);
 
-            // Kiểm tra tài khoản có tồn tại và là chủ xe (RoleId = 3)
-            var check = _context.Accounts
+            // Kiểm tra tài khoản có tồn tại trong bảng Customers và là chủ xe (RoleId = 3)
+            var check = await _context.Customers
                 .Include(a => a.Role)
-                .Where(m => (m.Email == account.Email || m.Username == account.Email) && 
+                .Where(m => (m.Email == Email || m.Username == Email) && 
                             m.Password == p && 
                             m.RoleId == 3) // RoleId 3 = Chủ xe
-                .FirstOrDefault();
+                .FirstOrDefaultAsync();
 
             if (check == null)
             {
                 Function.SetMessage(HttpContext.Session, "Sai thông tin đăng nhập hoặc tài khoản của bạn chưa được cấp quyền Chủ xe.");
-                return View(account);
+                return View();
             }
 
             // Kiểm tra tài khoản có bị khóa không
-            if (check.IsActive == false)
+            if (!check.IsActive)
             {
                 Function.SetMessage(HttpContext.Session, "Tài khoản đối tác của bạn đang bị tạm khóa hoặc chờ phê duyệt.");
-                return View(account);
+                return View();
             }
 
-            // Đăng nhập thành công - lưu độc lập vào CarOwner Session
+            // Đăng nhập thành công - lưu độc lập và đồng bộ vào CarOwner Session với CustomerId
             Function.SetMessage(HttpContext.Session, string.Empty);
-            Function.SetCarOwnerSession(HttpContext.Session, check.AccountId, check.Username ?? string.Empty, check.Email ?? string.Empty, check.FullName ?? string.Empty);
+            Function.SetCarOwnerSession(HttpContext.Session, check.CustomerId, check.Username ?? check.Name ?? "Chủ xe", check.Email ?? string.Empty, check.FullName ?? check.Name ?? "Chủ xe");
+
+            // Cập nhật thời điểm trực tuyến mới nhất
+            check.LastLogin = Function.NowVn.ToString("yyyy-MM-dd HH:mm:ss");
+            await _context.SaveChangesAsync();
 
             if (!string.IsNullOrEmpty(ReturnUrl) && Url.IsLocalUrl(ReturnUrl))
             {

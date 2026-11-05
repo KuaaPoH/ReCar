@@ -1,11 +1,11 @@
-@model CarRental.Models.Customer
+﻿@model CarRental.Models.Customer
 @using CarRental.Utilities
 @using CarRental.Models
 @{
     ViewData["Title"] = "Quản lý tài khoản cá nhân";
     Layout = "~/Views/Shared/_Layout.cshtml";
     List<CarRentalOrder> carRentalOrders = ViewBag.Order;
-    Account existingCarOwnerAccount = ViewBag.ExistingCarOwnerAccount;
+    Customer existingCarOwnerAccount = ViewBag.ExistingCarOwnerAccount;
     CarOwnerRegistration existingCarOwnerReg = ViewBag.ExistingCarOwnerReg;
     var totalOrders = carRentalOrders?.Count ?? 0;
     var totalSpent = carRentalOrders?.Where(o => o.StatusId == 3).Sum(o => o.Payment) ?? 0;

@@ -65,5 +65,5 @@ public partial class Car
 
     public virtual CarType? Type { get; set; }
 
-    public virtual Account? Owner { get; set; }
+    public virtual Customer? Owner { get; set; }
 }

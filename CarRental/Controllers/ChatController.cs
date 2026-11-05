@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.SignalR;
 using CarRental.Models;
 using CarRental.Hubs;
+using CarRental.Utilities;
 using System.Text.Json;
 
 namespace CarRental.Controllers
@@ -18,157 +19,190 @@ namespace CarRental.Controllers
             _hubContext = hubContext;
         }
 
+        /// <summary>
+        /// Xác định Customer thực tế trong bảng Customers đang đăng nhập (Khách hàng, Chủ xe hoặc Admin)
+        /// Thống nhất 100% người dùng vào bảng Customers duy nhất.
+        /// </summary>
+        private async Task<Customer?> ResolveCurrentCustomerAsync(bool asOwner = false, int? explicitOwnerId = null)
+        {
+            // 1. Session CarOwner (nếu thao tác ở giao diện chủ xe)
+            if (asOwner)
+            {
+                int ownerId = Function.GetCarOwnerAccountId(HttpContext.Session);
+                if (ownerId > 0)
+                {
+                    var ownerCust = await _context.Customers.FindAsync(ownerId);
+                    if (ownerCust != null && ownerCust.RoleId == 3) return ownerCust;
+                }
+
+                // Explicit owner id nếu client khu vực chủ xe gửi lên
+                if (explicitOwnerId.HasValue && explicitOwnerId.Value > 0)
+                {
+                    var exp = await _context.Customers.FindAsync(explicitOwnerId.Value);
+                    if (exp != null && exp.RoleId == 3) return exp;
+                }
+
+                // Fallback nếu là khu vực CarOwner mà chưa login hoặc ID không phải chủ xe
+                var fallback = await _context.Customers.FirstOrDefaultAsync(c => c.RoleId == 3 && c.CustomerId == 1022) 
+                             ?? await _context.Customers.FirstOrDefaultAsync(c => c.RoleId == 3);
+                if (fallback != null) return fallback;
+            }
+
+            // 2. Session User / Customer (sàn khách hàng)
+            int custId = Function.GetAccountId(HttpContext.Session);
+            if (custId > 0)
+            {
+                var cust = await _context.Customers.FindAsync(custId);
+                if (cust != null) return cust;
+            }
+
+            int userAccId = Function.GetUserAccountId(HttpContext.Session);
+            if (userAccId > 0)
+            {
+                var cust = await _context.Customers.FindAsync(userAccId);
+                if (cust != null) return cust;
+            }
+
+            // 3. Fallback theo Email trong Session
+            string email = Function.GetEmail(HttpContext.Session);
+            if (string.IsNullOrEmpty(email)) email = Function.GetCarOwnerEmail(HttpContext.Session);
+            if (!string.IsNullOrEmpty(email))
+            {
+                var cust = await _context.Customers.FirstOrDefaultAsync(c => c.Email == email);
+                if (cust != null) return cust;
+            }
+
+            return null;
+        }
+
         public class SendMessageRequest
         {
             public int? CarId { get; set; }
             public int? OwnerId { get; set; }
+            public int? ReceiverId { get; set; }
             public string MessageText { get; set; } = string.Empty;
             public string? SenderName { get; set; }
             public string? CarName { get; set; }
+            public bool AsOwner { get; set; } = false;
         }
 
         [HttpPost]
         public async Task<IActionResult> SendMessage([FromBody] SendMessageRequest req)
         {
+            // 1. Kiểm tra người gửi (TUYỆT ĐỐI không lấy req.OwnerId để gán cho người gửi)
+            var senderCust = await ResolveCurrentCustomerAsync(req?.AsOwner == true);
+            if (senderCust == null)
+            {
+                return Json(new { success = false, requireLogin = true, message = "Vui lòng đăng nhập tài khoản để gửi tin nhắn!" });
+            }
+
             if (req == null || string.IsNullOrWhiteSpace(req.MessageText))
             {
-                return Json(new { success = false, message = "Tin nhắn không được để trống" });
+                return Json(new { success = false, message = "Nội dung tin nhắn không được để trống!" });
             }
 
-            // 1. Xác định người gửi (nếu có đăng nhập từ Session)
-            int? senderId = null;
-            string senderName = !string.IsNullOrWhiteSpace(req.SenderName) ? req.SenderName.Trim() : "Khách hàng";
+            int currentUserId = senderCust.CustomerId;
+            string senderName = !string.IsNullOrWhiteSpace(senderCust.FullName) ? senderCust.FullName : (senderCust.Name ?? "Khách hàng");
+            string senderRole = senderCust.RoleId == 3 ? "CarOwner" : (senderCust.RoleId == 1 ? "Admin" : "Customer");
 
-            var sessionAccountId = HttpContext.Session.GetString("AccountId");
-            if (!string.IsNullOrEmpty(sessionAccountId) && int.TryParse(sessionAccountId, out int accId))
+            // 2. Xác định người nhận
+            // Nếu người gửi là khách hàng và có req.CarId: người nhận chính là chủ sở hữu của chiếc xe đó
+            int receiverId = req.ReceiverId ?? 0;
+            if (receiverId <= 0 && req.OwnerId.HasValue && req.OwnerId.Value != currentUserId)
             {
-                senderId = accId;
-                var currentAcc = await _context.Accounts.FindAsync(accId);
-                if (currentAcc != null && !string.IsNullOrWhiteSpace(currentAcc.FullName))
+                receiverId = req.OwnerId.Value;
+            }
+
+            if (req.CarId.HasValue && req.CarId.Value > 0)
+            {
+                var car = await _context.Cars.FindAsync(req.CarId.Value);
+                if (car != null && car.OwnerId.HasValue)
                 {
-                    senderName = currentAcc.FullName;
+                    // Nếu người gửi không phải chủ xe thì người nhận chắc chắn là chủ xe
+                    if (car.OwnerId.Value != currentUserId)
+                    {
+                        receiverId = car.OwnerId.Value;
+                    }
                 }
             }
 
-            // 2. Tìm thông tin Chủ xe nhận tin nhắn
-            string receiverName = "Chủ xe ReCar";
-            if (req.OwnerId.HasValue && req.OwnerId.Value > 0)
+            // Nếu vẫn chưa có người nhận nhưng có req.OwnerId khác với người gửi
+            if (receiverId <= 0 && req.OwnerId.HasValue && req.OwnerId.Value != currentUserId)
             {
-                var owner = await _context.Accounts.FindAsync(req.OwnerId.Value);
-                if (owner != null && !string.IsNullOrWhiteSpace(owner.FullName))
-                {
-                    receiverName = owner.FullName;
-                }
+                receiverId = req.OwnerId.Value;
             }
 
-            // 3. Lưu tin nhắn của khách vào CSDL
-            var customerMsg = new ChatMessage
+            if (receiverId <= 0)
+            {
+                return Json(new { success = false, message = "Không xác định được chủ xe/người nhận tin nhắn!" });
+            }
+
+            if (receiverId == currentUserId)
+            {
+                return Json(new { 
+                    success = false, 
+                    message = "Bạn không thể tự gửi tin nhắn cho chính mình! Tài khoản hiện tại đang là chủ sở hữu của chiếc xe này. Để thử nghiệm nhắn tin qua lại, vui lòng mở một cửa sổ Ẩn danh (Ctrl+Shift+N) đăng nhập bằng tài khoản Khách thuê riêng biệt." 
+                });
+            }
+
+            var receiverCust = await _context.Customers.FindAsync(receiverId);
+            string receiverName = !string.IsNullOrWhiteSpace(receiverCust?.FullName) 
+                ? receiverCust.FullName 
+                : (!string.IsNullOrWhiteSpace(receiverCust?.Name) ? receiverCust.Name : "Đối tác ReCar");
+
+            // 3. Lưu tin nhắn vào CSDL
+            var newMsg = new ChatMessage
             {
                 CarId = req.CarId,
-                SenderId = senderId,
+                SenderId = currentUserId,
                 SenderName = senderName,
-                SenderRole = "Customer",
-                ReceiverId = req.OwnerId,
+                SenderRole = senderRole,
+                ReceiverId = receiverId,
                 ReceiverName = receiverName,
                 MessageText = req.MessageText.Trim(),
-                SentAt = DateTime.Now,
+                SentAt = Function.NowVn,
                 IsRead = false
             };
 
-            _context.ChatMessages.Add(customerMsg);
+            _context.ChatMessages.Add(newMsg);
             await _context.SaveChangesAsync();
 
-            // 4. Tạo phản hồi tự động thông minh từ Chủ xe và lưu vào CSDL
-            string autoReplyText = GenerateOwnerReply(req.MessageText, receiverName, req.CarName);
-            var ownerReplyMsg = new ChatMessage
-            {
-                CarId = req.CarId,
-                SenderId = req.OwnerId,
-                SenderName = receiverName,
-                SenderRole = "CarOwner",
-                ReceiverId = senderId,
-                ReceiverName = senderName,
-                MessageText = autoReplyText,
-                SentAt = DateTime.Now.AddSeconds(1),
-                IsRead = false
-            };
-
-            _context.ChatMessages.Add(ownerReplyMsg);
-            await _context.SaveChangesAsync();
-
-            // 5. Phát tín hiệu thời gian thực qua SignalR
+            // 4. Phát tín hiệu thời gian thực SignalR tới nhóm người nhận (User_{receiverId})
             try
             {
-                var payloadCustomerMsg = new
+                var payload = new
                 {
-                    messageId = customerMsg.MessageId,
-                    carId = customerMsg.CarId,
-                    senderId = customerMsg.SenderId,
-                    senderName = customerMsg.SenderName,
-                    senderRole = customerMsg.SenderRole,
-                    receiverId = customerMsg.ReceiverId,
-                    receiverName = customerMsg.ReceiverName,
-                    messageText = customerMsg.MessageText,
-                    sentAt = customerMsg.SentAt.ToString("HH:mm - dd/MM"),
-                    isFromOwner = false
+                    messageId = newMsg.MessageId,
+                    carId = newMsg.CarId,
+                    carName = req.CarName,
+                    senderId = newMsg.SenderId,
+                    senderName = newMsg.SenderName,
+                    senderRole = newMsg.SenderRole,
+                    receiverId = newMsg.ReceiverId,
+                    receiverName = newMsg.ReceiverName,
+                    messageText = newMsg.MessageText,
+                    sentAt = newMsg.SentAt.ToString("HH:mm - dd/MM"),
+                    isFromOwner = (senderRole == "CarOwner")
                 };
 
-                var payloadOwnerReply = new
-                {
-                    messageId = ownerReplyMsg.MessageId,
-                    carId = ownerReplyMsg.CarId,
-                    senderId = ownerReplyMsg.SenderId,
-                    senderName = ownerReplyMsg.SenderName,
-                    senderRole = ownerReplyMsg.SenderRole,
-                    receiverId = ownerReplyMsg.ReceiverId,
-                    receiverName = ownerReplyMsg.ReceiverName,
-                    messageText = ownerReplyMsg.MessageText,
-                    sentAt = ownerReplyMsg.SentAt.ToString("HH:mm - dd/MM"),
-                    isFromOwner = true
-                };
-
-                // Gửi tin nhắn của khách cho Chủ xe
-                if (req.OwnerId.HasValue && req.OwnerId.Value > 0)
-                {
-                    await _hubContext.Clients.Group($"User_{req.OwnerId.Value}").SendAsync("ReceiveChatMessage", payloadCustomerMsg);
-                }
-                if (req.CarId.HasValue && req.CarId.Value > 0)
-                {
-                    await _hubContext.Clients.Group($"Car_{req.CarId.Value}").SendAsync("ReceiveChatMessage", payloadCustomerMsg);
-                }
-
-                // Gửi tin phản hồi của chủ xe cho khách hàng
-                if (senderId.HasValue && senderId.Value > 0)
-                {
-                    await _hubContext.Clients.Group($"User_{senderId.Value}").SendAsync("ReceiveChatMessage", payloadOwnerReply);
-                }
-                else if (req.CarId.HasValue && req.CarId.Value > 0)
-                {
-                    await _hubContext.Clients.Group($"Car_{req.CarId.Value}").SendAsync("ReceiveChatMessage", payloadOwnerReply);
-                }
+                await _hubContext.Clients.Group($"User_{receiverId}").SendAsync("ReceiveChatMessage", payload);
             }
             catch (Exception hubEx)
             {
-                // SignalR broadcast không làm gián đoạn luồng chính
                 Console.WriteLine($"SignalR Chat Broadcast Error: {hubEx.Message}");
             }
 
             return Json(new
             {
                 success = true,
-                customerMessage = new
+                message = new
                 {
-                    messageId = customerMsg.MessageId,
-                    senderName = customerMsg.SenderName,
-                    messageText = customerMsg.MessageText,
-                    sentAt = customerMsg.SentAt.ToString("HH:mm")
-                },
-                ownerReply = new
-                {
-                    messageId = ownerReplyMsg.MessageId,
-                    senderName = ownerReplyMsg.SenderName,
-                    messageText = ownerReplyMsg.MessageText,
-                    sentAt = ownerReplyMsg.SentAt.ToString("HH:mm")
+                    messageId = newMsg.MessageId,
+                    senderId = newMsg.SenderId,
+                    senderName = newMsg.SenderName,
+                    senderRole = newMsg.SenderRole,
+                    messageText = newMsg.MessageText,
+                    sentAt = newMsg.SentAt.ToString("HH:mm")
                 }
             });
         }
@@ -197,15 +231,6 @@ namespace CarRental.Controllers
                         isTyping = req.IsTyping
                     });
                 }
-                else if (req.CarId.HasValue && req.CarId.Value > 0)
-                {
-                    await _hubContext.Clients.Group($"Car_{req.CarId.Value}").SendAsync("UserTyping", new
-                    {
-                        carId = req.CarId,
-                        senderName = req.SenderName,
-                        isTyping = req.IsTyping
-                    });
-                }
                 return Json(new { success = true });
             }
             catch (Exception ex)
@@ -215,18 +240,78 @@ namespace CarRental.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetMessages(int? carId, int? ownerId)
+        public async Task<IActionResult> GetMessages(int? carId, int? partnerId, int? ownerId, bool asOwner = false)
         {
-            var query = _context.ChatMessages.AsQueryable();
+            // Kiểm tra đăng nhập (chỉ dùng explicit ownerId khi asOwner == true)
+            var currentCust = await ResolveCurrentCustomerAsync(asOwner, asOwner ? ownerId : null);
+            if (currentCust == null)
+            {
+                return Json(new { success = false, requireLogin = true, messages = new List<object>() });
+            }
+
+            int currentUserId = currentCust.CustomerId;
+
+            int targetId = partnerId ?? 0;
+            if (targetId <= 0 && ownerId.HasValue && ownerId.Value != currentUserId)
+            {
+                targetId = ownerId.Value;
+            }
 
             if (carId.HasValue && carId.Value > 0)
             {
-                query = query.Where(m => m.CarId == carId.Value);
+                var car = await _context.Cars.FindAsync(carId.Value);
+                if (car != null && car.OwnerId.HasValue)
+                {
+                    if (car.OwnerId.Value != currentUserId && targetId <= 0)
+                    {
+                        targetId = car.OwnerId.Value;
+                    }
+                }
             }
-            else if (ownerId.HasValue && ownerId.Value > 0)
+
+            if (targetId == currentUserId)
             {
-                query = query.Where(m => m.SenderId == ownerId.Value || m.ReceiverId == ownerId.Value);
+                targetId = 0;
             }
+
+            var query = _context.ChatMessages.AsQueryable();
+
+            if (targetId > 0)
+            {
+                query = query.Where(m =>
+                    (m.SenderId == currentUserId && m.ReceiverId == targetId) ||
+                    (m.SenderId == targetId && m.ReceiverId == currentUserId)
+                );
+            }
+            else
+            {
+                query = query.Where(m => m.SenderId == currentUserId || m.ReceiverId == currentUserId);
+            }
+
+            if (carId.HasValue && carId.Value > 0)
+            {
+                query = query.Where(m => m.CarId == carId.Value || m.CarId == null);
+            }
+
+            // Đánh dấu các tin nhắn đối phương gửi cho mình là Đã đọc
+            if (targetId > 0 && targetId != currentUserId)
+            {
+                var unreadIncoming = await _context.ChatMessages
+                    .Where(m => m.ReceiverId == currentUserId && m.SenderId == targetId && !m.IsRead)
+                    .ToListAsync();
+                if (unreadIncoming.Any())
+                {
+                    foreach (var u in unreadIncoming)
+                    {
+                        u.IsRead = true;
+                    }
+                    await _context.SaveChangesAsync();
+                }
+            }
+
+            int remainingUnread = await _context.ChatMessages
+                .Where(m => m.ReceiverId == currentUserId && !m.IsRead)
+                .CountAsync();
 
             var messages = await query
                 .OrderBy(m => m.SentAt)
@@ -238,39 +323,78 @@ namespace CarRental.Controllers
                     senderId = m.SenderId,
                     senderName = m.SenderName,
                     senderRole = m.SenderRole,
+                    receiverId = m.ReceiverId,
                     receiverName = m.ReceiverName,
                     messageText = m.MessageText,
-                    isFromOwner = m.SenderRole == "CarOwner",
+                    isMe = (m.SenderId == currentUserId),
+                    isFromOwner = (m.SenderRole == "CarOwner"),
                     sentAt = m.SentAt.ToString("HH:mm - dd/MM")
                 })
                 .ToListAsync();
 
-            return Json(new { success = true, messages });
+            return Json(new { success = true, currentUserId = currentUserId, unreadCount = remainingUnread, messages });
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetRecentConversations()
+        public async Task<IActionResult> GetRecentConversations(bool asOwner = false, int? ownerId = null)
         {
-            // Lấy danh sách tin nhắn mới nhất theo từng xe hoặc chủ xe
-            var recentMessages = await _context.ChatMessages
-                .Include(m => m.Car)
-                .OrderByDescending(m => m.SentAt)
-                .Take(20)
+            var currentCust = await ResolveCurrentCustomerAsync(asOwner, asOwner ? ownerId : null);
+            if (currentCust == null)
+            {
+                return Json(new { success = true, unreadCount = 0, conversations = new List<object>() });
+            }
+
+            int currentUserId = currentCust.CustomerId;
+
+            // Danh sách xe do tài khoản này sở hữu (nếu là chủ xe)
+            var myCarIds = await _context.Cars
+                .Where(c => c.OwnerId == currentUserId)
+                .Select(c => c.CarId)
                 .ToListAsync();
 
+            // Lấy tất cả tin nhắn liên quan: mình gửi, mình nhận HOẶC khách gửi vào xe của mình
+            var recentMessages = await _context.ChatMessages
+                .Include(m => m.Car)
+                .Where(m => m.SenderId == currentUserId || 
+                            m.ReceiverId == currentUserId || 
+                            (m.CarId.HasValue && myCarIds.Contains(m.CarId.Value)))
+                .OrderByDescending(m => m.SentAt)
+                .Take(60)
+                .ToListAsync();
+
+            // Nhóm theo đối tác trò chuyện (PartnerId)
+            var partnerIds = recentMessages
+                .Select(m => (m.SenderId == currentUserId) ? (m.ReceiverId ?? 0) : (m.SenderId ?? 0))
+                .Where(id => id > 0 && id != currentUserId)
+                .Distinct()
+                .ToList();
+
+            var partnerDict = await _context.Customers
+                .Where(c => partnerIds.Contains(c.CustomerId))
+                .ToDictionaryAsync(c => c.CustomerId, c => !string.IsNullOrEmpty(c.FullName) ? c.FullName : (c.Name ?? "Khách hàng"));
+
             var grouped = recentMessages
-                .GroupBy(m => m.CarId ?? (m.SenderRole == "CarOwner" ? m.SenderId : m.ReceiverId) ?? 0)
+                .GroupBy(m => {
+                    if (m.SenderId == currentUserId) return m.ReceiverId ?? 0;
+                    if (m.ReceiverId == currentUserId) return m.SenderId ?? 0;
+                    return m.SenderId ?? 0;
+                })
+                .Where(g => g.Key > 0 && g.Key != currentUserId)
                 .Select(g =>
                 {
                     var last = g.First();
-                    string title = last.Car?.CarName ?? (last.SenderRole == "CarOwner" ? last.SenderName : last.ReceiverName) ?? "Chủ xe ReCar";
-                    string partnerName = last.SenderRole == "CarOwner" ? last.SenderName : (last.ReceiverName ?? "Chủ xe ReCar");
-                    int? carId = last.CarId;
-                    int? ownerId = last.SenderRole == "CarOwner" ? last.SenderId : last.ReceiverId;
+                    int partnerId = g.Key;
+                    string partnerName = partnerDict.ContainsKey(partnerId) 
+                        ? partnerDict[partnerId]
+                        : ((last.SenderId == currentUserId) ? (last.ReceiverName ?? "Đối tác ReCar") : last.SenderName);
+
+                    string title = last.Car?.CarName ?? partnerName;
+
                     return new
                     {
-                        carId = carId,
-                        ownerId = ownerId,
+                        partnerId = partnerId,
+                        ownerId = (last.Car?.OwnerId ?? ((currentCust.RoleId == 3) ? currentUserId : partnerId)),
+                        carId = last.CarId,
                         title = title,
                         partnerName = partnerName,
                         lastMessage = last.MessageText,
@@ -278,35 +402,37 @@ namespace CarRental.Controllers
                         carImage = last.Car?.Image ?? "/assets/images/cars/default.png"
                     };
                 })
-                .Take(5)
+                .Take(15)
                 .ToList();
 
-            return Json(new { success = true, conversations = grouped });
+            int totalUnread = await _context.ChatMessages
+                .Where(m => (m.ReceiverId == currentUserId || (m.CarId.HasValue && myCarIds.Contains(m.CarId.Value))) && !m.IsRead && m.SenderId != currentUserId)
+                .CountAsync();
+
+            return Json(new { success = true, unreadCount = totalUnread, conversations = grouped });
         }
 
-        private string GenerateOwnerReply(string userMsg, string ownerName, string? carName)
+        [HttpGet]
+        public async Task<IActionResult> GetUnreadCount(bool asOwner = false, int? ownerId = null)
         {
-            var text = userMsg.ToLower();
-            string car = !string.IsNullOrWhiteSpace(carName) ? carName : "xe";
-
-            if (text.Contains("giá") || text.Contains("chi phí") || text.Contains("bao nhiêu") || text.Contains("tiền"))
+            var currentCust = await ResolveCurrentCustomerAsync(asOwner, asOwner ? ownerId : null);
+            if (currentCust == null)
             {
-                return $"{ownerName}: Giá thuê niêm yết trên ứng dụng là giá trọn gói đã gồm bảo hiểm cơ bản. Bạn thuê nhiều ngày sẽ có chiết khấu thêm nhé!";
-            }
-            if (text.Contains("địa chỉ") || text.Contains("nhận xe") || text.Contains("ở đâu") || text.Contains("giao xe") || text.Contains("tận nơi"))
-            {
-                return $"{ownerName}: Dạ mình có hỗ trợ giao nhận xe tận nơi tại các quận nội thành hoặc bạn có thể qua trực tiếp bãi xe để nhận xe nha.";
-            }
-            if (text.Contains("giấy tờ") || text.Contains("thủ tục") || text.Contains("căn cước") || text.Contains("bằng lái") || text.Contains("gplx"))
-            {
-                return $"{ownerName}: Thủ tục thuê xe rất nhanh gọn: Bạn chỉ cần CCCD gắn chip (hoặc VNeID định danh mức 2) và GPLX hợp lệ là nhận xe được ngay.";
-            }
-            if (text.Contains("bận") || text.Contains("bảo trì") || text.Contains("khi nào") || text.Contains("lịch"))
-            {
-                return $"{ownerName}: Cảm ơn bạn đã hỏi thăm! Chiếc {car} này mình đang cho khách thuê / kiểm tra kỹ thuật định kỳ. Bạn dự kiến đi ngày nào để mình sắp xếp giữ lịch ưu tiên cho bạn nhé!";
+                return Json(new { success = true, unreadCount = 0 });
             }
 
-            return $"{ownerName}: Chào bạn! Cảm ơn bạn đã gửi tin nhắn về chiếc {car}. Mình đã ghi nhận yêu cầu và sẽ hỗ trợ chi tiết cho bạn ngay đây ạ!";
+            int currentUserId = currentCust.CustomerId;
+
+            var myCarIds = await _context.Cars
+                .Where(c => c.OwnerId == currentUserId)
+                .Select(c => c.CarId)
+                .ToListAsync();
+
+            int count = await _context.ChatMessages
+                .Where(m => (m.ReceiverId == currentUserId || (m.CarId.HasValue && myCarIds.Contains(m.CarId.Value))) && !m.IsRead && m.SenderId != currentUserId)
+                .CountAsync();
+
+            return Json(new { success = true, unreadCount = count });
         }
     }
 }

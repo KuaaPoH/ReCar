@@ -1,495 +1,1723 @@
 @using CarRental.Utilities;
+
 @{
+
     var currentController = ViewContext.RouteData.Values["controller"]?.ToString();
+
     var currentAction = ViewContext.RouteData.Values["action"]?.ToString();
+
     var ownerName = Function.GetUserName(Context.Session);
+
     if (string.IsNullOrEmpty(ownerName))
+
     {
+
         ownerName = "Trần Quốc Bảo";
+
     }
+
     var ownerInitials = ownerName.Length >= 2 ? ownerName.Substring(0, 2).ToUpper() : "CX";
-    var ownerAccountId = Function.GetCarOwnerAccountId(Context.Session) > 0 ? Function.GetCarOwnerAccountId(Context.Session) : Function.GetAccountId(Context.Session);
+
+    var ownerAccountId = Function.GetCarOwnerAccountId(Context.Session);
+    if (ownerAccountId <= 0)
+    {
+        ownerAccountId = 1022; // Mặc định Chủ xe mẫu: Trần Quốc Bảo (CustomerID 1022)
+    }
+
     string pageTitle = ViewData["Title"]?.ToString() ?? "Tổng quan";
+
 }
+
 <!DOCTYPE html>
+
 <html lang="vi">
+
 <head>
+
     <meta charset="UTF-8">
+
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <title>@(pageTitle) | ReCar Host Pro</title>
+
     
+
     <!-- Script khôi phục trạng thái thu gọn Sidebar tránh giật lag -->
+
     <script>
+
         (function() {
+
             try {
+
                 if (localStorage.getItem('recar_host_sidebar_collapsed') === 'true' && window.innerWidth >= 992) {
+
                     document.documentElement.classList.add('sidebar-collapsed');
+
                 }
+
             } catch(e) {}
+
         })();
+
     </script>
 
+
+
     <!-- Google Fonts: Plus Jakarta Sans & JetBrains Mono -->
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
+
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
     
+
     <!-- Bootstrap 5 & SweetAlert2 -->
+
     <link rel="stylesheet" href="~/assets/css/vendor/bootstrap.min.css">
+
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+
     
-    <!-- Lucide Icons CDN -->
-    <script src="https://unpkg.com/lucide@latest"></script>
+
     
-    <style>
-        :root {
-            --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-            --font-mono: 'JetBrains Mono', monospace;
-            --primary: #0284c7;
-            --cyan: #00a8e8;
-            --sidebar-bg: #0b1329;
-            --sidebar-card: #131c31;
-            --sidebar-text: #94a3b8;
-            --sidebar-text-active: #ffffff;
-            --sidebar-muted: #64748b;
-            --bg-canvas: #f8fafc;
-            --border-color: #e2e8f0;
-            --sidebar-w: 240px;
-            --sidebar-w-collapsed: 68px;
+
+    <!-- Lucide Icons Local & CDN fallback -->
+
+    <script src="~/assets/js/vendor/lucide.min.js"></script>
+
+    <script>
+
+        if (typeof lucide === 'undefined') {
+
+            document.write('<script src="https://unpkg.com/lucide@latest"><\/script>');
+
         }
+
+    </script>
+
+    
+
+    <style>
+
+        :root {
+
+            --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+
+            --font-mono: 'JetBrains Mono', monospace;
+
+            --primary: #0284c7;
+
+            --cyan: #00a8e8;
+
+            --sidebar-bg: #0b1329;
+
+            --sidebar-card: #131c31;
+
+            --sidebar-text: #94a3b8;
+
+            --sidebar-text-active: #ffffff;
+
+            --sidebar-muted: #64748b;
+
+            --bg-canvas: #f8fafc;
+
+            --border-color: #e2e8f0;
+
+            --sidebar-w: 240px;
+
+            --sidebar-w-collapsed: 68px;
+
+        }
+
+
 
         body {
+
             font-family: var(--font-sans);
+
             background-color: var(--bg-canvas);
+
             color: #0f172a;
+
             margin: 0;
+
             padding: 0;
+
             -webkit-font-smoothing: antialiased;
+
         }
+
+
 
         /* Design System Utilities */
+
         .card-surface {
+
             background-color: #ffffff;
+
             border: 1px solid var(--border-color);
+
             border-radius: 18px;
+
             box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
+
             transition: all 0.2s ease;
+
         }
+
+
 
         /* Utility classes Tailwind-compatible */
+
         .gap-1\.5 { gap: 0.375rem !important; }
+
         .gap-2\.5 { gap: 0.625rem !important; }
+
         .gap-3\.5 { gap: 0.875rem !important; }
+
         .place-items-center { place-items: center !important; }
+
         .icon-box-fixed {
+
             display: inline-flex !important;
+
             align-items: center !important;
+
             justify-content: center !important;
+
             flex-shrink: 0 !important;
+
         }
+
+
 
         /* Sidebar Styling */
+
         .recar-owner-sidebar {
+
             width: var(--sidebar-w);
+
             background-color: var(--sidebar-bg);
+
             color: var(--sidebar-text);
+
             position: fixed;
+
             top: 0;
+
             left: 0;
+
             bottom: 0;
+
             display: flex;
+
             flex-direction: column;
+
             justify-content: space-between;
+
             z-index: 1040;
+
             overflow-y: auto;
+
             overflow-x: hidden;
+
             transition: width 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+
             scrollbar-width: thin;
+
             scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+
         }
+
+
 
         .recar-owner-sidebar::-webkit-scrollbar {
+
             width: 4px;
+
         }
+
         .recar-owner-sidebar::-webkit-scrollbar-thumb {
+
             background: rgba(255, 255, 255, 0.15);
+
             border-radius: 4px;
+
         }
+
+
 
         .recar-owner-main {
+
             margin-left: var(--sidebar-w);
+
             min-height: 100vh;
+
             display: flex;
+
             flex-direction: column;
+
             background-color: var(--bg-canvas);
+
             transition: margin-left 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+
         }
+
+
 
         /* Collapsed Sidebar Mode */
+
         html.sidebar-collapsed .recar-owner-sidebar,
+
         body.sidebar-collapsed .recar-owner-sidebar {
+
             width: var(--sidebar-w-collapsed);
+
         }
+
         html.sidebar-collapsed .recar-owner-main,
+
         body.sidebar-collapsed .recar-owner-main {
+
             margin-left: var(--sidebar-w-collapsed);
+
         }
+
         html.sidebar-collapsed .sidebar-hide-on-collapse,
+
         body.sidebar-collapsed .sidebar-hide-on-collapse {
+
             display: none !important;
+
         }
+
         html.sidebar-collapsed .sidebar-nav-link,
+
         body.sidebar-collapsed .sidebar-nav-link {
+
             justify-content: center;
+
             padding: 10px 0;
+
         }
+
         html.sidebar-collapsed .sidebar-brand-box,
+
         body.sidebar-collapsed .sidebar-brand-box {
+
             justify-content: center;
+
             padding: 10px 0;
+
         }
+
         html.sidebar-collapsed .recar-host-profile-card,
+
         body.sidebar-collapsed .recar-host-profile-card {
+
             padding: 8px 4px;
+
             justify-content: center;
+
             background: transparent !important;
+
         }
+
+
 
         /* Navigation Links */
+
         .sidebar-nav-header {
+
             font-size: 0.6875rem; /* 11px */
+
             text-transform: uppercase;
+
             letter-spacing: 0.06em;
+
             font-weight: 700;
+
             color: var(--sidebar-muted);
+
             padding: 14px 12px 6px 12px;
+
         }
+
+
 
         .sidebar-nav-link {
+
             display: flex;
+
             align-items: center;
+
             gap: 12px;
+
             padding: 8px 12px;
+
             margin: 1px 6px;
+
             border-radius: 8px;
+
             font-size: 0.8125rem; /* 13px */
+
             font-weight: 500;
+
             color: var(--sidebar-text);
+
             text-decoration: none;
+
             transition: all 0.15s ease;
+
             position: relative;
+
         }
+
         .sidebar-nav-link svg, .sidebar-nav-link i {
+
             width: 18px;
+
             height: 18px;
+
             min-width: 18px;
+
             stroke-width: 1.8;
+
             flex-shrink: 0;
+
             color: var(--sidebar-text);
+
             transition: color 0.15s ease;
+
         }
+
         .sidebar-nav-link:hover {
+
             background-color: rgba(255, 255, 255, 0.06);
+
             color: #ffffff;
+
         }
+
         .sidebar-nav-link:hover svg, .sidebar-nav-link:hover i {
+
             color: #ffffff;
+
         }
+
         .sidebar-nav-link.active {
+
             background-color: #00a8e8;
+
             color: #ffffff;
+
             font-weight: 600;
+
             box-shadow: 0 4px 12px rgba(0, 168, 232, 0.35);
+
         }
+
         .sidebar-nav-link.active svg, .sidebar-nav-link.active i {
+
             color: #ffffff;
+
         }
+
+
 
         /* Topbar Header */
+
         .recar-owner-topbar {
+
             height: 58px;
+
             position: sticky;
+
             top: 0;
+
             z-index: 1020;
+
             background: rgba(255, 255, 255, 0.95);
+
             backdrop-filter: blur(10px);
+
             border-bottom: 1px solid var(--border-color);
+
             display: flex;
+
             align-items: center;
+
             justify-content: space-between;
+
             padding: 0 1.5rem;
+
         }
+
+
 
         /* Nút thu gọn Sidebar tròn tinh tế chuẩn như bên Admin */
+
         .btn-toggle-sidebar {
+
             width: 36px;
+
             height: 36px;
+
             border-radius: 50%;
+
             border: none;
+
             background: #f1f5f9;
+
             display: flex;
+
             align-items: center;
+
             justify-content: center;
+
             color: #475569;
+
             cursor: pointer;
+
             transition: all 0.15s ease;
+
             flex-shrink: 0;
+
         }
+
         .btn-toggle-sidebar:hover {
+
             background: #e2e8f0;
+
             color: #0f172a;
+
         }
+
         .btn-toggle-sidebar svg {
+
             width: 18px;
+
             height: 18px;
+
         }
+
+
 
         .btn-owner-bell {
+
             width: 36px;
+
             height: 36px;
+
             border-radius: 50%;
+
             border: 1px solid var(--border-color);
+
             background: #ffffff;
+
             display: flex;
+
             align-items: center;
+
             justify-content: center;
+
             color: #475569;
+
             position: relative;
+
             cursor: pointer;
+
             transition: all 0.15s ease;
+
         }
+
         .btn-owner-bell:hover {
+
             background: #f8fafc;
+
             color: #0f172a;
+
         }
+
         .btn-owner-bell svg {
+
             width: 17px;
+
             height: 17px;
+
         }
+
+
 
         .owner-profile-pill {
+
             display: flex;
+
             align-items: center;
+
             gap: 8px;
+
             background: #ffffff;
+
             border: 1px solid var(--border-color);
+
             padding: 3px 12px 3px 3px;
+
             border-radius: 999px;
+
             cursor: pointer;
+
             transition: all 0.15s ease;
+
         }
+
         .owner-profile-pill:hover {
+
             background: #f8fafc;
+
         }
+
+
 
         @@media (max-width: 991px) {
+
             .recar-owner-sidebar {
+
                 transform: translateX(-100%);
+
                 width: var(--sidebar-w) !important;
+
             }
+
             .recar-owner-sidebar.show {
+
                 transform: translateX(0);
+
             }
+
             .recar-owner-main {
+
                 margin-left: 0 !important;
+
             }
+
             html.sidebar-collapsed .recar-owner-sidebar,
+
             body.sidebar-collapsed .recar-owner-sidebar {
+
                 transform: translateX(-100%);
+
             }
+
             html.sidebar-collapsed .recar-owner-sidebar.show,
+
             body.sidebar-collapsed .recar-owner-sidebar.show {
+
                 transform: translateX(0);
+
             }
+
             html.sidebar-collapsed .sidebar-hide-on-collapse,
+
             body.sidebar-collapsed .sidebar-hide-on-collapse {
+
                 display: block !important;
+
             }
+
             html.sidebar-collapsed .sidebar-nav-link,
+
             body.sidebar-collapsed .sidebar-nav-link {
+
                 justify-content: flex-start;
+
                 padding: 9px 14px;
+
             }
+
         }
+
     </style>
+
 </head>
 
+
+
 <body>
+
     <!-- Sleek Sidebar Khớp 100% Ảnh 2 Template -->
+
     <aside class="recar-owner-sidebar" id="hostSidebar">
+
         <div style="padding: 16px 8px 12px 8px;">
+
             <!-- Brand Logo: Ô tròn xanh cyan + icon xe ô tô -->
+
             <div class="d-flex align-items-center gap-2.5 px-2 py-2 mb-3 sidebar-brand-box">
-                <div style="width: 42px; height: 42px; min-width: 42px; border-radius: 50%; background: #00a8e8; display: flex; align-items: center; justify-content: center; color: #ffffff; flex-shrink: 0; box-shadow: 0 4px 12px rgba(0, 168, 232, 0.4);">
-                    <i data-lucide="car-front" style="width: 22px; height: 22px; stroke-width: 2;"></i>
-                </div>
+
+                <div style="width: 42px; height: 42px; min-width: 42px; border-radius: 50%; background: #00a8e8; display: flex; align-items: center; justify-content: center; color: #ffffff; flex-shrink: 0; box-shadow: 0 4px 12px rgba(0, 168, 232, 0.4);"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-car"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.5 2.8C1.4 11.2 1 12 1 13v3c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/></svg></div>
+
                 <div class="sidebar-hide-on-collapse min-w-0">
+
                     <div class="fw-bold text-white" style="font-size: 15px; letter-spacing: -0.2px; line-height: 1.2;">ReCar Host Pro</div>
+
                     <div style="color: #64748b; font-size: 11.5px; margin-top: 1px;">Đối tác Chủ xe</div>
+
                 </div>
+
             </div>
+
+
+
+
 
 
 
             <!-- Navigation Links Khớp 100% Ảnh 2 -->
+
             <nav class="d-flex flex-column gap-1">
+
                 <div class="sidebar-nav-header sidebar-hide-on-collapse">QUẢN TRỊ PHƯƠNG TIỆN</div>
 
+
+
                 <a href="/CarOwner/Home/Index" class="sidebar-nav-link @(currentController == "Home" ? "active" : "")" title="Tổng quan">
-                    <i data-lucide="layout-grid"></i>
+
+                    <i class="bi bi-grid-fill" style="font-size: 1.05rem;"></i>
+
                     <span class="sidebar-hide-on-collapse">Tổng quan</span>
+
                 </a>
+
+
 
                 <a href="/CarOwner/Cars/Index" class="sidebar-nav-link @((currentController == "Cars" && currentAction == "Index") ? "active" : "")" title="Quản lý xe">
-                    <i data-lucide="car"></i>
+
+                    <i class="bi bi-car-front-fill" style="font-size: 1.05rem;"></i>
+
                     <span class="sidebar-hide-on-collapse">Quản lý xe</span>
+
                 </a>
 
+
+
                 <!-- Đã loại bỏ chữ "mới" theo yêu cầu người dùng -->
+
                 <a href="/CarOwner/Cars/Create" class="sidebar-nav-link @((currentController == "Cars" && currentAction == "Create") ? "active" : "")" title="Thêm xe">
-                    <i data-lucide="plus-circle"></i>
+
+                    <i class="bi bi-plus-circle-fill" style="font-size: 1.05rem;"></i>
+
                     <span class="sidebar-hide-on-collapse">Thêm xe</span>
+
                 </a>
+
+
 
                 <div class="sidebar-nav-header sidebar-hide-on-collapse">KINH DOANH & THU NHẬP</div>
 
+
+
                 <a href="/CarOwner/Orders/Index" class="sidebar-nav-link @(currentController == "Orders" ? "active" : "")" title="Lịch trình & Đơn xe">
-                    <i data-lucide="calendar-range"></i>
+
+                    <i class="bi bi-calendar2-range-fill" style="font-size: 1.05rem;"></i>
+
                     <span class="sidebar-hide-on-collapse">Lịch trình & Đơn xe</span>
+
                 </a>
 
+
+
                 <a href="/CarOwner/Register/Pending" class="sidebar-nav-link @(currentController == "Register" ? "active" : "")" title="Hồ sơ pháp lý & Ngân hàng">
-                    <i data-lucide="file-text"></i>
+
+                    <i class="bi bi-file-earmark-text-fill" style="font-size: 1.05rem;"></i>
+
                     <span class="sidebar-hide-on-collapse">Hồ sơ pháp lý & Ngân hàng</span>
+
                 </a>
+
+
 
                 <div class="sidebar-nav-header sidebar-hide-on-collapse">SẮP RA MẮT</div>
 
+
+
                 <a href="/CarOwner/Home/Roadmap" class="sidebar-nav-link @(currentAction == "Roadmap" ? "active" : "") text-white" title="Tính năng tương lai">
-                    <i data-lucide="sparkles"></i>
+
+                    <i class="bi bi-stars" style="font-size: 1.05rem;"></i>
+
                     <span class="sidebar-hide-on-collapse">Tính năng tương lai</span>
+
                 </a>
+
             </nav>
+
         </div>
+
+
 
         <!-- Chân Sidebar Khớp Ảnh 2 -->
+
         <div style="padding: 12px 8px; border-top: 1px solid rgba(255, 255, 255, 0.08);">
+
             <a href="/" class="sidebar-nav-link mb-1 text-white" title="Về sàn khách thuê">
-                <i data-lucide="store" style="color: #38bdf8;"></i>
+
+                <i class="bi bi-shop" style="font-size: 1.05rem; color: #38bdf8;"></i>
+
                 <span class="sidebar-hide-on-collapse">Về sàn khách thuê</span>
+
             </a>
+
             <a href="/CarOwner/Home/Logout" class="sidebar-nav-link text-danger" title="Đăng xuất">
-                <i data-lucide="log-out"></i>
+
+                <i class="bi bi-box-arrow-right" style="font-size: 1.05rem;"></i>
+
                 <span class="sidebar-hide-on-collapse">Đăng xuất</span>
+
             </a>
+
         </div>
+
     </aside>
 
+
+
     <!-- Main Content Area -->
+
     <main class="recar-owner-main">
+
         <!-- Topbar Header Căn Chỉnh Chuẩn Như Admin: Nút tròn + Breadcrumb 1 hàng thẳng tắp -->
+
         <header class="recar-owner-topbar">
+
             <div class="d-flex align-items-center gap-3">
+
                 <!-- Nút Thu gọn/Mở rộng Sidebar tròn tinh tế -->
-                <button class="btn-toggle-sidebar" type="button" id="btnToggleSidebar" title="Thu gọn / Mở rộng Sidebar">
-                    <i data-lucide="panel-left" id="sidebarToggleIcon"></i>
-                </button>
+
+                <button class="btn-toggle-sidebar" type="button" id="btnToggleSidebar" title="Thu gọn / Mở rộng Sidebar"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-panel-left"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/></svg></button>
+
                 
+
                 <!-- Breadcrumbs 1 hàng gọn gàng, không bị đội tiêu đề làm lệch -->
+
                 <nav aria-label="breadcrumb">
+
                     <ol class="breadcrumb mb-0" style="font-size: 0.8125rem;">
+
                         <li class="breadcrumb-item text-muted">Host Pro</li>
+
                         <li class="breadcrumb-item active fw-bold text-dark" aria-current="page">@(pageTitle)</li>
+
                     </ol>
+
                 </nav>
+
             </div>
+
+
 
             <div class="d-flex align-items-center gap-2.5">
-                <!-- Chuông thông báo Real-time -->
+
+                <!-- Tin nhắn Chat với Khách hàng -->
+
                 <div class="dropdown">
-                    <button class="btn-owner-bell" type="button" data-bs-toggle="dropdown" aria-expanded="false" id="btnOwnerBell" title="Thông báo đối tác">
-                        <i data-lucide="bell"></i>
-                        <span id="ownerNotificationDot" class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle" style="display: none; width: 8px; height: 8px; margin-top: 6px; margin-left: -6px;"></span>
+
+                    <button class="btn-owner-bell" type="button" data-bs-toggle="dropdown" aria-expanded="false" id="btnOwnerChat" title="Tin nhắn với Khách thuê"><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-message-square"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+
+                        <span id="chatNotificationDot" class="position-absolute top-0 start-100 translate-middle p-1 bg-primary border border-light rounded-circle" style="display: none; width: 8px; height: 8px; margin-top: 6px; margin-left: -6px;"></span>
+
                     </button>
-                    <ul class="dropdown-menu dropdown-menu-end shadow-lg p-2 border-0" style="width: 340px; border-radius: 16px; margin-top: 10px;">
-                        <li>
-                            <div class="d-flex align-items-center justify-content-between px-3 py-2 border-bottom">
-                                <h6 class="fw-bold text-dark mb-0 d-flex align-items-center gap-1">
-                                    <i data-lucide="bell" style="width: 15px; height: 15px; color: #0284c7;"></i> Thông báo đối tác
-                                </h6>
-                                <span class="badge bg-light text-muted small">Realtime</span>
+
+                    <div class="dropdown-menu dropdown-menu-end shadow-lg p-2 border-0" style="width: 340px; border-radius: 16px; margin-top: 10px;">
+
+                        <div class="d-flex align-items-center justify-content-between px-3 py-2 border-bottom">
+
+                            <h6 class="fw-bold text-dark mb-0 d-flex align-items-center gap-1.5" style="font-size: 0.88rem;">
+
+                                <i class="bi bi-chat-dots-fill text-primary" style="font-size: 15px;"></i> Tin nhắn với Khách
+
+                            </h6>
+
+                            <span class="badge bg-light text-primary border" style="font-size: 11px;">Trực tuyến</span>
+
+                        </div>
+
+                        <div id="recentChatList" style="max-height: 320px; overflow-y: auto;">
+
+                            <div class="text-center py-4 text-muted small" id="emptyChatNotice">
+
+                                <i class="bi bi-chat-dots fs-2 text-secondary opacity-50 d-block mb-2"></i>
+
+                                Chưa có tin nhắn nào
+
                             </div>
-                        </li>
-                        <li id="ownerNotificationEmpty" class="text-center py-4 text-muted small">
-                            <i data-lucide="inbox" style="width: 32px; height: 32px; margin: 0 auto 6px auto; display: block; opacity: 0.4;"></i>
-                            Chưa có thông báo mới nào
-                        </li>
-                        <div id="ownerNotificationList"></div>
-                    </ul>
+
+                        </div>
+
+                    </div>
+
                 </div>
+
+
+
+                <!-- Chuông thông báo Real-time -->
+
+                <div class="dropdown">
+
+                    <button class="btn-owner-bell" type="button" data-bs-toggle="dropdown" aria-expanded="false" id="btnOwnerBell" title="Thông báo đối tác"><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-bell"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+
+                        <span id="ownerNotificationDot" class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle" style="display: none; width: 8px; height: 8px; margin-top: 6px; margin-left: -6px;"></span>
+
+                    </button>
+
+                    <ul class="dropdown-menu dropdown-menu-end shadow-lg p-2 border-0" style="width: 340px; border-radius: 16px; margin-top: 10px;">
+
+                        <li>
+
+                            <div class="d-flex align-items-center justify-content-between px-3 py-2 border-bottom">
+
+                                <h6 class="fw-bold text-dark mb-0 d-flex align-items-center gap-1">
+
+                                    <i data-lucide="bell" style="width: 15px; height: 15px; color: #0284c7;"></i> Thông báo đối tác
+
+                                </h6>
+
+                                <span class="badge bg-light text-muted small">Realtime</span>
+
+                            </div>
+
+                        </li>
+
+                        <li id="ownerNotificationEmpty" class="text-center py-4 text-muted small">
+
+                            <i class="bi bi-inbox fs-2 text-secondary opacity-50 d-block mb-2"></i>
+
+                            Chưa có thông báo mới nào
+
+                        </li>
+
+                        <div id="ownerNotificationList"></div>
+
+                    </ul>
+
+                </div>
+
+
 
                 <!-- Host Profile Pill -->
+
                 <div class="dropdown">
+
                     <div class="owner-profile-pill" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+
                         <div style="width: 30px; height: 30px; font-size: 11px; font-weight: 700; background: #00a8e8; color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+
                             @ownerInitials
+
                         </div>
+
                         <span class="fw-semibold text-dark small d-none d-md-inline" style="font-size: 0.82rem;">@ownerName</span>
+
                         <i data-lucide="chevron-down" style="width: 14px; height: 14px; color: #94a3b8;"></i>
+
                     </div>
+
                     <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 p-2" style="border-radius: 14px; min-width: 220px; margin-top: 8px;">
+
                         <li class="px-3 py-2 border-bottom mb-1">
+
                             <div class="fw-bold text-dark">@ownerName</div>
+
                             <div class="text-muted small">Đối tác Chủ xe ReCar</div>
+
                         </li>
+
                         <li><a class="dropdown-item rounded-3 py-2 small" href="/Accounts/Index"><i class="bi bi-person me-2"></i>Tài khoản cá nhân</a></li>
+
                         <li><a class="dropdown-item rounded-3 py-2 small" href="/CarOwner/Register/Pending"><i class="bi bi-bank2 me-2"></i>Tài khoản thụ hưởng</a></li>
+
                         <li><hr class="dropdown-divider"></li>
+
                         <li><a class="dropdown-item rounded-3 py-2 small text-danger" href="/CarOwner/Home/Logout"><i class="bi bi-box-arrow-right me-2"></i>Đăng xuất</a></li>
+
                     </ul>
+
                 </div>
+
             </div>
+
         </header>
 
+
+
         <!-- Body Content -->
+
         <div class="p-3 p-md-4 p-xl-5 flex-grow-1">
+
             @RenderBody()
+
         </div>
 
+
+
         <!-- Footer -->
+
         <footer class="py-3 px-4 border-top text-center text-muted small" style="background: #ffffff; font-size: 0.78rem;">
+
             &copy; @DateTime.Now.Year ReCar Host Pro — Hệ thống quản trị phương tiện dành cho Đối tác Chủ xe.
+
         </footer>
+
     </main>
 
-    <!-- Scripts -->
-    <script src="~/assets/js/vendor/jquery.min.js"></script>
-    <script src="~/assets/js/vendor/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    
-    <script>
-        // Toggle Sidebar & Persist state in localStorage
-        function toggleHostSidebar() {
-            if (window.innerWidth < 992) {
-                var sb = document.getElementById('hostSidebar');
-                if (sb) sb.classList.toggle('show');
-            } else {
-                var isCollapsed = document.documentElement.classList.toggle('sidebar-collapsed');
-                document.body.classList.toggle('sidebar-collapsed', isCollapsed);
-                localStorage.setItem('recar_host_sidebar_collapsed', isCollapsed ? 'true' : 'false');
-            }
+
+
+    <!-- Floating Chat Window (Trao đổi trực tiếp với Khách hàng) -->
+
+    <div class="recar-chat-window" id="recarChatWindow">
+
+        <div class="chat-header">
+
+            <div class="d-flex align-items-center gap-2">
+
+                <span class="rounded-circle bg-success" style="width: 8px; height: 8px;"></span>
+
+                <span class="fw-bold small text-truncate" id="chatPartnerName" style="max-width: 220px;">Khách hàng</span>
+
+            </div>
+
+            <div class="d-flex align-items-center gap-1">
+
+                <button type="button" class="btn btn-sm btn-link text-white p-0 me-1" onclick="minimizeChat()"><i class="bi bi-dash-lg"></i></button>
+
+                <button type="button" class="btn btn-sm btn-link text-white p-0" onclick="closeChat()"><i class="bi bi-x-lg"></i></button>
+
+            </div>
+
+        </div>
+
+        <div class="chat-body" id="chatMessages">
+
+            <div class="chat-bubble from-owner" id="chatFirstMessage">
+
+                Chào bạn! Tôi là đối tác chủ xe trên ReCar. Bạn có thắc mắc gì về thủ tục nhận xe, thời gian hay cung đường di chuyển không?
+
+            </div>
+
+        </div>
+
+        <div id="chatTypingIndicator" style="display: none; padding: 5px 16px; font-size: 11px; color: #64748b; font-style: italic; background: #f8fafc; border-top: 1px dashed #e2e8f0;">
+
+            <span class="spinner-grow spinner-grow-sm text-primary me-1" style="width: 8px; height: 8px;" role="status"></span>
+
+            <span id="chatTypingText">Khách đang soạn tin...</span>
+
+        </div>
+
+        <div class="chat-footer">
+
+            <input type="text" class="form-control form-control-sm rounded-pill border" id="chatInputText" placeholder="Nhập tin nhắn trả lời..." autocomplete="off">
+
+            <button class="btn btn-primary btn-sm rounded-circle d-flex align-items-center justify-content-center" id="btnSendChat" style="width: 32px; height: 32px; flex-shrink: 0;">
+
+                <i class="bi bi-send-fill" style="font-size: 12px;"></i>
+
+            </button>
+
+        </div>
+
+    </div>
+
+
+
+    <!-- Style cho Chat Window -->
+
+    <style>
+
+        .recar-chat-window {
+
+            position: fixed;
+
+            bottom: 24px;
+
+            right: 24px;
+
+            width: 350px;
+
+            height: 480px;
+
+            background: #ffffff;
+
+            border-radius: 16px;
+
+            box-shadow: 0 10px 30px rgba(15, 23, 42, 0.2), 0 1px 3px rgba(15, 23, 42, 0.08);
+
+            border: 1px solid #e2e8f0;
+
+            display: none;
+
+            flex-direction: column;
+
+            z-index: 1050;
+
+            overflow: hidden;
+
+            animation: chatSlideUp 0.25s ease-out;
+
         }
+
+        .recar-chat-window.open {
+
+            display: flex !important;
+
+        }
+
+        @@keyframes chatSlideUp {
+
+            from { transform: translateY(20px); opacity: 0; }
+
+            to { transform: translateY(0); opacity: 1; }
+
+        }
+
+        .chat-header {
+
+            background: #0f172a;
+
+            color: #ffffff;
+
+            padding: 12px 16px;
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: space-between;
+
+        }
+
+        .chat-body {
+
+            flex-grow: 1;
+
+            padding: 14px 16px;
+
+            overflow-y: auto;
+
+            display: flex;
+
+            flex-direction: column;
+
+            gap: 10px;
+
+            background: #f8fafc;
+
+        }
+
+        .chat-bubble {
+
+            max-width: 82%;
+
+            padding: 10px 14px;
+
+            border-radius: 14px;
+
+            font-size: 13px;
+
+            line-height: 1.45;
+
+            word-break: break-word;
+
+        }
+
+        .chat-bubble.from-owner {
+
+            background: #ffffff;
+
+            color: #0f172a;
+
+            align-self: flex-start;
+
+            border-bottom-left-radius: 2px;
+
+            border: 1px solid #e2e8f0;
+
+            box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+
+        }
+
+        .chat-bubble.from-user {
+
+            background: #0284c7;
+
+            color: #ffffff;
+
+            align-self: flex-end;
+
+            border-bottom-right-radius: 2px;
+
+            box-shadow: 0 2px 6px rgba(2, 132, 199, 0.25);
+
+        }
+
+        .chat-footer {
+
+            padding: 10px 14px;
+
+            background: #ffffff;
+
+            border-top: 1px solid #e2e8f0;
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 8px;
+
+        }
+
+        .chat-item {
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 10px;
+
+            padding: 10px 12px;
+
+            border-radius: 10px;
+
+            cursor: pointer;
+
+            transition: background 0.15s ease;
+
+        }
+
+        .chat-item:hover {
+
+            background: #f1f5f9;
+
+        }
+
+        .chat-avatar {
+
+            width: 36px;
+
+            height: 36px;
+
+            border-radius: 50%;
+
+            background: #0284c7;
+
+            color: #ffffff;
+
+            font-weight: 700;
+
+            font-size: 12px;
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+            flex-shrink: 0;
+
+        }
+
+    </style>
+
+
+
+    <!-- Scripts -->
+
+    <script src="~/assets/js/vendor/jquery-3.6.0.min.js"></script>
+
+    <script src="~/assets/js/vendor/bootstrap.bundle.min.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script src="~/assets/js/vendor/signalr.min.js"></script>
+
+    <script>
+
+        window.RECAR_CURRENT_USER = {
+
+            accountId: @(ownerAccountId > 0 ? ownerAccountId.ToString() : "1022"),
+
+            role: 'CarOwner',
+
+            userName: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ownerName ?? "Trần Quốc Bảo"))
+
+        };
+
+    </script>
+
+    <script src="~/assets/js/recar-realtime.js"></script>
+
+    
+
+    <script>
+
+        var currentChatCarId = null;
+
+        var currentChatPartnerId = null;
+
+        var currentChatPartnerName = 'Khách hàng';
+
+
+
+        function openChatBox(partnerName, greeting, carId, partnerId, carName) {
+
+            currentChatPartnerName = partnerName || 'Khách hàng';
+
+            currentChatCarId = carId || null;
+
+            currentChatPartnerId = partnerId || null;
+
+
+
+            $('#chatPartnerName').text(currentChatPartnerName);
+
+            $('#recarChatWindow').addClass('open');
+
+            $('#chatMessages').html('<div class="text-center py-3 text-muted small"><div class="spinner-border spinner-border-sm text-primary me-1" role="status"></div> Đang tải lịch sử tin nhắn...</div>');
+
+
+
+            $.ajax({
+
+                url: '/Chat/GetMessages',
+
+                type: 'GET',
+
+                data: { carId: currentChatCarId, partnerId: currentChatPartnerId, asOwner: true, ownerId: (window.RECAR_CURRENT_USER ? window.RECAR_CURRENT_USER.accountId : 1022) },
+
+                success: function(res) {
+
+                    $('#chatMessages').empty();
+
+                    if (res && res.success && res.messages && res.messages.length > 0) {
+
+                        res.messages.forEach(function(m) {
+
+                            var bubbleClass = m.isMe ? 'chat-bubble from-user' : 'chat-bubble from-owner';
+
+                            var bubble = $('<div class="' + bubbleClass + '"></div>');
+
+                            var senderHeader = m.isMe ? 'Bạn' : m.senderName;
+
+                            bubble.append($('<div class="fw-bold mb-1" style="font-size: 11px; opacity: 0.85;"></div>').text(senderHeader + ' · ' + m.sentAt));
+
+                            bubble.append($('<div></div>').text(m.messageText));
+
+                            $('#chatMessages').append(bubble);
+
+                        });
+
+                    } else {
+
+                        var defaultMsg = greeting || ('Chào bạn! Tôi là đối tác chủ xe. Tôi có thể hỗ trợ gì cho bạn về chuyến đi ạ?');
+
+                        var bubble = $('<div class="chat-bubble from-owner"></div>');
+
+                        bubble.append($('<div class="fw-bold mb-1" style="font-size: 11px; opacity: 0.85;"></div>').text(currentChatPartnerName));
+
+                        bubble.append($('<div></div>').text(defaultMsg));
+
+                        $('#chatMessages').append(bubble);
+
+                    }
+
+                    $('#chatMessages').scrollTop($('#chatMessages')[0].scrollHeight);
+
+                },
+
+                error: function() {
+
+                    $('#chatMessages').html('<div class="chat-bubble from-owner"><div class="fw-bold mb-1" style="font-size: 11px;">' + currentChatPartnerName + '</div>' + (greeting || 'Chào bạn! Rất vui được hỗ trợ bạn.') + '</div>');
+
+                }
+
+            });
+
+
+
+            setTimeout(function() { $('#chatInputText').focus(); }, 200);
+
+        }
+
+
+
+        function closeChat() {
+
+            $('#recarChatWindow').removeClass('open');
+
+        }
+
+
+
+        function minimizeChat() {
+
+            $('#recarChatWindow').toggleClass('open');
+
+        }
+
+
+
+        function sendChatMessage() {
+
+            var msg = $('#chatInputText').val().trim();
+
+            if (!msg || !currentChatPartnerId) return;
+
+
+
+            var nowStr = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+
+            var userBubble = $('<div class="chat-bubble from-user"></div>');
+
+            userBubble.append($('<div class="fw-bold mb-1" style="font-size: 11px; opacity: 0.85;">Bạn · ' + nowStr + '</div>'));
+
+            userBubble.append($('<div></div>').text(msg));
+
+            $('#chatMessages').append(userBubble);
+
+            $('#chatInputText').val('');
+
+            $('#chatMessages').scrollTop($('#chatMessages')[0].scrollHeight);
+
+
+
+            $.ajax({
+
+                url: '/Chat/SendMessage',
+
+                type: 'POST',
+
+                contentType: 'application/json',
+
+                data: JSON.stringify({
+
+                    carId: currentChatCarId,
+
+                    receiverId: currentChatPartnerId,
+
+                    messageText: msg,
+
+                    asOwner: true
+
+                }),
+
+                success: function(res) {
+
+                    if (res && res.success) {
+
+                        loadRecentChats();
+
+                    }
+
+                }
+
+            });
+
+        }
+
+
+
+        function safeDecodeName(str) {
+
+            if (!str) return 'Khách hàng';
+
+            var s = String(str).replace(/&#x([0-9a-fA-F]+);/g, function(m, h) {
+
+                return String.fromCharCode(parseInt(h, 16));
+
+            }).replace(/&#([0-9]+);/g, function(m, d) {
+
+                return String.fromCharCode(parseInt(d, 10));
+
+            });
+
+            try {
+
+                var ta = document.createElement("textarea");
+
+                ta.innerHTML = s;
+
+                var res = ta.value;
+
+                if (res.indexOf('&') !== -1) {
+
+                    ta.innerHTML = res;
+
+                    res = ta.value;
+
+                }
+
+                return res;
+
+            } catch(e) {
+
+                return s;
+
+            }
+
+        }
+
+
+
+        function loadRecentChats() {
+
+            var currentOwnerId = (window.RECAR_CURRENT_USER && window.RECAR_CURRENT_USER.accountId) ? window.RECAR_CURRENT_USER.accountId : 1022;
+            $.ajax({
+                url: '/Chat/GetRecentConversations',
+                data: { asOwner: true, ownerId: currentOwnerId },
+
+                type: 'GET',
+
+                success: function(res) {
+
+                    if (res && typeof res.unreadCount !== 'undefined') {
+
+                        if (res.unreadCount > 0) {
+
+                            $('#chatNotificationDot').show();
+
+                        } else {
+
+                            $('#chatNotificationDot').hide();
+
+                        }
+
+                    }
+
+                    var container = $('#recentChatList');
+            if (container.length && container.find('.chat-item').length === 0) {
+                container.html('<div class="text-center py-4 text-muted small"><div class="spinner-border spinner-border-sm text-primary mb-2 d-block mx-auto" role="status"></div>Đang tải tin nhắn...</div>');
+            }
+
+                    if (!container.length) return;
+
+
+
+                    if (res && res.success && res.conversations && res.conversations.length > 0) {
+
+                        container.empty();
+
+                        res.conversations.forEach(function(c) {
+
+                            var pName = safeDecodeName(c.partnerName);
+
+                            var initials = pName ? pName.substring(0, 2).toUpperCase() : 'KH';
+
+                            var item = $('<div class="chat-item"></div>');
+
+                            item.html('<div class="chat-avatar">' + initials + '</div>' +
+
+                                '<div class="flex-grow-1 overflow-hidden" style="font-size: 13px;">' +
+
+                                    '<div class="d-flex justify-content-between">' +
+
+                                        '<strong class="text-truncate" style="max-width: 140px;">' + pName + '</strong>' +
+
+                                        '<span class="text-muted" style="font-size: 11px;">' + c.time + '</span>' +
+
+                                    '</div>' +
+
+                                    '<p class="text-muted text-truncate m-0" style="font-size: 12px;">' + c.lastMessage + '</p>' +
+
+                                '</div>');
+
+                            item.on('click', function() {
+
+                                openChatBox(pName, c.lastMessage, c.carId, c.partnerId, c.title);
+
+                            });
+
+                            container.append(item);
+
+                        });
+
+                    } else {
+
+                        container.html('<div class="text-center py-4 text-muted small" id="emptyChatNotice"><i class="bi bi-chat-dots fs-2 text-secondary opacity-50 d-block mb-2"></i>Chưa có tin nhắn nào</div>');
+
+                    }
+
+                },
+
+                error: function(err) {
+
+                    console.error("Lỗi nạp tin nhắn gần đây:", err);
+
+                }
+
+            });
+
+        }
+
+
+
+        window.handleIncomingTyping = function(data) {
+
+            var isCurrent = (currentChatCarId && data.carId == currentChatCarId);
+
+            if (isCurrent && $('#recarChatWindow').hasClass('open')) {
+
+                if (data.isTyping) {
+
+                    var sName = data.senderName || 'Khách hàng';
+
+                    var cleanName = safeDecodeName(sName);
+
+                    $('#chatTypingText').text(cleanName + ' đang soạn tin...');
+
+                    $('#chatTypingIndicator').stop(true, true).fadeIn(150);
+
+                    $('#chatMessages').scrollTop($('#chatMessages')[0].scrollHeight);
+
+                } else {
+
+                    $('#chatTypingIndicator').stop(true, true).fadeOut(150);
+
+                }
+
+            }
+
+        };
+
+
+
+        window.handleIncomingChatMessage = function(msg) {
+
+            var isCurrentConversation = false;
+
+            if (currentChatPartnerId && (msg.senderId == currentChatPartnerId || msg.receiverId == currentChatPartnerId)) {
+
+                isCurrentConversation = true;
+
+            }
+
+
+
+            if (isCurrentConversation && $('#recarChatWindow').hasClass('open')) {
+
+                $('#chatTypingIndicator').hide();
+
+                var isMe = (window.RECAR_CURRENT_USER && window.RECAR_CURRENT_USER.accountId == msg.senderId);
+
+                var bubbleClass = isMe ? 'chat-bubble from-user' : 'chat-bubble from-owner';
+
+                var bubble = $('<div class="' + bubbleClass + '"></div>');
+
+                var senderHeader = isMe ? 'Bạn' : msg.senderName;
+
+                bubble.append($('<div class="fw-bold mb-1" style="font-size: 11px; opacity: 0.85;"></div>').text(senderHeader + ' · ' + msg.sentAt));
+
+                bubble.append($('<div></div>').text(msg.messageText));
+
+                $('#chatMessages').append(bubble);
+
+                $('#chatMessages').scrollTop($('#chatMessages')[0].scrollHeight);
+
+                loadRecentChats();
+
+                return true;
+
+            }
+
+
+
+            loadRecentChats();
+
+            return false;
+
+        };
+
+
+
+        $('#btnSendChat').on('click', sendChatMessage);
+
+        $('#chatInputText').on('keypress', function(e) {
+
+            if (e.which === 13) sendChatMessage();
+
+        });
+
+        $('#btnOwnerChat').on('click', function() {
+
+            $('#chatNotificationDot').fadeOut();
+
+            loadRecentChats();
+
+        });
+
+        $('#btnOwnerChat').closest('.dropdown').on('show.bs.dropdown', function () {
+            $('#chatNotificationDot').fadeOut();
+            loadRecentChats();
+        });
+
+
+
+        // Toggle Sidebar & Persist state in localStorage
+
+        function toggleHostSidebar() {
+
+            if (window.innerWidth < 992) {
+
+                var sb = document.getElementById('hostSidebar');
+
+                if (sb) sb.classList.toggle('show');
+
+            } else {
+
+                var isCollapsed = document.documentElement.classList.toggle('sidebar-collapsed');
+
+                document.body.classList.toggle('sidebar-collapsed', isCollapsed);
+
+                localStorage.setItem('recar_host_sidebar_collapsed', isCollapsed ? 'true' : 'false');
+
+            }
+
+        }
+
+
 
         document.getElementById('btnToggleSidebar')?.addEventListener('click', toggleHostSidebar);
 
-        // Khởi tạo Lucide Icons
+
+
         document.addEventListener('DOMContentLoaded', function() {
-            if (typeof lucide !== 'undefined') {
-                lucide.createIcons();
+
+            try {
+
+                if (typeof lucide !== 'undefined') {
+
+                    lucide.createIcons();
+
+                }
+
+            } catch(e) {
+
+                console.warn("Lucide icons error ignored:", e);
+
             }
+
+            loadRecentChats();
+
         });
+
     </script>
+
     @RenderSection("Scripts", required: false)
+
 </body>
+
 </html>
+

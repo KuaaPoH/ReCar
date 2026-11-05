@@ -1,6 +1,8 @@
-﻿using CarRental.Models;
+using CarRental.Models;
 using Microsoft.AspNetCore.Mvc;
 using CarRental.Utilities;
+using System.Linq;
+
 namespace CarRental.Areas.Admin.Controllers
 {
     [Area("Admin")]
@@ -11,28 +13,30 @@ namespace CarRental.Areas.Admin.Controllers
         {
             _context = context;
         }
+
         public IActionResult Index()
         {
             return View();
         }
-        [Area("Admin")]
+
         [HttpPost]
-        public IActionResult Index(Account acc) 
+        public IActionResult Index(Customer acc) 
         {
             if (acc == null) {
                 return NotFound();
             }
-            //kiem tra su ton tai cua email trong DB
-            var check = _context.Accounts.Where(m=> m.Email == acc.Email).FirstOrDefault();
+            // Kiểm tra sự tồn tại của email trong Customers
+            var check = _context.Customers.FirstOrDefault(m => m.Email == acc.Email);
             if (check != null) {
-                //hien thi thong bao 
                 Function._MessageEmail = "Dupplicate Email";
                 return RedirectToAction("Index", "Register");
             }
-            //neu khong thi them vao DB
+            
             Function._MessageEmail = string.Empty;
             acc.Password = Function.MD5Password(acc.Password);
-            _context.Add(acc);
+            acc.RoleId = acc.RoleId > 0 ? acc.RoleId : 1; // Mặc định role Admin nếu đăng ký tại trang Admin
+            acc.IsActive = true;
+            _context.Customers.Add(acc);
             _context.SaveChanges();
             return RedirectToAction("Index", "Login");
         }

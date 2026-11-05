@@ -1,5 +1,6 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace CarRental.Models;
 
@@ -33,11 +34,17 @@ public partial class Blog
 
     public string? ModifiedBy { get; set; }
 
-    public int? AccountId { get; set; }
+    public int? CustomerId { get; set; }
+
+    [NotMapped]
+    public int? AccountId { get => CustomerId; set => CustomerId = value; }
 
     public bool IsActive { get; set; }
 
-    public virtual Account? Account { get; set; }
+    public virtual Customer? Customer { get; set; }
+
+    [NotMapped]
+    public virtual Customer? Account { get => Customer; set => Customer = value; }
 
     public virtual ICollection<BlogComment> BlogComments { get; set; } = new List<BlogComment>();
 }

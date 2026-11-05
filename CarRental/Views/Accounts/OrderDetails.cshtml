@@ -474,19 +474,39 @@
                     }
                 </div>
 
-                <!-- Cam kết an toàn & hỗ trợ cứu hộ -->
-                <div class="card border-0 shadow-sm rounded-4 p-4 bg-primary text-white">
-                    <div class="d-flex align-items-center gap-3">
-                        <div class="fs-1 text-white opacity-75">
-                            <i class="bi bi-headset"></i>
+                <!-- Trao đổi trực tiếp với Chủ xe & Hỗ trợ hành trình -->
+                @{
+                    var ownerObj = carObj?.Owner;
+                    var ownerDisplayName = !string.IsNullOrEmpty(ownerObj?.FullName) ? ownerObj.FullName : (ownerObj?.Username ?? "Chủ xe ReCar");
+                    var ownerPhone = !string.IsNullOrEmpty(ownerObj?.Phone) ? ownerObj.Phone : "1900 6868";
+                    int ownerAccId = ownerObj?.AccountId ?? (carObj?.OwnerId ?? 6);
+                    string carTitle = carObj?.CarName ?? "Phương tiện thuê";
+                }
+                <div class="card border-0 shadow-sm rounded-4 p-4 text-white" style="background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);">
+                    <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="rounded-circle bg-white text-primary d-flex align-items-center justify-content-center shadow-sm flex-shrink-0" style="width: 52px; height: 52px; font-size: 24px;">
+                                <i class="bi bi-person-badge-fill"></i>
+                            </div>
+                            <div>
+                                <div class="d-flex align-items-center gap-2 mb-1">
+                                    <h6 class="fw-bold mb-0 text-white fs-6">Chủ xe: @ownerDisplayName</h6>
+                                    <span class="badge bg-white text-primary fw-bold" style="font-size: 10px;">Đối tác ReCar</span>
+                                </div>
+                                <p class="small mb-0 text-white-50">Trao đổi trực tiếp với chủ xe về điểm đón, nhận/trả xe hoặc các thỏa thuận phát sinh.</p>
+                            </div>
                         </div>
-                        <div>
-                            <h6 class="fw-bold mb-1">Cần hỗ trợ trong hành trình thuê xe?</h6>
-                            <p class="small mb-0 opacity-75">Đội ngũ kỹ thuật & Cứu hộ 24/7 của ReCar luôn đồng hành cùng bạn trên mọi cung đường.</p>
-                        </div>
-                        <div class="ms-auto">
-                            <a href="tel:19006868" class="btn btn-light rounded-pill px-3 py-2 fw-bold text-primary small text-nowrap">
-                                <i class="bi bi-telephone-fill me-1"></i> 1900 6868
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                            <button type="button" class="btn btn-light rounded-pill px-3.5 py-2 fw-bold text-primary shadow-sm d-inline-flex align-items-center gap-2" 
+                                    onclick="openChatBox('@ownerDisplayName', 'Chào bạn! Tôi là khách thuê xe @carTitle ở đơn hàng #@ViewBag.OrderId.', @(carObj?.CarId ?? 0), @ownerAccId, '@carTitle')">
+                                <i class="bi bi-chat-dots-fill"></i>
+                                <span>Chat với chủ xe</span>
+                            </button>
+                            <a href="tel:@ownerPhone" class="btn btn-outline-light rounded-pill px-3 py-2 fw-semibold small text-nowrap d-inline-flex align-items-center gap-1">
+                                <i class="bi bi-telephone-fill"></i> Gọi @ownerPhone
+                            </a>
+                            <a href="tel:19006868" class="btn btn-link text-white-50 text-decoration-none small text-nowrap" title="Tổng đài khẩn cấp ReCar">
+                                Cứu hộ 1900 6868
                             </a>
                         </div>
                     </div>
@@ -535,6 +555,28 @@
                             </div>
                         }
                     </div>
+
+                    @if (statusId == 5 && (ViewBag.IsRenter as bool? ?? false))
+                    {
+                        var exReview = ViewBag.ExistingReview as CarRental.Models.CarReview;
+                        if (exReview == null)
+                        {
+                            <button type="button" class="btn btn-warning w-100 rounded-3 py-2.5 fw-bold mb-3 shadow-sm text-dark d-flex align-items-center justify-content-center gap-2" data-bs-toggle="modal" data-bs-target="#modalReviewOrder">
+                                <i class="bi bi-star-fill text-dark"></i>
+                                <span>Đánh giá chuyến đi</span>
+                            </button>
+                        }
+                        else
+                        {
+                            <div class="alert alert-success border-success-subtle p-3 rounded-3 mb-3 bg-white shadow-xs">
+                                <div class="d-flex align-items-center justify-content-between mb-1">
+                                    <span class="fw-bold small text-success"><i class="bi bi-check-circle-fill me-1"></i> Đã đánh giá chuyến đi</span>
+                                    <span class="badge bg-warning text-dark"><i class="bi bi-star-fill me-1"></i>@exReview.Star ★</span>
+                                </div>
+                                <p class="small text-secondary mb-0 fst-italic">"@exReview.Detail"</p>
+                            </div>
+                        }
+                    }
 
                     <!-- Nút xem hợp đồng điện tử -->
                     <button type="button" class="btn btn-outline-primary w-100 rounded-3 py-2 fw-bold mb-3" data-bs-toggle="modal" data-bs-target="#contractModal">
@@ -809,3 +851,165 @@
         });
     </script>
 }
+
+
+<!-- MODAL ĐÁNH GIÁ CHUYẾN ĐI (CHỈ KHÁCH THUÊ MỚI CÓ THỂ ĐÁNH GIÁ) -->
+<div class="modal fade" id="modalReviewOrder" tabindex="-1" aria-labelledby="modalReviewOrderLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow-lg">
+            <div class="modal-header border-0 pb-0">
+                <div>
+                    <h5 class="modal-title fw-bold text-dark" id="modalReviewOrderLabel">Đánh giá chuyến đi</h5>
+                    <p class="text-muted small mb-0">Chia sẻ trải nghiệm của bạn về chiếc xe <strong>@(carObj?.CarName)</strong></p>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body py-4">
+                <form id="formSubmitReview">
+                    <input type="hidden" id="reviewOrderId" value="@ViewBag.OrderId" />
+                    <input type="hidden" id="reviewCarId" value="@(carObj?.CarId ?? 0)" />
+                    <input type="hidden" id="reviewStarValue" value="5" />
+
+                    <!-- Rating Stars -->
+                    <div class="text-center mb-4">
+                        <div class="d-flex justify-content-center gap-2 mb-2" id="starRatingContainer">
+                            <i class="bi bi-star-fill text-warning fs-2 rating-star" data-val="1" style="cursor: pointer;"></i>
+                            <i class="bi bi-star-fill text-warning fs-2 rating-star" data-val="2" style="cursor: pointer;"></i>
+                            <i class="bi bi-star-fill text-warning fs-2 rating-star" data-val="3" style="cursor: pointer;"></i>
+                            <i class="bi bi-star-fill text-warning fs-2 rating-star" data-val="4" style="cursor: pointer;"></i>
+                            <i class="bi bi-star-fill text-warning fs-2 rating-star" data-val="5" style="cursor: pointer;"></i>
+                        </div>
+                        <span id="starRatingLabel" class="fw-bold text-warning small">5 sao - Rất hài lòng</span>
+                    </div>
+
+                    <!-- Review Textarea -->
+                    <div class="mb-3">
+                        <label for="reviewComment" class="form-label fw-semibold small text-muted">Nhận xét chi tiết:</label>
+                        <textarea class="form-control rounded-3" id="reviewComment" rows="3" maxlength="200" placeholder="Xe chạy êm, chủ xe nhiệt tình và đúng giờ..."></textarea>
+                        <div class="d-flex justify-content-between mt-1 text-muted" style="font-size: 11px;">
+                            <span>Đánh giá của bạn giúp cộng đồng chọn xe tốt hơn.</span>
+                            <span id="reviewCharCount">0/200</span>
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2 justify-content-end pt-2">
+                        <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Để sau</button>
+                        <button type="submit" class="btn btn-primary rounded-pill px-4 fw-semibold" id="btnSubmitReview">
+                            <i class="bi bi-send-fill me-1"></i> Gửi đánh giá
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const starLabels = {
+            1: '1 sao - Rất tệ',
+            2: '2 sao - Chưa hài lòng',
+            3: '3 sao - Bình thường',
+            4: '4 sao - Hài lòng',
+            5: '5 sao - Rất hài lòng'
+        };
+
+        const stars = document.querySelectorAll('.rating-star');
+        const starInput = document.getElementById('reviewStarValue');
+        const starLabel = document.getElementById('starRatingLabel');
+        const commentInput = document.getElementById('reviewComment');
+        const charCount = document.getElementById('reviewCharCount');
+
+        function updateStars(val) {
+            stars.forEach(s => {
+                const sVal = parseInt(s.getAttribute('data-val'));
+                if (sVal <= val) {
+                    s.classList.remove('bi-star');
+                    s.classList.add('bi-star-fill', 'text-warning');
+                } else {
+                    s.classList.remove('bi-star-fill', 'text-warning');
+                    s.classList.add('bi-star', 'text-secondary');
+                }
+            });
+            if (starLabel) starLabel.innerText = starLabels[val] || (val + ' sao');
+        }
+
+        stars.forEach(s => {
+            s.addEventListener('click', function () {
+                const val = parseInt(this.getAttribute('data-val'));
+                if (starInput) starInput.value = val;
+                updateStars(val);
+            });
+        });
+
+        if (commentInput && charCount) {
+            commentInput.addEventListener('input', function () {
+                charCount.innerText = this.value.length + '/200';
+            });
+        }
+
+        const reviewForm = document.getElementById('formSubmitReview');
+        if (reviewForm) {
+            reviewForm.addEventListener('submit', function (e) {
+                e.preventDefault();
+                const orderId = parseInt(document.getElementById('reviewOrderId')?.value || '0');
+                const carId = parseInt(document.getElementById('reviewCarId')?.value || '0');
+                const star = parseInt(starInput?.value || '5');
+                const detail = commentInput?.value || '';
+
+                const submitBtn = document.getElementById('btnSubmitReview');
+                if (submitBtn) {
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status"></span> Đang gửi...';
+                }
+
+                fetch('/Accounts/SubmitReview', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        orderId: orderId,
+                        carId: carId,
+                        star: star,
+                        detail: detail
+                    })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data && data.success) {
+                        Swal.fire({
+                            title: 'Thành công!',
+                            text: data.message || 'Cảm ơn bạn đã gửi đánh giá!',
+                            icon: 'success',
+                            confirmButtonColor: '#0284c7'
+                        }).then(() => {
+                            window.location.reload();
+                        });
+                    } else {
+                        Swal.fire({
+                            title: 'Không thể gửi!',
+                            text: (data && data.message) || 'Có lỗi xảy ra, vui lòng thử lại.',
+                            icon: 'error',
+                            confirmButtonColor: '#0284c7'
+                        });
+                        if (submitBtn) {
+                            submitBtn.disabled = false;
+                            submitBtn.innerHTML = '<i class="bi bi-send-fill me-1"></i> Gửi đánh giá';
+                        }
+                    }
+                })
+                .catch(() => {
+                    Swal.fire({
+                        title: 'Lỗi kết nối!',
+                        text: 'Không thể kết nối máy chủ. Vui lòng thử lại sau.',
+                        icon: 'error',
+                        confirmButtonColor: '#0284c7'
+                    });
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = '<i class="bi bi-send-fill me-1"></i> Gửi đánh giá';
+                    }
+                });
+            });
+        }
+    });
+</script>

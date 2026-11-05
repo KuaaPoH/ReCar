@@ -2,6 +2,7 @@ using CarRental.Models;
 using CarRental.Utilities;
 using CarRental.ViewModels;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace CarRental.Areas.Admin.Controllers
 {
@@ -19,22 +20,23 @@ namespace CarRental.Areas.Admin.Controllers
             const string adminUsername = "Admin";
             const string adminPasswordPlain = "admin123456a@";
 
-            // Nếu chưa có tài khoản Admin thì tạo mới
-            var admin = _context.Accounts.FirstOrDefault(a => a.Username == adminUsername);
+            // Nếu chưa có tài khoản Admin trong bảng Customers thì tạo mới
+            var admin = _context.Customers.FirstOrDefault(a => a.Username == adminUsername || a.Email == "admin@system.local");
             if (admin == null)
             {
-                admin = new Account
+                admin = new Customer
                 {
                     Username = adminUsername,
                     Password = Function.MD5Password(adminPasswordPlain),
                     FullName = "Administrator",
+                    Name = "Administrator",
                     Email = "admin@system.local",
-                    RoleId = 1, // giả định RoleId = 1 là Admin
+                    RoleId = 1, // RoleId = 1 là Admin
                     IsActive = true,
-                    LastLogin = DateTime.Now.ToString("yyyy-MM-dd")
+                    LastLogin = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")
                 };
 
-                _context.Accounts.Add(admin);
+                _context.Customers.Add(admin);
                 _context.SaveChanges();
             }
         }
@@ -58,10 +60,9 @@ namespace CarRental.Areas.Admin.Controllers
 
             return View();
         }
-        [Area("Admin")]
 
         [HttpPost]
-        public IActionResult Index(AdminAccountVM model)
+        public async Task<IActionResult> Index(AdminAccountVM model)
         {
             if (model == null)
             {
@@ -77,25 +78,28 @@ namespace CarRental.Areas.Admin.Controllers
 
             // Mã hoá mật khẩu trước khi kiểm tra
             string pw = Function.MD5Password(model.Password);
-            // Chỉ cho phép tài khoản Admin đăng nhập vào khu vực Admin
-            // Ở đây dùng trường Email trong form như là "Tài khoản" (Username)
-            var check = _context.Accounts
-                .FirstOrDefault(m => m.Username == "Admin"
-                                     && m.Username == model.Email
+            
+            // Tìm tài khoản Admin trong bảng Customers
+            var check = await _context.Customers
+                .FirstOrDefaultAsync(m => (m.Username == model.Email || m.Email == model.Email)
                                      && m.Password == pw
+                                     && m.RoleId == 1
                                      && m.IsActive == true);
 
             if (check == null) {
-                //hin thi thong bao neu sau mk
                 Function.SetMessage(HttpContext.Session, "Sai tài khoản hoặc mật khẩu Admin");
-                return RedirectToAction("Index", "Login");
+                return RedirectToAction("Index", "Login", new { area = "Admin" });
             }
-            // vao trang admin neu dung usernam va pasw - lưu vào Session
+
+            // Cập nhật thời điểm đăng nhập
+            check.LastLogin = Function.NowVn.ToString("yyyy-MM-dd HH:mm:ss");
+            await _context.SaveChangesAsync();
+
+            // Lưu vào Session với CustomerId
             Function.SetMessage(HttpContext.Session, string.Empty);
-            Function.SetAdminSession(HttpContext.Session, check.AccountId, string.IsNullOrEmpty(check.Username) ? "Admin" : check.Username, string.IsNullOrEmpty(check.Email) ? string.Empty : check.Email);
-            // Luôn đưa về Trang chủ Admin sau khi đăng nhập
+            Function.SetAdminSession(HttpContext.Session, check.CustomerId, string.IsNullOrEmpty(check.Username) ? "Admin" : check.Username, string.IsNullOrEmpty(check.Email) ? string.Empty : check.Email);
+            
             return RedirectToAction("Index", "Home", new { area = "Admin" });
         }
     }
 }
-

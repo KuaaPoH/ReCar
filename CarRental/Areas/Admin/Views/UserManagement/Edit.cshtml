@@ -1,4 +1,4 @@
-@model CarRental.Models.Account
+﻿@model CarRental.Models.Customer
 @{
     ViewData["Title"] = "Sửa tài khoản";
     Layout = "~/Areas/Admin/Views/Shared/_Layout.cshtml";
@@ -39,6 +39,7 @@
                     <form asp-action="Edit">
                         <div asp-validation-summary="ModelOnly" class="text-danger"></div>
                         
+                        <input type="hidden" asp-for="CustomerId" />
                         <input type="hidden" asp-for="AccountId" />
                         
                         <div class="form-group mb-3">
@@ -89,7 +90,7 @@
                         <div class="form-group mb-3">
                             <div class="form-check">
                                 @{
-                                    bool isActiveValue = Model.IsActive ?? false;
+                                    bool isActiveValue = Model.IsActive;
                                 }
                                 <input name="IsActive" type="checkbox" class="form-check-input" value="true" checked="@isActiveValue" />
                                 <input type="hidden" name="IsActive" value="false" />

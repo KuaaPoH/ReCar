@@ -24,7 +24,7 @@ namespace CarRental.Areas.CarOwner.Controllers
             _hubContext = hubContext;
         }
 
-        private Account? GetCurrentCarOwner()
+        private Customer? GetCurrentCarOwner()
         {
             if (!Function.IsLogin(HttpContext.Session))
             {
@@ -35,10 +35,10 @@ namespace CarRental.Areas.CarOwner.Controllers
             var carOwnerId = Function.GetCarOwnerAccountId(HttpContext.Session);
             var userEmail = Function.GetEmail(HttpContext.Session);
 
-            return _context.Accounts
+            return _context.Customers
                 .Include(a => a.Role)
-                .FirstOrDefault(a => (carOwnerId > 0 && a.AccountId == carOwnerId) ||
-                                     a.AccountId == accountId ||
+                .FirstOrDefault(a => (carOwnerId > 0 && a.CustomerId == carOwnerId) ||
+                                     a.CustomerId == accountId ||
                                      (!string.IsNullOrEmpty(userEmail) && a.Email == userEmail && a.RoleId == 3));
         }
 
@@ -57,7 +57,7 @@ namespace CarRental.Areas.CarOwner.Controllers
                 return RedirectToAction("Index", "Home", new { area = "CarOwner" });
             }
 
-            var ownerId = owner.AccountId;
+            var ownerId = owner.CustomerId;
 
             // Lấy danh sách CarId của chủ xe này
             var carIds = _context.Cars
@@ -150,7 +150,7 @@ namespace CarRental.Areas.CarOwner.Controllers
                 return NotFound();
             }
 
-            var ownerId = owner.AccountId;
+            var ownerId = owner.CustomerId;
 
             var order = _context.CarRentalOrders
                 .Include(o => o.Customer)
@@ -270,7 +270,7 @@ namespace CarRental.Areas.CarOwner.Controllers
                 return Json(new { success = false, message = "Bạn không có quyền thực hiện thao tác này." });
             }
 
-            var ownerId = owner.AccountId;
+            var ownerId = owner.CustomerId;
             var order = _context.CarRentalOrders
                 .Include(o => o.OrderDetails)
                     .ThenInclude(od => od.Car)
@@ -317,7 +317,7 @@ namespace CarRental.Areas.CarOwner.Controllers
                 return Json(new { success = false, message = "Bạn không có quyền thực hiện thao tác này." });
             }
 
-            var ownerId = owner.AccountId;
+            var ownerId = owner.CustomerId;
             var order = _context.CarRentalOrders
                 .Include(o => o.OrderDetails)
                     .ThenInclude(od => od.Car)
@@ -391,7 +391,7 @@ namespace CarRental.Areas.CarOwner.Controllers
                     return Json(new { success = false, message = "Bạn không có quyền thực hiện thao tác này." });
                 }
 
-                var ownerId = owner.AccountId;
+                var ownerId = owner.CustomerId;
                 var order = _context.CarRentalOrders
                     .Include(o => o.OrderDetails)
                         .ThenInclude(od => od.Car)
@@ -492,7 +492,7 @@ namespace CarRental.Areas.CarOwner.Controllers
                 return Json(new { success = false, message = "Bạn không có quyền thực hiện thao tác này." });
             }
 
-            var ownerId = owner.AccountId;
+            var ownerId = owner.CustomerId;
             var order = _context.CarRentalOrders
                 .Include(o => o.OrderDetails)
                     .ThenInclude(od => od.Car)

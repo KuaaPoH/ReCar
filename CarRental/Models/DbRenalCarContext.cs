@@ -15,9 +15,7 @@ public partial class DbRenalCarContext : DbContext
     {
     }
 
-    public virtual DbSet<Account> Accounts { get; set; }
-
-    public virtual DbSet<Blog> Blogs { get; set; }
+public virtual DbSet<Blog> Blogs { get; set; }
 
     public virtual DbSet<BlogComment> BlogComments { get; set; }
 
@@ -78,25 +76,8 @@ public partial class DbRenalCarContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.Entity<Account>(entity =>
-        {
-            entity.ToTable("Account");
 
-            entity.Property(e => e.Email).HasMaxLength(50);
-            entity.Property(e => e.FullName).HasMaxLength(50);
-            entity.Property(e => e.LastLogin)
-                .HasMaxLength(10)
-                .IsFixedLength();
-            entity.Property(e => e.Password).HasMaxLength(50);
-            entity.Property(e => e.Phone).HasMaxLength(50);
-            entity.Property(e => e.Username).HasMaxLength(50);
-
-            entity.HasOne(d => d.Role).WithMany(p => p.Accounts)
-                .HasForeignKey(d => d.RoleId)
-                .HasConstraintName("FK_Account_Role");
-        });
-
-        modelBuilder.Entity<Blog>(entity =>
+modelBuilder.Entity<Blog>(entity =>
         {
             entity.ToTable("Blog");
 
@@ -112,9 +93,10 @@ public partial class DbRenalCarContext : DbContext
             entity.Property(e => e.SeoTitle).HasMaxLength(250);
             entity.Property(e => e.Title).HasMaxLength(250);
 
-            entity.HasOne(d => d.Account).WithMany(p => p.Blogs)
-                .HasForeignKey(d => d.AccountId)
-                .HasConstraintName("FK_Blog_Account");
+            entity.Property(e => e.CustomerId).HasColumnName("CustomerId");
+            entity.HasOne(d => d.Customer).WithMany(p => p.Blogs)
+                .HasForeignKey(d => d.CustomerId)
+                .HasConstraintName("FK_Blog_Customers");
         });
 
         modelBuilder.Entity<BlogComment>(entity =>
@@ -152,9 +134,9 @@ public partial class DbRenalCarContext : DbContext
                 .HasForeignKey(d => d.TypeId)
                 .HasConstraintName("FK_Cars_CarTypes");
 
-            entity.HasOne(d => d.Owner).WithMany()
+            entity.HasOne(d => d.Owner).WithMany(p => p.Cars)
                 .HasForeignKey(d => d.OwnerId)
-                .HasConstraintName("FK_Cars_Account");
+                .HasConstraintName("FK_Cars_Customers");
         });
 
         modelBuilder.Entity<CarImage>(entity =>
@@ -195,6 +177,7 @@ public partial class DbRenalCarContext : DbContext
             entity.Property(e => e.Email).HasMaxLength(50);
             entity.Property(e => e.Name).HasMaxLength(50);
             entity.Property(e => e.Phone).HasMaxLength(50);
+            entity.Property(e => e.OrderId).HasColumnName("OrderId");
 
             entity.HasOne(d => d.Car).WithMany(p => p.CarReviews)
                 .HasForeignKey(d => d.CarId)
@@ -309,8 +292,16 @@ public partial class DbRenalCarContext : DbContext
                 .HasColumnName("IDCard");
             entity.Property(e => e.LicenseNumber).HasMaxLength(50);
             entity.Property(e => e.Name).HasMaxLength(100);
+            entity.Property(e => e.Username).HasMaxLength(50);
             entity.Property(e => e.Password).HasMaxLength(50);
             entity.Property(e => e.PhoneNumber).HasMaxLength(20);
+            entity.Property(e => e.RoleId).HasDefaultValue(2);
+            entity.Property(e => e.IsActive).HasDefaultValue(true);
+            entity.Property(e => e.LastLogin).HasMaxLength(50);
+
+            entity.HasOne(d => d.Role).WithMany(p => p.Customers)
+                .HasForeignKey(d => d.RoleId)
+                .HasConstraintName("FK_Customers_Role");
         });
 
         modelBuilder.Entity<Menu>(entity =>
@@ -441,11 +432,11 @@ public partial class DbRenalCarContext : DbContext
                 .HasForeignKey(d => d.CarId)
                 .OnDelete(DeleteBehavior.SetNull);
 
-            entity.HasOne(d => d.Sender).WithMany()
+            entity.HasOne(d => d.Sender).WithMany(p => p.ChatMessagesSent)
                 .HasForeignKey(d => d.SenderId)
                 .OnDelete(DeleteBehavior.SetNull);
 
-            entity.HasOne(d => d.Receiver).WithMany()
+            entity.HasOne(d => d.Receiver).WithMany(p => p.ChatMessagesReceived)
                 .HasForeignKey(d => d.ReceiverId)
                 .OnDelete(DeleteBehavior.SetNull);
         });

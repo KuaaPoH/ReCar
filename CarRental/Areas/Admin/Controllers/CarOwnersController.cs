@@ -81,49 +81,13 @@ namespace CarRental.Areas.Admin.Controllers
             reg.ApprovedBy = Function.GetAdminUserName(HttpContext.Session);
             reg.RejectReason = null;
 
-            // 2. Tìm hoặc tạo tài khoản trong bảng Accounts với RoleId = 3 (Chủ xe)
-            var customer = await _context.Customers.FindAsync(reg.CustomerId);
-            var account = await _context.Accounts
-                .FirstOrDefaultAsync(a => a.Email == reg.Email && a.RoleId == 3);
-
-            if (account == null)
-            {
-                // Sinh username duy nhất
-                string baseUsername = reg.Email.Contains('@') ? reg.Email.Split('@')[0] : "owner" + reg.CustomerId;
-                string username = baseUsername;
-                int counter = 1;
-                while (await _context.Accounts.AnyAsync(a => a.Username == username))
-                {
-                    username = $"{baseUsername}{counter++}";
-                }
-
-                string password = customer != null && !string.IsNullOrEmpty(customer.Password)
-                    ? customer.Password
-                    : Function.MD5Password("123456");
-
-                account = new Account
-                {
-                    Username = username,
-                    Password = password,
-                    FullName = reg.FullName,
-                    Phone = reg.Phone,
-                    Email = reg.Email,
-                    RoleId = 3, // Chủ xe
-                    IsActive = true,
-                    LastLogin = DateTime.Now.ToString("yyyy-MM-dd")
-                };
-                _context.Accounts.Add(account);
-            }
-            else
-            {
-                account.IsActive = true;
-                account.FullName = reg.FullName;
-                account.Phone = reg.Phone;
-            }
-
-            // Đồng bộ sang Customer
+            // 2. Cập nhật quyền Chủ xe (RoleId = 3) trực tiếp trên Customer
+            var customer = await _context.Customers.FindAsync(reg.CustomerId)
+                        ?? await _context.Customers.FirstOrDefaultAsync(c => c.Email == reg.Email);
             if (customer != null)
             {
+                customer.RoleId = 3; // Nâng cấp lên Chủ xe
+                customer.IsActive = true;
                 customer.FullName = reg.FullName;
                 customer.PhoneNumber = reg.Phone;
                 customer.Idcard = reg.IdCard;

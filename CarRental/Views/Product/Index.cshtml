@@ -83,13 +83,13 @@
     }
     .map-car-card {
         border: 1px solid #e2e8f0;
-        border-radius: 12px;
-        padding: 10px 12px;
+        border-radius: 14px;
+        padding: 12px 14px;
         background: #ffffff;
         cursor: pointer;
         transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-        margin-bottom: 10px;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+        margin-bottom: 12px;
+        box-shadow: 0 1px 4px rgba(15, 23, 42, 0.04);
         overflow: hidden;
     }
     .map-car-card:hover, .map-car-card.highlight {
@@ -98,20 +98,26 @@
         box-shadow: 0 4px 14px rgba(2, 132, 199, 0.14);
         transform: translateY(-2px);
     }
+    .map-car-item-inner {
+        display: flex;
+        align-items: center;
+        gap: 16px; /* Khoảng cách rộng rãi, thoáng đãng giữa ảnh và nội dung chữ */
+    }
     .map-car-img {
-        width: 76px;
-        height: 60px;
+        width: 86px;
+        height: 64px;
         object-fit: cover;
-        border-radius: 8px;
+        border-radius: 10px;
         flex-shrink: 0;
         background: #f1f5f9;
         border: 1px solid #e2e8f0;
+        box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
     }
     .map-car-title {
-        font-size: 13px;
+        font-size: 13.5px;
         font-weight: 700;
         color: #0f172a;
-        line-height: 1.3;
+        line-height: 1.35;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -125,36 +131,51 @@
         border-radius: 9999px;
         font-size: 11px;
         font-weight: 600;
-        padding: 1.5px 7px;
+        padding: 2px 8px;
         white-space: nowrap;
         flex-shrink: 0;
-        margin-left: 6px;
+        margin-left: 8px;
     }
     .map-car-location {
-        font-size: 11px;
+        font-size: 11.5px;
         color: #64748b;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
+        margin-bottom: 8px !important;
     }
     .map-car-price {
-        font-size: 13px;
+        font-size: 14px;
         font-weight: 800;
         color: #0284c7;
+        display: inline-flex;
+        align-items: baseline;
         white-space: nowrap;
     }
-    .map-car-unit {
-        font-size: 10.5px;
-        font-weight: 400;
-        color: #94a3b8;
+    .map-car-price-num {
+        font-size: 14.5px;
+        font-weight: 800;
+        color: #0284c7;
+        letter-spacing: -0.2px;
+    }
+    .map-car-currency {
+        font-size: 13px;
+        font-weight: 700;
+        color: #0284c7;
         margin-left: 2px;
+    }
+    .map-car-unit {
+        font-size: 11px;
+        font-weight: 400;
+        color: #64748b;
+        margin-left: 3px;
     }
     .btn-map-rent {
         background: #0284c7;
         color: #ffffff !important;
-        font-size: 11.5px;
+        font-size: 12px;
         font-weight: 600;
-        padding: 4px 12px;
+        padding: 5px 14px;
         border-radius: 9999px;
         text-decoration: none;
         border: none;
@@ -162,7 +183,7 @@
         white-space: nowrap;
         flex-shrink: 0;
         transition: all 0.2s ease;
-        box-shadow: 0 2px 5px rgba(2, 132, 199, 0.25);
+        box-shadow: 0 2px 6px rgba(2, 132, 199, 0.28);
     }
     .btn-map-rent:hover {
         background: #0369a1;
@@ -739,6 +760,11 @@
             });
         }
 
+        function formatVndPrice(num) {
+            if (!num && num !== 0) return '0 đ';
+            return Number(num).toLocaleString('vi-VN') + ' đ';
+        }
+
         function renderCarsListAndMarkers(cars) {
             carMarkersLayer.clearLayers();
             carMarkerMap = {};
@@ -764,11 +790,12 @@
 
             cars.forEach(function (car) {
                 bounds.push([car.lat, car.lng]);
+                var displayPrice = formatVndPrice(car.price);
 
                 // 1. Tạo Marker dạng Pill giá tiền trên bản đồ (phong cách Airbnb/Mioto)
                 var markerHtml = `
                     <div class="recar-map-marker-pill" id="marker-pill-${car.carId}">
-                        <span>${car.priceFormatted}</span>
+                        <span>${displayPrice}</span>
                     </div>
                 `;
 
@@ -790,8 +817,8 @@
                         <div class="text-muted small text-truncate mb-2" style="font-size: 11.5px;"><i class="bi bi-geo-alt"></i> ${car.location} · <strong>${car.distanceKm} km</strong></div>
                         <div class="d-flex align-items-center justify-content-between pt-2 border-top">
                             <div>
-                                <span class="fw-bold" style="color: #0284c7; font-size: 14px;">${car.priceFormatted}</span>
-                                <span class="text-muted" style="font-size: 10px;">/ngày</span>
+                                <span class="fw-bold" style="color: #0284c7; font-size: 14.5px;">${displayPrice}</span>
+                                <span class="text-muted" style="font-size: 11px; margin-left: 2px;">/ngày</span>
                             </div>
                             <a href="${car.detailUrl}" style="background-color: #0284c7; color: #ffffff !important; font-size: 12px; font-weight: 700; padding: 6px 14px; border-radius: 9999px; text-decoration: none; display: inline-flex; align-items: center; gap: 4px; border: none; box-shadow: 0 2px 6px rgba(2, 132, 199, 0.35);">
                                 Xem xe <i class="bi bi-chevron-right" style="font-size: 11px;"></i>
@@ -801,10 +828,10 @@
                 `;
                 marker.bindPopup(popupContent);
 
-                // 2. Render Card ở cột bên trái: Bố cục cân đối, đẹp mắt
+                // 2. Render Card ở cột bên trái: Bố cục rộng rãi, ảnh và chữ có khoảng cách chuẩn, giá tiền sắc nét
                 var card = $(`
                     <div class="map-car-card" id="card-car-${car.carId}">
-                        <div class="d-flex align-items-center gap-2.5">
+                        <div class="map-car-item-inner">
                             <img src="${car.image}" class="map-car-img" onerror="this.src='/assets/images/cars/default.png'" />
                             <div class="flex-grow-1" style="min-width: 0; overflow: hidden;">
                                 <div class="d-flex justify-content-between align-items-center mb-1">
@@ -816,7 +843,9 @@
                                 </div>
                                 <div class="d-flex align-items-center justify-content-between">
                                     <div class="map-car-price">
-                                        ${car.priceFormatted}<span class="map-car-unit">/ngày</span>
+                                        <span class="map-car-price-num">${Number(car.price || 0).toLocaleString('vi-VN')}</span>
+                                        <span class="map-car-currency">đ</span>
+                                        <span class="map-car-unit">/ngày</span>
                                     </div>
                                     <a href="${car.detailUrl}" class="btn-map-rent">Thuê ngay</a>
                                 </div>

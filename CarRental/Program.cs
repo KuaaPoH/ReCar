@@ -108,7 +108,7 @@ if (app.Environment.IsDevelopment())
                 // Kiểm tra và insert dữ liệu nếu database trống
                 try
                 {
-                    var hasData = context.Accounts.Any() || context.Roles.Any() || context.CarTypes.Any();
+                    var hasData = context.Customers.Any() || context.Roles.Any() || context.CarTypes.Any();
                     if (!hasData)
                     {
                         logger.LogInformation("Database is empty. Attempting to seed initial data...");
@@ -514,18 +514,7 @@ static void SeedDatabase(DbRenalCarContext context, ILogger logger)
             logger.LogInformation("CarTypes seeded.");
         }
 
-        // Insert Account data
-        if (!context.Accounts.Any())
-        {
-            context.Accounts.AddRange(new[]
-            {
-                new Account { AccountId = 2, Username = "quan", Password = "124", FullName = "nguyenhongquan", Phone = "2424242", Email = "sdfdfdfdsfd", RoleId = 1, IsActive = true },
-                new Account { AccountId = 3, Username = "thanh thuy", Password = "d0afd43f169f68af6d56cf454d74b167", Phone = "123456789", Email = "thanh@gmail.com" },
-                new Account { AccountId = 4, Username = "quan", Password = "d0afd43f169f68af6d56cf454d74b167", Email = "quan@gmail.com" }
-            });
-            context.SaveChanges();
-            logger.LogInformation("Accounts seeded.");
-        }
+        // Bảng Account đã được loại bỏ, dữ liệu quản lý duy nhất tại Customers.
 
         // Insert Menu data
         if (!context.Menus.Any())

@@ -731,3 +731,44 @@ Nhằm giúp đồ án tạo được ấn tượng mạnh mẽ với hội đ�
 
 
 
+
+
+---
+
+## 17. CẬP NHẬT TIẾN TRÌNH: HỢP NHẤT BẢNG TÀI KHOẢN (CUSTOMERS), NÂNG CẤP CHAT REALTIME & HOÀN THIỆN ĐÁNH GIÁ (NGÀY 05 - 06/11/2026)
+
+### 17.1. Hợp Nhất Cơ Sở Dữ Liệu & Loại Bỏ Hoàn Toàn Bảng `Account`
+1. **Refactor Codebase sang bảng `Customers` duy nhất:**
+   - Thay thế toàn bộ thực thể `Account` trong toàn bộ Controllers Admin ([`UserManagementController.cs`](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Controllers/UserManagementController.cs), [`CarOwnersController.cs`](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Controllers/CarOwnersController.cs), [`AccountController.cs`](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Controllers/AccountController.cs), [`FinanceController.cs`](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Controllers/FinanceController.cs), [`HomeController.cs`](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Controllers/HomeController.cs), [`RegisterController.cs`](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Controllers/RegisterController.cs)).
+   - Cập nhật toàn bộ Razor Views liên quan sang Model `Customer`: `Areas/Admin/Views/UserManagement` (`Index`, `Details`, `Edit`, `Delete`), `Areas/Admin/Views/Login/Index`, `Areas/Admin/Views/Register/Index`, `Areas/Admin/Views/Account/Edit`, `Views/Accounts/Index`.
+   - Xóa bỏ file `Models/Account.cs`, xóa `DbSet<Account> Accounts` và cấu hình mapping trong [`DbRenalCarContext.cs`](file:///d:/CarRental_TTCN/CarRental/Models/DbRenalCarContext.cs).
+   - Chuẩn hóa quan hệ 1-N giữa `Role` và `Customer` (`entity.HasOne(d => d.Role).WithMany(p => p.Customers)`), khắc phục triệt để lỗi shadow property `RoleId1`.
+2. **Cập nhật CSDL MySQL:**
+   - Đã thực thi lệnh `DROP TABLE IF EXISTS account;`. CSDL `DbRenalCar` hiện chỉ sử dụng bảng `customers` duy nhất, lưu trữ đầy đủ thông tin của Khách hàng (RoleId 2), Chủ xe (RoleId 3) và Quản trị viên (RoleId 1).
+
+### 17.2. Khắc Phục Triệt Để Hệ Thống Chat Realtime Giữa Khách Hàng Và Chủ Xe
+1. **Sửa lỗi thiếu thư viện jQuery tại Layout Chủ xe ([`Areas/CarOwner/Views/Shared/_Layout.cshtml`](file:///d:/CarRental_TTCN/CarRental/Areas/CarOwner/Views/Shared/_Layout.cshtml)):**
+   - Đổi đường dẫn nhúng script từ `jquery.min.js` (không tồn tại) sang `jquery-3.6.0.min.js`, đồng thời bổ sung file alias `jquery.min.js` vào `wwwroot/assets/js/vendor/` để phòng ngừa 404.
+   - Khắc phục triệt để lỗi ngầm `$ is not defined` làm tê liệt JavaScript trên toàn bộ giao diện Host Pro.
+2. **Tối ưu trải nghiệm Dropdown tin nhắn Header Host Pro:**
+   - Bổ sung sự kiện lắng nghe Bootstrap `show.bs.dropdown` trên nút tin nhắn.
+   - Tự động gọi `loadRecentChats()` ngay khi vừa vào trang: nếu có tin nhắn mới từ khách thuê, chuông/icon trên Header lập tức phát sáng chấm đỏ Realtime.
+   - Hiển thị hiệu ứng tải `spinner-border` khi đang lấy tin nhắn.
+   - Hiển thị đầy đủ Tên khách hàng, Tên xe quan tâm, Tin nhắn cuối và Thời gian gửi; click vào mở ngay hộp thoại chat trao đổi trực tiếp hai chiều.
+3. **Chuẩn hóa Phân định Đối tác Chat ([`ChatController.cs`](file:///d:/CarRental_TTCN/CarRental/Controllers/ChatController.cs)):**
+   - Khắc phục lỗi gán nhầm `ownerId = partnerId` trong `GetRecentConversations`.
+   - Sửa lỗi kiểm tra tự gửi tin nhắn cho chính mình khi khách hàng mở hội thoại từ danh sách tin nhắn.
+
+### 17.3. Chuẩn Hóa Hiển Thị Lịch Trình Trên Giao Diện Chủ Xe
+- Tại trang **Lịch trình & Đơn xe** ([`Areas/CarOwner/Views/Orders/Index.cshtml`](file:///d:/CarRental_TTCN/CarRental/Areas/CarOwner/Views/Orders/Index.cshtml)): Loại bỏ phần giờ `00:00 - `, chỉ hiển thị ngày/tháng/năm (`dd/MM/yyyy`) ở cả hai dòng *Nhận* và *Trả*, giúp giao diện sạch đẹp và trực quan.
+
+### 17.4. Nâng Cấp Hệ Thống Đánh Giá Chuyến Đi Theo Mã Đơn Hàng (OrderId)
+1. **Chuẩn hóa CSDL Đánh giá (`carreviews`):**
+   - Bổ sung cột `OrderId INT NULL` và chỉ mục `INDEX (OrderId)` vào bảng `carreviews`.
+   - Cập nhật model [`CarReview.cs`](file:///d:/CarRental_TTCN/CarRental/Models/CarReview.cs) và mapping trong [`DbRenalCarContext.cs`](file:///d:/CarRental_TTCN/CarRental/Models/DbRenalCarContext.cs).
+2. **Quản lý Đánh giá Độc lập theo từng Đơn Hàng ([`AccountsController.cs`](file:///d:/CarRental_TTCN/CarRental/Controllers/AccountsController.cs)):**
+   - Thay đổi điều kiện kiểm tra đánh giá từ `CarId + Email/Name` sang `OrderId == id`.
+   - Khắc phục triệt để lỗi: Đơn hàng mới thuê lại cùng chiếc xe không còn bị gán nhầm đánh giá cũ của đơn trước, mà sẽ hiển thị nút màu vàng **"Đánh giá chuyến đi"** để khách gửi đánh giá riêng cho chuyến đi mới.
+3. **Xóa Form Tự do tại Trang Chi tiết Xe ([`Views/Product/Details.cshtml`](file:///d:/CarRental_TTCN/CarRental/Views/Product/Details.cshtml)):**
+   - Xóa bỏ form tự do *"Gửi đánh giá trải nghiệm của bạn"*.
+   - Khẳng định nghiệp vụ: Chỉ những khách hàng đã thuê xe và hoàn tất chuyến đi (hóa đơn Status 5) mới được đánh giá xe thông qua hóa đơn trong tài khoản cá nhân.

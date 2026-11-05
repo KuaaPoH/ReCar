@@ -27,7 +27,7 @@ public partial class ChatMessage
 
     public virtual Car? Car { get; set; }
 
-    public virtual Account? Sender { get; set; }
+    public virtual Customer? Sender { get; set; }
 
-    public virtual Account? Receiver { get; set; }
+    public virtual Customer? Receiver { get; set; }
 }

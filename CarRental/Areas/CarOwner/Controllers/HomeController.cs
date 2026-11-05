@@ -1,4 +1,4 @@
-﻿using CarRental.Models;
+using CarRental.Models;
 using CarRental.Utilities;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -23,18 +23,18 @@ namespace CarRental.Areas.CarOwner.Controllers
                 return RedirectToAction("Index", "Login", new { area = "" });
             }
 
-            // Kiểm tra role chủ xe linh hoạt
+            // Kiểm tra role chủ xe linh hoạt trực tiếp từ bảng Customers
             var accountId = Function.GetAccountId(HttpContext.Session);
             var carOwnerId = Function.GetCarOwnerAccountId(HttpContext.Session);
             var userEmail = Function.GetEmail(HttpContext.Session);
 
-            var account = _context.Accounts
+            var customer = _context.Customers
                 .Include(a => a.Role)
-                .FirstOrDefault(a => (carOwnerId > 0 && a.AccountId == carOwnerId) ||
-                                     a.AccountId == accountId ||
+                .FirstOrDefault(a => (carOwnerId > 0 && a.CustomerId == carOwnerId) ||
+                                     a.CustomerId == accountId ||
                                      (!string.IsNullOrEmpty(userEmail) && a.Email == userEmail && a.RoleId == 3));
 
-            if (account == null || account.RoleId != 3) // RoleId 3 = Chủ xe
+            if (customer == null || customer.RoleId != 3) // RoleId 3 = Chủ xe
             {
                 // Kiểm tra xem đã nộp hồ sơ đăng ký chủ xe chưa
                 var reg = _context.CarOwnerRegistrations
@@ -57,10 +57,12 @@ namespace CarRental.Areas.CarOwner.Controllers
                 return RedirectToAction("Index", "Register", new { area = "CarOwner" });
             }
 
-            // Đảm bảo phiên CarOwner được lưu độc lập
-            Function.SetCarOwnerSession(HttpContext.Session, account.AccountId, account.Username ?? string.Empty, account.Email ?? string.Empty, account.FullName ?? string.Empty);
+            // Đảm bảo phiên CarOwner được lưu đồng bộ với CustomerId
+            Function.SetCarOwnerSession(HttpContext.Session, customer.CustomerId, customer.Username ?? customer.Name ?? "Chủ xe", customer.Email ?? string.Empty, customer.FullName ?? customer.Name ?? "Chủ xe");
+            customer.LastLogin = Function.NowVn.ToString("yyyy-MM-dd HH:mm:ss");
+            _context.SaveChanges();
 
-            var ownerId = account.AccountId;
+            var ownerId = customer.CustomerId;
             var totalCars = _context.Cars.Count(c => c.OwnerId == ownerId);
             var activeCars = _context.Cars.Count(c => c.OwnerId == ownerId && (c.CarStatus == "Sẵn sàng" || (c.CarStatus == null && c.IsActive)));
             var busyCars = _context.Cars.Count(c => c.OwnerId == ownerId && (c.CarStatus == "Đang bận" || c.CarStatus == "Đang có khách"));
@@ -132,6 +134,7 @@ namespace CarRental.Areas.CarOwner.Controllers
             Function.ClearCarOwnerSession(HttpContext.Session);
             return RedirectToAction("Index", "Home", new { area = "" });
         }
+
         // GET: /CarOwner/Home/Roadmap (Lộ trình tính năng tương lai theo template)
         public IActionResult Roadmap()
         {
@@ -141,7 +144,5 @@ namespace CarRental.Areas.CarOwner.Controllers
             }
             return View();
         }
-
     }
 }
-

@@ -83,49 +83,21 @@
                     <div class="dropdown">
                         <button type="button" aria-label="Tin nhắn" class="btn btn-link position-relative p-2 text-decoration-none" id="btnHeaderChat" data-bs-toggle="dropdown" aria-expanded="false" style="color: var(--recar-navy);">
                             <i class="bi bi-chat-dots fs-5"></i>
-                            <span id="chatNotificationDot" class="position-absolute bg-primary rounded-circle" style="top: 8px; right: 8px; width: 8px; height: 8px;"></span>
+                            <span id="chatNotificationDot" class="position-absolute bg-primary rounded-circle" style="display: none; top: 8px; right: 8px; width: 8px; height: 8px;"></span>
                         </button>
                         <div class="dropdown-menu dropdown-menu-end recar-chat-dropdown p-2" aria-labelledby="btnHeaderChat">
                             <div class="d-flex justify-content-between align-items-center px-2 py-2 border-bottom mb-1">
                                 <span class="fw-bold small text-dark"><i class="bi bi-chat-dots-fill text-primary me-1"></i> Tin nhắn trao đổi</span>
-                                <span class="badge bg-light text-primary border" style="font-size: 11px;">Hoạt động</span>
+                                <span class="badge bg-light text-primary border" style="font-size: 11px;">Trực tuyến</span>
                             </div>
-                            <div id="recentChatList">
-                                <div class="chat-item" onclick="openChatBox('Trần Quốc Bảo', 'Chào bạn! VinFast VF 5 Plus dự kiến về vào sáng mai nhé.', 1, 6, 'VinFast VF 5 Plus')">
-                                    <div class="chat-avatar">QB</div>
-                                    <div class="flex-grow-1 overflow-hidden" style="font-size: 13px;">
-                                        <div class="d-flex justify-content-between">
-                                            <strong class="text-truncate">Trần Quốc Bảo (VF 5)</strong>
-                                            <span class="text-muted" style="font-size: 11px;">Mới</span>
-                                        </div>
-                                        <p class="text-muted text-truncate m-0" style="font-size: 12px;">Chào bạn! Xe dự kiến về sáng mai...</p>
-                                    </div>
-                                </div>
-                                <div class="chat-item" onclick="openChatBox('Nguyễn Minh Anh', 'Chào bạn! Toyota Vios G 2023 luôn sẵn sàng giao nhận.', 2, 8, 'Toyota Vios G 2023')">
-                                    <div class="chat-avatar">MA</div>
-                                    <div class="flex-grow-1 overflow-hidden" style="font-size: 13px;">
-                                        <div class="d-flex justify-content-between">
-                                            <strong class="text-truncate">Nguyễn Minh Anh (Vios)</strong>
-                                            <span class="text-muted" style="font-size: 11px;">10:30</span>
-                                        </div>
-                                        <p class="text-muted text-truncate m-0" style="font-size: 12px;">Toyota Vios G 2023 luôn sẵn sàng...</p>
-                                    </div>
-                                </div>
-                                <div class="chat-item" onclick="openChatBox('Lê Thu Hà', 'Mazda 3 Luxury bên em đã sẵn sàng phục vụ anh/chị.', 4, 20, 'Mazda 3 Luxury')">
-                                    <div class="chat-avatar">TH</div>
-                                    <div class="flex-grow-1 overflow-hidden" style="font-size: 13px;">
-                                        <div class="d-flex justify-content-between">
-                                            <strong class="text-truncate">Lê Thu Hà (Mazda 3)</strong>
-                                            <span class="text-muted" style="font-size: 11px;">Hôm qua</span>
-                                        </div>
-                                        <p class="text-muted text-truncate m-0" style="font-size: 12px;">Mazda 3 Luxury bên em đã sẵn sàng...</p>
-                                    </div>
+                            <div id="recentChatList" style="max-height: 320px; overflow-y: auto;">
+                                <div class="text-center py-4 text-muted small" id="emptyChatNotice">
+                                    <i class="bi bi-chat-left-dots d-block fs-4 opacity-50 mb-1"></i>
+                                    Chưa có cuộc trò chuyện nào
                                 </div>
                             </div>
                             <div class="border-top pt-2 mt-1 text-center">
-                                <button type="button" class="btn btn-link btn-sm text-decoration-none small p-0" onclick="openChatBox('CSKH ReCar Support', 'Xin chào! Đội ngũ hỗ trợ ReCar có thể giúp gì cho chuyến đi của bạn?')">
-                                    <i class="bi bi-headset me-1"></i> Trò chuyện với Hỗ trợ viên ReCar
-                                </button>
+                                <span class="text-muted small" style="font-size: 11px;">Nhắn tin trực tiếp với Đối tác Chủ xe</span>
                             </div>
                         </div>
                     </div>
@@ -291,9 +263,9 @@
     <script>
         // Thiết lập thông tin người dùng hiện tại phục vụ kết nối SignalR
         window.RECAR_CURRENT_USER = {
-            accountId: @(Function.GetAccountId(Context.Session) > 0 ? Function.GetAccountId(Context.Session).ToString() : "null"),
+            accountId: @(Function.GetUserAccountId(Context.Session) > 0 ? Function.GetUserAccountId(Context.Session).ToString() : (Function.GetAccountId(Context.Session) > 0 ? Function.GetAccountId(Context.Session).ToString() : "null")),
             role: '@(Function.IsAdmin(Context.Session) ? "Admin" : (Function.GetCarOwnerAccountId(Context.Session) > 0 ? "CarOwner" : "Customer"))',
-            userName: '@(Function.GetUserName(Context.Session) ?? "Khách hàng")'
+            userName: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Function.GetUserName(Context.Session) ?? "Khách hàng"))
         };
     </script>
     <script src="~/assets/js/recar-realtime.js"></script>
@@ -305,6 +277,30 @@
         var currentChatPartnerName = 'Đối tác Chủ xe ReCar';
 
         function openChatBox(partnerName, greeting, carId, ownerId, carName) {
+            // Kiểm tra đăng nhập trước khi cho phép mở chat
+            if (!window.RECAR_CURRENT_USER || !window.RECAR_CURRENT_USER.accountId) {
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        title: 'Yêu cầu đăng nhập',
+                        text: 'Vui lòng đăng nhập tài khoản để nhắn tin trao đổi với chủ xe!',
+                        icon: 'info',
+                        showCancelButton: true,
+                        confirmButtonText: 'Đăng nhập ngay',
+                        cancelButtonText: 'Để sau',
+                        confirmButtonColor: '#0284c7'
+                    }).then(function(result) {
+                        if (result.isConfirmed) {
+                            window.location.href = '/Login?returnUrl=' + encodeURIComponent(window.location.pathname + window.location.search);
+                        }
+                    });
+                } else {
+                    if (confirm('Vui lòng đăng nhập tài khoản để nhắn tin trao đổi với chủ xe!')) {
+                        window.location.href = '/Login?returnUrl=' + encodeURIComponent(window.location.pathname + window.location.search);
+                    }
+                }
+                return;
+            }
+
             currentChatPartnerName = partnerName || 'Đối tác Chủ xe ReCar';
             currentChatCarId = carId || null;
             currentChatOwnerId = ownerId || null;
@@ -314,23 +310,50 @@
             $('#recarChatWindow').addClass('open');
             $('#chatMessages').html('<div class="text-center py-3 text-muted small"><div class="spinner-border spinner-border-sm text-primary me-1" role="status"></div> Đang tải lịch sử tin nhắn...</div>');
 
-            // Nạp lịch sử tin nhắn từ CSDL
+            // Nạp lịch sử tin nhắn riêng biệt của tài khoản đang đăng nhập với chủ xe này
             $.ajax({
                 url: '/Chat/GetMessages',
                 type: 'GET',
-                data: { carId: currentChatCarId, ownerId: currentChatOwnerId },
+                data: { carId: currentChatCarId, ownerId: currentChatOwnerId, partnerId: currentChatOwnerId },
                 success: function(res) {
                     $('#chatMessages').empty();
+                    if (res && res.requireLogin) {
+                        $('#recarChatWindow').removeClass('open');
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire({
+                                title: 'Yêu cầu đăng nhập',
+                                text: 'Vui lòng đăng nhập tài khoản để nhắn tin trao đổi với chủ xe!',
+                                icon: 'info',
+                                showCancelButton: true,
+                                confirmButtonText: 'Đăng nhập ngay',
+                                cancelButtonText: 'Để sau',
+                                confirmButtonColor: '#0284c7'
+                            }).then(function(result) {
+                                if (result.isConfirmed) {
+                                    window.location.href = '/Login?returnUrl=' + encodeURIComponent(window.location.pathname + window.location.search);
+                                }
+                            });
+                        }
+                        return;
+                    }
+                    if (typeof res.unreadCount !== 'undefined') {
+                        if (res.unreadCount > 0) {
+                            $('#chatNotificationDot').show();
+                        } else {
+                            $('#chatNotificationDot').hide();
+                        }
+                    }
                     if (res && res.success && res.messages && res.messages.length > 0) {
                         res.messages.forEach(function(m) {
-                            var bubbleClass = m.isFromOwner ? 'chat-bubble from-owner' : 'chat-bubble from-user';
+                            var bubbleClass = m.isMe ? 'chat-bubble from-user' : 'chat-bubble from-owner';
                             var bubble = $('<div class="' + bubbleClass + '"></div>');
-                            bubble.append($('<div class="fw-bold mb-1" style="font-size: 11px; opacity: 0.85;"></div>').text(m.senderName + ' · ' + m.sentAt));
+                            var senderHeader = m.isMe ? 'Bạn' : m.senderName;
+                            bubble.append($('<div class="fw-bold mb-1" style="font-size: 11px; opacity: 0.85;"></div>').text(senderHeader + ' · ' + m.sentAt));
                             bubble.append($('<div></div>').text(m.messageText));
                             $('#chatMessages').append(bubble);
                         });
                     } else {
-                        var defaultMsg = greeting || ('Chào bạn! Cảm ơn bạn đã quan tâm đến phương tiện của chúng tôi. Bạn có thắc mắc gì về thủ tục hay lịch trình cần hỗ trợ không?');
+                        var defaultMsg = greeting || ('Chào bạn! Cảm ơn bạn đã quan tâm đến phương tiện. Bạn có thắc mắc gì về thủ tục hay lịch trình cần hỗ trợ không?');
                         var bubble = $('<div class="chat-bubble from-owner"></div>');
                         bubble.append($('<div class="fw-bold mb-1" style="font-size: 11px; opacity: 0.85;"></div>').text(currentChatPartnerName));
                         bubble.append($('<div></div>').text(defaultMsg));
@@ -355,10 +378,15 @@
         }
 
         function sendChatMessage() {
+            if (!window.RECAR_CURRENT_USER || !window.RECAR_CURRENT_USER.accountId) {
+                openChatBox();
+                return;
+            }
+
             var msg = $('#chatInputText').val().trim();
             if (!msg) return;
 
-            // 1. Hiển thị ngay bong bóng tin nhắn của khách
+            // 1. Hiển thị ngay bong bóng tin nhắn của chính mình
             var nowStr = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
             var userBubble = $('<div class="chat-bubble from-user"></div>');
             userBubble.append($('<div class="fw-bold mb-1" style="font-size: 11px; opacity: 0.85;">Bạn · ' + nowStr + '</div>'));
@@ -367,7 +395,7 @@
             $('#chatInputText').val('');
             $('#chatMessages').scrollTop($('#chatMessages')[0].scrollHeight);
 
-            // 2. Gửi AJAX lên ChatController để lưu CSDL và nhận phản hồi từ chủ xe
+            // 2. Gửi AJAX lên ChatController để lưu CSDL và phát SignalR tới người nhận thật (KHÔNG tự sinh bot)
             $.ajax({
                 url: '/Chat/SendMessage',
                 type: 'POST',
@@ -375,20 +403,26 @@
                 data: JSON.stringify({
                     carId: currentChatCarId,
                     ownerId: currentChatOwnerId,
+                    receiverId: currentChatOwnerId,
                     carName: currentChatCarName,
                     messageText: msg
                 }),
                 success: function(res) {
-                    if (res && res.success && res.ownerReply) {
-                        setTimeout(function() {
-                            var reply = res.ownerReply;
-                            var ownerBubble = $('<div class="chat-bubble from-owner"></div>');
-                            ownerBubble.append($('<div class="fw-bold mb-1" style="font-size: 11px; opacity: 0.85;"></div>').text(reply.senderName + ' · ' + reply.sentAt));
-                            ownerBubble.append($('<div></div>').text(reply.messageText));
-                            $('#chatMessages').append(ownerBubble);
-                            $('#chatMessages').scrollTop($('#chatMessages')[0].scrollHeight);
-                            loadRecentChats();
-                        }, 800);
+                    if (res && res.requireLogin) {
+                        Swal.fire({
+                            title: 'Chưa đăng nhập',
+                            text: res.message || 'Vui lòng đăng nhập để gửi tin nhắn!',
+                            icon: 'warning',
+                            confirmButtonText: 'Đăng nhập'
+                        }).then(function() {
+                            window.location.href = '/Login';
+                        });
+                        return;
+                    }
+                    if (res && res.success) {
+                        loadRecentChats();
+                    } else if (res && !res.success) {
+                        alert(res.message || 'Không thể gửi tin nhắn.');
                     }
                 },
                 error: function(err) {
@@ -398,10 +432,19 @@
         }
 
         function loadRecentChats() {
+            if (!window.RECAR_CURRENT_USER || !window.RECAR_CURRENT_USER.accountId) return;
+
             $.ajax({
                 url: '/Chat/GetRecentConversations',
                 type: 'GET',
                 success: function(res) {
+                    if (res && typeof res.unreadCount !== 'undefined') {
+                        if (res.unreadCount > 0) {
+                            $('#chatNotificationDot').show();
+                        } else {
+                            $('#chatNotificationDot').hide();
+                        }
+                    }
                     if (res && res.success && res.conversations && res.conversations.length > 0) {
                         var container = $('#recentChatList');
                         if (container.length) {
@@ -418,7 +461,7 @@
                                         '<p class="text-muted text-truncate m-0" style="font-size: 12px;">' + c.lastMessage + '</p>' +
                                     '</div>');
                                 item.on('click', function() {
-                                    openChatBox(c.partnerName, c.lastMessage, c.carId, c.ownerId, c.title);
+                                    openChatBox(c.partnerName, c.lastMessage, c.carId, c.partnerId, c.title);
                                 });
                                 container.append(item);
                             });
@@ -432,9 +475,9 @@
         window.handleIncomingChatMessage = function(msg) {
             // Kiểm tra xem tin nhắn có thuộc cuộc hội thoại đang mở không
             var isCurrentConversation = false;
-            if (currentChatCarId && msg.carId == currentChatCarId) {
+            if (currentChatOwnerId && (msg.senderId == currentChatOwnerId || msg.receiverId == currentChatOwnerId)) {
                 isCurrentConversation = true;
-            } else if (currentChatOwnerId && (msg.senderId == currentChatOwnerId || msg.receiverId == currentChatOwnerId)) {
+            } else if (currentChatCarId && msg.carId == currentChatCarId) {
                 isCurrentConversation = true;
             }
 
@@ -443,9 +486,11 @@
                 $('#chatTypingIndicator').hide();
 
                 // Tạo bong bóng tin nhắn
-                var bubbleClass = msg.isFromOwner ? 'chat-bubble from-owner' : 'chat-bubble from-user';
+                var isMe = (window.RECAR_CURRENT_USER && window.RECAR_CURRENT_USER.accountId == msg.senderId);
+                var bubbleClass = isMe ? 'chat-bubble from-user' : 'chat-bubble from-owner';
                 var bubble = $('<div class="' + bubbleClass + '"></div>');
-                bubble.append($('<div class="fw-bold mb-1" style="font-size: 11px; opacity: 0.85;"></div>').text(msg.senderName + ' · ' + msg.sentAt));
+                var senderHeader = isMe ? 'Bạn' : msg.senderName;
+                bubble.append($('<div class="fw-bold mb-1" style="font-size: 11px; opacity: 0.85;"></div>').text(senderHeader + ' · ' + msg.sentAt));
                 bubble.append($('<div></div>').text(msg.messageText));
                 $('#chatMessages').append(bubble);
                 $('#chatMessages').scrollTop($('#chatMessages')[0].scrollHeight);
@@ -457,11 +502,34 @@
             return false; // Chưa mở khung chat, để realtime.js hiện toast
         };
 
+        function safeDecodeName(str) {
+            if (!str) return 'Đối tác';
+            var s = String(str).replace(/&#x([0-9a-fA-F]+);/g, function(m, h) {
+                return String.fromCharCode(parseInt(h, 16));
+            }).replace(/&#([0-9]+);/g, function(m, d) {
+                return String.fromCharCode(parseInt(d, 10));
+            });
+            try {
+                var ta = document.createElement("textarea");
+                ta.innerHTML = s;
+                var res = ta.value;
+                if (res.indexOf('&') !== -1) {
+                    ta.innerHTML = res;
+                    res = ta.value;
+                }
+                return res;
+            } catch(e) {
+                return s;
+            }
+        }
+
         window.handleIncomingTyping = function(data) {
             var isCurrent = (currentChatCarId && data.carId == currentChatCarId);
             if (isCurrent && $('#recarChatWindow').hasClass('open')) {
                 if (data.isTyping) {
-                    $('#chatTypingText').text((data.senderName || 'Đối tác') + ' đang soạn tin...');
+                    var sName = data.senderName || 'Đối tác';
+                    var cleanName = safeDecodeName(sName);
+                    $('#chatTypingText').text(cleanName + ' đang soạn tin...');
                     $('#chatTypingIndicator').stop(true, true).fadeIn(150);
                     $('#chatMessages').scrollTop($('#chatMessages')[0].scrollHeight);
                 } else {
@@ -486,7 +554,11 @@
             }, 2000);
         });
 
-        $(document).on('click', '.btn-open-owner-chat', function() {
+        $(document).on('click', '.btn-open-owner-chat', function(e) {
+            if (e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
             var owner = $(this).data('owner') || 'Đối tác Chủ xe ReCar';
             var car = $(this).data('car') || 'xe';
             var carId = $(this).data('car-id') || null;

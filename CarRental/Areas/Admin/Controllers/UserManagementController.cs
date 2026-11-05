@@ -21,25 +21,25 @@ namespace CarRental.Areas.Admin.Controllers
         public IActionResult Index(string searchString, string filterType)
         {
             // Kiểm tra trạng thái đăng nhập
-            if (!Function.IsLogin())
+            if (!Function.IsLogin(HttpContext.Session))
             {
                 return RedirectToAction("Index", "Login");
             }
 
-            // Quản lý người dùng = Quản lý Accounts (bao gồm cả Accounts từ Customers và Accounts đăng ký trực tiếp)
-            // Lấy tất cả accounts từ bảng Accounts
-            var accounts = _context.Accounts
+            // Quản lý người dùng thống nhất 100% từ bảng Customers
+            var customers = _context.Customers
                 .Include(a => a.Role)
                 .AsQueryable();
 
             // Tìm kiếm
             if (!string.IsNullOrEmpty(searchString))
             {
-                accounts = accounts.Where(a =>
+                customers = customers.Where(a =>
                     (a.Username != null && a.Username.Contains(searchString)) ||
                     (a.FullName != null && a.FullName.Contains(searchString)) ||
+                    (a.Name != null && a.Name.Contains(searchString)) ||
                     (a.Email != null && a.Email.Contains(searchString)) ||
-                    (a.Phone != null && a.Phone.Contains(searchString))
+                    (a.PhoneNumber != null && a.PhoneNumber.Contains(searchString))
                 );
             }
 
@@ -48,24 +48,24 @@ namespace CarRental.Areas.Admin.Controllers
             {
                 case "customer":
                     // Khách hàng: RoleId = 2
-                    accounts = accounts.Where(a => a.RoleId == 2);
+                    customers = customers.Where(a => a.RoleId == 2);
                     break;
                 case "carowner":
                     // Chủ xe: RoleId = 3
-                    accounts = accounts.Where(a => a.RoleId == 3);
+                    customers = customers.Where(a => a.RoleId == 3);
                     break;
                 case "banned":
-                    // Account bị ban: IsActive = false
-                    accounts = accounts.Where(a => a.IsActive == false);
+                    // Tài khoản bị khóa: IsActive = false
+                    customers = customers.Where(a => a.IsActive == false);
                     break;
             }
 
-            var accountList = accounts.OrderBy(a => a.AccountId).ToList();
+            var customerList = customers.OrderBy(a => a.CustomerId).ToList();
 
             ViewBag.SearchString = searchString;
             ViewBag.FilterType = filterType;
 
-            return View(accountList);
+            return View(customerList);
         }
 
         // GET: Admin/UserManagement/Details/5
@@ -76,23 +76,23 @@ namespace CarRental.Areas.Admin.Controllers
                 return NotFound();
             }
 
-            var account = await _context.Accounts
+            var customer = await _context.Customers
                 .Include(a => a.Role)
-                .FirstOrDefaultAsync(m => m.AccountId == id);
+                .FirstOrDefaultAsync(m => m.CustomerId == id);
 
-            if (account == null)
+            if (customer == null)
             {
                 return NotFound();
             }
 
             // Không cho phép xem chi tiết Admin
-            if (account.RoleId == 1)
+            if (customer.RoleId == 1)
             {
                 TempData["ErrorMessage"] = "Không thể xem chi tiết tài khoản Admin.";
                 return RedirectToAction(nameof(Index));
             }
 
-            return View(account);
+            return View(customer);
         }
 
         // GET: Admin/UserManagement/Edit/5
@@ -103,79 +103,78 @@ namespace CarRental.Areas.Admin.Controllers
                 return NotFound();
             }
 
-            var account = await _context.Accounts.FindAsync(id);
-            if (account == null)
+            var customer = await _context.Customers.FindAsync(id);
+            if (customer == null)
             {
                 return NotFound();
             }
 
             // Không cho phép sửa Admin
-            if (account.RoleId == 1)
+            if (customer.RoleId == 1)
             {
                 TempData["ErrorMessage"] = "Không thể sửa tài khoản Admin.";
                 return RedirectToAction(nameof(Index));
             }
 
-            ViewBag.Roles = new SelectList(_context.Roles, "RoleId", "RoleName", account.RoleId);
-            return View(account);
+            ViewBag.Roles = new SelectList(_context.Roles, "RoleId", "RoleName", customer.RoleId);
+            return View(customer);
         }
 
         // POST: Admin/UserManagement/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("AccountId,Username,Password,FullName,Phone,Email,RoleId,LastLogin,IsActive")] Account account)
+        public async Task<IActionResult> Edit(int id, Customer customer)
         {
-            if (id != account.AccountId)
+            if (id != customer.CustomerId)
             {
                 return NotFound();
             }
 
             // Không cho phép sửa Admin
-            if (account.RoleId == 1)
+            if (customer.RoleId == 1)
             {
                 TempData["ErrorMessage"] = "Không thể sửa tài khoản Admin.";
                 return RedirectToAction(nameof(Index));
             }
 
-            if (ModelState.IsValid)
+            try
             {
-                try
+                var existingCustomer = await _context.Customers.FirstOrDefaultAsync(a => a.CustomerId == id);
+                if (existingCustomer == null)
                 {
-                    // Nếu password không rỗng thì mã hóa, nếu không thì giữ nguyên password cũ
-                    var existingAccount = await _context.Accounts.AsNoTracking().FirstOrDefaultAsync(a => a.AccountId == id);
-                    if (existingAccount != null)
-                    {
-                        // Nếu password mới được nhập và khác với password cũ thì mã hóa
-                        if (!string.IsNullOrEmpty(account.Password) && account.Password != existingAccount.Password)
-                        {
-                            account.Password = Function.MD5Password(account.Password);
-                        }
-                        else
-                        {
-                            // Giữ nguyên password cũ
-                            account.Password = existingAccount.Password;
-                        }
-                    }
+                    return NotFound();
+                }
 
-                    _context.Update(account);
-                    await _context.SaveChangesAsync();
-                }
-                catch (DbUpdateConcurrencyException)
+                // Nếu password mới được nhập và khác với password cũ thì mã hóa
+                if (!string.IsNullOrEmpty(customer.Password) && customer.Password != existingCustomer.Password)
                 {
-                    if (!AccountExists(account.AccountId))
-                    {
-                        return NotFound();
-                    }
-                    else
-                    {
-                        throw;
-                    }
+                    existingCustomer.Password = Function.MD5Password(customer.Password);
                 }
+
+                existingCustomer.FullName = customer.FullName;
+                existingCustomer.Username = customer.Username;
+                existingCustomer.PhoneNumber = customer.PhoneNumber ?? customer.Phone;
+                existingCustomer.Email = customer.Email;
+                existingCustomer.RoleId = customer.RoleId;
+                existingCustomer.IsActive = customer.IsActive;
+
+                await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
             }
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!CustomerExists(customer.CustomerId))
+                {
+                    return NotFound();
+                }
+                else
+                {
+                    throw;
+                }
+            }
 
-            ViewBag.Roles = new SelectList(_context.Roles, "RoleId", "RoleName", account.RoleId);
-            return View(account);
+            ViewBag.Roles = new SelectList(_context.Roles, "RoleId", "RoleName", customer.RoleId);
+            return View(customer);
         }
 
         // GET: Admin/UserManagement/Delete/5
@@ -186,23 +185,23 @@ namespace CarRental.Areas.Admin.Controllers
                 return NotFound();
             }
 
-            var account = await _context.Accounts
+            var customer = await _context.Customers
                 .Include(a => a.Role)
-                .FirstOrDefaultAsync(m => m.AccountId == id);
+                .FirstOrDefaultAsync(m => m.CustomerId == id);
 
-            if (account == null)
+            if (customer == null)
             {
                 return NotFound();
             }
 
             // Không cho phép xóa Admin
-            if (account.RoleId == 1)
+            if (customer.RoleId == 1)
             {
                 TempData["ErrorMessage"] = "Không thể xóa tài khoản Admin.";
                 return RedirectToAction(nameof(Index));
             }
 
-            return View(account);
+            return View(customer);
         }
 
         // POST: Admin/UserManagement/Delete/5
@@ -210,17 +209,17 @@ namespace CarRental.Areas.Admin.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var account = await _context.Accounts.FindAsync(id);
-            if (account != null)
+            var customer = await _context.Customers.FindAsync(id);
+            if (customer != null)
             {
                 // Không cho phép xóa Admin
-                if (account.RoleId == 1)
+                if (customer.RoleId == 1)
                 {
                     TempData["ErrorMessage"] = "Không thể xóa tài khoản Admin.";
                     return RedirectToAction(nameof(Index));
                 }
 
-                _context.Accounts.Remove(account);
+                _context.Customers.Remove(customer);
                 await _context.SaveChangesAsync();
             }
 
@@ -232,36 +231,35 @@ namespace CarRental.Areas.Admin.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ToggleLock(int id)
         {
-            var account = await _context.Accounts.FindAsync(id);
-            if (account == null)
+            var customer = await _context.Customers.FindAsync(id);
+            if (customer == null)
             {
                 return NotFound();
             }
 
             // Không cho phép khóa/mở khóa Admin
-            if (account.RoleId == 1)
+            if (customer.RoleId == 1)
             {
                 TempData["ErrorMessage"] = "Không thể khóa/mở khóa tài khoản Admin.";
                 return RedirectToAction(nameof(Index));
             }
 
             // Đảo ngược trạng thái IsActive
-            account.IsActive = !(account.IsActive ?? false);
+            customer.IsActive = !customer.IsActive;
             
-            _context.Update(account);
+            _context.Update(customer);
             await _context.SaveChangesAsync();
 
-            TempData["SuccessMessage"] = account.IsActive == true 
+            TempData["SuccessMessage"] = customer.IsActive 
                 ? "Đã mở khóa tài khoản thành công." 
                 : "Đã khóa tài khoản thành công.";
 
             return RedirectToAction(nameof(Index));
         }
 
-        private bool AccountExists(int id)
+        private bool CustomerExists(int id)
         {
-            return _context.Accounts.Any(e => e.AccountId == id);
+            return _context.Customers.Any(e => e.CustomerId == id);
         }
     }
 }
-

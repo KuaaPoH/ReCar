@@ -22,7 +22,7 @@ namespace CarRental.Areas.CarOwner.Controllers
         }
 
         // Kiểm tra quyền chủ xe
-        private Account? GetCurrentCarOwner()
+        private Customer? GetCurrentCarOwner()
         {
             if (!Function.IsLogin(HttpContext.Session))
             {
@@ -33,10 +33,10 @@ namespace CarRental.Areas.CarOwner.Controllers
             var carOwnerId = Function.GetCarOwnerAccountId(HttpContext.Session);
             var userEmail = Function.GetEmail(HttpContext.Session);
 
-            return _context.Accounts
+            return _context.Customers
                 .Include(a => a.Role)
-                .FirstOrDefault(a => (carOwnerId > 0 && a.AccountId == carOwnerId) ||
-                                     a.AccountId == accountId ||
+                .FirstOrDefault(a => (carOwnerId > 0 && a.CustomerId == carOwnerId) ||
+                                     a.CustomerId == accountId ||
                                      (!string.IsNullOrEmpty(userEmail) && a.Email == userEmail && a.RoleId == 3));
         }
 
@@ -55,7 +55,9 @@ namespace CarRental.Areas.CarOwner.Controllers
                 return RedirectToAction("Index", "Home", new { area = "CarOwner" });
             }
 
-            var ownerId = owner.AccountId;
+            Function.SetCarOwnerSession(HttpContext.Session, owner.CustomerId, owner.Username ?? "", owner.Email ?? "", owner.FullName ?? "");
+            Function.SetCarOwnerSession(HttpContext.Session, owner.CustomerId, owner.Username ?? "", owner.Email ?? "", owner.FullName ?? "");
+            var ownerId = owner.CustomerId;
             var cars = _context.Cars
                 .Include(c => c.Type)
                 .Where(c => c.OwnerId == ownerId)
@@ -123,7 +125,7 @@ namespace CarRental.Areas.CarOwner.Controllers
             if (ModelState.IsValid)
             {
                 var currentOwner = GetCurrentCarOwner();
-                int ownerId = currentOwner?.AccountId ?? Function.GetAccountId(HttpContext.Session);
+                int ownerId = currentOwner?.CustomerId ?? Function.GetAccountId(HttpContext.Session);
 
                 // Xử lý upload ảnh đại diện
                 string avatarPath = "/images/cars/car-sedan.jpg";
@@ -296,7 +298,7 @@ namespace CarRental.Areas.CarOwner.Controllers
             }
 
             var currentOwner = GetCurrentCarOwner();
-            var ownerId = currentOwner?.AccountId ?? Function.GetAccountId(HttpContext.Session);
+            var ownerId = currentOwner?.CustomerId ?? Function.GetAccountId(HttpContext.Session);
             var car = _context.Cars.FirstOrDefault(c => c.CarId == id && c.OwnerId == ownerId);
             if (car == null)
             {
@@ -402,7 +404,7 @@ namespace CarRental.Areas.CarOwner.Controllers
             }
 
             var currentOwner = GetCurrentCarOwner();
-            var ownerId = currentOwner?.AccountId ?? Function.GetAccountId(HttpContext.Session);
+            var ownerId = currentOwner?.CustomerId ?? Function.GetAccountId(HttpContext.Session);
             var existingCar = _context.Cars.FirstOrDefault(c => c.CarId == model.CarId && c.OwnerId == ownerId);
             if (existingCar == null)
             {

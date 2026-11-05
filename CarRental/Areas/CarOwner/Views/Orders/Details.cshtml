@@ -407,6 +407,14 @@
                             <span id="textReveal">Xem đầy đủ để đối chiếu khi bàn giao</span>
                         </button>
                     </div>
+
+                    <!-- Nút Chat trực tiếp với Khách thuê -->
+                    <button type="button" class="btn btn-primary w-100 rounded-pill py-2 fw-semibold mt-3 d-flex align-items-center justify-content-center gap-2 shadow-xs" 
+                            style="background: #0284c7; border-color: #0284c7; font-size: 0.85rem;"
+                            onclick="openChatBox('@custName', 'Chào bạn! Tôi là đối tác chủ xe ở đơn thuê xe #@Model.OrderId.', @(car?.CarId ?? 0), @(customer?.CustomerId ?? 0), '@(car?.CarName ?? "")')">
+                        <i class="bi bi-chat-dots-fill"></i>
+                        <span>Chat với người thuê xe</span>
+                    </button>
                 </div>
             </div>
         </div>

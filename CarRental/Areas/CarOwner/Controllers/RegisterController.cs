@@ -57,10 +57,8 @@ namespace CarRental.Areas.CarOwner.Controllers
                 }
             }
 
-            // Kiểm tra xem đã có tài khoản Chủ xe chính thức trong bảng Accounts chưa
-            var existingAccount = await _context.Accounts
-                .FirstOrDefaultAsync(a => a.Email == customer.Email && a.RoleId == 3 && a.IsActive == true);
-            if (existingAccount != null)
+            // Kiểm tra xem đã là Chủ xe chính thức (RoleId = 3) chưa
+            if (customer != null && customer.RoleId == 3 && customer.IsActive)
             {
                 return RedirectToAction("Index", "Home");
             }
@@ -252,13 +250,10 @@ namespace CarRental.Areas.CarOwner.Controllers
             var carOwnerId = Function.GetCarOwnerAccountId(HttpContext.Session);
             var userEmail = Function.GetEmail(HttpContext.Session);
 
-            var account = await _context.Accounts
-                .FirstOrDefaultAsync(a => (carOwnerId > 0 && a.AccountId == carOwnerId) ||
-                                          a.AccountId == accountId ||
-                                          (!string.IsNullOrEmpty(userEmail) && a.Email == userEmail && a.RoleId == 3));
-
             var customer = await _context.Customers
-                .FirstOrDefaultAsync(c => c.CustomerId == accountId || (!string.IsNullOrEmpty(userEmail) && c.Email == userEmail));
+                .FirstOrDefaultAsync(c => (carOwnerId > 0 && c.CustomerId == carOwnerId) ||
+                                          c.CustomerId == accountId ||
+                                          (!string.IsNullOrEmpty(userEmail) && c.Email == userEmail));
 
             // Tìm hồ sơ đăng ký KYC gần nhất
             var registration = await _context.CarOwnerRegistrations
@@ -266,21 +261,21 @@ namespace CarRental.Areas.CarOwner.Controllers
                 .FirstOrDefaultAsync(r => (customer != null && r.CustomerId == customer.CustomerId) ||
                                           (!string.IsNullOrEmpty(userEmail) && r.Email == userEmail));
 
-            // Nếu là chủ xe đã có tài khoản RoleId 3 nhưng chưa có bản ghi đăng ký, tự tạo một bản ghi Approved mô phỏng
-            if (registration == null && account != null && account.RoleId == 3)
+            // Nếu là chủ xe đã có quyền RoleId 3 nhưng chưa có bản ghi đăng ký, tự tạo một bản ghi Approved mô phỏng
+            if (registration == null && customer != null && customer.RoleId == 3)
             {
                 registration = new CarOwnerRegistration
                 {
-                    CustomerId = customer?.CustomerId ?? account.AccountId,
-                    FullName = account.FullName ?? "Chủ xe đối tác",
-                    Phone = account.Phone ?? customer?.PhoneNumber ?? "0900000000",
-                    Email = account.Email ?? userEmail ?? "partner@recar.vn",
-                    IdCard = customer?.Idcard ?? "079204008921",
-                    LicenseNumber = customer?.LicenseNumber ?? "790158291042",
+                    CustomerId = customer.CustomerId,
+                    FullName = customer.FullName ?? "Chủ xe đối tác",
+                    Phone = customer.PhoneNumber ?? "0900000000",
+                    Email = customer.Email ?? userEmail ?? "partner@recar.vn",
+                    IdCard = customer.Idcard ?? "079204008921",
+                    LicenseNumber = customer.LicenseNumber ?? "790158291042",
                     LicenseClass = "B2",
-                    BankName = customer?.Bank ?? "Vietcombank",
-                    AccountNumber = customer?.AccountNumber ?? "9876543210",
-                    AccountHolder = customer?.CompanyName ?? account.FullName?.ToUpper() ?? "NGUYEN VAN A",
+                    BankName = customer.Bank ?? "Vietcombank",
+                    AccountNumber = customer.AccountNumber ?? "9876543210",
+                    AccountHolder = customer.CompanyName ?? customer.FullName?.ToUpper() ?? "NGUYEN VAN A",
                     Status = "Approved",
                     CreatedAt = DateTime.Now.AddDays(-10),
                     ApprovedAt = DateTime.Now.AddDays(-8),

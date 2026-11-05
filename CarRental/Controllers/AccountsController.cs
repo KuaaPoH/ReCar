@@ -1,4 +1,4 @@
-using CarRental.Models;
+﻿using CarRental.Models;
 using CarRental.Utilities;
 using CarRental.ViewModels;
 using Microsoft.AspNetCore.Mvc;
@@ -45,10 +45,9 @@ namespace CarRental.Controllers
                 .ThenByDescending(p => p.OrderId)
                 .ToList();
             
-            // Kiểm tra xem customer đã có Account với RoleId = 3 (Chủ xe) chưa
-            var existingCarOwnerAccount = _context.Accounts
-                .FirstOrDefault(a => a.Email == customer.Email && a.RoleId == 3 && a.IsActive == true);
-            ViewBag.ExistingCarOwnerAccount = existingCarOwnerAccount;
+            // Kiểm tra xem customer đã có RoleId = 3 (Chủ xe) chưa
+            bool isCarOwner = customer.RoleId == 3;
+            ViewBag.ExistingCarOwnerAccount = isCarOwner ? customer : null;
 
             var existingCarOwnerReg = _context.CarOwnerRegistrations
                 .OrderByDescending(r => r.CreatedAt)
@@ -448,6 +447,12 @@ namespace CarRental.Controllers
             ViewBag.Deposit = order.Deposit ?? 0;
             ViewBag.Payment = order.Payment ?? 0;
             ViewBag.Customer = order.Customer;
+            ViewBag.IsRenter = (customer != null && order.CustomerId == customer.CustomerId);
+
+            // Kiểm tra xem đơn hàng này đã được đánh giá chưa (chuẩn hóa theo OrderId riêng biệt)
+            int reviewCarId = car != null ? car.CarId : 0;
+            var existingReview = _context.CarReviews.FirstOrDefault(r => r.OrderId == id);
+            ViewBag.ExistingReview = existingReview;
 
             return View(orderItems);
         }
@@ -538,59 +543,22 @@ namespace CarRental.Controllers
                 return RedirectToAction("Index");
             }
 
-            // Kiểm tra xem đã có tài khoản chủ xe chưa
-            var existingCarOwnerAccount = await _context.Accounts
-                .FirstOrDefaultAsync(a => a.Email == customer.Email && a.RoleId == 3);
-
-            if (existingCarOwnerAccount != null)
+                        if (customer.RoleId == 3)
             {
                 Function.SetMessage(HttpContext.Session, "Bạn đã là chủ xe rồi!");
-                return RedirectToAction("Index");
+                return RedirectToAction("Index", "Home", new { area = "CarOwner" });
             }
 
-            // Tạo username tự động từ email hoặc tên
-            string username = !string.IsNullOrEmpty(customer.Email) 
-                ? customer.Email.Split('@')[0] 
-                : (!string.IsNullOrEmpty(customer.Name) ? customer.Name.Replace(" ", "").ToLower() : "carowner" + customerId);
-            
-            // Đảm bảo username là duy nhất
-            int counter = 1;
-            string originalUsername = username;
-            while (await _context.Accounts.AnyAsync(a => a.Username == username))
-            {
-                username = originalUsername + counter.ToString();
-                counter++;
-            }
-
-            // Tạo mật khẩu mặc định từ password của customer (hoặc tạo mới)
-            string password = !string.IsNullOrEmpty(customer.Password) 
-                ? customer.Password 
-                : Function.MD5Password("123456"); // Mật khẩu mặc định
-
-            // Tạo tài khoản chủ xe mới
-            var newCarOwnerAccount = new Account
-            {
-                Username = username,
-                Password = password, // Password đã được mã hóa từ Customer
-                Email = customer.Email,
-                FullName = !string.IsNullOrEmpty(customer.FullName) ? customer.FullName : customer.Name,
-                Phone = customer.PhoneNumber,
-                RoleId = 3, // Chủ xe
-                IsActive = true,
-                LastLogin = DateTime.Now.ToString("yyyy-MM-dd")
-            };
-
-            _context.Accounts.Add(newCarOwnerAccount);
+            // Nâng cấp trực tiếp quyền tài khoản Customer thành Chủ xe (RoleId = 3)
+            customer.RoleId = 3;
+            customer.IsActive = true;
+            customer.LastLogin = Function.NowVn.ToString("yyyy-MM-dd HH:mm:ss");
             await _context.SaveChangesAsync();
 
-            // Tự động đăng nhập vào tài khoản chủ xe - lưu vào Session
-            Function.SetAccountId(HttpContext.Session, newCarOwnerAccount.AccountId);
-            Function.SetCarOwnerAccountId(HttpContext.Session, newCarOwnerAccount.AccountId);
-            Function.SetUserName(HttpContext.Session, string.IsNullOrEmpty(newCarOwnerAccount.Username) ? string.Empty : newCarOwnerAccount.Username);
-            Function.SetEmail(HttpContext.Session, string.IsNullOrEmpty(newCarOwnerAccount.Email) ? string.Empty : newCarOwnerAccount.Email);
-            Function.SetMessage(HttpContext.Session, "Đăng ký chủ xe thành công! Chào mừng bạn đến với trang quản lý xe.");
+            // Cập nhật Session
+            Function.SetCarOwnerSession(HttpContext.Session, customer.CustomerId, customer.Username ?? customer.Name ?? "Chủ xe", customer.Email ?? string.Empty, customer.FullName ?? customer.Name ?? "Chủ xe");
+            Function.SetMessage(HttpContext.Session, "Nâng cấp quyền Chủ xe thành công! Chào mừng bạn đến với trang quản lý xe.");
 
-            // Redirect đến trang CarOwner
             return RedirectToAction("Index", "Home", new { area = "CarOwner" });
         }
 
@@ -605,5 +573,101 @@ namespace CarRental.Controllers
             return RedirectToAction("Index", "Home", new { area = "CarOwner" });
         }
 
+
+        public class ReviewSubmissionModel
+        {
+            public int OrderId { get; set; }
+            public int CarId { get; set; }
+            public int Star { get; set; }
+            public string? Detail { get; set; }
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> SubmitReview([FromBody] ReviewSubmissionModel model)
+        {
+            if (!Function.IsLogin(HttpContext.Session))
+            {
+                return Json(new { success = false, message = "Vui lòng đăng nhập để đánh giá chuyến đi!" });
+            }
+
+            var customerId = Function.GetAccountId(HttpContext.Session);
+            var userEmail = Function.GetEmail(HttpContext.Session);
+            var customer = await _context.Customers.FirstOrDefaultAsync(c => c.CustomerId == customerId || (!string.IsNullOrEmpty(userEmail) && c.Email == userEmail));
+
+            if (customer == null)
+            {
+                return Json(new { success = false, message = "Không tìm thấy thông tin khách hàng." });
+            }
+
+            if (model == null || model.OrderId <= 0 || model.CarId <= 0 || model.Star < 1 || model.Star > 5)
+            {
+                return Json(new { success = false, message = "Dữ liệu đánh giá không hợp lệ (số sao từ 1 đến 5)." });
+            }
+
+            var order = await _context.CarRentalOrders
+                .Include(o => o.OrderDetails)
+                .FirstOrDefaultAsync(o => o.OrderId == model.OrderId);
+
+            if (order == null || order.CustomerId != customer.CustomerId)
+            {
+                return Json(new { success = false, message = "Bạn không có quyền đánh giá đơn thuê này." });
+            }
+
+            if (order.StatusId != 5)
+            {
+                return Json(new { success = false, message = "Chỉ có thể đánh giá sau khi hoàn tất trả xe!" });
+            }
+
+            string custEmail = customer.Email ?? string.Empty;
+            var existingReview = await _context.CarReviews
+                .FirstOrDefaultAsync(r => r.OrderId == model.OrderId);
+
+            string reviewText = string.IsNullOrWhiteSpace(model.Detail) ? "Khách hàng hài lòng về chuyến đi." : model.Detail.Trim();
+            if (reviewText.Length > 200) reviewText = reviewText.Substring(0, 200);
+
+            if (existingReview != null)
+            {
+                existingReview.Star = model.Star;
+                existingReview.Detail = reviewText;
+                existingReview.CreatedDate = Function.NowVn;
+                existingReview.IsActive = true;
+            }
+            else
+            {
+                var newReview = new CarReview
+                {
+                    OrderId = model.OrderId,
+                    CarId = model.CarId,
+                    Name = !string.IsNullOrEmpty(customer.FullName) ? customer.FullName : customer.Name,
+                    Email = customer.Email,
+                    Phone = customer.PhoneNumber,
+                    Star = model.Star,
+                    Detail = reviewText,
+                    CreatedDate = Function.NowVn,
+                    IsActive = true
+                };
+                _context.CarReviews.Add(newReview);
+            }
+
+            await _context.SaveChangesAsync();
+
+            // Cập nhật lại Rate trung bình cho xe
+            var allReviews = await _context.CarReviews
+                .Where(r => r.CarId == model.CarId && r.Star.HasValue && r.Star > 0)
+                .ToListAsync();
+
+            if (allReviews.Any())
+            {
+                double avg = allReviews.Average(r => (double)r.Star!.Value);
+                var carObj = await _context.Cars.FindAsync(model.CarId);
+                if (carObj != null)
+                {
+                    carObj.Rate = Math.Round(avg, 1);
+                    await _context.SaveChangesAsync();
+                }
+            }
+
+            return Json(new { success = true, message = "Đánh giá của bạn đã được ghi nhận. Cảm ơn bạn đã đồng hành cùng ReCar!" });
+        }
     }
 }

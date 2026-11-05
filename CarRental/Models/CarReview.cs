@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace CarRental.Models;
@@ -22,6 +22,7 @@ public partial class CarReview
     public int? Star { get; set; }
 
     public bool? IsActive { get; set; }
+    public int? OrderId { get; set; }
 
     public virtual Car? Car { get; set; }
 }

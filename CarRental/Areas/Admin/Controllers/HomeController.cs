@@ -70,8 +70,8 @@ namespace CarRental.Areas.Admin.Controllers
                 .ToList();
             ViewBag.RecentOrders = recentOrders;
 
-            // 5. Danh sách Top 5 chủ xe có doanh thu cao
-            var ownersList = _context.Accounts.Where(a => a.RoleId == 3).ToList();
+            // 5. Danh sách Top 5 chủ xe có doanh thu cao (thống nhất bảng Customers)
+            var ownersList = _context.Customers.Where(a => a.RoleId == 3).ToList();
             var topOwners = ownersList.Select(a => {
                 var ownerCars = allCars.Where(c => c.OwnerId == a.AccountId).ToList();
                 int carCount = ownerCars.Count;

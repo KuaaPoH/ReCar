@@ -44,8 +44,8 @@ namespace CarRental.Areas.Admin.Controllers
             ViewBag.TotalCommission = totalCommission;
             ViewBag.TotalOwnerPayout = totalOwnerPayout;
 
-            // Bảng đối soát theo từng chủ xe
-            var ownersList = _context.Accounts.Where(a => a.RoleId == 3).ToList();
+            // Bảng đối soát theo từng chủ xe (thống nhất bảng Customers)
+            var ownersList = _context.Customers.Where(a => a.RoleId == 3).ToList();
             var settlements = ownersList.Select((a, idx) => {
                 var ownerCars = allCars.Where(c => c.OwnerId == a.AccountId).ToList();
                 int carCount = ownerCars.Count;

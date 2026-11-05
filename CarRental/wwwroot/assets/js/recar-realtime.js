@@ -49,13 +49,47 @@
         }
     }
 
+        function decodeHtmlEntities(str) {
+        if (!str) return '';
+        var decoded = String(str)
+            .replace(/&#x([0-9a-fA-F]+);/g, function(match, hex) {
+                return String.fromCharCode(parseInt(hex, 16));
+            })
+            .replace(/&#([0-9]+);/g, function(match, dec) {
+                return String.fromCharCode(parseInt(dec, 10));
+            });
+        try {
+            var txt = document.createElement("textarea");
+            txt.innerHTML = decoded;
+            var res = txt.value;
+            if (res.indexOf('&') !== -1) {
+                txt.innerHTML = res;
+                res = txt.value;
+            }
+            return res;
+        } catch (e) {
+            return decoded;
+        }
+    }
+
+    window.updateChatNotificationDot = function (hasUnread) {
+        var chatDot = document.getElementById('chatNotificationDot');
+        if (chatDot) {
+            chatDot.style.display = hasUnread ? 'block' : 'none';
+        }
+        var ownerDot = document.getElementById('ownerChatNotificationDot');
+        if (ownerDot) {
+            ownerDot.style.display = hasUnread ? 'block' : 'none';
+        }
+    };
+
     // 2. Component Toast Notification SaaS Hiện Đại (Tự động tiêm container nếu chưa có)
     function ensureToastContainer() {
         var container = document.getElementById('recar-toast-container');
         if (!container) {
             container = document.createElement('div');
             container.id = 'recar-toast-container';
-            container.style.cssText = 'position: fixed; top: 24px; right: 24px; z-index: 99999; display: flex; flex-direction: column; gap: 12px; max-width: 380px; width: 100%; pointer-events: none;';
+            container.style.cssText = 'position: fixed; top: 24px; right: 24px; z-index: 99999; display: flex; flex-direction: column; gap: 12px; max-width: 250px; width: 100%; pointer-events: none;';
             document.body.appendChild(container);
         }
         return container;
@@ -64,7 +98,7 @@
     window.showRealtimeToast = function (options) {
         var container = ensureToastContainer();
         var toast = document.createElement('div');
-        toast.style.cssText = 'pointer-events: auto; background: #ffffff; border-radius: 14px; box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.15), 0 8px 10px -6px rgba(15, 23, 42, 0.1); border: 1px solid #e2e8f0; overflow: hidden; transform: translateX(120%); transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.35s ease; opacity: 0;';
+        toast.style.cssText = 'pointer-events: auto; background: #ffffff; border-radius: 10px; box-shadow: 0 8px 20px -4px rgba(15, 23, 42, 0.14), 0 4px 6px -2px rgba(15, 23, 42, 0.05); border: 1px solid #e2e8f0; overflow: hidden; transform: translateX(120%); transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.35s ease; opacity: 0;';
 
         var iconHtml = '<i class="bi bi-bell-fill text-primary"></i>';
         var borderLeftColor = '#0284c7';
@@ -86,29 +120,22 @@
         }
 
         toast.innerHTML = `
-            <div style="border-left: 4px solid ${borderLeftColor}; padding: 14px 16px; display: flex; align-items: flex-start; gap: 12px;">
-                <div style="font-size: 1.35rem; line-height: 1; flex-shrink: 0; margin-top: 2px;">
+            <div style="border-left: 3px solid ${borderLeftColor}; padding: 7px 10px; display: flex; align-items: flex-start; gap: 8px;">
+                <div style="font-size: 1rem; line-height: 1; flex-shrink: 0; margin-top: 2px;">
                     ${iconHtml}
                 </div>
                 <div style="flex-grow: 1; min-width: 0;">
-                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 3px;">
-                        <span style="font-weight: 700; font-size: 0.9rem; color: #0f172a;">${options.title || 'Thông báo ReCar'}</span>
-                        <span style="font-size: 0.72rem; color: #94a3b8; font-weight: 500;">Vừa xong</span>
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 2px;">
+                        <span style="font-weight: 700; font-size: 0.78rem; color: #0f172a;" class="text-truncate">${options.title || 'Thông báo ReCar'}</span>
+                        <span style="font-size: 0.65rem; color: #94a3b8; font-weight: 500; margin-left: 4px; flex-shrink: 0;">Vừa xong</span>
                     </div>
-                    <div style="font-size: 0.825rem; color: #475569; line-height: 1.4; word-break: break-word;">
+                    <div style="font-size: 0.74rem; color: #475569; line-height: 1.3; word-break: break-word;">
                         ${options.message || ''}
                     </div>
-                    ${options.actionText && options.actionUrl ? `
-                        <div style="margin-top: 8px;">
-                            <a href="${options.actionUrl}" style="display: inline-flex; align-items: center; gap: 4px; font-size: 0.8rem; font-weight: 600; color: #0284c7; text-decoration: none;">
-                                ${options.actionText} <i class="bi bi-arrow-right" style="font-size: 0.75rem;"></i>
-                            </a>
-                        </div>
-                    ` : ''}
                 </div>
-                <button type="button" class="btn-close" style="font-size: 0.7rem; flex-shrink: 0; opacity: 0.5;" aria-label="Close"></button>
+                <button type="button" class="btn-close" style="font-size: 0.52rem; flex-shrink: 0; opacity: 0.5; margin-left: 2px;" aria-label="Close"></button>
             </div>
-            <div style="height: 3px; background: ${borderLeftColor}; width: 100%; transform-origin: left; transition: transform 5.5s linear; transform: scaleX(1);" class="toast-progress"></div>
+            <div style="height: 2px; background: ${borderLeftColor}; width: 100%; transform-origin: left; transition: transform 4.5s linear; transform: scaleX(1);" class="toast-progress"></div>
         `;
 
         container.appendChild(toast);
@@ -136,7 +163,18 @@
         }
 
         if (closeBtn) {
-            closeBtn.onclick = removeToast;
+            closeBtn.onclick = function(e) {
+                if (e) e.stopPropagation();
+                removeToast();
+            };
+        }
+        if (typeof options.onClick === 'function') {
+            toast.style.cursor = 'pointer';
+            toast.onclick = function(e) {
+                if (e && e.target && e.target.classList && e.target.classList.contains('btn-close')) return;
+                options.onClick();
+                removeToast();
+            };
         }
 
         // Tự động tắt sau 6 giây
@@ -205,13 +243,17 @@
             if (handled) return;
         }
 
-        // Nếu cửa sổ chat đang đóng hoặc ở trang khác -> hiện toast và nhảy badge tin nhắn
+        // Nếu cửa sổ chat đang đóng hoặc ở trang khác -> hiện toast nhỏ gọn và nhảy badge tin nhắn
+        var senderDecoded = decodeHtmlEntities(data.senderName || 'Tin nhắn mới');
         showRealtimeToast({
             type: 'chat',
-            title: data.senderName || 'Tin nhắn mới',
+            title: senderDecoded,
             message: data.messageText,
-            actionText: 'Mở cửa sổ chat',
-            actionUrl: 'javascript:void(0);'
+            onClick: function() {
+                if (typeof window.openChatBox === 'function') {
+                    window.openChatBox(senderDecoded, data.messageText, data.carId, data.senderId, data.carName);
+                }
+            }
         });
 
         // Nhảy badge chấm đỏ trên Header
@@ -219,10 +261,19 @@
         if (chatDot) {
             chatDot.style.display = 'block';
         }
+        if (typeof window.loadRecentChats === 'function') {
+            window.loadRecentChats();
+        }
+        if (typeof window.loadRecentChats === 'function') {
+            window.loadRecentChats();
+        }
     });
 
     // B. Chỉ báo đối phương đang gõ phím (Typing Indicator)
     connection.on("UserTyping", function (data) {
+        if (data && data.senderName) {
+            data.senderName = decodeHtmlEntities(data.senderName);
+        }
         if (typeof window.handleIncomingTyping === 'function') {
             window.handleIncomingTyping(data);
         }

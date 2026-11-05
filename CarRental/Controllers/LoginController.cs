@@ -46,53 +46,55 @@ namespace CarRental.Controllers
 
             if (ModelState.IsValid)
             {
-                //mã hoá mật khẩu trc khi kiểm tra
+                // Mã hoá mật khẩu trước khi kiểm tra
                 string p = Function.MD5Password(c.Password);
-                //kiểm tra tài khoản có tồn tại trong cớ sở dữ liêu
-                var check = _context.Customers.Where(m => (m.Email == c.Email) && (m.Password == p)).FirstOrDefault();
+                
+                // Kiểm tra tài khoản có tồn tại trong bảng Customers (bằng Email hoặc Username)
+                var check = await _context.Customers
+                    .Include(m => m.Role)
+                    .FirstOrDefaultAsync(m => (m.Email == c.Email || m.Username == c.Email) && m.Password == p);
+
                 if (check == null)
                 {
-                    //hiên thị thông báo
                     Function.SetMessage(HttpContext.Session, "Sai thông tin đăng nhập");
                     return RedirectToAction("Index", "Login");
                 }
 
-                // Kiểm tra xem Customer có Account tương ứng không và kiểm tra trạng thái khóa
-                var account = await _context.Accounts
-                    .FirstOrDefaultAsync(a => a.Email == check.Email);
-                
-                if (account != null && account.IsActive == false)
+                // Kiểm tra trạng thái khóa tài khoản
+                if (!check.IsActive)
                 {
-                    // Tài khoản bị khóa
                     Function.SetMessage(HttpContext.Session, "LOCKED");
                     return RedirectToAction("Index", "Login");
                 }
 
-                //đăng nhập thành công - lưu vào Session
+                // Cập nhật thời điểm đăng nhập mới nhất
+                check.LastLogin = Function.NowVn.ToString("yyyy-MM-dd HH:mm:ss");
+                await _context.SaveChangesAsync();
+
+                // Đăng nhập thành công - lưu thông tin vào Session với CustomerId duy nhất
                 Function.SetMessage(HttpContext.Session, string.Empty);
                 Function.SetAccountId(HttpContext.Session, check.CustomerId);
-                Function.SetUserName(HttpContext.Session, string.IsNullOrEmpty(check.Name) ? string.Empty : check.Name);
-                Function.SetEmail(HttpContext.Session, string.IsNullOrEmpty(check.Email) ? string.Empty : check.Email);
-                Function.SetAddress(HttpContext.Session, string.IsNullOrEmpty(check.Address) ? string.Empty : check.Address);
-                Function.SetPhone(HttpContext.Session, string.IsNullOrEmpty(check.PhoneNumber) ? string.Empty : check.PhoneNumber);
+                Function.SetUserName(HttpContext.Session, !string.IsNullOrEmpty(check.FullName) ? check.FullName : (check.Name ?? string.Empty));
+                Function.SetEmail(HttpContext.Session, check.Email ?? string.Empty);
+                Function.SetAddress(HttpContext.Session, check.Address ?? string.Empty);
+                Function.SetPhone(HttpContext.Session, check.PhoneNumber ?? string.Empty);
 
-                // Kiểm tra xem Customer có Account tương ứng và có phải RoleId=3 (Chủ xe) không
-                var carOwnerAccount = await _context.Accounts
-                    .FirstOrDefaultAsync(a => a.Email == check.Email && a.RoleId == 3);
-                
-                if (carOwnerAccount != null)
+                // Nếu tài khoản có quyền Chủ xe (RoleId = 3), thiết lập luôn CarOwner Session đồng bộ
+                if (check.RoleId == 3)
                 {
-                    Function.SetCarOwnerAccountId(HttpContext.Session, carOwnerAccount.AccountId);
+                    Function.SetCarOwnerSession(HttpContext.Session, check.CustomerId, check.Username ?? check.Name ?? "Chủ xe", check.Email ?? string.Empty, check.FullName ?? check.Name ?? "Chủ xe");
                 }
                 else
-                {       
+                {
                     Function.SetCarOwnerAccountId(HttpContext.Session, 0);
                 }
 
-                // Luôn lưu AccountId là check.CustomerId của bảng Customers để các tính năng giỏ hàng, đặt xe hoạt động chính xác
-                Function.SetAccountId(HttpContext.Session, check.CustomerId);
+                // Nếu có ReturnUrl hợp lệ thì quay lại đúng trang trước đó, ngược lại về Trang chủ
+                if (!string.IsNullOrEmpty(ReturnUrl) && Url.IsLocalUrl(ReturnUrl) && !ReturnUrl.StartsWith("/Login", StringComparison.OrdinalIgnoreCase))
+                {
+                    return Redirect(ReturnUrl);
+                }
 
-                // Luôn chuyển về Trang chủ sau khi đăng nhập, bỏ qua ReturnUrl
                 return RedirectToAction("Index", "Home");
             }
 
@@ -100,4 +102,3 @@ namespace CarRental.Controllers
         }
     }
 }
-

@@ -1,4 +1,4 @@
-﻿@model CarRental.Models.CarRentalOrder
+@model CarRental.Models.CarRentalOrder
 @using CarRental.Utilities
 @{
     ViewData["Title"] = $"Chi tiết đơn #{Model.OrderId} — ReCar Host Pro";
@@ -18,7 +18,10 @@
     decimal remainingToCollect = Model.Payment ?? 0;
     decimal totalRent = deposit + remainingToCollect;
     if (totalRent == 0) totalRent = Model.Payment ?? 0;
-    decimal platformFee = totalRent * 0.1m;
+    decimal depositRate = (totalRent > 0 && deposit > 0) ? Math.Round((deposit / totalRent) * 100m, 0) : 30m;
+    decimal remainRate = 100m - depositRate;
+    decimal platformFeeRate = Model.PlatformFeeRate ?? 10.00m;
+    decimal platformFee = Model.PlatformFee ?? Math.Round(totalRent * (platformFeeRate / 100m), 0);
     decimal payoutFromPlatform = Math.Max(0, deposit - platformFee);
     decimal netEarnings = Math.Max(0, totalRent - platformFee);
     bool isPaidFull = remainingToCollect == 0 && deposit > 0;
@@ -274,7 +277,7 @@
                             }
                             else
                             {
-                                <span class="text-dark" style="line-height: 1.45;">Thu đủ 70% số tiền thuê còn lại khi giao chìa khóa (@remainingToCollect.ToString("N0") đ).</span>
+                                <span class="text-dark" style="line-height: 1.45;">Thu đủ @remainRate.ToString("0.#")% số tiền thuê còn lại khi giao chìa khóa (@remainingToCollect.ToString("N0") đ).</span>
                             }
                         </li>
                         <li class="d-flex align-items-start mb-3" style="gap: 14px;">
@@ -339,7 +342,7 @@
                             <span class="fw-bold text-dark">@totalRent.ToString("N0") đ</span>
                         </div>
                         <div class="d-flex justify-content-between align-items-center mb-1.5">
-                            <span class="text-muted">@(isPaidFull ? "Đã thanh toán qua sàn (100%)" : "Cọc 30% — sàn thu")</span>
+                            <span class="text-muted">@(isPaidFull ? "Đã thanh toán qua sàn (100%)" : $"Cọc {depositRate:0.#}% — sàn thu")</span>
                             <span class="text-dark fw-bold">@deposit.ToString("N0") đ</span>
                         </div>
                         <div class="d-flex justify-content-between align-items-center mb-1.5">
@@ -347,7 +350,7 @@
                             <span class="@(isPaidFull ? "text-success fw-bold" : "text-dark")">@(isPaidFull ? "0 đ (Đã thanh toán đủ)" : remainingToCollect.ToString("N0") + " đ")</span>
                         </div>
                         <div class="d-flex justify-content-between align-items-center border-top pt-2 mb-1.5">
-                            <span class="text-muted">Phí dịch vụ sàn 10% (trừ từ cọc)</span>
+                            <span class="text-muted">Phí dịch vụ sàn @platformFeeRate.ToString("0.#")% (trừ từ cọc)</span>
                             <span class="text-danger">−@platformFee.ToString("N0") đ</span>
                         </div>
                         <div class="d-flex justify-content-between align-items-center">
@@ -756,7 +759,7 @@
                 </div>
                 <div class="timeline-col-content">
                     <p class="fw-semibold text-dark mb-0" style="font-size: 0.875rem;">
-                        @(isPaidFull ? "Đã thanh toán trọn gói 100%" : "Đã thanh toán tiền cọc 30%")
+                        @(isPaidFull ? "Đã thanh toán trọn gói 100%" : $"Đã thanh toán tiền cọc {depositRate:0.#}%")
                     </p>
                     <p class="text-muted mb-0" style="font-size: 0.75rem;">
                         @if (Model.StatusId >= 3)
@@ -851,7 +854,7 @@
                             <div class="col-12 col-md-6">
                                 <label class="form-check d-flex align-items-center gap-2 mb-0" style="cursor: pointer;">
                                     <input class="form-check-input mt-0" type="checkbox" checked id="chkPaymentVerify" />
-                                    <span id="chkPaymentLabel">@(isPaidFull ? "Khách đã thanh toán 100% qua sàn (Không thu thêm)" : $"Đã thu 70% tiền thuê còn lại ({remainingToCollect:N0}đ)")</span>
+                                    <span id="chkPaymentLabel">@(isPaidFull ? "Khách đã thanh toán 100% qua sàn (Không thu thêm)" : $"Đã thu {remainRate:0.#}% tiền thuê còn lại ({remainingToCollect:N0}đ)")</span>
                                 </label>
                             </div>
                         </div>
@@ -1116,7 +1119,7 @@
                 setSlotExistingPreview('Rear', handoverData.rear);
                 setSlotExistingPreview('Left', handoverData.left);
                 setSlotExistingPreview('Right', handoverData.right);
-                chkPayLabel.innerHTML = '@Html.Raw(isPaidFull ? "Khách đã thanh toán 100% qua sàn (Không thu thêm)" : $"Đã thu 70% tiền thuê còn lại ({remainingToCollect:N0}đ)")';
+                chkPayLabel.innerHTML = '@Html.Raw(isPaidFull ? "Khách đã thanh toán 100% qua sàn (Không thu thêm)" : $"Đã thu {remainRate:0.#}% tiền thuê còn lại ({remainingToCollect:N0}đ)")';
                 btnEl.style.backgroundColor = '#10b981';
                 btnEl.style.borderColor = '#10b981';
                 btnTextEl.innerText = doTransition ? 'Xác nhận Bàn giao xe & Lưu biên bản' : 'Lưu cập nhật biên bản giao xe';
@@ -1247,7 +1250,7 @@
                         </div>
                         <ul class="ps-3 mb-0 text-muted">
                             <li>Đã đối chiếu bản gốc CCCD & GPLX của người thuê.</li>
-                            <li>@Html.Raw(isPaidFull ? "<strong class='text-success'>Khách đã thanh toán 100% trọn gói qua sàn (Không thu thêm).</strong>" : $"Đã thu 70% số tiền thuê còn lại (tiền mặt / chuyển khoản: {remainingToCollect:N0}đ).")</li>
+                            <li>@Html.Raw(isPaidFull ? "<strong class='text-success'>Khách đã thanh toán 100% trọn gói qua sàn (Không thu thêm).</strong>" : $"Đã thu {remainRate:0.#}% số tiền thuê còn lại (tiền mặt / chuyển khoản: {remainingToCollect:N0}đ).")</li>
                             <li>Đã kiểm tra số km (ODO) và mức xăng/pin hiện tại.</li>
                         </ul>
                     </div>

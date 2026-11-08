@@ -334,6 +334,21 @@ static void EnsureAllTablesExist(DbRenalCarContext context, ILogger logger)
                 INDEX `IX_CalendarBlock_Car` (`CarId`, `StartTime`, `EndTime`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
 
+        // Cấu hình sàn & Thông số tài chính (System Settings)
+        tablesToCheck["system_settings"] = @"CREATE TABLE IF NOT EXISTS `system_settings` (
+                `SettingId` INT NOT NULL AUTO_INCREMENT,
+                `DepositPct` INT NOT NULL DEFAULT 30,
+                `CommissionPct` INT NOT NULL DEFAULT 10,
+                `DefaultKmPerDay` INT NOT NULL DEFAULT 350,
+                `ExtraKmPrice` DECIMAL(18, 2) NOT NULL DEFAULT 3000.00,
+                `Hotline` VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '1900 8888',
+                `SupportEmail` VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'hotro@recar.vn',
+                `PlatformName` VARCHAR(150) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'ReCar — Car-Sharing Platform',
+                `Address` VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'Tòa tháp Keangnam Landmark 72, Mễ Trì, Nam Từ Liêm, Hà Nội',
+                `UpdatedAt` DATETIME NULL,
+                PRIMARY KEY (`SettingId`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+
         foreach (var table in tablesToCheck)
         {
             try
@@ -361,6 +376,89 @@ static void EnsureAllTablesExist(DbRenalCarContext context, ILogger logger)
 
         // Mở rộng cột Notes của bảng CarRentalOrders lên TEXT và đảm bảo bảng vehicle_inspections tồn tại
         try { context.Database.ExecuteSqlRaw("ALTER TABLE `carrentalorders` MODIFY COLUMN `Notes` TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL;"); } catch { }
+
+        // Snapshot Pattern: Bổ sung an toàn 2 cột tỷ lệ phí sàn và tiền phí sàn cho carrentalorders
+        try
+        {
+            var conn = context.Database.GetDbConnection();
+            bool needClose = false;
+            if (conn.State != System.Data.ConnectionState.Open)
+            {
+                conn.Open();
+                needClose = true;
+            }
+
+            try
+            {
+                using var cmd = conn.CreateCommand();
+                cmd.CommandText = "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'carrentalorders' AND COLUMN_NAME IN ('PlatformFeeRate', 'PlatformFee');";
+                var existingCols = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                using (var reader = cmd.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        existingCols.Add(reader.GetString(0));
+                    }
+                }
+
+                if (!existingCols.Contains("PlatformFeeRate"))
+                {
+                    using var alterCmd = conn.CreateCommand();
+                    alterCmd.CommandText = "ALTER TABLE `carrentalorders` ADD COLUMN `PlatformFeeRate` DECIMAL(5, 2) NULL DEFAULT 10.00;";
+                    alterCmd.ExecuteNonQuery();
+                }
+
+                if (!existingCols.Contains("PlatformFee"))
+                {
+                    using var alterCmd = conn.CreateCommand();
+                    alterCmd.CommandText = "ALTER TABLE `carrentalorders` ADD COLUMN `PlatformFee` DECIMAL(18, 2) NULL;";
+                    alterCmd.ExecuteNonQuery();
+                }
+
+                using var updateCmd = conn.CreateCommand();
+                updateCmd.CommandText = "UPDATE `carrentalorders` SET `PlatformFeeRate` = 10.00 WHERE `PlatformFeeRate` IS NULL;";
+                updateCmd.ExecuteNonQuery();
+
+                using var updateFeeCmd = conn.CreateCommand();
+                updateFeeCmd.CommandText = "UPDATE `carrentalorders` SET `PlatformFee` = ROUND(((COALESCE(`Deposit`, 0) + COALESCE(`Payment`, 0)) * COALESCE(`PlatformFeeRate`, 10.00)) / 100, 0) WHERE `PlatformFee` IS NULL;";
+                updateFeeCmd.ExecuteNonQuery();
+            }
+            finally
+            {
+                if (needClose && conn.State == System.Data.ConnectionState.Open) conn.Close();
+            }
+        }
+        catch (Exception colEx)
+        {
+            logger.LogWarning("Kiểm tra/cập nhật schema Snapshot carrentalorders: {msg}", colEx.Message);
+        }
+
+        // Tự động Seed cấu hình hệ thống mặc định nếu bảng system_settings chưa có dữ liệu
+        try
+        {
+            if (!context.SystemSettings.Any())
+            {
+                logger.LogInformation("Seeding default system settings...");
+                context.SystemSettings.Add(new SystemSetting
+                {
+                    DepositPct = 30,
+                    CommissionPct = 10,
+                    DefaultKmPerDay = 350,
+                    ExtraKmPrice = 3000m,
+                    Hotline = "1900 8888",
+                    SupportEmail = "hotro@recar.vn",
+                    PlatformName = "ReCar — Car-Sharing Platform",
+                    Address = "Tòa tháp Keangnam Landmark 72, Mễ Trì, Nam Từ Liêm, Hà Nội",
+                    UpdatedAt = null
+                });
+                context.SaveChanges();
+                logger.LogInformation("System settings seeded successfully.");
+            }
+        }
+        catch (Exception stEx)
+        {
+            logger.LogWarning(stEx, "Could not seed system settings: {Message}", stEx.Message);
+        }
         // Tự động Seed danh sách ngân hàng nếu bảng banks chưa có dữ liệu
         try
         {

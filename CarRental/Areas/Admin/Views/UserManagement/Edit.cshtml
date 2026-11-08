@@ -1,131 +1,109 @@
-﻿@model CarRental.Models.Customer
+@model CarRental.Models.Customer
 @{
-    ViewData["Title"] = "Sửa tài khoản";
-    Layout = "~/Areas/Admin/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Chỉnh sửa tài khoản";
 }
 
-<div id="main">
-    <header class="mb-3">
-        <a href="#" class="burger-btn d-block d-xl-none">
-            <i class="bi bi-justify fs-3"></i>
-        </a>
-    </header>
-
-    <div class="page-heading">
-        <div class="page-title">
-            <div class="row">
-                <div class="col-12 col-md-6 order-md-1 order-last">
-                    <h3>Sửa tài khoản</h3>
-                    <p class="text-subtitle text-muted">Chỉnh sửa thông tin tài khoản người dùng</p>
-                </div>
-                <div class="col-12 col-md-6 order-md-2 order-first">
-                    <nav aria-label="breadcrumb" class="breadcrumb-header float-start float-lg-end">
-                        <ol class="breadcrumb">
-                            <li class="breadcrumb-item"><a href="/Admin/Home">Dashboard</a></li>
-                            <li class="breadcrumb-item"><a asp-action="Index">Quản lý người dùng</a></li>
-                            <li class="breadcrumb-item active" aria-current="page">Sửa</li>
-                        </ol>
-                    </nav>
-                </div>
+<div class="container-fluid px-0">
+    <!-- Header -->
+    <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4">
+        <div>
+            <div class="d-flex align-items-center gap-2">
+                <a asp-action="Index" class="btn btn-light btn-sm rounded-circle p-2 text-muted me-1">
+                    <i class="bi bi-arrow-left"></i>
+                </a>
+                <h1 class="h3 fw-bold mb-0 text-dark tracking-tight">Chỉnh sửa tài khoản: @(Model.FullName ?? Model.Username)</h1>
             </div>
+            <p class="text-muted small mb-0 mt-1 ms-5">Cập nhật thông tin định danh, đổi mật khẩu hoặc điều chỉnh vai trò tài khoản.</p>
         </div>
+        <div>
+            <a asp-action="Index" class="btn btn-light btn-sm rounded-pill px-3 border">
+                <i class="bi bi-arrow-left me-1"></i> Quay lại danh sách
+            </a>
+        </div>
+    </div>
 
-        <section class="section">
-            <div class="card">
-                <div class="card-header">
-                    <h4 class="card-title">Thông tin tài khoản</h4>
+    <div class="row justify-content-center">
+        <div class="col-12 col-lg-8">
+            <div class="recar-panel mb-4">
+                <div class="recar-panel-header">
+                    <h2 class="h6 fw-bold mb-0 text-dark">
+                        <i class="bi bi-pencil-square text-primary me-2"></i> Cập nhật hồ sơ tài khoản #@Model.CustomerId
+                    </h2>
                 </div>
-                <div class="card-body">
-                    <form asp-action="Edit">
-                        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-                        
+                <div class="p-4">
+                    <form asp-action="Edit" method="post">
+                        @Html.AntiForgeryToken()
+                        <div asp-validation-summary="ModelOnly" class="alert alert-danger rounded-3 small"></div>
+
                         <input type="hidden" asp-for="CustomerId" />
                         <input type="hidden" asp-for="AccountId" />
-                        
-                        <div class="form-group mb-3">
-                            <label asp-for="Username" class="form-label">Username</label>
-                            <input asp-for="Username" class="form-control" />
-                            <span asp-validation-for="Username" class="text-danger"></span>
-                        </div>
 
-                        <div class="form-group mb-3">
-                            <label asp-for="Password" class="form-label">Mật khẩu mới (để trống nếu không đổi)</label>
-                            <input asp-for="Password" type="password" class="form-control" placeholder="Nhập mật khẩu mới hoặc để trống" />
-                            <span asp-validation-for="Password" class="text-danger"></span>
-                            <small class="form-text text-muted">Nếu không muốn đổi mật khẩu, hãy để trống trường này.</small>
-                        </div>
-
-                        <div class="form-group mb-3">
-                            <label asp-for="FullName" class="form-label">Họ tên</label>
-                            <input asp-for="FullName" class="form-control" />
-                            <span asp-validation-for="FullName" class="text-danger"></span>
-                        </div>
-
-                        <div class="form-group mb-3">
-                            <label asp-for="Email" class="form-label">Email</label>
-                            <input asp-for="Email" type="email" class="form-control" />
-                            <span asp-validation-for="Email" class="text-danger"></span>
-                        </div>
-
-                        <div class="form-group mb-3">
-                            <label asp-for="Phone" class="form-label">Số điện thoại</label>
-                            <input asp-for="Phone" class="form-control" />
-                            <span asp-validation-for="Phone" class="text-danger"></span>
-                        </div>
-
-                        <div class="form-group mb-3">
-                            <label asp-for="RoleId" class="form-label">Role</label>
-                            <select asp-for="RoleId" asp-items="ViewBag.Roles" class="form-select">
-                                <option value="">-- Chọn role --</option>
-                            </select>
-                            <span asp-validation-for="RoleId" class="text-danger"></span>
-                        </div>
-
-                        <div class="form-group mb-3">
-                            <label asp-for="LastLogin" class="form-label">Lần đăng nhập cuối</label>
-                            <input asp-for="LastLogin" class="form-control" readonly />
-                            <span asp-validation-for="LastLogin" class="text-danger"></span>
-                        </div>
-
-                        <div class="form-group mb-3">
-                            <div class="form-check">
-                                @{
-                                    bool isActiveValue = Model.IsActive;
-                                }
-                                <input name="IsActive" type="checkbox" class="form-check-input" value="true" checked="@isActiveValue" />
-                                <input type="hidden" name="IsActive" value="false" />
-                                <label class="form-check-label">
-                                    Tài khoản hoạt động
-                                </label>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold small text-dark">Họ và tên <span class="text-danger">*</span></label>
+                                <input type="text" asp-for="FullName" class="form-control rounded-3" required />
+                                <span asp-validation-for="FullName" class="text-danger small"></span>
                             </div>
-                            <span asp-validation-for="IsActive" class="text-danger"></span>
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold small text-dark">Tên đăng nhập (Username) <span class="text-danger">*</span></label>
+                                <input type="text" asp-for="Username" class="form-control rounded-3 font-mono-plate" required />
+                                <span asp-validation-for="Username" class="text-danger small"></span>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold small text-dark">Địa chỉ Email <span class="text-danger">*</span></label>
+                                <input type="email" asp-for="Email" class="form-control rounded-3" required />
+                                <span asp-validation-for="Email" class="text-danger small"></span>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold small text-dark">Số điện thoại</label>
+                                <input type="tel" asp-for="PhoneNumber" class="form-control rounded-3" />
+                                <span asp-validation-for="PhoneNumber" class="text-danger small"></span>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold small text-dark">Vai trò phân quyền <span class="text-danger">*</span></label>
+                                <select asp-for="RoleId" class="form-select rounded-3" asp-items="ViewBag.RoleId"></select>
+                                <div class="text-muted" style="font-size: 0.72rem; margin-top: 4px;">Role 1: Admin · Role 2: Khách hàng · Role 3: Chủ xe</div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold small text-dark">Trạng thái hoạt động</label>
+                                <select asp-for="IsActive" class="form-select rounded-3">
+                                    <option value="true" selected="@(Model.IsActive)">Đang hoạt động (Khả dụng)</option>
+                                    <option value="false" selected="@(!Model.IsActive)">Khóa tài khoản (Tạm dừng)</option>
+                                </select>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold small text-dark">Mật khẩu mới (Nếu cần đổi)</label>
+                                <input type="password" asp-for="Password" class="form-control rounded-3" placeholder="Để trống nếu không đổi mật khẩu" value="" />
+                                <span asp-validation-for="Password" class="text-danger small"></span>
+                                <div class="text-muted" style="font-size: 0.72rem; margin-top: 4px;">Chỉ nhập khi muốn đặt lại mật khẩu cho tài khoản này.</div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold small text-dark">Số CCCD / GPLX</label>
+                                <input type="text" asp-for="Idcard" class="form-control rounded-3" placeholder="Số CCCD" />
+                            </div>
+
+                            <div class="col-12">
+                                <label class="form-label fw-bold small text-dark">Địa chỉ thường trú</label>
+                                <input type="text" asp-for="Address" class="form-control rounded-3" />
+                            </div>
                         </div>
 
-                        <div class="btn-group">
-                            <button type="submit" class="btn btn-primary">Lưu</button>
-                            <a asp-action="Index" class="btn btn-secondary">Quay lại</a>
+                        <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
+                            <a asp-action="Index" class="btn btn-light btn-sm rounded-pill px-3">Hủy bỏ</a>
+                            <button type="submit" class="btn btn-primary btn-sm rounded-pill px-4 fw-semibold shadow-sm" style="background-color: var(--recar-primary); border: none;">
+                                <i class="bi bi-check2 me-1"></i> Lưu thay đổi
+                            </button>
                         </div>
                     </form>
                 </div>
             </div>
-        </section>
-    </div>
-
-    <footer>
-        <div class="footer clearfix mb-0 text-muted">
-            <div class="float-start">
-                <p>2021 &copy; Mazer</p>
-            </div>
-            <div class="float-end">
-                <p>
-                    Crafted with <span class="text-danger"><i class="bi bi-heart"></i></span> by <a href="http://ahmadsaugi.com">A. Saugi</a>
-                </p>
-            </div>
         </div>
-    </footer>
+    </div>
 </div>
-
-@section Scripts {
-    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
-}
-

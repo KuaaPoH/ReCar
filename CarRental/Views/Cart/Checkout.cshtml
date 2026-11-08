@@ -1,8 +1,10 @@
-﻿@model CarRental.ViewModels.CartVM
+@model CarRental.ViewModels.CartVM
 @{
     ViewData["Title"] = "Xác nhận & Thanh toán";
     Layout = "~/Views/Shared/_Layout.cshtml";
     List<CarRentalOrder> carRentalOrders = ViewBag.Order;
+    int depositPct = ViewBag.DepositPct ?? 30;
+    int remainPct = 100 - depositPct;
 }
 
 
@@ -19,7 +21,7 @@
         <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
             <div>
                 <h2 class="fw-bold mb-1" style="color: var(--recar-dark);">Hoàn tất thủ tục đặt cọc xe</h2>
-                <p class="text-muted mb-0">Thanh toán tiền đặt cọc 30% để giữ chỗ xe nhanh chóng và an toàn</p>
+                <p class="text-muted mb-0">Thanh toán tiền đặt cọc @depositPct% để giữ chỗ xe nhanh chóng và an toàn</p>
             </div>
             <div>
                 <span class="badge bg-success-subtle text-success px-3 py-2 rounded-pill fs-6">
@@ -91,16 +93,16 @@
                                 <input type="radio" id="pay-deposit" name="payment_choice" value="deposit_30" checked>
                                 <div>
                                     <div class="fw-bold text-dark d-flex align-items-center gap-2 flex-wrap">
-                                        Thanh toán đặt cọc 30% qua VNPay
+                                        Thanh toán đặt cọc @depositPct% qua VNPay
                                         <span class="badge bg-primary text-white small" style="font-size: 11px;">Khuyên dùng</span>
                                     </div>
                                     <div class="text-muted small">
-                                        Thanh toán trước <strong class="text-primary">@Model.Deposit.ToString("N0") đ</strong> (30%) để giữ xe · Còn lại <strong>@Model.Payment.ToString("N0") đ</strong> (70%) thanh toán khi nhận xe
+                                        Thanh toán trước <strong class="text-primary">@Model.Deposit.ToString("N0") đ</strong> (@depositPct%) để giữ xe · Còn lại <strong>@Model.Payment.ToString("N0") đ</strong> (@remainPct%) thanh toán khi nhận xe
                                     </div>
                                 </div>
                             </div>
                             <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-2 rounded-pill fw-semibold text-nowrap">
-                                Cọc 30%
+                                Cọc @depositPct%
                             </span>
                         </label>
 
@@ -134,7 +136,7 @@
 
                     <!-- Nút xác nhận thanh toán -->
                     <button type="submit" id="btnSubmitCheckout" class="btn btn-primary btn-lg w-100 rounded-3 py-3 fw-bold shadow">
-                        <i class="bi bi-lock-fill me-2"></i> Xác nhận & Thanh toán cọc 30% (@Model.Deposit.ToString("N0") đ)
+                        <i class="bi bi-lock-fill me-2"></i> Xác nhận & Thanh toán cọc @depositPct% (@Model.Deposit.ToString("N0") đ)
                     </button>
                     <p class="text-center text-muted small mt-2 mb-0">
                         Bằng việc bấm xác nhận, bạn đồng ý với <a href="/Home/Privacy" target="_blank" class="text-decoration-none">Điều khoản dịch vụ & Chính sách thuê xe</a> của ReCar.
@@ -154,14 +156,14 @@
                         </div>
                         <div class="price-breakdown-row bg-light p-3 rounded-3 my-2 border-0">
                             <div>
-                                <span class="fw-bold text-primary d-block" id="labelNowPay">Tiền thanh toán ngay (30%)</span>
+                                <span class="fw-bold text-primary d-block" id="labelNowPay">Tiền thanh toán ngay (@depositPct%)</span>
                                 <span class="small text-muted" id="sublabelNowPay">Thanh toán cọc trực tuyến qua VNPay</span>
                             </div>
                             <span class="fw-bold fs-4 text-primary" id="amountNowPay">@Model.Deposit.ToString("N0") đ</span>
                         </div>
                         <div class="price-breakdown-row">
                             <div>
-                                <span class="fw-semibold text-dark d-block" id="labelRemainPay">Còn lại khi nhận xe (70%)</span>
+                                <span class="fw-semibold text-dark d-block" id="labelRemainPay">Còn lại khi nhận xe (@remainPct%)</span>
                                 <span class="small text-muted" id="sublabelRemainPay">Thanh toán khi ký hợp đồng & nhận xe</span>
                             </div>
                             <span class="fw-bold fs-5 text-secondary" id="amountRemainPay">@Model.Payment.ToString("N0") đ</span>
@@ -218,15 +220,15 @@
 
                     $('#btnSubmitCheckout').html('<i class="bi bi-shield-check me-2"></i> Xác nhận & Thanh toán trọn gói 100% (' + formatVND(totalAmt) + ')');
                 } else {
-                    $('#labelNowPay').text('Tiền thanh toán ngay (30%)');
+                    $('#labelNowPay').text('Tiền thanh toán ngay (@depositPct%)');
                     $('#sublabelNowPay').text('Thanh toán cọc trực tuyến qua VNPay');
                     $('#amountNowPay').text(formatVND(depositAmt)).removeClass('text-success').addClass('text-primary');
 
-                    $('#labelRemainPay').text('Còn lại khi nhận xe (70%)');
+                    $('#labelRemainPay').text('Còn lại khi nhận xe (@remainPct%)');
                     $('#sublabelRemainPay').text('Thanh toán khi ký hợp đồng & nhận xe');
                     $('#amountRemainPay').text(formatVND(remainAmt)).removeClass('text-success').addClass('text-secondary');
 
-                    $('#btnSubmitCheckout').html('<i class="bi bi-lock-fill me-2"></i> Xác nhận & Thanh toán cọc 30% (' + formatVND(depositAmt) + ')');
+                    $('#btnSubmitCheckout').html('<i class="bi bi-lock-fill me-2"></i> Xác nhận & Thanh toán cọc @depositPct% (' + formatVND(depositAmt) + ')');
                 }
             });
 

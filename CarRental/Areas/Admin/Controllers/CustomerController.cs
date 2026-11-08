@@ -1,4 +1,4 @@
-﻿using CarRental.Models;
+using CarRental.Models;
 using CarRental.Utilities;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -15,24 +15,12 @@ namespace CarRental.Areas.Admin.Controllers
         }
         public IActionResult Index()
         {
-            //kiem tra trang thai dang nhap
-            if (!Function.IsLogin())
-            {
-
-                return RedirectToAction("Index", "Login");
-            }
-            var c = _context.Customers.OrderBy(b => b.CustomerId).ToList();
-            return View(c);
+            return RedirectToAction("Index", "UserManagement", new { area = "Admin" });
         }
         [HttpGet]
         public IActionResult Details (int? id)
         {
-            if (id == null || _context.Cars == null)
-            {
-                return NotFound();
-            }
-            var product = _context.Customers.FirstOrDefault(m => m.CustomerId == id);
-            return View(product);
+            return RedirectToAction("Details", "UserManagement", new { area = "Admin", id = id });
         }
     }
 }

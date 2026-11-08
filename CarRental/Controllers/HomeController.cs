@@ -20,8 +20,15 @@ namespace CarRental.Controllers
         public IActionResult Index()
         {
             
-            ViewBag.productFeatured = _context.Cars.Where(i => i.IsActive == true).OrderBy(i => i.CarId).ToList();
-            ViewBag.productDealofDay = _context.Cars.Where(i => i.IsSale == true && i.IsActive == true).OrderByDescending(i=>i.CarId).ToList();
+            ViewBag.productFeatured = _context.Cars
+                .Where(i => i.IsActive && i.CarStatus != "Chờ duyệt" && i.CarStatus != "Từ chối" && i.CarStatus != "Tạm ngừng" && i.CarStatus != "Ngưng hoạt động")
+                .OrderBy(i => i.CarId)
+                .ToList();
+
+            ViewBag.productDealofDay = _context.Cars
+                .Where(i => i.IsSale && i.IsActive && i.CarStatus != "Chờ duyệt" && i.CarStatus != "Từ chối" && i.CarStatus != "Tạm ngừng" && i.CarStatus != "Ngưng hoạt động")
+                .OrderByDescending(i => i.CarId)
+                .ToList();
             ViewBag.Blog = _context.Blogs.Where(i => i.IsActive == true).ToList();
             ViewBag.CarTypes = _context.CarTypes.ToList();
             ViewBag.Locations = _context.Locations.Where(l => l.IsActive).OrderBy(l => l.DisplayOrder).ToList();

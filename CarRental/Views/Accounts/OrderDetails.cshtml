@@ -1,4 +1,4 @@
-﻿@model IEnumerable<CarRental.ViewModels.OrderDetailVM>
+@model IEnumerable<CarRental.ViewModels.OrderDetailVM>
 @using CarRental.Utilities;
 @using CarRental.Models;
 @{
@@ -21,6 +21,11 @@
     int overKm = ViewBag.OverKm != null ? (int)ViewBag.OverKm : 0;
     decimal overKmFee = ViewBag.OverKmFee != null ? (decimal)ViewBag.OverKmFee : 0;
     int? fuelDiff = ViewBag.FuelDiff as int?;
+    decimal depositVal = (decimal)(ViewBag.Deposit ?? 0);
+    decimal paymentVal = (decimal)(ViewBag.Payment ?? 0);
+    decimal totalRentVal = depositVal + paymentVal;
+    decimal depositRate = totalRentVal > 0 ? Math.Round((depositVal / totalRentVal) * 100m, 0) : 30m;
+    bool isOrderFullPaid = paymentVal == 0 && depositVal > 0;
 }
 
 
@@ -49,7 +54,7 @@
                 else if (statusId == 3)
                 {
                     <span class="order-status-pill" style="background: #fef3c7; color: #92400e;">
-                        <i class="bi bi-clock-history"></i> Đã cọc 30% · Chờ nhận xe
+                        <i class="bi bi-clock-history"></i> @(isOrderFullPaid ? "Đã thanh toán 100% · Chờ nhận xe" : $"Đã cọc {depositRate:0.#}% · Chờ nhận xe")
                     </span>
                 }
                 else if (statusId == 4)
@@ -467,14 +472,9 @@
                         <span class="text-secondary small">@(string.IsNullOrEmpty(Function.GetAddress(Context.Session)) ? "Nhận tại địa chỉ bàn giao ReCar" : Function.GetAddress(Context.Session))</span>
                     </div>
 
-                    @{
-                        decimal depositVal = (decimal)(ViewBag.Deposit ?? 0);
-                        decimal paymentVal = (decimal)(ViewBag.Payment ?? 0);
-                        bool isOrderFullPaid = paymentVal == 0 && depositVal > 0;
-                    }
                     <div class="p-3 bg-light rounded-3 border mb-4">
                         <div class="d-flex justify-content-between mb-2 small">
-                            <span class="text-muted">@(isOrderFullPaid ? "Đã thanh toán qua sàn (100%):" : "Tiền cọc giữ chỗ (30%):")</span>
+                            <span class="text-muted">@(isOrderFullPaid ? "Đã thanh toán qua sàn (100%):" : $"Tiền cọc giữ chỗ ({depositRate:0.#}%):")</span>
                             <span class="fw-bold text-success">@depositVal.ToString("N0") đ</span>
                         </div>
                         <div class="d-flex justify-content-between small">
@@ -632,8 +632,8 @@
                         }
                         else
                         {
-                            <li>Bên B có nghĩa vụ thanh toán khoản tiền cọc 30% (@depositVal.ToString("N0") VNĐ) qua cổng thanh toán do ReCar bảo lãnh để xác nhận đặt xe.</li>
-                            <li>Số tiền còn lại 70% (@paymentVal.ToString("N0") VNĐ) sẽ được Bên B thanh toán trực tiếp cho Chủ xe (Bên A) ngay khi nhận bàn giao xe và đối chiếu thực tế.</li>
+                            <li>Bên B có nghĩa vụ thanh toán khoản tiền cọc @depositRate.ToString("0.#")% (@depositVal.ToString("N0") VNĐ) qua cổng thanh toán do ReCar bảo lãnh để xác nhận đặt xe.</li>
+                            <li>Số tiền còn lại @((100m - depositRate).ToString("0.#"))% (@paymentVal.ToString("N0") VNĐ) sẽ được Bên B thanh toán trực tiếp cho Chủ xe (Bên A) ngay khi nhận bàn giao xe và đối chiếu thực tế.</li>
                         }
                         @if (isWithDriver)
                         {

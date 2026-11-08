@@ -27,6 +27,12 @@ namespace CarRental.Areas.Admin.Controllers
             return Function.IsAdmin(HttpContext.Session);
         }
 
+        // GET: /Admin/CarOwners
+        public IActionResult Index(string? q)
+        {
+            return RedirectToAction("Pending", new { q = q });
+        }
+
         // GET: /Admin/CarOwners/Pending (Danh sách hồ sơ đăng ký chủ xe chờ duyệt)
         public async Task<IActionResult> Pending(string? q)
         {

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace CarRental.Models;
@@ -14,6 +14,10 @@ public partial class CarRentalOrder
     public decimal? Deposit { get; set; }
 
     public decimal? Payment { get; set; }
+
+    public decimal? PlatformFeeRate { get; set; }
+
+    public decimal? PlatformFee { get; set; }
 
     public int? StatusId { get; set; }
 

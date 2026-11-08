@@ -164,11 +164,12 @@ namespace CarRental.Areas.CarOwner.Controllers
                 foreach (var ord in cycleOrders)
                 {
                     decimal total = CalculateOrderTotal(ord);
-                    decimal dep = Math.Round(total * 0.30m, 0);
-                    decimal rem = Math.Round(total * 0.70m, 0);
-                    decimal fee = Math.Round(total * 0.10m, 0);
-                    decimal ownerNet = total - fee; // 90%
-                    decimal platformTransfer = dep - fee; // 20%
+                    decimal dep = ord.Deposit ?? Math.Round(total * 0.30m, 0);
+                    decimal rem = ord.Payment ?? Math.Round(total * 0.70m, 0);
+                    decimal feeRate = ord.PlatformFeeRate ?? 10.00m;
+                    decimal fee = ord.PlatformFee ?? Math.Round(total * (feeRate / 100m), 0);
+                    decimal ownerNet = total - fee;
+                    decimal platformTransfer = dep - fee;
 
                     depositTotal += dep;
                     feeTotal += fee;

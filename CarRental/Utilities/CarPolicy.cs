@@ -24,9 +24,14 @@ namespace CarRental.Utilities
         public string? FuelConsumption { get; set; }
         public string? ExtraDescription { get; set; }
 
-        public static CarPolicy Parse(Car? car)
+        public static CarPolicy Parse(Car? car, SystemSetting? setting = null)
         {
             var policy = new CarPolicy();
+            if (setting != null)
+            {
+                if (setting.DefaultKmPerDay > 0) policy.MileageLimit = setting.DefaultKmPerDay;
+                if (setting.ExtraKmPrice > 0) policy.ExtraFeePerKm = setting.ExtraKmPrice;
+            }
             if (car == null) return policy;
 
             var details = car.Details ?? string.Empty;

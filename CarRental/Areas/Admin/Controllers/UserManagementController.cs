@@ -68,6 +68,66 @@ namespace CarRental.Areas.Admin.Controllers
             return View(customerList);
         }
 
+        // GET: Admin/UserManagement/Create
+        public IActionResult Create()
+        {
+            if (!Function.IsLogin(HttpContext.Session) || !Function.IsAdmin(HttpContext.Session))
+            {
+                return RedirectToAction("Index", "Login");
+            }
+
+            ViewBag.RoleId = new SelectList(_context.Roles.ToList(), "RoleId", "RoleName", 2);
+            return View();
+        }
+
+        // POST: Admin/UserManagement/Create
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Create(Customer customer, string? rawPassword)
+        {
+            if (!Function.IsLogin(HttpContext.Session) || !Function.IsAdmin(HttpContext.Session))
+            {
+                return RedirectToAction("Index", "Login");
+            }
+
+            if (string.IsNullOrWhiteSpace(customer.Email))
+            {
+                ModelState.AddModelError("Email", "Vui lòng nhập email.");
+            }
+            else if (_context.Customers.Any(c => c.Email == customer.Email))
+            {
+                ModelState.AddModelError("Email", "Email này đã được sử dụng bởi một tài khoản khác.");
+            }
+
+            if (!string.IsNullOrWhiteSpace(customer.Username) && _context.Customers.Any(c => c.Username == customer.Username))
+            {
+                ModelState.AddModelError("Username", "Tên đăng nhập này đã tồn tại.");
+            }
+
+            if (string.IsNullOrWhiteSpace(rawPassword) || rawPassword.Length < 3)
+            {
+                ModelState.AddModelError("Password", "Mật khẩu phải có ít nhất 3 ký tự.");
+            }
+
+            if (ModelState.IsValid)
+            {
+                customer.Password = Function.MD5Password(rawPassword!);
+                customer.IsActive = true;
+                customer.Name = string.IsNullOrWhiteSpace(customer.Name) ? customer.FullName : customer.Name;
+                customer.FullName = string.IsNullOrWhiteSpace(customer.FullName) ? customer.Name : customer.FullName;
+                customer.LastLogin = Function.NowVn.ToString("yyyy-MM-dd HH:mm:ss");
+
+                _context.Customers.Add(customer);
+                await _context.SaveChangesAsync();
+
+                TempData["SuccessMessage"] = $"Tạo tài khoản {customer.FullName ?? customer.Username} thành công!";
+                return RedirectToAction(nameof(Index));
+            }
+
+            ViewBag.RoleId = new SelectList(_context.Roles.ToList(), "RoleId", "RoleName", customer.RoleId);
+            return View(customer);
+        }
+
         // GET: Admin/UserManagement/Details/5
         public async Task<IActionResult> Details(int? id)
         {

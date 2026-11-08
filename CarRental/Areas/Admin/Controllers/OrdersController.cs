@@ -24,6 +24,18 @@ namespace CarRental.Areas.Admin.Controllers
             return Function.IsLogin(HttpContext.Session) && Function.IsAdmin(HttpContext.Session);
         }
 
+        public IActionResult Details(int? id)
+        {
+            if (id == null || id == 0) return RedirectToAction("Index");
+            return RedirectToAction("Edit", new { id = id });
+        }
+
+        public IActionResult OrderDetails(int? id)
+        {
+            if (id == null || id == 0) return RedirectToAction("Index");
+            return RedirectToAction("Edit", new { id = id });
+        }
+
         public IActionResult Index(int? filterStatusId, string? q)
         {
             if (!CheckAdmin())

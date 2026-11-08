@@ -1,141 +1,114 @@
 @model CarRental.Models.Customer
+@using CarRental.Utilities;
 @{
+    ViewData["Title"] = "Hồ sơ Quản trị viên";
     Layout = "~/Areas/Admin/Views/Shared/_Layout.cshtml";
-
 }
-<div id="main">
-            <header class="mb-3">
-                <a href="#" class="burger-btn d-block d-xl-none">
-                    <i class="bi bi-justify fs-3"></i>
-                </a>
-            </header>
 
-            <div class="page-heading">
-                <div class="page-title">
-                    <div class="row">
-                        <div class="col-12 col-md-6 order-md-1 order-last">
-                            <h3>Form Layout</h3>
-                            <p class="text-subtitle text-muted">Multiple form layout you can use</p>
+<div class="container-fluid px-0">
+    <!-- Header -->
+    <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4">
+        <div>
+            <div class="d-flex align-items-center gap-2">
+                <a asp-controller="Home" asp-action="Index" class="btn btn-light btn-sm rounded-circle p-2 text-muted me-1">
+                    <i class="bi bi-arrow-left"></i>
+                </a>
+                <h1 class="h3 fw-bold mb-0 text-dark tracking-tight">Hồ sơ cá nhân Quản trị viên</h1>
+            </div>
+            <p class="text-muted small mb-0 mt-1 ms-5">Cập nhật thông tin tài khoản, tên hiển thị và mật khẩu bảo mật Admin.</p>
+        </div>
+        <div>
+            <a asp-controller="Home" asp-action="Index" class="btn btn-light btn-sm rounded-pill px-3 border">
+                <i class="bi bi-grid me-1"></i> Về bảng điều khiển
+            </a>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(Function._MessageEmail))
+    {
+        <div class="alert alert-danger rounded-3 alert-dismissible fade show mb-4 small" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i> @Function._MessageEmail
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <div class="row justify-content-center">
+        <div class="col-12 col-lg-8">
+            <div class="recar-panel mb-4">
+                <div class="recar-panel-header">
+                    <h2 class="h6 fw-bold mb-0 text-dark">
+                        <i class="bi bi-shield-lock text-primary me-2"></i> Thông tin tài khoản Super Admin
+                    </h2>
+                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill px-2.5 py-1">
+                        <i class="bi bi-shield-check me-1"></i> Quản trị cấp cao
+                    </span>
+                </div>
+                <div class="p-4">
+                    <div class="d-flex align-items-center gap-3 mb-4 pb-3 border-bottom">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold fs-3 shadow-sm" style="width: 64px; height: 64px; background: linear-gradient(135deg, #0f172a, #0284c7);">
+                            @((Model.FullName ?? Model.Username ?? "A")[0].ToString().ToUpper())
                         </div>
-                        <div class="col-12 col-md-6 order-md-2 order-first">
-                            <nav aria-label="breadcrumb" class="breadcrumb-header float-start float-lg-end">
-                                <ol class="breadcrumb">
-                                    <li class="breadcrumb-item"><a href="index.html">Dashboard</a></li>
-                                    <li class="breadcrumb-item active" aria-current="page">Form Layout</li>
-                                </ol>
-                            </nav>
+                        <div>
+                            <h5 class="fw-bold text-dark mb-0.5">@(Model.FullName ?? "Super Administrator")</h5>
+                            <div class="text-muted small">
+                                <span>Tên đăng nhập: <code class="font-mono-plate text-dark">@Model.Username</code></span>
+                                <span class="mx-1">·</span>
+                                <span>ID: #@Model.CustomerId</span>
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <!-- Basic Horizontal form layout section start -->
-                <section id="basic-horizontal-layouts">
-                    <div class="row match-height">
+                    <form asp-controller="Account" asp-action="Edit" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" asp-for="CustomerId" />
 
-                        <div class="col-md-6 col-12">
-                            <div class="card">
-                                <div class="card-header">
-                                    <h4 class="card-title">Horizontal Form with Icons</h4>
-                                </div>
-                                <div class="card-content">
-                                    <div class="card-body">
-                                        <form class="form form-horizontal" asp-controller="Account" asp-action="Edit" method="post">
-                                            <div class="form-body">
-                                                <div class="row">
-                                                    <div class="col-md-4">
-                                                        <label>Name</label>
-                                                    </div>
-                                                    <div class="col-md-8">
-                                                        <div class="form-group has-icon-left">
-                                                            <div class="position-relative">
-                                                                <input type="text" asp-for="Username" class="form-control"
-                                                                    placeholder="Name" id="first-name-icon">
-                                                                <div class="form-control-icon">
-                                                                    <i class="bi bi-person"></i>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    <div class="col-md-4">
-                                                        <label>Email</label>
-                                                    </div>
-                                                    <div class="col-md-8">
-                                                        <div class="form-group has-icon-left">
-                                                            <div class="position-relative">
-                                                                <input type="email" asp-for="Email" class="form-control"
-                                                                    placeholder="Email" id="first-name-icon">
-                                                                <div class="form-control-icon">
-                                                                    <i class="bi bi-envelope"></i>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    <div class="col-md-4">
-                                                        <label>Mobile</label>
-                                                    </div>
-                                                    <div class="col-md-8">
-                                                        <div class="form-group has-icon-left">
-                                                            <div class="position-relative">
-                                                                <input type="number" asp-for="Phone" class="form-control"
-                                                                    placeholder="Mobile">
-                                                                <div class="form-control-icon">
-                                                                    <i class="bi bi-phone"></i>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    <div class="col-md-4">
-                                                        <label>Password</label>
-                                                    </div>
-                                                    <div class="col-md-8">
-                                                        <div class="form-group has-icon-left">
-                                                            <div class="position-relative">
-                                                                <input type="password" asp-for="Password" class="form-control"
-                                                                    placeholder="Password">
-                                                                <div class="form-control-icon">
-                                                                    <i class="bi bi-lock"></i>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    <div class="form-group col-md-8 offset-md-4">
-                                                        <div class='form-check'>
-                                                            <div class="checkbox">
-                                                                <input type="checkbox" id="checkbox2"
-                                                                    class='form-check-input' checked>
-                                                                <label for="checkbox2">Remember Me</label>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    <div class="col-12 d-flex justify-content-end">
-                                                        <button 
-                                                            class="btn btn-primary me-1 mb-1" type="submit">Submit</button>
-                                                        <button type="reset"
-                                                            class="btn btn-light-secondary me-1 mb-1">Reset</button>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </form>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold small text-dark">Họ và tên hiển thị</label>
+                                <input type="text" asp-for="FullName" class="form-control rounded-3" placeholder="Administrator" required />
+                                <span asp-validation-for="FullName" class="text-danger small"></span>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold small text-dark">Tên đăng nhập (Username)</label>
+                                <input type="text" asp-for="Username" class="form-control rounded-3 font-mono-plate" required />
+                                <span asp-validation-for="Username" class="text-danger small"></span>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold small text-dark">Địa chỉ Email</label>
+                                <input type="email" asp-for="Email" class="form-control rounded-3" required />
+                                <span asp-validation-for="Email" class="text-danger small"></span>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold small text-dark">Số điện thoại liên hệ</label>
+                                <input type="tel" asp-for="PhoneNumber" class="form-control rounded-3" placeholder="09xx.xxx.xxx" />
+                                <span asp-validation-for="PhoneNumber" class="text-danger small"></span>
+                            </div>
+
+                            <div class="col-12">
+                                <div class="p-3 rounded-3 bg-light border mt-2">
+                                    <label class="form-label fw-bold small text-dark mb-1">
+                                        <i class="bi bi-key-fill text-warning me-1"></i> Đổi mật khẩu mới
+                                    </label>
+                                    <input type="password" asp-for="Password" class="form-control rounded-3" placeholder="Để trống nếu không muốn đổi mật khẩu" value="" />
+                                    <div class="text-muted" style="font-size: 0.75rem; margin-top: 4px;">
+                                        Mật khẩu hiện tại được mã hóa MD5 một chiều an toàn. Chỉ nhập mật khẩu mới khi bạn muốn thay đổi.
                                     </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                </section>
-                <!-- // Basic Horizontal form layout section end -->
 
-
-            </div>
-
-            <footer>
-                <div class="footer clearfix mb-0 text-muted">
-                    <div class="float-start">
-                        <p>2021 &copy; Mazer</p>
-                    </div>
-                    <div class="float-end">
-                        <p>Crafted with <span class="text-danger"><i class="bi bi-heart"></i></span> by <a
-                                href="http://ahmadsaugi.com">A. Saugi</a></p>
-                    </div>
+                        <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
+                            <a asp-controller="Home" asp-action="Index" class="btn btn-light btn-sm rounded-pill px-3">Hủy bỏ</a>
+                            <button type="submit" class="btn btn-primary btn-sm rounded-pill px-4 fw-semibold shadow-sm" style="background-color: var(--recar-primary); border: none;">
+                                <i class="bi bi-check2 me-1"></i> Lưu thông tin
+                            </button>
+                        </div>
+                    </form>
                 </div>
-            </footer>
+            </div>
         </div>
+    </div>
+</div>

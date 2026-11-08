@@ -20,7 +20,7 @@ namespace CarRental.ViewComponents
                 return View(items);
             }
 
-            var query = _context.Cars.Where(c => c.IsActive).AsQueryable();
+            var query = _context.Cars.Where(c => c.IsActive && c.CarStatus != "Chờ duyệt" && c.CarStatus != "Từ chối" && c.CarStatus != "Tạm ngừng" && c.CarStatus != "Ngưng hoạt động").AsQueryable();
 
             if (typeId.HasValue && typeId.Value > 0)
             {

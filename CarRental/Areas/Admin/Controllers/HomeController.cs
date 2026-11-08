@@ -31,7 +31,8 @@ namespace CarRental.Areas.Admin.Controllers
 
             decimal actualGmv = allOrders.Sum(o => o.Payment ?? 0);
             decimal gmv = actualGmv > 50000000 ? actualGmv : 312500000m; // GMV chuẩn mẫu nếu dữ liệu test ít
-            decimal commissionPct = 10m;
+            var sysSetting = _context.SystemSettings.FirstOrDefault();
+            decimal commissionPct = sysSetting?.CommissionPct ?? 10m;
             decimal netCommission = gmv * commissionPct / 100m;
 
             var activeCars = allCars.Where(c => c.CarStatus == "Sẵn sàng" || c.CarStatus == "Đang bận" || (c.IsActive && c.CarStatus != "Chờ duyệt" && c.CarStatus != "Bảo trì")).ToList();

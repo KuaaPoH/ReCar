@@ -1,82 +1,157 @@
 @model CarRental.Models.Customer
 @using CarRental.Utilities;
 @{
-    Layout = "";
+    Layout = null;
 }
 <!DOCTYPE html>
-<html lang="en">
-
+<html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - Mazer Admin Dashboard</title>
-    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="~/admin/assets/css/bootstrap.css">
-    <link rel="stylesheet" href="~/admin/assets/vendors/bootstrap-icons/bootstrap-icons.css">
-    <link rel="stylesheet" href="~/admin/assets/css/app.css">
-    <link rel="stylesheet" href="~/admin/assets/css/pages/auth.css">
+    <title>Đăng ký Quản trị viên — ReCar Admin Portal</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+    
+    <!-- Bootstrap 5 & Icons -->
+    <link rel="stylesheet" href="~/assets/css/vendor/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+            background: radial-gradient(circle at 50% 20%, #1e293b 0%, #0f172a 60%, #020617 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #f8fafc;
+            margin: 0;
+            padding: 1.5rem;
+        }
+        .admin-auth-card {
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 1.25rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 40px rgba(2, 132, 199, 0.15);
+            width: 100%;
+            max-width: 460px;
+            overflow: hidden;
+        }
+        .admin-brand-icon {
+            width: 52px;
+            height: 52px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, #0284c7, #38bdf8);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.5rem;
+            box-shadow: 0 8px 16px rgba(2, 132, 199, 0.35);
+        }
+        .form-control-recar {
+            background-color: rgba(30, 41, 59, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            color: #ffffff;
+            border-radius: 0.75rem;
+            padding: 0.75rem 1rem 0.75rem 2.75rem;
+            font-size: 0.92rem;
+            transition: all 0.2s ease;
+        }
+        .form-control-recar:focus {
+            background-color: rgba(30, 41, 59, 0.95);
+            border-color: #38bdf8;
+            box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2);
+            color: #ffffff;
+        }
+        .input-icon {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #64748b;
+            font-size: 1.05rem;
+            pointer-events: none;
+        }
+        .btn-admin-submit {
+            background: linear-gradient(135deg, #0284c7, #0369a1);
+            color: white;
+            font-weight: 700;
+            border: none;
+            border-radius: 0.75rem;
+            padding: 0.8rem;
+            font-size: 0.95rem;
+            box-shadow: 0 4px 14px rgba(2, 132, 199, 0.4);
+            transition: all 0.2s;
+        }
+        .btn-admin-submit:hover {
+            background: linear-gradient(135deg, #0369a1, #075985);
+            box-shadow: 0 6px 20px rgba(2, 132, 199, 0.55);
+            transform: translateY(-1px);
+            color: white;
+        }
+    </style>
 </head>
-
 <body>
-    <div id="auth">
-
-        <div class="row h-100">
-            <div class="col-lg-5 col-12">
-                <div id="auth-left">
-                    <div class="auth-logo">
-                        <a href="index.html"><img src="~/admin/assets/images/logo/logo.png" alt="Logo"></a>
-                    </div>
-                    <h1 class="auth-title">Sign Up</h1>
-                    <p class="auth-subtitle mb-5">Input your data to register to our website.</p>
-
-                    <form asp-controller="Register" asp-action="Index">
-                        <div class="form-group position-relative has-icon-left mb-4">
-                            <input type="text" asp-for="Email" class="form-control form-control-xl" placeholder="Email">
-                            <div class="form-control-icon">
-                                <i class="bi bi-envelope"></i>
-                            </div>
-                        </div>
-                        <div class="form-group position-relative has-icon-left mb-4">
-                            <input type="text" asp-for="Username" class="form-control form-control-xl" placeholder="Username">
-                            <div class="form-control-icon">
-                                <i class="bi bi-person"></i>
-                            </div>
-                        </div>
-                        <div class="form-group position-relative has-icon-left mb-4">
-                            <input type="password" asp-for="Password" class="form-control form-control-xl" placeholder="Password">
-                            <div class="form-control-icon">
-                                <i class="bi bi-shield-lock"></i>
-                            </div>
-                        </div>
-                        <div class="form-group position-relative has-icon-left mb-4">
-                            <input type="password"  class="form-control form-control-xl" placeholder="Confirm Password">
-                            <div class="form-control-icon">
-                                <i class="bi bi-shield-lock"></i>
-                            </div>
-                        </div>
-                        <div class="form-group position-relative has-icon-left mb-4">
-                            @Function._MessageEmail
-                        </div>
-                        <button class="btn btn-primary btn-block btn-lg shadow-lg mt-5">Sign Up</button>
-                    </form>
-                    <div class="text-center mt-5 text-lg fs-4">
-                        <p class='text-gray-600'>
-                            Already have an account? <a href="auth-login.html"
-                                                        class="font-bold">
-                                Log
-                                in
-                            </a>.
-                        </p>
-                    </div>
-                </div>
+    <div class="admin-auth-card p-4 p-sm-5">
+        <div class="text-center mb-4">
+            <div class="admin-brand-icon mb-3">
+                <i class="bi bi-shield-plus"></i>
             </div>
-            <div class="col-lg-7 d-none d-lg-block">
-                <div id="auth-right">
-                </div>
+            <div class="d-flex align-items-center justify-content-center gap-2 mb-1">
+                <span class="fs-4 fw-bold tracking-tight text-white">ReCar</span>
+                <span class="badge" style="background-color: rgba(56, 189, 248, 0.2); color: #38bdf8; font-size: 0.7rem; letter-spacing: 0.08em;">ADMIN PORTAL</span>
             </div>
+            <p class="text-muted small mb-0">Đăng ký tài khoản Quản trị viên mới</p>
         </div>
 
+        @if (!string.IsNullOrEmpty(Function._MessageEmail))
+        {
+            <div class="alert alert-danger border-0 rounded-3 d-flex align-items-center gap-2 py-2.5 px-3 mb-4" style="background-color: rgba(239, 68, 68, 0.15); color: #fca5a5; font-size: 0.85rem;">
+                <i class="bi bi-exclamation-circle-fill fs-6 text-danger"></i>
+                <div>@Function._MessageEmail</div>
+            </div>
+        }
+
+        <form asp-area="Admin" asp-controller="Register" asp-action="Index" method="post">
+            <div class="mb-3">
+                <label class="form-label small fw-semibold text-slate-300" style="color: #cbd5e1;">Email quản trị</label>
+                <div class="position-relative">
+                    <i class="bi bi-envelope input-icon"></i>
+                    <input type="email" asp-for="Email" class="form-control form-control-recar" placeholder="admin@recar.vn" required />
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label small fw-semibold text-slate-300" style="color: #cbd5e1;">Tên đăng nhập</label>
+                <div class="position-relative">
+                    <i class="bi bi-person input-icon"></i>
+                    <input type="text" asp-for="Username" class="form-control form-control-recar" placeholder="Tên đăng nhập (username)" required />
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label small fw-semibold text-slate-300" style="color: #cbd5e1;">Mật khẩu</label>
+                <div class="position-relative">
+                    <i class="bi bi-shield-lock input-icon"></i>
+                    <input type="password" asp-for="Password" class="form-control form-control-recar" placeholder="••••••••" required />
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-admin-submit w-100 mb-3">
+                <i class="bi bi-check2-circle me-1.5"></i> Tạo tài khoản Quản trị
+            </button>
+
+            <div class="text-center pt-2 border-top" style="border-color: rgba(255, 255, 255, 0.08) !important;">
+                <a asp-area="Admin" asp-controller="Login" asp-action="Index" class="text-info text-decoration-none small" style="font-size: 0.85rem;">
+                    <i class="bi bi-arrow-left me-1"></i> Đã có tài khoản? Đăng nhập
+                </a>
+            </div>
+        </form>
     </div>
 </body>
-
 </html>

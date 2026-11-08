@@ -2,7 +2,9 @@
 @{
     ViewData["Title"] = "Xe đang giữ chỗ – ReCar";
     decimal total = Model != null ? Model.Sum(p => p.PriceTotal) : 0;
-    decimal deposit = total * 0.3m;
+    int depositPct = ViewBag.DepositPct ?? 30;
+    int remainPct = 100 - depositPct;
+    decimal deposit = total * (depositPct / 100m);
     decimal remaining = total - deposit;
 }
 
@@ -17,7 +19,7 @@
             </ol>
         </nav>
         <h1 class="fs-4 fw-bold text-dark mt-2 mb-0">Xe đang chọn thuê</h1>
-        <p class="text-muted small m-0">Kiểm tra thông tin lịch trình và tiến hành đặt cọc giữ chỗ 30%</p>
+        <p class="text-muted small m-0">Kiểm tra thông tin lịch trình và tiến hành đặt cọc giữ chỗ @depositPct%</p>
     </div>
 </div>
 <!-- Breadcrumb Area End -->
@@ -120,12 +122,12 @@
                     </div>
 
                     <div class="d-flex justify-content-between py-2 border-bottom">
-                        <span class="fw-bold text-primary">Tiền đặt cọc giữ chỗ (30%):</span>
+                        <span class="fw-bold text-primary">Tiền đặt cọc giữ chỗ (@depositPct%):</span>
                         <span class="fw-bold text-primary fs-5">@deposit.ToString("N0")đ</span>
                     </div>
 
                     <div class="d-flex justify-content-between py-2 border-bottom small text-muted">
-                        <span>Thanh toán cho chủ xe khi nhận (70%):</span>
+                        <span>Thanh toán cho chủ xe khi nhận (@remainPct%):</span>
                         <span class="fw-semibold text-dark">@remaining.ToString("N0")đ</span>
                     </div>
 
@@ -135,7 +137,7 @@
                             <div>
                                 <strong>Bảo vệ đặt cọc ReCar (Trung gian):</strong>
                                 <p class="m-0 mt-1" style="font-size: 0.78rem;">
-                                    ReCar là nền tảng trung gian bảo vệ giao dịch. Tiền cọc 30% được giữ an toàn qua cổng VNPay và chỉ giải ngân sau khi hai bên ký kết biên bản bàn giao xe.
+                                    ReCar là nền tảng trung gian bảo vệ giao dịch. Tiền cọc @depositPct% được giữ an toàn qua cổng VNPay và chỉ giải ngân sau khi hai bên ký kết biên bản bàn giao xe.
                                 </p>
                             </div>
                         </div>

@@ -75,6 +75,8 @@ public virtual DbSet<Blog> Blogs { get; set; }
 
     public virtual DbSet<CarCalendarBlock> CarCalendarBlocks { get; set; }
 
+    public virtual DbSet<SystemSetting> SystemSettings { get; set; }
+
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -158,6 +160,8 @@ modelBuilder.Entity<Blog>(entity =>
             entity.Property(e => e.Deposit).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.Notes).HasMaxLength(50);
             entity.Property(e => e.Payment).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.PlatformFeeRate).HasColumnType("decimal(5, 2)");
+            entity.Property(e => e.PlatformFee).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.StatusId).HasColumnName("StatusID");
 
             entity.HasOne(d => d.Customer).WithMany(p => p.CarRentalOrders)
@@ -314,6 +318,9 @@ modelBuilder.Entity<Blog>(entity =>
             entity.Property(e => e.Alias).HasMaxLength(150);
             entity.Property(e => e.Description).HasMaxLength(500);
             entity.Property(e => e.Title).HasMaxLength(150);
+            entity.Property(e => e.Icon).HasMaxLength(100);
+            entity.Property(e => e.Subsystem).HasMaxLength(50).HasDefaultValue("Customer");
+            entity.Property(e => e.Url).HasMaxLength(255);
         });
 
         modelBuilder.Entity<Message>(entity =>
@@ -528,6 +535,20 @@ modelBuilder.Entity<Blog>(entity =>
                 .WithMany()
                 .HasForeignKey(d => d.CarId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<SystemSetting>(entity =>
+        {
+            entity.HasKey(e => e.SettingId);
+            entity.ToTable("system_settings");
+
+            entity.Property(e => e.SettingId).HasColumnName("SettingId");
+            entity.Property(e => e.ExtraKmPrice).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.Hotline).HasMaxLength(50);
+            entity.Property(e => e.SupportEmail).HasMaxLength(100);
+            entity.Property(e => e.PlatformName).HasMaxLength(150);
+            entity.Property(e => e.Address).HasMaxLength(255);
+            entity.Property(e => e.UpdatedAt).HasColumnType("datetime");
         });
 
         OnModelCreatingPartial(modelBuilder);

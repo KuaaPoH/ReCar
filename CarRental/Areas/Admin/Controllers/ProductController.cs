@@ -1,4 +1,4 @@
-﻿using CarRental.Models;
+using CarRental.Models;
 using CarRental.Utilities;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
@@ -17,13 +17,7 @@ namespace CarRental.Areas.Admin.Controllers
         }
         public IActionResult Index()
         {
-            //kiem tra trang thai dang nhap
-            if (!Function.IsLogin())
-            {
-                return RedirectToAction("Index", "Login");
-            }
-            var carList = _context.Cars.OrderBy(m => m.CarId).ToList();
-            return View(carList);
+            return RedirectToAction("Index", "Cars", new { area = "Admin" });
         }
         public IActionResult Create()
         {

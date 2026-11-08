@@ -1,4 +1,4 @@
-﻿@model CarRental.Models.Car
+@model CarRental.Models.Car
 @using CarRental.Utilities
 @{
     ViewData["Title"] = Model.CarName + " – Chi tiết thuê xe";
@@ -12,7 +12,11 @@
     string nextDayStr = DateTime.Now.AddDays(2).ToString("yyyy-MM-dd");
 
     bool hasDiscount = Model.IsSale && Model.SalePrice.HasValue && Model.SalePrice > 0 && Model.SalePrice < Model.Price;
-    decimal finalPrice = hasDiscount ? Model.SalePrice.Value : (Model.Price ?? 0);
+    decimal finalPrice = hasDiscount ? Model.SalePrice.Value : (Model.Price ?? 0);
+    int depositPct = ViewBag.DepositPct ?? 30;
+    decimal depositRate = depositPct / 100m;
+    int remainPct = 100 - depositPct;
+    decimal remainRate = remainPct / 100m;
     string carImg = string.IsNullOrEmpty(Model.Image) ? "/images/cars/car-sedan.jpg" : Model.Image;
 
     var allPhotos = new List<string>();
@@ -518,12 +522,12 @@
                         </div>
                         <hr class="my-2" />
                         <div class="d-flex justify-content-between mb-1">
-                            <span class="fw-bold text-primary">Tiền đặt cọc giữ chỗ (30%):</span>
-                            <span class="fw-bold text-primary fs-6" id="depositPriceText">@((finalPrice * 2 * 0.3m).ToString("N0"))đ</span>
+                            <span class="fw-bold text-primary">Tiền đặt cọc giữ chỗ (@depositPct%):</span>
+                            <span class="fw-bold text-primary fs-6" id="depositPriceText">@((finalPrice * 2 * depositRate).ToString("N0"))đ</span>
                         </div>
                         <div class="d-flex justify-content-between text-muted" style="font-size: 0.78rem;">
-                            <span>Thanh toán khi nhận xe (70%):</span>
-                            <span id="remainPriceText">@((finalPrice * 2 * 0.7m).ToString("N0"))đ</span>
+                            <span>Thanh toán khi nhận xe (@remainPct%):</span>
+                            <span id="remainPriceText">@((finalPrice * 2 * remainRate).ToString("N0"))đ</span>
                         </div>
                         <div class="d-flex justify-content-between text-muted pt-2 mt-2 border-top" style="font-size: 0.78rem;">
                             <span><i class="bi bi-speedometer2 text-primary me-1"></i>Hạn mức di chuyển:</span>
@@ -565,7 +569,7 @@
                     </button>
                     
                     <p class="text-muted text-center m-0" style="font-size: 0.75rem;">
-                        <i class="bi bi-shield-lock-fill text-success me-1"></i> Đặt cọc 30% trực tuyến an toàn qua cổng VNPay.
+                        <i class="bi bi-shield-lock-fill text-success me-1"></i> Đặt cọc @depositPct% trực tuyến an toàn qua cổng VNPay.
                     </p>
                 </form>
             </div>
@@ -840,7 +844,8 @@
                 var driverFeeTotal = (currentDriveMode === 'Có tài xế') ? (driverFeeDaily * diffDays) : 0;
                 var total = carTotal + driverFeeTotal;
 
-                var deposit = Math.round(total * 0.3);
+                var depositRate = @depositPct / 100.0;
+                var deposit = Math.round(total * depositRate);
                 var remain = total - deposit;
 
                 $('#rentalDaysText').text(diffDays + ' ngày');

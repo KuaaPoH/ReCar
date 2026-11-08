@@ -1,75 +1,158 @@
 @model CarRental.Models.Menu
 @{
-    ViewData["Title"] = "Chỉnh sửa menu";
+    ViewData["Title"] = $"Chỉnh sửa Menu #{Model.MenuId}";
+    var parentCandidates = ViewBag.ParentCandidates as List<CarRental.Models.Menu> ?? new List<CarRental.Models.Menu>();
+    var availableIcons = ViewBag.AvailableIcons as List<(string Icon, string Name)> ?? new List<(string Icon, string Name)>();
+    string targetSub = Model.Subsystem ?? "Customer";
+    int currentParentId = Model.ParentId ?? 0;
+    string curIcon = !string.IsNullOrWhiteSpace(Model.Icon) ? Model.Icon : "bi-link-45deg";
 }
 
-<div class="container-fluid px-0" style="max-width: 800px;">
-    <!-- Header -->
-    <div class="d-flex align-items-center justify-content-between mb-4">
-        <div>
-            <h1 class="h3 fw-bold mb-0 text-dark tracking-tight">Chỉnh sửa menu</h1>
-            <p class="text-muted small mb-0 mt-1">Cập nhật thông tin mục điều hướng #@Model.MenuId</p>
-        </div>
-        <a asp-action="Index" class="btn btn-outline-secondary btn-sm rounded-pill px-3 py-1.5 fw-medium">
-            <i class="bi bi-arrow-left me-1"></i> Quay lại
+<div class="container-fluid px-0" style="max-width: 900px;">
+    <!-- Breadcrumb & Header -->
+    <div class="mb-4">
+        <a asp-action="Index" asp-route-tab="@targetSub" class="text-decoration-none text-muted small d-inline-flex align-items-center gap-1 mb-2">
+            <i class="bi bi-arrow-left"></i> Quay lại danh sách Menu
         </a>
+        <div class="d-flex align-items-center justify-content-between">
+            <div>
+                <h1 class="h3 fw-bold mb-1 text-dark tracking-tight">Chỉnh sửa Menu: @Model.Title</h1>
+                <p class="text-muted small mb-0">Cập nhật thông tin, icon, phân hệ và liên kết điều hướng.</p>
+            </div>
+            <span class="badge bg-light text-primary border rounded-pill px-3 py-2 fw-semibold">
+                ID: #@Model.MenuId
+            </span>
+        </div>
     </div>
 
-    <!-- Form Panel -->
-    <div class="recar-panel p-4">
-        <form asp-action="Edit" method="post">
-            <div asp-validation-summary="ModelOnly" class="alert alert-danger small py-2 px-3 mb-3" style="display:none;"></div>
-            <input type="hidden" asp-for="MenuId" />
+    <form asp-action="Edit" method="post" id="menuEditForm">
+        @Html.AntiForgeryToken()
+        <input type="hidden" asp-for="MenuId" />
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger rounded-3 py-2 px-3 small mb-3"></div>
 
-            <div class="mb-3">
-                <label asp-for="Title" class="form-label fw-semibold small text-dark">Tiêu đề hiển thị <span class="text-danger">*</span></label>
-                <input asp-for="Title" class="form-control" required />
-                <span asp-validation-for="Title" class="text-danger small"></span>
+        <div class="recar-panel mb-4">
+            <div class="recar-panel-header py-3 px-4 bg-light border-bottom">
+                <h6 class="fw-bold mb-0 text-dark">
+                    <i class="bi bi-pencil-square text-primary me-2"></i> Thông tin Menu
+                </h6>
             </div>
+            <div class="p-4">
+                <div class="row g-3">
+                    <!-- 1. Phân hệ -->
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold small text-dark">Phân hệ điều hướng <span class="text-danger">*</span></label>
+                        <select asp-for="Subsystem" class="form-select rounded-3" id="selectSubsystem">
+                            <option value="Customer" selected="@(targetSub == "Customer")">1. Khách hàng (Sàn thuê xe)</option>
+                            <option value="CarOwner" selected="@(targetSub == "CarOwner")">2. Chủ xe (Cổng Host Pro)</option>
+                            <option value="Admin" selected="@(targetSub == "Admin")">3. Quản trị viên (Hệ thống Admin)</option>
+                        </select>
+                        <div class="text-muted" style="font-size: 0.72rem; margin-top: 4px;">Xác định menu này hiển thị ở giao diện người dùng nào.</div>
+                    </div>
 
-            <div class="mb-3">
-                <label asp-for="Alias" class="form-label fw-semibold small text-dark">Đường dẫn (Alias/Slug)</label>
-                <input asp-for="Alias" class="form-control" />
-                <span asp-validation-for="Alias" class="text-danger small"></span>
-            </div>
+                    <!-- 2. Menu Cha (Parent) -->
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold small text-dark">Menu Cha (Cấp bậc) <span class="text-danger">*</span></label>
+                        <select asp-for="ParentId" class="form-select rounded-3" id="selectParentId">
+                            <option value="0" selected="@(currentParentId == 0)">-- Là Menu gốc chính / Tiêu đề nhóm (Cấp 1) --</option>
+                            @foreach (var parent in parentCandidates)
+                            {
+                                bool isGroup = parent.Url == "#" || string.IsNullOrWhiteSpace(parent.Url);
+                                <option value="@parent.MenuId" selected="@(currentParentId == parent.MenuId)">
+                                    @(isGroup ? "📁 [Nhóm] " : "↳ Thuộc cha: ")@parent.Title
+                                </option>
+                            }
+                        </select>
+                        <div class="text-muted" style="font-size: 0.72rem; margin-top: 4px;">Chọn menu cha nếu đây là menu con (dropdown), hoặc để cấp 1 nếu là menu chính.</div>
+                    </div>
 
-            <div class="mb-3">
-                <label asp-for="Description" class="form-label fw-semibold small text-dark">Mô tả ngắn</label>
-                <textarea asp-for="Description" class="form-control" rows="2"></textarea>
-                <span asp-validation-for="Description" class="text-danger small"></span>
-            </div>
+                    <!-- 3. Tiêu đề Menu -->
+                    <div class="col-md-7">
+                        <label class="form-label fw-bold small text-dark">Tiêu đề hiển thị <span class="text-danger">*</span></label>
+                        <input asp-for="Title" class="form-control rounded-3" placeholder="VD: Quản lý đội xe..." required />
+                        <span asp-validation-for="Title" class="text-danger small"></span>
+                    </div>
 
-            <div class="row g-3 mb-3">
-                <div class="col-md-4">
-                    <label asp-for="Levels" class="form-label fw-semibold small text-dark">Cấp bậc (Level)</label>
-                    <input asp-for="Levels" type="number" class="form-control" min="1" max="5" />
-                    <span asp-validation-for="Levels" class="text-danger small"></span>
+                    <!-- 4. Thứ tự sắp xếp -->
+                    <div class="col-md-5">
+                        <label class="form-label fw-bold small text-dark">Thứ tự hiển thị (Position)</label>
+                        <input asp-for="Position" type="number" class="form-control rounded-3" min="1" max="99" />
+                    </div>
+
+                    <!-- 5. Đường dẫn URL -->
+                    <div class="col-12">
+                        <label class="form-label fw-bold small text-dark">Đường dẫn liên kết (URL / Route) <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light rounded-start-3 text-muted"><i class="bi bi-link"></i></span>
+                            <input asp-for="Url" class="form-control rounded-end-3 font-monospace" placeholder="VD: /Admin/Cars/Index, /Product..." />
+                        </div>
+                        <div class="text-muted" style="font-size: 0.72rem; margin-top: 4px;">Đường dẫn URL nội bộ hoặc liên kết web khi người dùng click vào menu.</div>
+                    </div>
+
+                    <!-- 6. Chọn & Xem trước Icon -->
+                    <div class="col-12">
+                        <label class="form-label fw-bold small text-dark">Biểu tượng Icon (Bootstrap Icons)</label>
+                        <div class="row g-2 align-items-center">
+                            <div class="col-auto">
+                                <!-- Live Icon Preview -->
+                                <div id="iconPreviewBox" style="width: 46px; height: 46px; border-radius: 12px; background: #e0f2fe; color: #0284c7; display: flex; align-items: center; justify-content: center; font-size: 22px; border: 1px solid #bae6fd;">
+                                    <i class="bi @curIcon" id="iconPreviewEl"></i>
+                                </div>
+                            </div>
+                            <div class="col-md-5">
+                                <select class="form-select rounded-3" id="iconPresetSelect" onchange="applyPresetIcon(this.value)">
+                                    <option value="">-- Chọn icon phổ biến gợi ý --</option>
+                                    @foreach (var ic in availableIcons)
+                                    {
+                                        <option value="@ic.Icon" selected="@(curIcon == ic.Icon)">@ic.Icon (@ic.Name)</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="col">
+                                <input asp-for="Icon" id="txtIconClass" class="form-control rounded-3 font-monospace" placeholder="Hoặc gõ mã icon (VD: bi-speedometer2)" oninput="updateIconPreview(this.value)" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 7. Mô tả ngắn -->
+                    <div class="col-12">
+                        <label class="form-label fw-bold small text-dark">Mô tả / Ghi chú mục đích menu</label>
+                        <input asp-for="Description" class="form-control rounded-3" placeholder="Ghi chú tóm tắt vai trò của menu này..." />
+                    </div>
+
+                    <!-- 8. Trạng thái -->
+                    <div class="col-12 pt-2">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" role="switch" id="switchActive" name="IsActive" value="true" @(Model.IsActive == true ? "checked" : "") />
+                            <label class="form-check-label fw-semibold text-dark small" for="switchActive">
+                                Kích hoạt hiển thị menu này
+                            </label>
+                        </div>
+                    </div>
                 </div>
-                <div class="col-md-4">
-                    <label asp-for="ParentId" class="form-label fw-semibold small text-dark">Menu cha (ID)</label>
-                    <input asp-for="ParentId" type="number" class="form-control" />
-                    <span asp-validation-for="ParentId" class="text-danger small"></span>
-                </div>
-                <div class="col-md-4">
-                    <label asp-for="Position" class="form-label fw-semibold small text-dark">Thứ tự hiển thị</label>
-                    <input asp-for="Position" type="number" class="form-control" min="1" />
-                    <span asp-validation-for="Position" class="text-danger small"></span>
-                </div>
             </div>
-
-            <div class="mb-4">
-                <div class="form-check form-switch">
-                    <input class="form-check-input" type="checkbox" role="switch" id="IsActiveSwitch" name="IsActive" value="true" @(Model.IsActive.HasValue && Model.IsActive.Value ? "checked" : "") />
-                    <label class="form-check-label fw-semibold small text-dark" for="IsActiveSwitch">Hiển thị menu này trên website</label>
-                </div>
-            </div>
-
-            <div class="d-flex justify-content-end gap-2 pt-3 border-top">
-                <a asp-action="Index" class="btn btn-light border px-4 py-2">Hủy bỏ</a>
-                <button type="submit" class="btn btn-primary px-4 py-2 fw-semibold" style="background-color: var(--recar-primary); border: none;">
-                    <i class="bi bi-check-lg me-1"></i> Lưu thay đổi
+            <div class="recar-panel-footer p-3 bg-light border-top d-flex justify-content-end gap-2">
+                <a asp-action="Index" asp-route-tab="@targetSub" class="btn btn-light rounded-pill px-4 small border">Hủy bỏ</a>
+                <button type="submit" class="btn btn-primary rounded-pill px-4 small fw-semibold shadow-sm" style="background-color: var(--recar-primary); border: none;">
+                    <i class="bi bi-floppy me-1"></i> Lưu thay đổi
                 </button>
             </div>
-        </form>
-    </div>
+        </div>
+    </form>
 </div>
+
+@section Scripts {
+<script>
+    function updateIconPreview(val) {
+        val = val.trim();
+        if (!val) val = 'bi-link-45deg';
+        $('#iconPreviewEl').attr('class', 'bi ' + val);
+    }
+
+    function applyPresetIcon(val) {
+        if (val) {
+            $('#txtIconClass').val(val);
+            updateIconPreview(val);
+        }
+    }
+</script>
+}

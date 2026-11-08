@@ -32,17 +32,31 @@ namespace CarRental.Areas.Admin.Controllers
             var allCars = _context.Cars.ToList();
             var allOrders = _context.CarRentalOrders.ToList();
 
-            decimal totalGmv = allOrders.Sum(o => o.Payment ?? 0);
+            var sysSetting = _context.SystemSettings.FirstOrDefault();
+            decimal defaultCommRate = (sysSetting?.CommissionPct ?? 10) / 100m;
+            decimal defaultDepRate = (sysSetting?.DepositPct ?? 30) / 100m;
+
+            decimal totalGmv = allOrders.Sum(o => (o.Deposit ?? 0) + (o.Payment ?? 0));
             if (totalGmv < 50000000) totalGmv = 312500000m;
 
-            decimal totalDeposit = totalGmv * 0.3m;
-            decimal totalCommission = totalGmv * 0.1m;
+            decimal totalDeposit = allOrders.Any() && allOrders.Sum(o => o.Deposit ?? 0) > 0 
+                ? allOrders.Sum(o => o.Deposit ?? 0) 
+                : (totalGmv * defaultDepRate);
+            if (totalDeposit < 15000000) totalDeposit = totalGmv * defaultDepRate;
+
+            decimal totalCommission = allOrders.Any(o => o.PlatformFee.HasValue)
+                ? allOrders.Sum(o => o.PlatformFee ?? (((o.Deposit ?? 0) + (o.Payment ?? 0)) * defaultCommRate))
+                : (totalGmv * defaultCommRate);
+            if (totalCommission < 5000000) totalCommission = totalGmv * defaultCommRate;
+
             decimal totalOwnerPayout = totalGmv - totalCommission;
 
             ViewBag.TotalGmv = totalGmv;
             ViewBag.TotalDeposit = totalDeposit;
             ViewBag.TotalCommission = totalCommission;
             ViewBag.TotalOwnerPayout = totalOwnerPayout;
+            ViewBag.CurrentCommissionPct = sysSetting?.CommissionPct ?? 10;
+            ViewBag.CurrentDepositPct = sysSetting?.DepositPct ?? 30;
 
             // Bảng đối soát theo từng chủ xe (thống nhất bảng Customers)
             var ownersList = _context.Customers.Where(a => a.RoleId == 3).ToList();

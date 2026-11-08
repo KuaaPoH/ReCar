@@ -1,4 +1,5 @@
 @using CarRental.Utilities
+@inject CarRental.Models.DbRenalCarContext _db
 <!doctype html>
 <html lang="vi">
 <head>
@@ -41,11 +42,30 @@
                 var currentAct = ViewContext.RouteData.Values["action"]?.ToString();
             }
             <nav class="d-none d-md-flex align-items-center gap-1">
-                <a href="/" class="recar-nav-pill @(currentCtrl == "Home" && currentAct == "Index" ? "active" : "")">Trang chủ</a>
-                <a href="/Product" class="recar-nav-pill @(currentCtrl == "Product" && currentAct == "Index" ? "active" : "")">Thuê xe</a>
-                <a href="/Blog" class="recar-nav-pill @(currentCtrl == "Blog" ? "active" : "")">Cẩm nang</a>
-                <a href="/News" class="recar-nav-pill @(currentCtrl == "News" ? "active" : "")">Tin tức</a>
-                <a href="/Contact" class="recar-nav-pill @(currentCtrl == "Contact" ? "active" : "")">Liên hệ</a>
+                @{
+                    var customerNavItems = _db.Menus
+                        .Where(m => (m.Subsystem == "Customer" || string.IsNullOrEmpty(m.Subsystem)) && (m.IsActive ?? false) && (m.ParentId == null || m.ParentId == 0))
+                        .OrderBy(m => m.Position)
+                        .ToList();
+
+                    var curPath = Context.Request.Path.Value ?? "/";
+
+                    foreach (var m in customerNavItems)
+                    {
+                        string mUrl = !string.IsNullOrWhiteSpace(m.Url) ? m.Url : ("/" + m.Alias);
+                        bool isItemActive = false;
+                        if (mUrl == "/" || mUrl == "")
+                        {
+                            isItemActive = (currentCtrl == "Home" && currentAct == "Index") || curPath == "/";
+                        }
+                        else
+                        {
+                            isItemActive = curPath.StartsWith(mUrl, StringComparison.OrdinalIgnoreCase);
+                        }
+
+                        <a href="@mUrl" class="recar-nav-pill @(isItemActive ? "active" : "")">@m.Title</a>
+                    }
+                }
             </nav>
 
             <!-- Navigation Actions: Khi chưa login hiện Đăng nhập/Đăng ký; sau khi login hiện avatar & tên user -->

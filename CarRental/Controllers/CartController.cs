@@ -44,7 +44,11 @@ namespace CarRental.Controllers
             int rentalDays = (returnDate - pickupDate).Days;
             if (rentalDays <= 0) rentalDays = 1;
 
-            if (product == null) {
+            if (product == null || !product.IsActive || product.CarStatus == "Tạm ngừng" || product.CarStatus == "Ngưng hoạt động" || product.CarStatus == "Chờ duyệt" || product.CarStatus == "Từ chối") {
+                TempData["Error"] = "Xe này hiện đang ngưng hoạt động trên sàn ReCar, quý khách vui lòng chọn xe khác.";
+                return RedirectToAction("Index", "Product");
+            }
+            if (false) {
                 return NotFound();// nếu không tìm thấy sp
             }
             decimal finalPrice;
@@ -113,7 +117,10 @@ namespace CarRental.Controllers
             decimal total = cart.Sum(item => item.PriceTotal);
            
 
-            decimal deposit = total * 0.3m; // Tiền đặt cọc 30%
+            var sysSetting = _context.SystemSettings.FirstOrDefault();
+            decimal depositRate = (sysSetting?.DepositPct ?? 30) / 100m;
+            decimal deposit = Math.Round(total * depositRate, 0); // Tiền đặt cọc theo cấu hình sàn
+            ViewBag.DepositPct = sysSetting?.DepositPct ?? 30;
             decimal payment = total - deposit; // Số tiền còn lại khi nhận xe
 
             // Tạo ViewModel
@@ -186,7 +193,10 @@ namespace CarRental.Controllers
             decimal total = cart.Sum(item => item.PriceTotal);
 
 
-            decimal deposit = total * 0.3m; // Tiền đặt cọc 30%
+            var sysSetting = _context.SystemSettings.FirstOrDefault();
+            decimal depositRate = (sysSetting?.DepositPct ?? 30) / 100m;
+            decimal deposit = Math.Round(total * depositRate, 0); // Tiền đặt cọc theo cấu hình sàn
+            ViewBag.DepositPct = sysSetting?.DepositPct ?? 30;
             decimal payment = total - deposit;  // Số tiền còn lại khi nhận xe
 
             // Tạo ViewModel
@@ -291,11 +301,16 @@ namespace CarRental.Controllers
                                      model.paymentmethod == "Thanh toán 100%" ||
                                      model.paymentmethod == "Thanh toán toàn bộ 100%";
 
-                decimal deposit = isFullPayment ? price : Math.Round((price * 30m) / 100m, 0);
+                var sysSetting = _context.SystemSettings.FirstOrDefault();
+                int currentCommissionPct = sysSetting?.CommissionPct ?? 10;
+                int currentDepositPct = sysSetting?.DepositPct ?? 30;
+
+                decimal deposit = isFullPayment ? price : Math.Round((price * (decimal)currentDepositPct) / 100m, 0);
                 decimal payments = isFullPayment ? 0 : (price - deposit);
+                decimal platformFee = Math.Round((price * (decimal)currentCommissionPct) / 100m, 0);
 
                 var driveModeSummary = string.Join("; ", cart.Select(c => $"Hình thức: {c.DriveMode}" + (c.DriverFee > 0 ? $" (Phụ phí tài xế: {c.DriverFee:N0}đ)" : "")));
-                string paymentPlanText = isFullPayment ? "Gói thanh toán: Trọn gói 100% qua VNPay" : "Gói thanh toán: Đặt cọc 30% qua VNPay";
+                string paymentPlanText = isFullPayment ? "Gói thanh toán: Trọn gói 100% qua VNPay" : $"Gói thanh toán: Đặt cọc {currentDepositPct}% qua VNPay";
                 string nowVnTime = Function.NowVn.ToString("dd/MM/yyyy HH:mm");
                 string combinedNotes = $"[Tạo đơn {nowVnTime}] | " + driveModeSummary + $" | [{paymentPlanText}]" + (!string.IsNullOrWhiteSpace(model.Notes) ? $" | Ghi chú khách: {model.Notes}" : "");
 
@@ -306,6 +321,8 @@ namespace CarRental.Controllers
                     Deposit = deposit,
                     StatusId = 1,
                     Payment = payments,
+                    PlatformFeeRate = currentCommissionPct,
+                    PlatformFee = platformFee,
                     Notes = combinedNotes
                 };
 
@@ -444,6 +461,8 @@ namespace CarRental.Controllers
                     OrderDate = DateOnly.FromDateTime(Function.NowVn),
                     Deposit = model.Depostit,
                     Payment = cart.Sum(p => p.Price),
+                    PlatformFeeRate = 10,
+                    PlatformFee = Math.Round(((model.Depostit ?? 0m) + cart.Sum(p => p.Price)) * 0.1m, 0),
                     ReturnDate = DateOnly.FromDateTime((DateTime)model.OrderReturn),
                     StatusId = 1
 

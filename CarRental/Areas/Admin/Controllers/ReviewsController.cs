@@ -18,12 +18,17 @@ namespace CarRental.Areas.Admin.Controllers
             _context = context;
         }
 
+        private bool CheckAdmin()
+        {
+            return Function.IsLogin(HttpContext.Session) && Function.IsAdmin(HttpContext.Session);
+        }
+
         // GET: Admin/Reviews
         public async Task<IActionResult> Index(string tab = "cars")
         {
-            if (!Function.IsLogin())
+            if (!CheckAdmin())
             {
-                return RedirectToAction("Index", "Login");
+                return RedirectToAction("Index", "Login", new { area = "Admin" });
             }
 
             ViewBag.ActiveTab = tab;
@@ -45,7 +50,7 @@ namespace CarRental.Areas.Admin.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ToggleCarReview(int id)
         {
-            if (!Function.IsLogin()) return RedirectToAction("Index", "Login");
+            if (!CheckAdmin()) return RedirectToAction("Index", "Login", new { area = "Admin" });
 
             var review = await _context.CarReviews.FindAsync(id);
             if (review != null)
@@ -62,7 +67,7 @@ namespace CarRental.Areas.Admin.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteCarReview(int id)
         {
-            if (!Function.IsLogin()) return RedirectToAction("Index", "Login");
+            if (!CheckAdmin()) return RedirectToAction("Index", "Login", new { area = "Admin" });
 
             var review = await _context.CarReviews.FindAsync(id);
             if (review != null)
@@ -79,7 +84,7 @@ namespace CarRental.Areas.Admin.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ToggleBlogComment(int id)
         {
-            if (!Function.IsLogin()) return RedirectToAction("Index", "Login");
+            if (!CheckAdmin()) return RedirectToAction("Index", "Login", new { area = "Admin" });
 
             var comment = await _context.BlogComments.FindAsync(id);
             if (comment != null)
@@ -96,7 +101,7 @@ namespace CarRental.Areas.Admin.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteBlogComment(int id)
         {
-            if (!Function.IsLogin()) return RedirectToAction("Index", "Login");
+            if (!CheckAdmin()) return RedirectToAction("Index", "Login", new { area = "Admin" });
 
             var comment = await _context.BlogComments.FindAsync(id);
             if (comment != null)

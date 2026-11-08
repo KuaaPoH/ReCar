@@ -12,7 +12,7 @@
                 <h1 class="h3 fw-bold mb-0 text-dark tracking-tight">Quản lý đơn thuê xe</h1>
                 <span class="badge bg-light text-dark border rounded-pill fw-semibold px-2.5 py-1">@Model.Count đơn</span>
             </div>
-            <p class="text-muted small mb-0 mt-1">Giám sát hợp đồng thuê xe, thời hạn nhận trả, tiền cọc 30% giữ trên sàn và trạng thái thanh toán VNPay.</p>
+            <p class="text-muted small mb-0 mt-1">Giám sát hợp đồng thuê xe, thời hạn nhận trả, tiền đặt cọc giữ trên sàn và trạng thái thanh toán VNPay.</p>
         </div>
     </div>
 
@@ -56,8 +56,9 @@
                         <th>Khách thuê xe</th>
                         <th>Lịch trình thuê</th>
                         <th>Tổng tiền</th>
-                        <th>Tiền cọc (30%)</th>
-                        <th>Còn lại (70%)</th>
+                        <th>Tiền cọc sàn thu</th>
+                        <th>Còn lại cần thu</th>
+                        <th>Phí dịch vụ sàn</th>
                         <th>Trạng thái</th>
                         <th class="text-end">Thao tác</th>
                     </tr>
@@ -82,12 +83,19 @@
                             decimal deposit = order.Deposit ?? (total * 0.3m);
                             decimal remaining = total - deposit;
 
+                            decimal feeRate = order.PlatformFeeRate ?? 10.00m;
+                            decimal feeAmount = order.PlatformFee ?? Math.Round(total * (feeRate / 100m), 0);
+
                             var statusName = order.Status?.StatusDescription ?? "Chờ xử lý";
-                            var badgeClass = "badge-neutral";
-                            if (order.StatusId == 1) { badgeClass = "badge-pending"; }
-                            else if (order.StatusId == 2) { badgeClass = "badge-rented"; }
-                            else if (order.StatusId == 3) { badgeClass = "badge-ready"; }
-                            else if (order.StatusId == 4) { badgeClass = "badge-danger"; }
+                            var badgeClass = order.StatusId switch
+                            {
+                                1 => "badge-pending",
+                                2 => "badge-danger",
+                                3 => "badge-pending",
+                                4 => "badge-rented",
+                                5 => "badge-ready",
+                                _ => "badge-neutral"
+                            };
 
                             <tr>
                                 <td>
@@ -118,6 +126,10 @@
                                 </td>
                                 <td>
                                     <span class="text-muted small">@(remaining.ToString("N0")) đ</span>
+                                </td>
+                                <td>
+                                    <div class="fw-semibold text-success small">@(feeAmount.ToString("N0")) đ</div>
+                                    <div class="text-muted" style="font-size: 0.68rem;">(@(feeRate.ToString("0.#"))% GMV)</div>
                                 </td>
                                 <td>
                                     <span class="status-badge @badgeClass">@statusName</span>

@@ -47,7 +47,7 @@
                     <option value="Đang bận" selected="@(ViewBag.FilterStatus == "Đang bận")">Đang bận (Có khách)</option>
                     <option value="Bảo trì" selected="@(ViewBag.FilterStatus == "Bảo trì")">Bảo trì</option>
                     <option value="Chờ duyệt" selected="@(ViewBag.FilterStatus == "Chờ duyệt")">Chờ duyệt</option>
-                    <option value="Tạm ngừng" selected="@(ViewBag.FilterStatus == "Tạm ngừng")">Tạm ngừng</option>
+                    <option value="Ngưng hoạt động" selected="@(ViewBag.FilterStatus == "Ngưng hoạt động" || ViewBag.FilterStatus == "Tạm ngừng")">Ngưng hoạt động</option>
                 </select>
             </div>
             <div class="col-6 col-md-2">
@@ -106,7 +106,7 @@
                             else if (car.CarStatus == "Đang bận") { badgeClass = "badge-rented"; }
                             else if (car.CarStatus == "Bảo trì") { badgeClass = "badge-maintenance"; }
                             else if (car.CarStatus == "Chờ duyệt") { badgeClass = "badge-pending"; }
-                            else if (car.CarStatus == "Từ chối" || car.CarStatus == "Tạm ngừng") { badgeClass = "badge-danger"; }
+                            else if (car.CarStatus == "Từ chối" || car.CarStatus == "Tạm ngừng" || car.CarStatus == "Ngưng hoạt động") { badgeClass = "badge-danger"; }
 
                             <tr id="fleet-row-@car.CarId">
                                 <td>
@@ -166,11 +166,11 @@
                                                     </a>
                                                 </li>
                                             }
-                                            @if (car.CarStatus != "Tạm ngừng")
+                                            @if (car.CarStatus != "Ngưng hoạt động" && car.CarStatus != "Tạm ngừng")
                                             {
                                                 <li>
-                                                    <a class="dropdown-item py-1.5 text-danger" href="javascript:void(0)" onclick="toggleFleetStatus(@car.CarId, 'Tạm ngừng')">
-                                                        <i class="bi bi-pause-circle me-2"></i> Tạm ngừng hoạt động
+                                                    <a class="dropdown-item py-1.5 text-danger" href="javascript:void(0)" onclick="toggleFleetStatus(@car.CarId, 'Ngưng hoạt động')">
+                                                        <i class="bi bi-pause-circle me-2"></i> Ngưng hoạt động (Ẩn khỏi sàn)
                                                     </a>
                                                 </li>
                                             }

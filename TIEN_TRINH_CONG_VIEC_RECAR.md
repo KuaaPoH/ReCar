@@ -849,3 +849,245 @@ Nhằm giúp đồ án tạo được ấn tượng mạnh mẽ với hội đ�
 - **Bài toán thay đổi tỷ lệ phí sàn (Snapshot Pattern):**
   - Khi triển khai tính năng Admin cấu hình tỷ lệ phí sàn (ví dụ tăng từ 10% lên 20%), cần bổ sung 2 cột `PlatformFeeRate` và `PlatformFee` vào bảng `carrentalorders` để lưu lại "ảnh chụp" tỷ lệ phí tại thời điểm khách tạo đơn.
   - Đảm bảo các đơn hàng cũ trong lịch sử vẫn giữ nguyên 10%, và các đơn hàng mới tạo sau thời điểm Admin thay đổi sẽ tự động áp dụng 20%, không làm sai lệch số liệu kế toán.
+
+---
+
+## 19. CẬP NHẬT TIẾN TRÌNH: HOÀN THIỆN CẤU HÌNH PHÍ SÀN LINH HOẠT (ADMIN SETTINGS) & SNAPSHOT PATTERN (NGÀY 08/11/2026)
+
+### 19.1. Thiết Kế Cơ Sở Dữ Liệu Cấu Hình Hệ Thống & Bảng `system_settings`
+1. **Mô hình hóa & Tạo bảng CSDL MySQL:**
+   - Tạo model [`SystemSetting.cs`](file:///d:/CarRental_TTCN/CarRental/Models/SystemSetting.cs) và khai báo `DbSet<SystemSetting> SystemSettings` trong [`DbRenalCarContext.cs`](file:///d:/CarRental_TTCN/CarRental/Models/DbRenalCarContext.cs).
+   - Tự động tạo bảng `system_settings` trong [`Program.cs`](file:///d:/CarRental_TTCN/CarRental/Program.cs) với các trường nghiệp vụ:
+     - `SettingId` (Primary Key, Auto Increment).
+     - `DepositPct`: Tỷ lệ đặt cọc giữ xe (Mặc định 30%).
+     - `CommissionPct`: Tỷ lệ hoa hồng sàn trích thu (Mặc định 10%).
+     - `DefaultKmPerDay`: Hạn mức quãng đường mặc định (Mặc định 350 km/ngày).
+     - `ExtraKmPrice`: Đơn giá phụ phí vượt km mặc định (Mặc định 3.000 đ/km).
+     - `Hotline`, `SupportEmail`, `PlatformName`, `Address`, `UpdatedAt`.
+   - Tự động seed bản ghi cấu hình mặc định ban đầu nếu bảng trống.
+
+### 19.2. Triển Khai Kiến Trúc Snapshot Pattern Cho Phí Sàn Trong Bảng `carrentalorders`
+1. **Bổ sung 2 cột Snapshot vào CSDL:**
+   - Cột `PlatformFeeRate` (DECIMAL(5, 2)): Ghi nhận % hoa hồng sàn tại thời điểm khách đặt xe.
+   - Cột `PlatformFee` (DECIMAL(18, 2)): Ghi nhận số tiền hoa hồng thực tế sàn thu trên đơn hàng đó.
+   - Tự động chạy migration SQL trong [`Program.cs`](file:///d:/CarRental_TTCN/CarRental/Program.cs) khi khởi động ứng dụng:
+     - Thêm 2 cột nếu chưa tồn tại.
+     - Tự động tính toán và điền giá trị cho toàn bộ các đơn hàng cũ trong lịch sử: `PlatformFeeRate = 10.00`, `PlatformFee = (Deposit + Payment) * 10%`.
+2. **Giá trị kiến trúc:**
+   - Tuyệt đối bảo toàn dữ liệu lịch sử và chứng từ kế toán thuế: Nếu Admin điều chỉnh tỷ lệ hoa hồng (ví dụ từ 10% lên 15%), toàn bộ các đơn hàng đã tạo trước đó vẫn giữ nguyên số liệu 10%, chỉ các đơn hàng phát sinh từ thời điểm cập nhật trở đi mới mang tỷ lệ 15%.
+
+### 19.3. Đồng Bộ Luồng Tạo Đơn & Tính Toán Tài Chính Toàn Sàn
+1. **Tại Controller Giỏ hàng & Thanh toán ([`CartController.cs`](file:///d:/CarRental_TTCN/CarRental/Controllers/CartController.cs)):**
+   - Đọc tỷ lệ cọc `DepositPct` và hoa hồng `CommissionPct` từ bảng `system_settings`.
+   - Khi khách tạo đơn thuê xe: Tính toán tiền cọc, số tiền còn lại và tự động lưu `PlatformFeeRate`, `PlatformFee` vào bản ghi đơn hàng.
+2. **Tại Phân hệ Chủ xe ([`WalletController.cs`](file:///d:/CarRental_TTCN/CarRental/Areas/CarOwner/Controllers/WalletController.cs) & [`Orders/Details.cshtml`](file:///d:/CarRental_TTCN/CarRental/Areas/CarOwner/Views/Orders/Details.cshtml)):**
+   - Đọc trực tiếp `PlatformFeeRate` và `PlatformFee` từ từng đơn hàng:
+     - Hiển thị nhãn phí dịch vụ động: *"Phí dịch vụ sàn X% (trừ từ cọc)"* thay vì text cố định 10%.
+     - Tính toán thu nhập thực nhận của chủ xe và tiền sàn đối soát chuẩn xác theo từng thời kỳ.
+3. **Tại Phân hệ Admin ([`FinanceController.cs`](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Controllers/FinanceController.cs), [`HomeController.cs`](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Controllers/HomeController.cs) & [`Finance/Index.cshtml`](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Views/Finance/Index.cshtml)):**
+   - Tổng hoa hồng thực thu được tính bằng tổng `PlatformFee` thực tế của các đơn hàng.
+   - Các thẻ KPI tài chính và tỷ lệ đối soát hiển thị động theo cấu hình hệ thống.
+4. **Tại Quy định vận hành xe ([`CarPolicy.cs`](file:///d:/CarRental_TTCN/CarRental/Utilities/CarPolicy.cs)):**
+   - Hỗ trợ nạp cấu hình hệ thống để tự động fallback hạn mức km/ngày và phụ phí vượt km nếu chủ xe chưa cài đặt riêng.
+
+### 19.4. Hoàn Thiện Màn Hình Cấu Hình Hệ Thống ([`Areas/Admin/Views/Settings/Index.cshtml`](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Views/Settings/Index.cshtml))
+1. **Giao diện chuẩn ReCar Design System:**
+   - Bố cục 2 panel thoáng đãng, không dùng CSS inline.
+   - Banner giải thích cơ chế bảo vệ dữ liệu **Snapshot Pattern** minh bạch.
+   - Hiển thị dấu thời gian *"Cập nhật lần cuối"*.
+2. **Nghiệp vụ Backend & Validation ([`SettingsController.cs`](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Controllers/SettingsController.cs)):**
+   - Kiểm tra chặt chẽ quyền Admin.
+   - Kiểm tra giới hạn hợp lệ: Tỷ lệ cọc từ 10% đến 50%, Tỷ lệ hoa hồng từ 5% đến 30%.
+   - Lưu trữ tức thì vào CSDL MySQL, trả về thông báo và tự động tải lại dữ liệu mới bằng SweetAlert2.
+
+### 19.5. Kiểm Tra Chất Lượng Mã Nguồn
+- Biên dịch toàn bộ dự án ASP.NET Core 9 (.NET 9): **`Build succeeded. 0 Warning(s) 0 Error(s)`**.
+
+---
+
+## 20. CẬP NHẬT TIẾN TRÌNH: RÀ SOÁT TOÀN DIỆN & ĐỒNG BỘ 100% PHÂN HỆ QUẢN TRỊ ADMIN (NGÀY 08/11/2026)
+
+### 20.1. Tái Thiết Kế Trang Đăng Nhập & Đăng Ký Admin Chuẩn SaaS Cao Cấp
+1. **Trang Đăng nhập Quản trị ([`Areas/Admin/Views/Login/Index.cshtml`](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Views/Login/Index.cshtml)):**
+   - Loại bỏ 100% mã nguồn Mazer cũ và các đường dẫn ảnh tĩnh bị lỗi 404.
+   - Thiết kế giao diện Auth Shell sang trọng: Bảng màu Deep Navy `#0f172a`, logo huy hiệu ReCar Admin Portal phát sáng, font chữ Plus Jakarta Sans.
+   - Tích hợp chip thông minh *"Tự động điền tài khoản mẫu ⚡"* (`admin` / `123`) hỗ trợ quá trình kiểm thử và demo đồ án nhanh chóng.
+   - Bổ sung nút quay về Sàn ReCar công khai.
+2. **Trang Đăng ký Quản trị ([`Areas/Admin/Views/Register/Index.cshtml`](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Views/Register/Index.cshtml)):**
+   - Đồng bộ hoàn toàn phong cách Auth Shell hiện đại.
+
+### 20.2. Chuẩn Hóa Điều Hướng & Quản Lý Hồ Sơ Đối Tác Chủ Xe
+1. **Khắc phục lỗi điều hướng `/Admin/CarOwners` ([`CarOwnersController.cs`](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Controllers/CarOwnersController.cs)):**
+   - Bổ sung action `Index(string? q)` tự động chuyển tiếp về `Pending(q)`.
+   - Ngăn chặn triệt để lỗi HTTP 404 khi người dùng truy cập trực tiếp URL `/Admin/CarOwners`.
+
+### 20.3. Hoàn Thiện Module Quản Lý Người Dùng & Đối Tác (`UserManagement`)
+1. **Bổ sung tính năng Tạo người dùng mới ([`UserManagementController.cs`](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Controllers/UserManagementController.cs)):**
+   - Triển khai đầy đủ cặp action GET & POST `Create`:
+     - Kiểm tra trùng lặp email và username trong toàn hệ thống.
+     - Mã hóa mật khẩu bảo mật MD5 một chiều qua `Function.MD5Password`.
+     - Hỗ trợ khởi tạo đầy đủ các vai trò: Quản trị viên (Role 1), Khách hàng (Role 2) và Chủ xe (Role 3).
+2. **Xây dựng mới View Tạo tài khoản ([`UserManagement/Create.cshtml`](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Views/UserManagement/Create.cshtml)):**
+   - Biểu mẫu 2 cột chuẩn ReCar Design System, bo góc mềm mại, đầy đủ chỉ dẫn và validation rõ ràng.
+3. **Hiện đại hóa toàn bộ các màn hình Quản lý người dùng:**
+   - [`Details.cshtml`](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Views/UserManagement/Details.cshtml): Xóa bỏ layout Mazer cũ, hiển thị thẻ avatar tròn lớn, phân quyền vai trò và đầy đủ thông tin cá nhân/định danh.
+   - [`Edit.cshtml`](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Views/UserManagement/Edit.cshtml): Form chỉnh sửa hồ sơ hiện đại, hỗ trợ đổi mật khẩu và chuyển đổi trạng thái Khóa / Mở khóa tài khoản.
+   - [`Delete.cshtml`](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Views/UserManagement/Delete.cshtml): Thẻ cảnh báo xóa nguy hiểm bo viền đỏ chuyên nghiệp, khuyến nghị quản trị viên dùng tính năng Khóa tài khoản để bảo toàn dữ liệu lịch sử đơn thuê.
+
+### 20.4. Chuẩn Hóa Quản Lý Đơn Thuê Xe & Cập Nhật Phí Sàn Snapshot
+1. **Trang Danh sách Đơn hàng ([`Areas/Admin/Views/Orders/Index.cshtml`](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Views/Orders/Index.cshtml)):**
+   - Cập nhật chuẩn hóa mã màu cho cả 5 trạng thái đơn (`OrderStatus` 1 đến 5).
+   - Bổ sung cột hiển thị **Phí dịch vụ sàn** đọc trực tiếp từ `order.PlatformFee` và % snapshot `order.PlatformFeeRate`.
+2. **Trang Cập nhật Đơn hàng ([`Areas/Admin/Views/Orders/Edit.cshtml`](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Views/Orders/Edit.cshtml)):**
+   - Bổ sung hộp thông tin bóc tách hoa hồng sàn thực thu trên đơn hàng.
+3. **Controller Đơn hàng ([`OrdersController.cs`](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Controllers/OrdersController.cs)):**
+   - Thêm alias `Details` và `OrderDetails` chuyển tiếp mượt mà về `Edit`, triệt tiêu nguy cơ 404.
+
+### 20.5. Chuẩn Hóa Phân Quyền & Các Controller Quản Trị Khác
+1. **Kiểm duyệt Đánh giá & Bình luận ([`ReviewsController.cs`](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Controllers/ReviewsController.cs)):**
+   - Nâng cấp cơ chế kiểm tra quyền Admin qua `Function.IsLogin(HttpContext.Session) && Function.IsAdmin(HttpContext.Session)`.
+2. **Chuyển tiếp Controller cũ sang hệ thống mới:**
+   - [`ProductController.cs`](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Controllers/ProductController.cs): Tự động chuyển hướng về `/Admin/Cars/Index`.
+   - [`CustomerController.cs`](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Controllers/CustomerController.cs): Tự động chuyển hướng về `/Admin/UserManagement/Index`.
+3. **Trang Hồ sơ Cá nhân Admin ([`Areas/Admin/Views/Account/Edit.cshtml`](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Views/Account/Edit.cshtml)):**
+   - Thiết kế lại 100% theo phong cách ReCar Admin, xóa bỏ toàn bộ mã HTML Mazer cũ.
+
+### 20.6. Kiểm Tra & Đảm Bảo Chất Lượng
+- Dự án biên dịch sạch sẽ trên .NET 9: **`Build succeeded. 0 Warning(s) 0 Error(s)`**.
+
+
+---
+
+## 21. KHẮC PHỤC TRIỆT ĐỂ LỖI ĐỒNG BỘ TỶ LỆ CỌC & HOA HỒNG NỀN TẢNG (DYNAMIC SNAPSHOT ENGINE)
+
+### 21.1. Bối cảnh & Hiện tượng ghi nhận từ kiểm thử thực tế
+1. **Hiện tượng 1 (Admin Settings):** Khi quản trị viên đổi Tỷ lệ cọc thành 35% và Hoa hồng thành 20% rồi bấm "Lưu cấu hình", popup xác nhận SweetAlert2 hiện lên nhưng trên màn hình dường như đã ghi lại thời gian sửa đổi trước khi bấm xác nhận.
+   - *Nguyên nhân:* Khi chạy seed dữ liệu ban đầu, trường `UpdatedAt` được khởi tạo bằng `DateTime.Now`. Khi Admin vừa mở trang, màn hình đã sẵn có mốc thời gian của lần seed trước đó khiến người dùng tưởng lầm là đã lưu tự động khi vừa click nút.
+   - *Khắc phục:* `UpdatedAt` được giữ là `null` khi hệ thống chưa từng chỉnh sửa (hiển thị nhãn "Cấu hình ban đầu"). Chỉ khi Admin bấm nút "Đồng ý lưu" trên popup thì mới thực hiện gọi AJAX POST và cập nhật `UpdatedAt = DateTime.Now`.
+2. **Hiện tượng 2 (Customer Car Details):** Tại trang chi tiết xe `/Product/Details/{id}`, thông tin tiền cọc vẫn ghi chú `30%` và tính tiền theo hệ số cứng `0.3m`.
+   - *Nguyên nhân:* Action `Details` trong [`ProductController.cs`](file:///d:/CarRental_TTCN/CarRental/Controllers/ProductController.cs) chưa query cấu hình hệ thống `SystemSetting` để truyền `ViewBag.DepositPct`. Đồng thời trong [`Details.cshtml`](file:///d:/CarRental_TTCN/CarRental/Views/Product/Details.cshtml), tỷ lệ 30% và 70% bị viết cứng (hardcoded) ở cả Razor và script tính toán ngày.
+   - *Khắc phục:* Bổ sung truy vấn `SystemSetting` trong `ProductController.Details`, truyền `ViewBag.DepositPct`. Chuyển đổi 100% tỷ lệ và công thức toán học trong `Details.cshtml` và JavaScript sang biến động `depositPct` và `depositRate`.
+3. **Hiện tượng 3 (Car Owner Order Details):** Tại trang xem đơn của chủ xe `/CarOwner/Orders/Details/{id}`, phần phân rã tài chính hiển thị:
+   - Tổng tiền thuê: 1.300.000 đ
+   - Cọc 30% — sàn thu: 455.000 đ
+   - Phí dịch vụ sàn 20%: -260.000 đ
+   - Thu trực tiếp khi nhận xe: 845.000 đ
+   - *Phân tích logic:* 455.000 đ / 1.300.000 đ = **35%**! Nghĩa là phần backend đã tính tiền cọc 35% hoàn toàn chính xác theo đúng cấu hình mới của Admin. Tuy nhiên, nhãn text trên giao diện trước đó là chuỗi ký tự cứng `"Cọc 30% — sàn thu"` nên đã hiển thị sai lệch giữa con số tiền và nhãn phần trăm!
+   - *Khắc phục:* Tính toán tỷ lệ cọc động theo chính đơn hàng: `depositRate = (totalRent > 0 && deposit > 0) ? Math.Round((deposit / totalRent) * 100m, 0) : 30m;` và hiển thị nhãn linh hoạt `$"Cọc {depositRate:0.#}% — sàn thu"`. Đơn hàng cọc bao nhiêu % (30%, 35%, 50% hay 100%) thì giao diện sẽ hiển thị đúng bấy nhiêu phần trăm.
+
+### 21.2. Các file đã chuẩn hóa đồng bộ
+- [`CarRental/Areas/Admin/Controllers/SettingsController.cs`](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Controllers/SettingsController.cs): Khởi tạo `UpdatedAt = null` khi chưa sửa; ghi nhận thời gian chính xác chỉ khi Admin bấm lưu.
+- [`CarRental/Areas/Admin/Views/Settings/Index.cshtml`](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Views/Settings/Index.cshtml): Hiển thị trạng thái cấu hình ban đầu hoặc thời gian cập nhật lần cuối chuẩn xác.
+- [`CarRental/Controllers/ProductController.cs`](file:///d:/CarRental_TTCN/CarRental/Controllers/ProductController.cs): Truy vấn `SystemSetting` và truyền `ViewBag.DepositPct`.
+- [`CarRental/Views/Product/Details.cshtml`](file:///d:/CarRental_TTCN/CarRental/Views/Product/Details.cshtml): Đồng bộ nhãn % và JavaScript tính toán động theo cấu hình hệ thống.
+- [`CarRental/Views/Cart/Index.cshtml`](file:///d:/CarRental_TTCN/CarRental/Views/Cart/Index.cshtml) & [`Checkout.cshtml`](file:///d:/CarRental_TTCN/CarRental/Views/Cart/Checkout.cshtml): Đồng bộ nhãn cọc động và tính toán thanh toán theo cấu hình.
+- [`CarRental/Views/Cart/Success.cshtml`](file:///d:/CarRental_TTCN/CarRental/Views/Cart/Success.cshtml): Hiển thị % cọc thực tế từ đơn hàng.
+- [`CarRental/Areas/CarOwner/Views/Orders/Details.cshtml`](file:///d:/CarRental_TTCN/CarRental/Areas/CarOwner/Views/Orders/Details.cshtml): Tính toán tỷ lệ cọc và tiền thu trực tiếp theo số liệu thực tế của đơn hàng, xóa bỏ hoàn toàn chuỗi text cứng 30%/70%.
+- [`CarRental/Areas/CarOwner/Views/Orders/Index.cshtml`](file:///d:/CarRental_TTCN/CarRental/Areas/CarOwner/Views/Orders/Index.cshtml): Cập nhật cột tài chính tính toán động theo đơn.
+- [`CarRental/Views/Accounts/OrderDetails.cshtml`](file:///d:/CarRental_TTCN/CarRental/Views/Accounts/OrderDetails.cshtml): Đồng bộ nhãn cọc trong chi tiết đơn hàng và hợp đồng điện tử của khách hàng.
+- Kiểm thử biên dịch: Toàn bộ project biên dịch sạch sẽ **0 Error(s)**.
+
+
+---
+
+## 22. XỬ LÝ TRIỆT ĐỂ ĐỒNG BỘ ẨN/HIỆN XE TRÊN SÀN (FLEET VISIBILITY & DEACTIVATION SYNC)
+
+### 22.1. Hiện tượng & Phân tích nguyên nhân
+- **Hiện tượng:** Trong màn hình Quản lý đội xe Admin (`/Admin/Cars`), khi bấm chuyển trạng thái xe sang "Ngưng hoạt động" (hoặc "Tạm ngừng"), xe vẫn tiếp tục xuất hiện trên trang chủ (`/Home`) và danh sách thuê xe (`/Product`).
+- **Nguyên nhân cốt lõi:**
+  1. Trong [`Areas/Admin/Controllers/CarsController.cs`](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Controllers/CarsController.cs) action `ToggleStatus`, hệ thống chỉ gán `car.CarStatus = status` mà **không hề cập nhật cột `car.IsActive = false`**. Cột `IsActive` vẫn giữ nguyên giá trị `true (1)`.
+  2. Tại [`HomeController.cs`](file:///d:/CarRental_TTCN/CarRental/Controllers/HomeController.cs), câu lệnh lấy danh sách xe chỉ kiểm tra `Where(i => i.IsActive == true)` mà không lọc trừ các trạng thái `Tạm ngừng` hoặc `Ngưng hoạt động`.
+  3. Tại [`ProductController.cs`](file:///d:/CarRental_TTCN/CarRental/Controllers/ProductController.cs) và [`ProductViewComponent.cs`](file:///d:/CarRental_TTCN/CarRental/ViewComponents/ProductViewComponent.cs), bộ lọc chỉ loại bỏ `Chờ duyệt` và `Từ chối`, do đó xe có trạng thái `Tạm ngừng` / `Ngưng hoạt động` vẫn lọt qua bộ lọc và hiển thị ra sàn.
+  4. Người dùng cố tình truy cập link chi tiết xe hoặc cố tình bấm thêm giỏ hàng thì hệ thống chưa chặn các xe bị ngưng hoạt động.
+
+### 22.2. Giải pháp đã thực hiện đồng bộ 100%
+1. **Đồng bộ hóa cột `IsActive` trong Admin:**
+   - Khi chuyển sang `"Ngưng hoạt động"`, `"Tạm ngừng"`, `"Từ chối"`, `"Chờ duyệt"`: Tự động gán `car.IsActive = false` (Ẩn hoàn toàn khỏi sàn).
+   - Khi chuyển sang `"Sẵn sàng"`, `"Bảo trì"`: Tự động gán `car.IsActive = true`.
+2. **Bộ lọc đa tầng trên toàn bộ Client:**
+   - [`HomeController.cs`](file:///d:/CarRental_TTCN/CarRental/Controllers/HomeController.cs): Lọc loại trừ triệt để xe `!IsActive || CarStatus in ('Chờ duyệt', 'Từ chối', 'Tạm ngừng', 'Ngưng hoạt động')`.
+   - [`ProductController.cs`](file:///d:/CarRental_TTCN/CarRental/Controllers/ProductController.cs) & [`ProductViewComponent.cs`](file:///d:/CarRental_TTCN/CarRental/ViewComponents/ProductViewComponent.cs): Áp dụng đồng bộ bộ lọc loại trừ cho cả danh sách tìm kiếm, bản đồ xe gần bạn, chi tiết xe và xe liên quan.
+   - [`CartController.cs`](file:///d:/CarRental_TTCN/CarRental/Controllers/CartController.cs): Chặn thêm vào giỏ hàng đối với xe đang ngưng hoạt động.
+3. **Cập nhật giao diện Admin Fleet:**
+   - Chuẩn hóa nút thao tác thành **"Ngưng hoạt động (Ẩn khỏi sàn)"** và bộ lọc trạng thái "Ngưng hoạt động".
+4. **Đồng bộ dữ liệu Database:**
+   - Đã cập nhật `IsActive = 0` cho các xe đang ở trạng thái `Tạm ngừng` / `Ngưng hoạt động` trong cơ sở dữ liệu MySQL (bao gồm xe ID 24).
+5. **Kiểm thử biên dịch:** Dự án biên dịch sạch sẽ **`Build succeeded. 0 Error(s)`**.
+
+
+---
+
+## 23. NÂNG CẤP TOÀN DIỆN QUẢN LÝ MENU 3 PHÂN HỆ & BẢNG ĐIỀU HƯỚNG CẤY ĐA CẤP (RECAR 3-SUBSYSTEM MENU ARCHITECTURE)
+
+### 23.1. Yêu cầu & Thiết kế kiến trúc mới
+- **Nhu cầu nghiệp vụ:** Người dùng muốn một trang quản lý Menu tập trung duy nhất nhưng phân tách rõ ràng thành **3 phân hệ riêng biệt**:
+  1. **Khách hàng (`Customer`):** Menu Header/Footer của sàn thuê xe trực tuyến.
+  2. **Chủ xe (`CarOwner`):** Menu Sidebar và các chức năng của cổng đối tác Host Pro.
+  3. **Quản trị viên (`Admin`):** Toàn bộ Menu Sidebar của trung tâm điều hành sàn ReCar.
+- **Tính năng mở rộng:**
+  - **Quan hệ Cây Cha - Con (`ParentId` & `Levels`):** Nhận biết nút này là Menu chính (Cấp 1) hay thuộc Menu cha nào (Cấp 2). Khi hiển thị trên bảng, menu con được thụt lề trực quan với ký hiệu `↳` và nhãn `Con của: [Tên menu cha]`.
+  - **Quản lý Biểu tượng Icon (`Icon`):** Lưu trữ mã Bootstrap Icon (như `bi-speedometer2`, `bi-car-front`, `bi-wallet2`, `bi-newspaper`...), hỗ trợ ô chọn gợi ý nhanh các icon phổ biến kèm **Live Preview (xem trước icon thời gian thực)** ngay khi nhập hoặc chọn.
+  - **Đường dẫn liên kết (`Url`):** Quản lý route nội bộ hoặc URL tương ứng.
+  - **Bật / Tắt nhanh (`ToggleActive`):** Cho phép bật/tắt hiển thị menu trực tiếp trên bảng bằng AJAX SweetAlert2 không cần tải lại trang.
+
+### 23.2. Cập nhật Cơ sở dữ liệu & Model
+- Bổ sung 3 cột mới vào bảng `Menu`:
+  - `Icon VARCHAR(100) DEFAULT 'bi-link-45deg'`
+  - `Subsystem VARCHAR(50) NOT NULL DEFAULT 'Customer'`
+  - `Url VARCHAR(255) NULL`
+- Cập nhật Entity [`CarRental/Models/Menu.cs`](file:///d:/CarRental_TTCN/CarRental/Models/Menu.cs) và mapping trong [`DbRenalCarContext.cs`](file:///d:/CarRental_TTCN/CarRental/Models/DbRenalCarContext.cs).
+- Đã seed dữ liệu menu chuẩn mực đầy đủ cho cả 3 phân hệ:
+  - **Khách hàng:** 7 mục (Trang chủ, Thuê xe tự lái, Thuê xe có tài, Đăng ký làm chủ xe, Tin tức, Về ReCar, Liên hệ).
+  - **Chủ xe:** 9 mục (Dashboard, Quản lý đội xe, Thêm xe mới, Lịch bận bảo dưỡng, Đơn hàng, Ví & Doanh thu, Báo cáo phân tích, Tin nhắn, Hồ sơ).
+  - **Admin:** 10 mục (Tổng quan, Quản lý đội xe, Giám sát đơn hàng, Người dùng & Đối tác, Duyệt hồ sơ chủ xe, Tài chính & Đối soát, Đánh giá xe, Bài viết, Quản lý Menu, Cấu hình sàn).
+
+### 23.3. Các Controller & View hoàn thiện
+- [`MenusController.cs`](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Controllers/MenusController.cs): Hỗ trợ phân loại tab theo `subsystem`, tạo menu con với `parentId`, chọn icon danh mục, toggle kích hoạt và xóa an toàn.
+- [`Index.cshtml`](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Views/Menus/Index.cshtml): Giao diện 3 Tabs Pills bo tròn sang trọng, bảng phân cấp rõ nét, Live AJAX Toggle.
+- [`Create.cshtml`](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Views/Menus/Create.cshtml) & [`Edit.cshtml`](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Views/Menus/Edit.cshtml): Form chuyên nghiệp có bộ chọn Menu cha theo phân hệ, Icon Picker kèm Live Preview.
+- [`Delete.cshtml`](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Views/Menus/Delete.cshtml): Chuyển đổi sang phong cách ReCar Admin, cảnh báo an toàn bảo toàn menu con.
+- Kết quả kiểm tra: Toàn bộ project đạt **`Build succeeded. 0 Warning(s) 0 Error(s)`**.
+
+
+### 23.4. Khắc phục lỗi Font chữ Tiếng Việt bảng Menu (UTF-8 Collation Sync)
+- **Hiện tượng:** Dữ liệu mẫu bảng `Menu` hiển thị các dấu chấm hỏi `?` (ví dụ: `T?ng quan h? th?ng`, `Qu?n l? ??i xe to?n s?n`...).
+- **Nguyên nhân:** Lệnh SQL chèn trực tiếp qua PowerShell CLI sử dụng bảng mã mặc định của Windows Console (Code Page 1258/1252) thay vì luồng UTF-8 chuẩn.
+- **Khắc phục:** Đã chạy lại script cập nhật dữ liệu với cờ `--default-character-set=utf8mb4` và `SET NAMES utf8mb4`. Toàn bộ danh mục Menu của cả 3 phân hệ (Khách hàng, Chủ xe, Quản trị viên) đã hiển thị tiếng Việt sắc nét, chuẩn 100%.
+
+---
+
+## 24. HOÀN THIỆN ĐỒNG BỘ MENU 3 PHÂN HỆ VÀ KẾT NỐI DỮ LIỆU THẬT RA GIAO DIỆN (DYNAMIC NAVIGATION ARCHITECTURE)
+
+### 24.1. Khắc phục Trạng thái Tabs Pill và Tối ưu Nút Thao tác trên `/Admin/Menus`
+1. **Lỗi viên thuốc đứng yên (Active Tabs Pill):**
+   - **Hiện tượng:** Khi click chuyển đổi giữa 3 tab *Khách hàng*, *Chủ xe*, *Quản trị viên*, nội dung bảng bên dưới đã chuyển nhưng màu nền xanh của viên thuốc trên cùng bị đứng yên ở tab đầu tiên.
+   - **Nguyên nhân:** Tab đầu tiên bị gắn inline style cố định `style="background-color: var(--recar-primary); color: #fff;"` khiến class `.active` của Bootstrap JavaScript không thể loại bỏ màu nền inline.
+   - **Khắc phục:** Gỡ bỏ toàn bộ inline styles; sử dụng scoped CSS selector `#menuSubsystemTabs .nav-link.active` kết hợp lắng nghe sự kiện `click shown.bs.tab` bằng jQuery để đảm bảo hiệu ứng di chuyển màu xanh và đổi màu badge số lượng diễn ra tức thì, mượt mà 100%.
+2. **Xóa bỏ nút "Thêm menu mới" trùng lặp:**
+   - Xóa bỏ nút thêm menu chung ở header trên cùng để loại bỏ sự thừa thãi.
+   - Giữ lại và nâng cấp nút thêm chuyên biệt theo từng phân hệ trong từng thẻ tab: `[+ Thêm menu cho Khách hàng]`, `[+ Thêm menu cho Chủ xe]`, `[+ Thêm menu cho Admin]`.
+
+### 24.2. Cấu trúc Cây Menu Cha - Con (Tiêu đề nhóm & Mục chức năng con)
+- Phân tách rõ ràng giữa **Tiêu đề nhóm (Section Heading / Menu Cha)** và **Mục menu chức năng (Menu Con)** khớp hoàn toàn với thực tế điều hướng:
+  - **Phân hệ Admin:**
+    - 📁 Nhóm `TỔNG QUAN` ➔ `Tổng quan` (`/Admin/Home/Index`)
+    - 📁 Nhóm `XE & ĐƠN HÀNG` ➔ `Phê duyệt xe`, `Duyệt hồ sơ Chủ xe`, `Quản lý đội xe`, `Quản lý kiểu xe`, `Đơn thuê xe`, `Tài chính & đối soát`
+    - 📁 Nhóm `NỘI DUNG & TƯƠNG TÁC` ➔ `Bài viết & tin tức`, `Quản lý Menu`, `Đánh giá & Bình luận`
+    - 📁 Nhóm `HỆ THỐNG` ➔ `Địa điểm nhận xe`, `Người dùng & đối tác`, `Cấu hình hệ thống`
+  - **Phân hệ Chủ xe (CarOwner / Host Pro):**
+    - 📁 Nhóm `QUẢN TRỊ PHƯƠNG TIỆN` ➔ `Tổng quan`, `Quản lý xe`, `Thêm xe`, `Lịch xe`
+    - 📁 Nhóm `KINH DOANH & THU NHẬP` ➔ `Lịch trình & Đơn xe`, `Phân tích hiệu suất`, `Ví đối tác & Đối soát`, `Hồ sơ pháp lý & Ngân hàng`
+  - **Phân hệ Khách hàng (Customer):**
+    - `Trang chủ`, `Thuê xe`, `Cẩm nang`, `Tin tức`, `Liên hệ` (và các menu tùy biến mới tạo).
+- **Giao diện bảng Quản lý Menu:**
+  - Nhóm cha hiển thị in hoa đậm, gắn badge `📁 Tiêu đề nhóm`, URL `-- Tiêu đề phân nhóm --` và có sẵn nút `+ Con` để thêm nhanh menu con trực thuộc nhóm.
+  - Menu con thụt lề `ps-4`, có biểu tượng nhánh cây `↳` và badge `↳ Thuộc: [Tên nhóm]`.
+  - Bộ chọn Menu Cha trong form `Create` và `Edit` tự động gán nhãn `📁 [Nhóm]` trực quan.
+
+### 24.3. Kết nối Dữ liệu Menu Thật từ CSDL ra Giao diện 3 Phân hệ
+- Thay thế các thanh điều hướng HTML tĩnh trước đây bằng luồng render động trực tiếp từ CSDL bảng `Menu`:
+  - **Header Khách hàng (`Views/Shared/_Layout.cshtml`):** Truy vấn động `_db.Menus.Where(m => (m.Subsystem == "Customer") && m.IsActive)` và hiển thị chính xác theo thứ tự `Position`.
+  - **Sidebar Chủ xe (`Areas/CarOwner/Views/Shared/_Layout.cshtml`):** Truy vấn động `_db.Menus.Where(m => m.Subsystem == "CarOwner" && m.IsActive)` theo từng nhóm phân cấp cha - con.
+  - **Sidebar Admin (`Areas/Admin/Views/Shared/_Layout.cshtml`):** Truy vấn động `_db.Menus.Where(m => m.Subsystem == "Admin" && m.IsActive)` theo từng nhóm, giữ nguyên logic badge số lượng thông báo thực tế (Xe chờ duyệt, Hồ sơ chủ xe chờ duyệt).
+- **Kiểm thử thực tế thành công:** Tạo menu mới `test` ở phân hệ Khách hàng với thứ tự vị trí số 4 (`Position = 4`), menu lập tức xuất hiện trực tiếp trên thanh Navbar Header giữa `Cẩm nang` và `Tin tức` mà không cần chỉnh sửa bất kỳ dòng code nào.
+- Toàn bộ giải pháp đạt chuẩn bảo mật, thiết kế pixel-perfect và biên dịch **`Build succeeded. 0 Error(s)`**.

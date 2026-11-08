@@ -95,107 +95,72 @@
                     </span>
                 </div>
 
-                <!-- Navigation Links -->
+                <!-- Navigation Links Rendered Dynamically from DB -->
                 <nav class="nav recar-nav-pills flex-column">
-                    <!-- TỔNG QUAN -->
-                    <div class="sidebar-category-header">Tổng quan</div>
-                    <a class="nav-link @(isHome ? "active" : "")" 
-                       asp-area="Admin" asp-controller="Home" asp-action="Index" title="Tổng quan">
-                        <i class="bi bi-grid-fill"></i>
-                        <span class="nav-label">Tổng quan</span>
-                    </a>
+                    @{
+                        var rawAdminMenus = _db.Menus
+                            .Where(m => m.Subsystem == "Admin" && (m.IsActive ?? false))
+                            .OrderBy(m => m.Position)
+                            .ToList();
 
-                    <!-- XE & ĐƠN HÀNG -->
-                    <div class="sidebar-category-header">Xe & Đơn hàng</div>
-                    <!-- Phê duyệt xe -->
-                    <a class="nav-link @(isPendingCars ? "active" : "")" 
-                       asp-area="Admin" asp-controller="Cars" asp-action="Pending" title="Phê duyệt xe">
-                        <i class="bi bi-shield-check"></i>
-                        <span class="nav-label">Phê duyệt xe</span>
-                        <span id="pendingCarsBadge" class="badge bg-warning text-dark fw-bold rounded-pill ms-auto" style="font-size: 0.72rem; @(pendingCarsCount > 0 ? "" : "display:none;")">@pendingCarsCount</span>
-                    </a>
+                        var adminParentGroups = rawAdminMenus
+                            .Where(m => m.ParentId == null || m.ParentId == 0)
+                            .OrderBy(m => m.Position)
+                            .ToList();
 
-                    <!-- Duyệt hồ sơ Chủ xe -->
-                    <a class="nav-link @(isPendingOwners ? "active" : "")" 
-                       asp-area="Admin" asp-controller="CarOwners" asp-action="Pending" title="Duyệt hồ sơ Chủ xe">
-                        <i class="bi bi-person-check-fill"></i>
-                        <span class="nav-label">Duyệt hồ sơ Chủ xe</span>
-                        <span id="pendingOwnersBadge" class="badge bg-warning text-dark fw-bold rounded-pill ms-auto" style="font-size: 0.72rem; @(pendingOwnersCount > 0 ? "" : "display:none;")">@pendingOwnersCount</span>
-                    </a>
+                        var adminCurPath = Context.Request.Path.Value ?? "";
 
-                    <!-- Quản lý đội xe -->
-                    <a class="nav-link @(isCars ? "active" : "")" 
-                       asp-area="Admin" asp-controller="Cars" asp-action="Index" title="Quản lý đội xe">
-                        <i class="bi bi-car-front-fill"></i>
-                        <span class="nav-label">Quản lý đội xe</span>
-                    </a>
+                        foreach (var group in adminParentGroups)
+                        {
+                            var children = rawAdminMenus
+                                .Where(m => m.ParentId == group.MenuId)
+                                .OrderBy(m => m.Position)
+                                .ToList();
 
-                    <!-- Quản lý kiểu xe -->
-                    <a class="nav-link @(isCarTypes ? "active" : "")" 
-                       asp-area="Admin" asp-controller="CarTypes" asp-action="Index" title="Quản lý kiểu xe">
-                        <i class="bi bi-collection-fill"></i>
-                        <span class="nav-label">Quản lý kiểu xe</span>
-                    </a>
+                            bool isGroupHeader = string.IsNullOrWhiteSpace(group.Url) || group.Url == "#";
 
-                    <!-- Đơn thuê xe -->
-                    <a class="nav-link @(isOrders ? "active" : "")" 
-                       asp-area="Admin" asp-controller="Orders" asp-action="Index" title="Đơn thuê xe">
-                        <i class="bi bi-clipboard-check-fill"></i>
-                        <span class="nav-label">Đơn thuê xe</span>
-                    </a>
+                            if (isGroupHeader)
+                            {
+                                <div class="sidebar-category-header">@group.Title</div>
+                                foreach (var item in children)
+                                {
+                                    string itemUrl = !string.IsNullOrWhiteSpace(item.Url) ? item.Url : ("/" + item.Alias);
+                                    bool isItemActive = false;
+                                    if (!string.IsNullOrEmpty(itemUrl) && itemUrl != "#")
+                                    {
+                                        isItemActive = adminCurPath.Equals(itemUrl, StringComparison.OrdinalIgnoreCase) ||
+                                                       (itemUrl.Length > 6 && adminCurPath.StartsWith(itemUrl, StringComparison.OrdinalIgnoreCase));
+                                    }
 
-                    <!-- Tài chính & đối soát -->
-                    <a class="nav-link @(isFinance ? "active" : "")" 
-                       asp-area="Admin" asp-controller="Finance" asp-action="Index" title="Tài chính & đối soát">
-                        <i class="bi bi-wallet2"></i>
-                        <span class="nav-label">Tài chính & đối soát</span>
-                    </a>
+                                    string iconClass = !string.IsNullOrWhiteSpace(item.Icon) ? item.Icon : "bi-circle";
 
-                    <!-- NỘI DUNG & TƯƠNG TÁC -->
-                    <div class="sidebar-category-header">Nội dung & Tương tác</div>
-                    <!-- Bài viết & tin tức -->
-                    <a class="nav-link @(isBlogs ? "active" : "")" 
-                       asp-area="Admin" asp-controller="Blogs" asp-action="Index" title="Bài viết & tin tức">
-                        <i class="bi bi-newspaper"></i>
-                        <span class="nav-label">Bài viết & tin tức</span>
-                    </a>
+                                    <a class="nav-link @(isItemActive ? "active" : "")" href="@itemUrl" title="@item.Title">
+                                        <i class="bi @iconClass"></i>
+                                        <span class="nav-label">@item.Title</span>
 
-                    <!-- Quản lý menu sàn -->
-                    <a class="nav-link @(isMenus ? "active" : "")" 
-                       asp-area="Admin" asp-controller="Menus" asp-action="Index" title="Quản lý Menu">
-                        <i class="bi bi-menu-button-wide-fill"></i>
-                        <span class="nav-label">Quản lý Menu</span>
-                    </a>
-
-                    <!-- Đánh giá & bình luận -->
-                    <a class="nav-link @(isReviews ? "active" : "")" 
-                       asp-area="Admin" asp-controller="Reviews" asp-action="Index" title="Đánh giá & Bình luận">
-                        <i class="bi bi-star-half"></i>
-                        <span class="nav-label">Đánh giá & Bình luận</span>
-                    </a>
-
-                    <!-- HỆ THỐNG -->
-                    <div class="sidebar-category-header">Hệ thống</div>
-                    <!-- Địa điểm nhận xe -->
-                    <a class="nav-link @(isLocations ? "active" : "")" 
-                       asp-area="Admin" asp-controller="Locations" asp-action="Index" title="Địa điểm nhận xe">
-                        <i class="bi bi-geo-alt-fill"></i>
-                        <span class="nav-label">Địa điểm nhận xe</span>
-                    </a>
-
-                    <!-- Người dùng & đối tác -->
-                    <a class="nav-link @(isUsers ? "active" : "")" 
-                       asp-area="Admin" asp-controller="UserManagement" asp-action="Index" title="Người dùng & đối tác">
-                        <i class="bi bi-people-fill"></i>
-                        <span class="nav-label">Người dùng & đối tác</span>
-                    </a>
-
-                    <!-- Cấu hình hệ thống -->
-                    <a class="nav-link @(isSettings ? "active" : "")" 
-                       asp-area="Admin" asp-controller="Settings" asp-action="Index" title="Cấu hình hệ thống">
-                        <i class="bi bi-gear-fill"></i>
-                        <span class="nav-label">Cấu hình hệ thống</span>
-                    </a>
+                                        @if (itemUrl.Contains("Cars/Pending", StringComparison.OrdinalIgnoreCase))
+                                        {
+                                            <span id="pendingCarsBadge" class="badge bg-warning text-dark fw-bold rounded-pill ms-auto" style="font-size: 0.72rem; @(pendingCarsCount > 0 ? "" : "display:none;")">@pendingCarsCount</span>
+                                        }
+                                        else if (itemUrl.Contains("CarOwners/Pending", StringComparison.OrdinalIgnoreCase))
+                                        {
+                                            <span id="pendingOwnersBadge" class="badge bg-warning text-dark fw-bold rounded-pill ms-auto" style="font-size: 0.72rem; @(pendingOwnersCount > 0 ? "" : "display:none;")">@pendingOwnersCount</span>
+                                        }
+                                    </a>
+                                }
+                            }
+                            else
+                            {
+                                string pUrl = !string.IsNullOrWhiteSpace(group.Url) ? group.Url : ("/" + group.Alias);
+                                bool isPActive = adminCurPath.Equals(pUrl, StringComparison.OrdinalIgnoreCase);
+                                string pIcon = !string.IsNullOrWhiteSpace(group.Icon) ? group.Icon : "bi-circle";
+                                <a class="nav-link @(isPActive ? "active" : "")" href="@pUrl" title="@group.Title">
+                                    <i class="bi @pIcon"></i>
+                                    <span class="nav-label">@group.Title</span>
+                                </a>
+                            }
+                        }
+                    }
                 </nav>
             </div>
 

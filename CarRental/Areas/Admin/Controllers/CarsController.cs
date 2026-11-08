@@ -218,7 +218,14 @@ namespace CarRental.Areas.Admin.Controllers
 
             if (!string.IsNullOrWhiteSpace(status) && status != "__all")
             {
-                query = query.Where(c => c.CarStatus == status);
+                if (status == "Ngưng hoạt động" || status == "Tạm ngừng")
+                {
+                    query = query.Where(c => c.CarStatus == "Ngưng hoạt động" || c.CarStatus == "Tạm ngừng");
+                }
+                else
+                {
+                    query = query.Where(c => c.CarStatus == status);
+                }
             }
 
             if (!string.IsNullOrWhiteSpace(city) && city != "__all")
@@ -254,9 +261,26 @@ namespace CarRental.Areas.Admin.Controllers
             }
 
             car.CarStatus = status;
+
+            // Đồng bộ triệt để trạng thái hiển thị trên sàn ReCar
+            if (status == "Ngưng hoạt động" || status == "Tạm ngừng" || status == "Từ chối" || status == "Chờ duyệt")
+            {
+                car.IsActive = false; // Ẩn hoàn toàn khỏi sàn
+            }
+            else if (status == "Sẵn sàng" || status == "Bảo trì" || status == "Đang bận")
+            {
+                car.IsActive = true;
+            }
+
             _context.SaveChanges();
 
-            return Json(new { success = true, message = $"Đã cập nhật trạng thái xe {car.LicensePlate} sang '{status}'." });
+            string activeDesc = car.IsActive ? "(Đang hiển thị trên sàn)" : "(Đã ẩn khỏi sàn)";
+            return Json(new { 
+                success = true, 
+                isActive = car.IsActive,
+                carStatus = car.CarStatus,
+                message = $"Đã cập nhật trạng thái xe {car.LicensePlate} sang '{status}' {activeDesc}." 
+            });
         }
     }
 }

@@ -22,6 +22,8 @@
     decimal depositAmt = latestOrder?.Deposit ?? 0;
     decimal remainAmt = latestOrder?.Payment ?? 0;
     decimal totalAmt = depositAmt + remainAmt;
+    decimal depositRate = totalAmt > 0 ? Math.Round((depositAmt / totalAmt) * 100m, 0) : 30m;
+    decimal remainRate = 100m - depositRate;
     string alertMsg = TempData["Message"] as string ?? "Khoản đặt cọc 30% giữ xe của bạn đã được hệ thống ghi nhận thành công.";
 }
 
@@ -71,7 +73,7 @@
                             <div class="text-md-end">
                                 <span class="text-muted small d-block">Trạng thái thanh toán</span>
                                 <span class="badge bg-success rounded-pill px-3 py-1">
-                                    <i class="bi bi-shield-check me-1"></i> @(latestOrder.StatusId == 3 ? "Đã thanh toán cọc 30% (VNPay)" : "Đã ghi nhận đơn đặt xe")
+                                    <i class="bi bi-shield-check me-1"></i> @(latestOrder.StatusId == 3 ? (remainAmt == 0 ? "Đã thanh toán 100% (VNPay)" : $"Đã thanh toán cọc {depositRate:0.#}% (VNPay)") : "Đã ghi nhận đơn đặt xe")
                                 </span>
                             </div>
                         </div>
@@ -109,7 +111,7 @@
                             </div>
                             <div class="col-sm-4">
                                 <div class="p-3 bg-white rounded-3 border border-success-subtle h-100">
-                                    <span class="text-success fw-semibold d-block mb-1">@(remainAmt == 0 ? "Đã thanh toán qua sàn (100%)" : "Tiền cọc giữ chỗ (30%)")</span>
+                                    <span class="text-success fw-semibold d-block mb-1">@(remainAmt == 0 ? "Đã thanh toán qua sàn (100%)" : $"Tiền cọc giữ chỗ ({depositRate:0.#}%)")</span>
                                     <strong class="fs-6 text-success">@depositAmt.ToString("N0")đ</strong>
                                 </div>
                             </div>
@@ -146,7 +148,7 @@
                         <div class="p-3 rounded-3 border h-100 bg-white">
                             <div class="badge bg-primary-subtle text-primary rounded-pill mb-2">Bước 3</div>
                             <h6 class="fw-bold text-dark small mb-1">Ký hợp đồng &amp; Nhận xe</h6>
-                            <p class="text-muted small m-0">Ký hợp đồng thuê xe điện tử, thanh toán 70% phần tiền còn lại và bắt đầu hành trình.</p>
+                            <p class="text-muted small m-0">Ký hợp đồng thuê xe điện tử, thanh toán @(remainAmt == 0 ? "0%" : $"{remainRate:0.#}%") phần tiền còn lại và bắt đầu hành trình.</p>
                         </div>
                     </div>
                 </div>

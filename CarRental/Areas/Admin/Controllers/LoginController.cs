@@ -17,23 +17,20 @@ namespace CarRental.Areas.Admin.Controllers
 
         private void EnsureAdminAccount()
         {
-            const string adminUsername = "Admin";
-            const string adminPasswordPlain = "admin123456a@";
-
-            // Nếu chưa có tài khoản Admin trong bảng Customers thì tạo mới
-            var admin = _context.Customers.FirstOrDefault(a => a.Username == adminUsername || a.Email == "admin@system.local");
-            if (admin == null)
+            // Kiểm tra xem hệ thống đã có tài khoản Quản trị viên (RoleId = 1) chưa
+            bool hasAdmin = _context.Customers.Any(a => a.RoleId == 1);
+            if (!hasAdmin)
             {
-                admin = new Customer
+                var admin = new Customer
                 {
-                    Username = adminUsername,
-                    Password = Function.MD5Password(adminPasswordPlain),
-                    FullName = "Administrator",
-                    Name = "Administrator",
-                    Email = "admin@system.local",
-                    RoleId = 1, // RoleId = 1 là Admin
+                    Username = "admin",
+                    Password = Function.MD5Password("123"),
+                    FullName = "Quản Trị Viên",
+                    Name = "Quản Trị Viên",
+                    Email = "admin@gmail.com",
+                    RoleId = 1,
                     IsActive = true,
-                    LastLogin = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")
+                    LastLogin = Function.NowVn.ToString("yyyy-MM-dd HH:mm:ss")
                 };
 
                 _context.Customers.Add(admin);

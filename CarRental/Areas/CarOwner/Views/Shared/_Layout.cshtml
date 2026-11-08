@@ -1,4 +1,5 @@
 @using CarRental.Utilities;
+@inject CarRental.Models.DbRenalCarContext _db;
 
 @{
 
@@ -138,84 +139,63 @@
 
 
 
-            <!-- Navigation Links Khớp 100% Ảnh 2 -->
-
+            <!-- Navigation Links Rendered Dynamically from DB -->
             <nav class="d-flex flex-column gap-1">
+                @{
+                    var rawHostMenus = _db.Menus
+                        .Where(m => m.Subsystem == "CarOwner" && (m.IsActive ?? false))
+                        .OrderBy(m => m.Position)
+                        .ToList();
 
-                <div class="sidebar-nav-header sidebar-hide-on-collapse">QUẢN TRỊ PHƯƠNG TIỆN</div>
+                    var hostParentGroups = rawHostMenus
+                        .Where(m => m.ParentId == null || m.ParentId == 0)
+                        .OrderBy(m => m.Position)
+                        .ToList();
 
+                    var ownerCurPath = Context.Request.Path.Value ?? "";
 
+                    foreach (var group in hostParentGroups)
+                    {
+                        var children = rawHostMenus
+                            .Where(m => m.ParentId == group.MenuId)
+                            .OrderBy(m => m.Position)
+                            .ToList();
 
-                <a href="/CarOwner/Home/Index" class="sidebar-nav-link @(currentController == "Home" ? "active" : "")" title="Tổng quan">
+                        bool isGroupHeader = string.IsNullOrWhiteSpace(group.Url) || group.Url == "#";
 
-                    <i class="bi bi-grid-fill" style="font-size: 1.05rem;"></i>
+                        if (isGroupHeader)
+                        {
+                            <div class="sidebar-nav-header sidebar-hide-on-collapse">@group.Title</div>
+                            foreach (var item in children)
+                            {
+                                string itemUrl = !string.IsNullOrWhiteSpace(item.Url) ? item.Url : ("/" + item.Alias);
+                                bool isItemActive = false;
+                                if (!string.IsNullOrEmpty(itemUrl) && itemUrl != "#")
+                                {
+                                    isItemActive = ownerCurPath.Equals(itemUrl, StringComparison.OrdinalIgnoreCase) ||
+                                                   (itemUrl.Length > 10 && ownerCurPath.StartsWith(itemUrl, StringComparison.OrdinalIgnoreCase));
+                                }
 
-                    <span class="sidebar-hide-on-collapse">Tổng quan</span>
+                                string iconClass = !string.IsNullOrWhiteSpace(item.Icon) ? item.Icon : "bi-circle";
 
-                </a>
-
-
-
-                <a href="/CarOwner/Cars/Index" class="sidebar-nav-link @((currentController == "Cars" && currentAction == "Index") ? "active" : "")" title="Quản lý xe">
-
-                    <i class="bi bi-car-front-fill" style="font-size: 1.05rem;"></i>
-
-                    <span class="sidebar-hide-on-collapse">Quản lý xe</span>
-
-                </a>
-
-
-
-                <!-- Đã loại bỏ chữ "mới" theo yêu cầu người dùng -->
-
-                <a href="/CarOwner/Cars/Create" class="sidebar-nav-link @((currentController == "Cars" && currentAction == "Create") ? "active" : "")" title="Thêm xe">
-
-                    <i class="bi bi-plus-circle-fill" style="font-size: 1.05rem;"></i>
-
-                    <span class="sidebar-hide-on-collapse">Thêm xe</span>
-
-                </a>
-
-
-
-                <a href="/CarOwner/Calendar/Index" class="sidebar-nav-link @(currentController == "Calendar" ? "active" : "")" title="Lịch xe">
-                    <i class="bi bi-calendar3" style="font-size: 1.05rem;"></i>
-                    <span class="sidebar-hide-on-collapse">Lịch xe</span>
-                </a>
-
-                <div class="sidebar-nav-header sidebar-hide-on-collapse">KINH DOANH & THU NHẬP</div>
-
-
-
-                <a href="/CarOwner/Orders/Index" class="sidebar-nav-link @(currentController == "Orders" ? "active" : "")" title="Lịch trình & Đơn xe">
-
-                    <i class="bi bi-calendar2-range-fill" style="font-size: 1.05rem;"></i>
-
-                    <span class="sidebar-hide-on-collapse">Lịch trình & Đơn xe</span>
-
-                </a>
-
-
-
-                <a href="/CarOwner/Analytics/Index" class="sidebar-nav-link @(currentController == "Analytics" ? "active" : "")" title="Phân tích hiệu suất">
-                    <i class="bi bi-bar-chart-line-fill" style="font-size: 1.05rem;"></i>
-                    <span class="sidebar-hide-on-collapse">Phân tích hiệu suất</span>
-                </a>
-
-                <a href="/CarOwner/Wallet/Index" class="sidebar-nav-link @(currentController == "Wallet" ? "active" : "")" title="Ví đối tác & Đối soát">
-                    <i class="bi bi-wallet2" style="font-size: 1.05rem;"></i>
-                    <span class="sidebar-hide-on-collapse">Ví đối tác & Đối soát</span>
-                </a>
-
-                <a href="/CarOwner/Register/Pending" class="sidebar-nav-link @(currentController == "Register" ? "active" : "")" title="Hồ sơ pháp lý & Ngân hàng">
-
-                    <i class="bi bi-file-earmark-text-fill" style="font-size: 1.05rem;"></i>
-
-                    <span class="sidebar-hide-on-collapse">Hồ sơ pháp lý & Ngân hàng</span>
-
-                </a>
-
-
+                                <a href="@itemUrl" class="sidebar-nav-link @(isItemActive ? "active" : "")" title="@item.Title">
+                                    <i class="bi @iconClass" style="font-size: 1.05rem;"></i>
+                                    <span class="sidebar-hide-on-collapse">@item.Title</span>
+                                </a>
+                            }
+                        }
+                        else
+                        {
+                            string pUrl = !string.IsNullOrWhiteSpace(group.Url) ? group.Url : ("/" + group.Alias);
+                            bool isPActive = ownerCurPath.Equals(pUrl, StringComparison.OrdinalIgnoreCase);
+                            string pIcon = !string.IsNullOrWhiteSpace(group.Icon) ? group.Icon : "bi-circle";
+                            <a href="@pUrl" class="sidebar-nav-link @(isPActive ? "active" : "")" title="@group.Title">
+                                <i class="bi @pIcon" style="font-size: 1.05rem;"></i>
+                                <span class="sidebar-hide-on-collapse">@group.Title</span>
+                            </a>
+                        }
+                    }
+                }
             </nav>
 
         </div>

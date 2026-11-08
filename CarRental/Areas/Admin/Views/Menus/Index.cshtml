@@ -1,109 +1,360 @@
 @model IEnumerable<CarRental.Models.Menu>
 @{
-    ViewData["Title"] = "Quản lý Menu";
+    ViewData["Title"] = "Quản lý Menu 3 phân hệ";
+    string activeTab = ViewBag.ActiveTab as string ?? "Customer";
+    int custCount = ViewBag.CustomerCount ?? 0;
+    int hostCount = ViewBag.CarOwnerCount ?? 0;
+    int adminCount = ViewBag.AdminCount ?? 0;
+
+    var subsystems = new[] {
+        new { Code = "Customer", Title = "Khách hàng (Sàn thuê xe)", Desc = "Thanh điều hướng Header/Footer trên giao diện thuê xe", Count = custCount, Icon = "bi-globe" },
+        new { Code = "CarOwner", Title = "Chủ xe (Host Pro)", Desc = "Thanh Sidebar điều hướng trong Cổng đối tác Chủ xe (/CarOwner)", Count = hostCount, Icon = "bi-person-badge" },
+        new { Code = "Admin", Title = "Quản trị viên (Admin)", Desc = "Thanh Sidebar quản lý toàn diện sàn ReCar (/Admin)", Count = adminCount, Icon = "bi-shield-lock" }
+    };
 }
 
 <div class="container-fluid px-0">
+    <!-- Scoped Styling cho Pills & Badges -->
+    <style>
+        #menuSubsystemTabs .nav-link {
+            background-color: #ffffff;
+            color: #475569;
+            border: 1px solid #e2e8f0;
+            transition: all 0.2s ease-in-out;
+            cursor: pointer;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+        }
+        #menuSubsystemTabs .nav-link .pill-counter-badge {
+            background-color: #f1f5f9;
+            color: #475569;
+            border: 1px solid #e2e8f0;
+            transition: all 0.2s ease-in-out;
+        }
+        #menuSubsystemTabs .nav-link:hover:not(.active) {
+            background-color: #f8fafc;
+            color: #0f172a;
+            border-color: #cbd5e1;
+        }
+        #menuSubsystemTabs .nav-link.active {
+            background-color: #0284c7 !important;
+            color: #ffffff !important;
+            border-color: #0284c7 !important;
+            box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3) !important;
+        }
+        #menuSubsystemTabs .nav-link.active .pill-counter-badge {
+            background-color: #ffffff !important;
+            color: #0284c7 !important;
+            border-color: transparent !important;
+            font-weight: 700 !important;
+        }
+    </style>
+
     <!-- Header -->
     <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4">
         <div>
             <div class="d-flex align-items-center gap-2">
-                <h1 class="h3 fw-bold mb-0 text-dark tracking-tight">Quản lý Menu sàn ReCar</h1>
+                <h1 class="h3 fw-bold mb-0 text-dark tracking-tight">Hệ thống Menu 3 phân hệ</h1>
                 <span class="badge bg-light text-dark border rounded-pill fw-semibold px-2.5 py-1">@Model.Count() mục</span>
             </div>
-            <p class="text-muted small mb-0 mt-1">Cấu hình hệ thống menu điều hướng trên thanh header, footer và các trang liên kết.</p>
-        </div>
-        <div>
-            <a asp-action="Create" class="btn btn-primary btn-sm rounded-pill px-3.5 py-2 fw-semibold shadow-sm" style="background-color: var(--recar-primary); border: none;">
-                <i class="bi bi-plus-circle me-1"></i> Thêm menu mới
-            </a>
+            <p class="text-muted small mb-0 mt-1">Cấu hình hệ thống menu điều hướng cây đa cấp (Menu cha - con, Icon, Phân hệ) cho Khách hàng, Chủ xe và Quản trị viên.</p>
         </div>
     </div>
 
-    <!-- Table Panel -->
-    <div class="recar-panel mb-0">
-        <div class="table-responsive">
-            <table class="table recar-table align-middle mb-0">
-                <thead>
-                    <tr>
-                        <th style="width: 60px;">STT</th>
-                        <th>Tiêu đề Menu</th>
-                        <th>Alias (Đường dẫn)</th>
-                        <th>Cấp bậc</th>
-                        <th>Thứ tự</th>
-                        <th>Trạng thái</th>
-                        <th class="text-end">Thao tác</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @if (!Model.Any())
-                    {
-                        <tr>
-                            <td colspan="7" class="text-center py-5 text-muted">
-                                <i class="bi bi-menu-button-wide fs-2 text-secondary d-block mb-2"></i>
-                                Chưa có menu nào trong hệ thống.
-                            </td>
-                        </tr>
-                    }
-                    else
-                    {
-                        int index = 1;
-                        foreach (var item in Model.OrderBy(m => m.Position))
-                        {
-                            <tr>
-                                <td class="fw-bold text-muted">@(index++)</td>
-                                <td>
-                                    <div class="d-flex align-items-center gap-2">
-                                        <div style="width: 32px; height: 32px; border-radius: 8px; background: #e0f2fe; color: #0284c7; display: flex; align-items: center; justify-content: center; font-size: 14px;">
-                                            <i class="bi bi-link-45deg"></i>
-                                        </div>
-                                        <div>
-                                            <div class="fw-bold text-dark">@item.Title</div>
-                                            @if (!string.IsNullOrEmpty(item.Description))
-                                            {
-                                                <div class="text-muted small" style="font-size: 0.75rem;">@item.Description</div>
-                                            }
-                                        </div>
-                                    </div>
-                                </td>
-                                <td>
-                                    <code class="bg-light px-2 py-1 rounded small border">@item.Alias</code>
-                                </td>
-                                <td>
-                                    <span class="badge bg-secondary-subtle text-secondary border">Cấp @item.Levels</span>
-                                </td>
-                                <td>
-                                    <span class="fw-semibold">@item.Position</span>
-                                </td>
-                                <td>
-                                    @if (item.IsActive.HasValue && item.IsActive.Value)
-                                    {
-                                        <span class="status-badge badge-active">
-                                            <i class="bi bi-check-circle-fill me-1"></i> Hiển thị
-                                        </span>
-                                    }
-                                    else
-                                    {
-                                        <span class="status-badge badge-neutral">
-                                            <i class="bi bi-eye-slash-fill me-1"></i> Tạm ẩn
-                                        </span>
-                                    }
-                                </td>
-                                <td class="text-end">
-                                    <div class="d-inline-flex gap-1">
-                                        <a asp-action="Edit" asp-route-id="@item.MenuId" class="btn btn-sm btn-light border" title="Chỉnh sửa">
-                                            <i class="bi bi-pencil-square text-primary"></i> Sửa
-                                        </a>
-                                        <a asp-action="Delete" asp-route-id="@item.MenuId" class="btn btn-sm btn-light border text-danger" title="Xóa menu" onclick="return confirm('Bạn có chắc chắn muốn xóa menu này không?');">
-                                            <i class="bi bi-trash"></i> Xóa
-                                        </a>
-                                    </div>
-                                </td>
-                            </tr>
-                        }
-                    }
-                </tbody>
-            </table>
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success border-0 shadow-sm rounded-3 py-2.5 px-3 mb-4 d-flex align-items-center gap-2 small">
+            <i class="bi bi-check-circle-fill text-success fs-5"></i>
+            <div>@TempData["Success"]</div>
         </div>
+    }
+
+    <!-- 3 Tabs Phân hệ -->
+    <ul class="nav nav-pills mb-4 gap-2 border-bottom pb-3" id="menuSubsystemTabs" role="tablist">
+        @foreach (var sub in subsystems)
+        {
+            bool isTabActive = activeTab == sub.Code;
+            <li class="nav-item" role="presentation">
+                <button class="nav-link rounded-pill fw-semibold small px-3.5 py-2 d-inline-flex align-items-center gap-2 @(isTabActive ? "active" : "")" 
+                        id="tab-btn-@sub.Code.ToLower()" data-bs-toggle="pill" data-bs-target="#tab-@sub.Code.ToLower()" type="button" role="tab">
+                    <i class="bi @sub.Icon"></i> @sub.Title
+                    <span class="badge rounded-pill pill-counter-badge">@sub.Count</span>
+                </button>
+            </li>
+        }
+    </ul>
+
+    <!-- Tab Contents -->
+    <div class="tab-content" id="menuSubsystemContent">
+        @foreach (var sub in subsystems)
+        {
+            bool isTabActive = activeTab == sub.Code;
+            var items = Model.Where(m => m.Subsystem == sub.Code).ToList();
+            var parentItems = items.Where(m => m.ParentId == null || m.ParentId == 0).OrderBy(m => m.Position).ToList();
+
+            <div class="tab-pane fade @(isTabActive ? "show active" : "")" id="tab-@sub.Code.ToLower()" role="tabpanel">
+                <div class="recar-panel mb-0">
+                    <div class="recar-panel-header d-flex align-items-center justify-content-between py-3 px-4 bg-light border-bottom">
+                        <div>
+                            <h6 class="fw-bold text-dark mb-0">Cấu trúc Menu: @sub.Title</h6>
+                            <span class="text-muted small" style="font-size: 0.78rem;">@sub.Desc</span>
+                        </div>
+                        <a href="/Admin/Menus/Create?subsystem=@sub.Code" class="btn btn-primary btn-sm rounded-pill px-3.5 py-1.5 fw-semibold d-inline-flex align-items-center gap-1.5 shadow-sm" style="background-color: var(--recar-primary); border: none;">
+                            <i class="bi bi-plus-circle"></i> Thêm menu cho @sub.Title
+                        </a>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table recar-table align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th style="width: 50px;">Icon</th>
+                                    <th style="min-width: 240px;">Cấu trúc Menu (Cấp cha / Cấp con)</th>
+                                    <th>Đường dẫn liên kết (URL)</th>
+                                    <th style="width: 90px;" class="text-center">Thứ tự</th>
+                                    <th style="width: 120px;">Trạng thái</th>
+                                    <th style="width: 170px;" class="text-end">Thao tác</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (!items.Any())
+                                {
+                                    <tr>
+                                        <td colspan="6" class="text-center py-5 text-muted">
+                                            <i class="bi bi-inbox fs-2 text-secondary d-block mb-2"></i>
+                                            Chưa có mục menu nào cho phân hệ @sub.Title.
+                                        </td>
+                                    </tr>
+                                }
+                                else
+                                {
+                                    foreach (var parent in parentItems)
+                                    {
+                                        string iconStr = !string.IsNullOrWhiteSpace(parent.Icon) ? parent.Icon : "bi-folder2-open";
+                                        string urlStr = !string.IsNullOrWhiteSpace(parent.Url) ? parent.Url : ("/" + parent.Alias);
+                                        bool isPActive = parent.IsActive ?? false;
+                                        string activeClass = isPActive ? "badge-ready" : "badge-neutral";
+                                        string activeText = isPActive ? "Hiển thị" : "Tạm ẩn";
+                                        bool isGroupHeader = urlStr == "#" || string.IsNullOrWhiteSpace(parent.Url);
+                                        var children = items.Where(m => m.ParentId == parent.MenuId).OrderBy(m => m.Position).ToList();
+
+                                        <tr id="menu-row-@parent.MenuId" class="bg-white border-bottom">
+                                            <td class="text-center">
+                                                <div style="width: 36px; height: 36px; border-radius: 10px; background: @(isGroupHeader ? "#e0e7ff" : "#e0f2fe"); color: @(isGroupHeader ? "#4338ca" : "#0284c7"); display: inline-flex; align-items: center; justify-content: center; font-size: 16px;" title="@iconStr">
+                                                    <i class="bi @iconStr"></i>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <span class="@(isGroupHeader ? "fw-bold text-dark text-uppercase fs-6 tracking-wide" : "fw-bold text-dark fs-6")">@parent.Title</span>
+                                                    @if (isGroupHeader)
+                                                    {
+                                                        <span class="badge bg-indigo-subtle text-indigo border px-2 py-0.5 rounded-pill" style="font-size: 0.68rem; background-color: #ede9fe; color: #4338ca;">
+                                                            <i class="bi bi-folder2-open me-1"></i> Tiêu đề nhóm (@children.Count mục con)
+                                                        </span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-0.5 rounded-pill" style="font-size: 0.68rem;">Menu chính (Cấp 1)</span>
+                                                    }
+                                                </div>
+                                                @if (!string.IsNullOrEmpty(parent.Description))
+                                                {
+                                                    <div class="text-muted small mt-0.5" style="font-size: 0.72rem;">@parent.Description</div>
+                                                }
+                                            </td>
+                                            <td>
+                                                @if (isGroupHeader)
+                                                {
+                                                    <span class="badge bg-light text-muted border px-2 py-1 font-monospace" style="font-size: 0.75rem;">-- Tiêu đề phân nhóm --</span>
+                                                }
+                                                else
+                                                {
+                                                    <code class="bg-light px-2.5 py-1 rounded small border text-primary font-monospace">@urlStr</code>
+                                                }
+                                            </td>
+                                            <td class="text-center">
+                                                <span class="badge bg-light text-dark border px-2 py-1">@parent.Position</span>
+                                            </td>
+                                            <td>
+                                                <button type="button" class="btn btn-sm p-0 border-0" onclick="toggleActiveMenu(@parent.MenuId)">
+                                                    <span class="status-badge @activeClass" id="status-badge-@parent.MenuId">
+                                                        @if (isPActive)
+                                                        {
+                                                            <i class="bi bi-check-circle-fill me-1"></i>
+                                                        }
+                                                        else
+                                                        {
+                                                            <i class="bi bi-eye-slash-fill me-1"></i>
+                                                        }
+                                                        @activeText
+                                                    </span>
+                                                </button>
+                                            </td>
+                                            <td class="text-end">
+                                                <div class="d-inline-flex gap-1">
+                                                    <a href="/Admin/Menus/Create?subsystem=@sub.Code&parentId=@parent.MenuId" class="btn btn-sm btn-light border text-success fw-semibold" title="Thêm menu con trực thuộc nhóm này">
+                                                        <i class="bi bi-plus-circle"></i> + Con
+                                                    </a>
+                                                    <a href="/Admin/Menus/Edit/@parent.MenuId" class="btn btn-sm btn-light border text-primary" title="Sửa">
+                                                        <i class="bi bi-pencil"></i>
+                                                    </a>
+                                                    <button type="button" class="btn btn-sm btn-light border text-danger" onclick="deleteMenu(@parent.MenuId, '@parent.Title')" title="Xóa">
+                                                        <i class="bi bi-trash"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+
+                                        // Menu con (Cấp 2)
+                                        foreach (var child in children)
+                                        {
+                                            string cIcon = !string.IsNullOrWhiteSpace(child.Icon) ? child.Icon : "bi-arrow-right-short";
+                                            string cUrl = !string.IsNullOrWhiteSpace(child.Url) ? child.Url : ("/" + child.Alias);
+                                            bool isCActive = child.IsActive ?? false;
+                                            string cActiveClass = isCActive ? "badge-ready" : "badge-neutral";
+                                            string cActiveText = isCActive ? "Hiển thị" : "Tạm ẩn";
+
+                                            <tr id="menu-row-@child.MenuId" style="background-color: #f8fafc;">
+                                                <td class="text-center">
+                                                    <div style="width: 30px; height: 30px; border-radius: 8px; background: #ffffff; color: #475569; display: inline-flex; align-items: center; justify-content: center; font-size: 14px; border: 1px solid #e2e8f0;" title="@cIcon">
+                                                        <i class="bi @cIcon"></i>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <div class="d-flex align-items-center gap-2 ps-4">
+                                                        <i class="bi bi-arrow-return-right text-primary" style="font-size: 13px;"></i>
+                                                        <span class="fw-semibold text-dark">@child.Title</span>
+                                                        <span class="badge bg-secondary-subtle text-secondary border px-2 py-0.5 rounded-pill" style="font-size: 0.65rem;">
+                                                            ↳ Thuộc: <strong>@parent.Title</strong>
+                                                        </span>
+                                                    </div>
+                                                    @if (!string.IsNullOrEmpty(child.Description))
+                                                    {
+                                                        <div class="text-muted small ps-5" style="font-size: 0.70rem;">@child.Description</div>
+                                                    }
+                                                </td>
+                                                <td>
+                                                    <code class="bg-white px-2 py-1 rounded small border text-muted font-monospace">@cUrl</code>
+                                                </td>
+                                                <td class="text-center">
+                                                    <span class="badge bg-light text-dark border px-2 py-1">@child.Position</span>
+                                                </td>
+                                                <td>
+                                                    <button type="button" class="btn btn-sm p-0 border-0" onclick="toggleActiveMenu(@child.MenuId)">
+                                                        <span class="status-badge @cActiveClass" id="status-badge-@child.MenuId">
+                                                            @if (isCActive)
+                                                            {
+                                                                <i class="bi bi-check-circle-fill me-1"></i>
+                                                            }
+                                                            else
+                                                            {
+                                                                <i class="bi bi-eye-slash-fill me-1"></i>
+                                                            }
+                                                            @cActiveText
+                                                        </span>
+                                                    </button>
+                                                </td>
+                                                <td class="text-end">
+                                                    <div class="d-inline-flex gap-1">
+                                                        <a href="/Admin/Menus/Edit/@child.MenuId" class="btn btn-sm btn-light border text-primary" title="Sửa">
+                                                            <i class="bi bi-pencil"></i> Sửa
+                                                        </a>
+                                                        <button type="button" class="btn btn-sm btn-light border text-danger" onclick="deleteMenu(@child.MenuId, '@child.Title')" title="Xóa">
+                                                            <i class="bi bi-trash"></i>
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        }
+                                    }
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        }
     </div>
 </div>
+
+@section Scripts {
+<script>
+    $(document).ready(function () {
+        // Đảm bảo click vào bất kỳ viên thuốc nào thì active class chuyển ngay lập tức
+        $('#menuSubsystemTabs button[data-bs-toggle="pill"]').on('click shown.bs.tab', function () {
+            $('#menuSubsystemTabs button').removeClass('active');
+            $(this).addClass('active');
+        });
+    });
+
+    function toggleActiveMenu(menuId) {
+        $.ajax({
+            url: '/Admin/Menus/ToggleActive',
+            type: 'POST',
+            data: { id: menuId },
+            success: function (res) {
+                if (res.success) {
+                    const badge = $('#status-badge-' + menuId);
+                    if (res.isActive) {
+                        badge.removeClass('badge-neutral').addClass('badge-ready').html('<i class="bi bi-check-circle-fill me-1"></i> Hiển thị');
+                    } else {
+                        badge.removeClass('badge-ready').addClass('badge-neutral').html('<i class="bi bi-eye-slash-fill me-1"></i> Tạm ẩn');
+                    }
+                    Swal.fire({
+                        toast: true,
+                        position: 'top-end',
+                        icon: 'success',
+                        title: res.message,
+                        showConfirmButton: false,
+                        timer: 2000
+                    });
+                } else {
+                    Swal.fire('Lỗi', res.message, 'error');
+                }
+            },
+            error: function () {
+                Swal.fire('Lỗi', 'Không thể kết nối máy chủ.', 'error');
+            }
+        });
+    }
+
+    function deleteMenu(menuId, menuTitle) {
+        Swal.fire({
+            title: 'Xóa menu?',
+            text: `Bạn có chắc muốn xóa menu "${menuTitle}"? Nếu menu này có các menu con, các menu con sẽ tự động được chuyển lên cấp 1.`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#ef4444',
+            cancelButtonColor: '#64748b',
+            confirmButtonText: 'Đồng ý xóa',
+            cancelButtonText: 'Hủy bỏ',
+            customClass: { popup: 'rounded-4' }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: '/Admin/Menus/Delete',
+                    type: 'POST',
+                    data: { id: menuId },
+                    success: function (res) {
+                        if (res.success) {
+                            Swal.fire({
+                                title: 'Đã xóa!',
+                                text: res.message,
+                                icon: 'success',
+                                timer: 1500,
+                                showConfirmButton: false,
+                                customClass: { popup: 'rounded-4' }
+                            });
+                            $('#menu-row-' + menuId).fadeOut(400, function() { $(this).remove(); });
+                        } else {
+                            Swal.fire('Lỗi', res.message, 'error');
+                        }
+                    },
+                    error: function () {
+                        Swal.fire('Lỗi', 'Không thể kết nối máy chủ.', 'error');
+                    }
+                });
+            }
+        });
+    }
+</script>
+}

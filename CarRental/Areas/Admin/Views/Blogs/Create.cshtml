@@ -1,138 +1,150 @@
-﻿@model CarRental.Models.Blog
+@model CarRental.Models.Blog
 @{
-    ViewData["Title"] = "Create";
+    ViewData["Title"] = "Viết bài mới";
     Layout = "~/Areas/Admin/Views/Shared/_Layout.cshtml";
 }
 
-
-
-<div id="main">
-    <header class="mb-3">
-        <a href="#" class="burger-btn d-block d-xl-none">
-            <i class="bi bi-justify fs-3"></i>
-        </a>
-    </header>
-
-    <div class="page-heading">
-        <div class="page-title">
-            <div class="row">
-                <div class="col-12 col-md-6 order-md-1 order-last">
-                    <h3>Thêm mới</h3>
-                    @* <p class="text-subtitle text-muted">
-                        Give textual form controls like input upgrade with
-                        custom styles,
-                        sizing, focus states, and more.
-                    </p> *@
-                </div>
-                <div class="col-12 col-md-6 order-md-2 order-first">
-                    <nav aria-label="breadcrumb" class="breadcrumb-header float-start float-lg-end">
-                        <ol class="breadcrumb">
-                            <li class="breadcrumb-item"><a href="index.html">Dashboard</a></li>
-                            <li class="breadcrumb-item active" aria-current="page">Input</li>
-                        </ol>
-                    </nav>
-                </div>
+<div class="container-fluid px-0" style="max-width: 1100px;">
+    <!-- Header -->
+    <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4">
+        <div>
+            <div class="d-flex align-items-center gap-2">
+                <a asp-action="Index" class="btn btn-light btn-sm rounded-circle p-2 text-muted me-1">
+                    <i class="bi bi-arrow-left"></i>
+                </a>
+                <h1 class="h3 fw-bold mb-0 text-dark tracking-tight">Viết bài mới</h1>
             </div>
+            <p class="text-muted small mb-0 mt-1 ms-5">Soạn thảo cẩm nang du lịch, kinh nghiệm thuê xe hoặc thông báo khuyến mãi cho sàn ReCar.</p>
         </div>
-        <section class="section">
-            <div class="card">
-                <div class="card-header">
-                    <h4 class="card-title">Thêm mới xe</h4>
-                </div>
+        <div>
+            <a asp-action="Index" class="btn btn-outline-secondary btn-sm rounded-pill px-3.5 py-1.5 fw-semibold">
+                <i class="bi bi-arrow-left me-1"></i> Quay lại danh sách
+            </a>
+        </div>
+    </div>
 
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md">
-                            <form method="post">
-                                <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+    <form asp-action="Create" method="post" enctype="multipart/form-data">
+        @Html.AntiForgeryToken()
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger rounded-3 small mb-3"></div>
 
-                                <div class="form-group">
-                                    <label asp-for="Title">Tiêu đề</label>
-                                    <input asp-for="Title" type="text" class="form-control" id="basicInput"
-                                           placeholder="Nhập tiêu đề">
-                                    <span asp-validation-for="Title" class="text-danger"></span>
+        <div class="row g-4">
+            <!-- Cột trái: Nội dung chính -->
+            <div class="col-lg-8">
+                <div class="recar-panel p-4 mb-4">
+                    <h5 class="fw-bold text-dark mb-3">
+                        <i class="bi bi-card-heading text-primary me-2"></i> Nội dung bài viết
+                    </h5>
 
-                                </div>
-                                <div class="form-group">
-                                    <label asp-for="Image">Ảnh</label>
-                                    <div class="input-group mb-3">
-                                        <button class="btn btn-primary" type="button" onclick="openDialog()"
-                                                id="button-addon1">
-                                            Chọn ảnh
-                                        </button>
-                                        <input asp-for="Image" type="text" class="form-control" id="file_input"
-                                               aria-label="Example text with button addon"
-                                               aria-describedby="button-addon1">
-                                    </div>
-                                    <span asp-validation-for="Image" class="text-danger"></span>
+                    <div class="mb-3">
+                        <label asp-for="Title" class="form-label fw-semibold small">Tiêu đề bài viết <span class="text-danger">*</span></label>
+                        <input asp-for="Title" class="form-control" placeholder="VD: Top 5 cung đường phượt bằng xe tự lái đẹp nhất..." required />
+                        <span asp-validation-for="Title" class="text-danger small"></span>
+                    </div>
 
-                                </div>
-                                <div class="form-group">
-                                    <label asp-for="Description">Mô tả</label>
-                                    <input asp-for="Description" type="text" class="form-control" id="basicInput"
-                                           placeholder="Nhập tiêu đề">
-                                    <span asp-validation-for="Description" class="text-danger"></span>
+                    <div class="mb-3">
+                        <label asp-for="Description" class="form-label fw-semibold small">Tóm tắt ngắn (Lead / Sapo) <span class="text-danger">*</span></label>
+                        <textarea asp-for="Description" rows="3" class="form-control" placeholder="Mô tả tóm tắt nội dung chính (1 - 2 câu ngắn gọn hiển thị ở danh sách bài viết)" required></textarea>
+                        <span asp-validation-for="Description" class="text-danger small"></span>
+                    </div>
 
-                                </div>
-                                <div class="form-group">
-                                    @* <label asp-for="Details">Chi tiết</label> *@
-                                    @* <input asp-for="CarBrand" type="text" class="form-control" id="basicInput"
-                                           placeholder="Nhập tên hãng xe"> *@
-                                    <label asp-for="Detail" for="exampleFormControlTextarea1" class="form-label">
-                                        Chi tiết
-                                    </label>
-                                    <textarea asp-for="Detail" type="text" class="form-control"></textarea>
-
-                                    <span asp-validation-for="Detail" class="text-danger"></span>
-                                </div>
-                                <div class="form-group">
-                                    <label asp-for="IsActive" class="control-label">
-                                        @Html.CheckBox("IsActive", false)
-                                        Hiển thị
-                                    </label>
-
-                                    <span asp-validation-for="IsActive" class="text-danger"></span>
-                                </div>
-                               
-                               
-                                <div class="btn-group mb-3">
-                                    <div class="form-group">
-                                        <input type="submit" value="Tạo" class="btn btn-primary" />
-                                    </div>|
-                                    <div class="form-group">
-                                        <a asp-action="Index" class="btn btn-danger">Quay lại</a>
-
-                                    </div>
-                                </div>
-
-                            </form>
-
-
-                        </div>
-
+                    <div class="mb-2">
+                        <label asp-for="Detail" class="form-label fw-semibold small">Nội dung chi tiết bài viết <span class="text-danger">*</span></label>
+                        <textarea asp-for="Detail" id="BlogDetail" rows="12" class="form-control" placeholder="Nhập nội dung bài viết đầy đủ tại đây..." required></textarea>
+                        <span asp-validation-for="Detail" class="text-danger small"></span>
                     </div>
                 </div>
             </div>
-        </section>
 
+            <!-- Cột phải: Cài đặt & Ảnh bìa -->
+            <div class="col-lg-4">
+                <!-- Card Xuất bản -->
+                <div class="recar-panel p-4 mb-4">
+                    <h6 class="fw-bold text-dark mb-3">
+                        <i class="bi bi-send text-success me-2"></i> Trạng thái xuất bản
+                    </h6>
 
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" asp-for="IsActive" id="switchIsActive" checked>
+                        <label class="form-check-label fw-semibold small text-dark" for="switchIsActive">
+                            Xuất bản ngay lên sàn ReCar
+                        </label>
+                        <div class="form-text small text-muted">Nếu tắt, bài viết sẽ được lưu dưới dạng Bản nháp và không hiển thị ra trang chủ.</div>
+                    </div>
 
-    </div>
+                    <hr class="my-3">
 
-    <footer>
-        <div class="footer clearfix mb-0 text-muted">
-            <div class="float-start">
-                <p>2021 &copy; Mazer</p>
-            </div>
-            <div class="float-end">
-                <p>
-                    Crafted with <span class="text-danger"><i class="bi bi-heart"></i></span> by <a href="http://ahmadsaugi.com">A. Saugi</a>
-                </p>
+                    <div class="d-flex flex-column gap-2">
+                        <button type="submit" class="btn btn-primary w-100 rounded-pill py-2.5 fw-bold shadow-sm" style="background-color: var(--recar-primary); border: none;">
+                            <i class="bi bi-check2-circle me-1"></i> Xuất bản bài viết
+                        </button>
+                        <a asp-action="Index" class="btn btn-light w-100 rounded-pill py-2 text-muted fw-semibold border">
+                            Hủy bỏ
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Card Ảnh bìa -->
+                <div class="recar-panel p-4 mb-4">
+                    <h6 class="fw-bold text-dark mb-2">
+                        <i class="bi bi-image text-info me-2"></i> Ảnh bìa bài viết
+                    </h6>
+                    <p class="text-muted small mb-3">Kích thước khuyến nghị: 1200 x 630 px (Tỷ lệ 16:9 hoặc 3:2).</p>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small">Tải lên tệp ảnh từ máy tính:</label>
+                        <input type="file" id="imageFileInput" name="ImageFile" accept="image/*" class="form-control form-control-sm rounded-3 mb-2" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small">Hoặc nhập đường dẫn ảnh (URL):</label>
+                        <input asp-for="Image" id="imageInputUrl" class="form-control form-control-sm" placeholder="https://... hoặc /images/blogs/..." />
+                    </div>
+
+                    <!-- Khung xem trước ảnh Live Preview -->
+                    <div class="border rounded-3 p-2 bg-light text-center">
+                        <img id="imagePreview" src="/images/cars/hero.jpg" alt="Xem trước ảnh bìa" class="img-fluid rounded-3 object-fit-cover w-100 shadow-xs" style="max-height: 180px; display: none;" />
+                        <div id="noPreviewText" class="text-muted small py-4">
+                            <i class="bi bi-card-image fs-1 d-block text-secondary opacity-50 mb-1"></i>
+                            Chưa có ảnh bìa xem trước
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
-    </footer>
+    </form>
 </div>
-@{
-    var summernote = new CarRental.Areas.Admin.Models.SummerNote("#Detail");
-    <partial name="_SummerNote" model="summernote" />
+
+@section Scripts {
+    <script>
+        // Xem trước ảnh Live Preview khi chọn file
+        document.getElementById('imageFileInput')?.addEventListener('change', function (e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    const img = document.getElementById('imagePreview');
+                    const noText = document.getElementById('noPreviewText');
+                    img.src = e.target.result;
+                    img.style.display = 'block';
+                    if (noText) noText.style.display = 'none';
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Xem trước ảnh Live Preview khi nhập URL
+        document.getElementById('imageInputUrl')?.addEventListener('input', function (e) {
+            const url = e.target.value.trim();
+            const img = document.getElementById('imagePreview');
+            const noText = document.getElementById('noPreviewText');
+            if (url) {
+                img.src = url;
+                img.style.display = 'block';
+                if (noText) noText.style.display = 'none';
+            } else if (!document.getElementById('imageFileInput').files.length) {
+                img.style.display = 'none';
+                if (noText) noText.style.display = 'block';
+            }
+        });
+    </script>
 }

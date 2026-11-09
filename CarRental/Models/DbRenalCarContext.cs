@@ -77,6 +77,8 @@ public virtual DbSet<Blog> Blogs { get; set; }
 
     public virtual DbSet<SystemSetting> SystemSettings { get; set; }
 
+    public virtual DbSet<Notification> Notifications { get; set; }
+
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -549,6 +551,19 @@ modelBuilder.Entity<Blog>(entity =>
             entity.Property(e => e.PlatformName).HasMaxLength(150);
             entity.Property(e => e.Address).HasMaxLength(255);
             entity.Property(e => e.UpdatedAt).HasColumnType("datetime");
+        });
+
+        modelBuilder.Entity<Notification>(entity =>
+        {
+            entity.HasKey(e => e.NotificationId);
+            entity.ToTable("notifications");
+
+            entity.Property(e => e.NotificationId).HasColumnName("NotificationId");
+            entity.Property(e => e.Title).HasMaxLength(255);
+            entity.Property(e => e.Role).HasMaxLength(50);
+            entity.Property(e => e.Type).HasMaxLength(50);
+            entity.Property(e => e.LinkUrl).HasMaxLength(255);
+            entity.Property(e => e.CreatedAt).HasColumnType("datetime");
         });
 
         OnModelCreatingPartial(modelBuilder);

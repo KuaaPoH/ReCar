@@ -1,6 +1,7 @@
 @model IEnumerable<CarRental.Models.Location>
 @{
     ViewData["Title"] = "Quản lý địa điểm nhận xe";
+    Layout = "~/Areas/Admin/Views/Shared/_Layout.cshtml";
 }
 
 <div class="container-fluid px-0">
@@ -59,14 +60,10 @@
                             <tr>
                                 <td class="fw-bold text-muted">@item.DisplayOrder</td>
                                 <td>
-                                    <div class="d-flex align-items-center gap-2">
-                                        <div style="width: 32px; height: 32px; border-radius: 8px; background: #e0f2fe; color: #0284c7; display: flex; align-items: center; justify-content: center; font-size: 14px;">
-                                            <i class="bi bi-geo-alt-fill"></i>
-                                        </div>
-                                        <div>
-                                            <div class="fw-bold text-dark">@item.CityName</div>
-                                        </div>
+                                    <div class="fw-bold text-dark">
+                                        <i class="bi bi-geo-alt text-primary me-1"></i> @item.CityName
                                     </div>
+                                    <div class="text-muted" style="font-size: 0.72rem;">Khu vực: @(string.IsNullOrEmpty(item.Region) ? "Toàn quốc" : item.Region)</div>
                                 </td>
                                 <td>
                                     <span class="badge bg-light text-dark border">
@@ -107,9 +104,9 @@
                                         <a asp-action="Edit" asp-route-id="@item.LocationId" class="btn btn-sm btn-light border" title="Chỉnh sửa">
                                             <i class="bi bi-pencil-square text-primary"></i> Sửa
                                         </a>
-                                        <form asp-action="Delete" asp-route-id="@item.LocationId" method="post" class="d-inline" onsubmit="return confirm('Bạn có chắc chắn muốn xóa địa điểm \'@item.CityName\' khỏi CSDL không?');">
+                                        <form asp-action="Delete" asp-route-id="@item.LocationId" method="post" class="d-inline" id="deleteLocForm-@item.LocationId">
                                             @Html.AntiForgeryToken()
-                                            <button type="submit" class="btn btn-sm btn-light border text-danger" title="Xóa">
+                                            <button type="button" class="btn btn-sm btn-light border text-danger" title="Xóa" onclick="confirmDeleteLocation(@item.LocationId, '@Html.Raw(item.CityName?.Replace("'", "\\'"))')">
                                                 <i class="bi bi-trash"></i> Xóa
                                             </button>
                                         </form>
@@ -123,3 +120,24 @@
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        function confirmDeleteLocation(id, name) {
+            Swal.fire({
+                title: 'Xóa địa điểm này?',
+                html: 'Bạn có chắc chắn muốn xóa địa điểm <strong>"' + name + '"</strong> khỏi danh sách địa điểm nhận xe?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: 'Đồng ý xóa',
+                cancelButtonText: 'Hủy bỏ'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    document.getElementById('deleteLocForm-' + id).submit();
+                }
+            });
+        }
+    </script>
+}

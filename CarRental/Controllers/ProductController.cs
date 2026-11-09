@@ -27,7 +27,7 @@ namespace CarRental.Controllers
         [HttpGet]
         public IActionResult FilterProducts(decimal? minPrice, decimal? maxPrice, string? brands, int? TypeId, int? seats, string? fuel, string? sort, string? city)
         {
-            var query = _context.Cars.Include(c => c.Type).Where(c => c.IsActive && c.CarStatus != "Chá» duyá»‡t" && c.CarStatus != "Từ chối" && c.CarStatus != "Tạm ngừng" && c.CarStatus != "Ngưng hoạt động");
+            var query = _context.Cars.Include(c => c.Type).Where(c => c.IsActive && c.CarStatus == "Sẵn sàng");
 
             if (!string.IsNullOrEmpty(city))
             {
@@ -129,7 +129,7 @@ namespace CarRental.Controllers
             var cars = _context.Cars
                 .Include(c => c.Type)
                 .Include(c => c.Owner)
-                .Where(c => c.IsActive && c.CarStatus != "Chá» duyá»‡t" && c.CarStatus != "Từ chối" && c.CarStatus != "Tạm ngừng" && c.CarStatus != "Ngưng hoạt động")
+                .Where(c => c.IsActive && c.CarStatus == "Sẵn sàng")
                 .ToList();
 
             var result = cars.Select(car =>
@@ -240,8 +240,8 @@ namespace CarRental.Controllers
             var product = await _context.Cars
                 .Include(i => i.Type)
                 .Include(i => i.Owner)
-                .FirstOrDefaultAsync(m => m.CarId == id && m.IsActive && m.CarStatus != "Chờ duyệt" && m.CarStatus != "Từ chối" && m.CarStatus != "Tạm ngừng" && m.CarStatus != "Ngưng hoạt động");
-            //var product = await _context.Cars.FirstOrDefaultAsync(m => m.CarId == id && m.IsActive && m.CarStatus != "Chờ duyệt" && m.CarStatus != "Từ chối" && m.CarStatus != "Tạm ngừng" && m.CarStatus != "Ngưng hoạt động");
+                .FirstOrDefaultAsync(m => m.CarId == id && m.IsActive && m.CarStatus == "Sẵn sàng");
+            //var product = await _context.Cars.FirstOrDefaultAsync(m => m.CarId == id && m.IsActive && m.CarStatus == "Sẵn sàng");
 
             if (product == null)
             {
@@ -279,8 +279,8 @@ namespace CarRental.Controllers
             ViewBag.CarPolicy = CarPolicy.Parse(product);
 
 
-            //ViewBag.productRelated = _context.Cars.Include(i=>i.Type).Where(i => i.TypeId == product.TypeId && i.CarId != id && i.IsActive && i.CarStatus != "Chờ duyệt" && i.CarStatus != "Từ chối" && i.CarStatus != "Tạm ngừng" && i.CarStatus != "Ngưng hoạt động").ToList();
-            ViewBag.productRelated = _context.Cars.Where(i => i.TypeId == product.TypeId && i.CarId != id && i.IsActive && i.CarStatus != "Chờ duyệt" && i.CarStatus != "Từ chối" && i.CarStatus != "Tạm ngừng" && i.CarStatus != "Ngưng hoạt động").ToList();
+            //ViewBag.productRelated = _context.Cars.Include(i=>i.Type).Where(i => i.TypeId == product.TypeId && i.CarId != id && i.IsActive && i.CarStatus == "Sẵn sàng").ToList();
+            ViewBag.productRelated = _context.Cars.Where(i => i.TypeId == product.TypeId && i.CarId != id && i.IsActive && i.CarStatus == "Sẵn sàng").ToList();
             ViewBag.productRviews = _context.CarReviews.Where(r => r.CarId == product.CarId).OrderByDescending(r => r.CreatedDate ?? DateTime.MinValue).ThenByDescending(r => r.CarReviewId).ToList();
           
             // Láº¥y danh sĂ¡ch sáº£n pháº©m Ä‘Ă£ xem gáº§n Ä‘Ă¢y tá»« session

@@ -73,6 +73,9 @@ namespace CarRental.ViewModels
         [Display(Name = "Phí giao xe tận nơi (VNĐ)")]
         public decimal DeliveryFee { get; set; } = 100000;
 
+        [Display(Name = "Phụ phí tài xế riêng (VNĐ/ngày)")]
+        public decimal DriverFee { get; set; } = 300000;
+
         [Display(Name = "Tiện nghi trang bị")]
         public List<string> Features { get; set; } = new List<string>();
 

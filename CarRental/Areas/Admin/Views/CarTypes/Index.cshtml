@@ -1,6 +1,7 @@
 @model IEnumerable<CarRental.Models.CarType>
 @{
     ViewData["Title"] = "Quản lý kiểu xe";
+    Layout = "~/Areas/Admin/Views/Shared/_Layout.cshtml";
 }
 
 <div class="container-fluid px-0">
@@ -92,9 +93,9 @@
                                         <a asp-action="Edit" asp-route-id="@item.TypeId" class="btn btn-sm btn-light border" title="Chỉnh sửa">
                                             <i class="bi bi-pencil-square text-primary"></i> Sửa
                                         </a>
-                                        <form asp-action="Delete" asp-route-id="@item.TypeId" method="post" class="d-inline" onsubmit="return confirm('Bạn có chắc chắn muốn xóa kiểu xe \'@item.CarTypeName\' này không?');">
+                                        <form asp-action="Delete" asp-route-id="@item.TypeId" method="post" class="d-inline" id="deleteTypeForm-@item.TypeId">
                                             @Html.AntiForgeryToken()
-                                            <button type="submit" class="btn btn-sm btn-light border text-danger" title="Xóa">
+                                            <button type="button" class="btn btn-sm btn-light border text-danger" title="Xóa" onclick="confirmDeleteCarType(@item.TypeId, '@Html.Raw(item.CarTypeName?.Replace("'", "\\'"))')">
                                                 <i class="bi bi-trash"></i> Xóa
                                             </button>
                                         </form>
@@ -108,3 +109,24 @@
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        function confirmDeleteCarType(id, name) {
+            Swal.fire({
+                title: 'Xóa kiểu xe này?',
+                html: 'Bạn có chắc chắn muốn xóa kiểu xe <strong>"' + name + '"</strong> khỏi hệ thống?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: 'Đồng ý xóa',
+                cancelButtonText: 'Hủy bỏ'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    document.getElementById('deleteTypeForm-' + id).submit();
+                }
+            });
+        }
+    </script>
+}

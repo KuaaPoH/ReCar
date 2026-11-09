@@ -29,7 +29,7 @@
     int pendingCarsCount = 0;
     int pendingOwnersCount = 0;
     try {
-        pendingCarsCount = _db.Cars.Count(c => c.CarStatus == "Chờ duyệt");
+        pendingCarsCount = _db.Cars.Count(c => c.CarStatus == "Chờ duyệt" || c.CarStatus == "Chờ cập nhật" || c.CarStatus == "pending_update");
         pendingOwnersCount = _db.CarOwnerRegistrations.Count(r => r.Status == "Pending");
     } catch { }
 
@@ -202,32 +202,54 @@
                         <input type="text" class="recar-search-input" placeholder="Tìm kiếm nhanh đơn, biển số, xe..." />
                     </div>
 
+                    <!-- Direct Chat Dropdown -->
+                    <div class="dropdown">
+                        <button class="btn btn-light position-relative rounded-circle p-2" type="button" data-bs-toggle="dropdown" aria-expanded="false" id="btnAdminChat" title="Tin nhắn trực tiếp">
+                            <i class="bi bi-chat-dots text-secondary"></i>
+                            <span id="chatNotificationDot" class="position-absolute top-0 start-100 translate-middle p-1 bg-primary border border-light rounded-circle" style="display:none; width: 8px; height: 8px; margin-top: 6px; margin-left: -6px;"></span>
+                        </button>
+                        <div class="dropdown-menu dropdown-menu-end shadow-lg p-2 border-0" style="width: 350px; max-width: 90vw; border-radius: 16px; margin-top: 10px;">
+                            <div class="d-flex align-items-center justify-content-between px-3 py-2 border-bottom">
+                                <h6 class="fw-bold text-dark mb-0 d-flex align-items-center gap-1.5" style="font-size: 0.88rem;">
+                                    <i class="bi bi-chat-dots-fill text-primary" style="font-size: 15px;"></i> Tin nhắn trao đổi
+                                </h6>
+                                <span class="badge bg-light text-primary border" style="font-size: 11px;">Trực tuyến</span>
+                            </div>
+                            <div id="recentChatList" style="max-height: 320px; overflow-y: auto;">
+                                <div class="text-center py-4 text-muted small" id="emptyChatNotice">
+                                    <i class="bi bi-chat-dots fs-2 text-secondary opacity-50 d-block mb-2"></i>
+                                    Chưa có cuộc trò chuyện nào
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Notification Bell Dropdown -->
                     <div class="dropdown">
-                        <button class="btn btn-light position-relative rounded-circle p-2" type="button" data-bs-toggle="dropdown" aria-expanded="false" id="btnAdminBell">
+                        <button class="btn btn-light position-relative rounded-circle p-2" type="button" data-bs-toggle="dropdown" aria-expanded="false" id="btnAdminBell" title="Thông báo hệ thống">
                             <i class="bi bi-bell text-secondary"></i>
-                            <span id="adminNotificationDot" class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle" style="@(pendingCarsCount > 0 ? "" : "display:none;")">
+                            <span id="adminNotificationDot" class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle" style="display:none; width: 8px; height: 8px; margin-top: 6px; margin-left: -6px;">
                                 <span class="visually-hidden">Thông báo mới</span>
                             </span>
                         </button>
-                        <ul class="dropdown-menu dropdown-menu-end shadow-sm p-2" style="width: 300px; border-radius: 12px;">
-                            <li><h6 class="dropdown-header fw-bold text-dark">Thông báo hệ thống</h6></li>
-                            @if (pendingCarsCount > 0)
-                            {
-                                <li>
-                                    <a class="dropdown-item rounded py-2 small d-flex gap-2" asp-area="Admin" asp-controller="Cars" asp-action="Pending">
-                                        <i class="bi bi-shield-exclamation text-warning fs-5"></i>
-                                        <div>
-                                            <p class="mb-0 fw-semibold">Có @pendingCarsCount xe đang chờ phê duyệt</p>
-                                            <span class="text-muted" style="font-size: 0.7rem;">Vui lòng kiểm tra hồ sơ đăng kiểm</span>
-                                        </div>
-                                    </a>
+                        <ul class="dropdown-menu dropdown-menu-end shadow-lg p-2 border-0" style="width: 360px; max-width: 90vw; border-radius: 16px;">
+                            <li>
+                                <div class="d-flex align-items-center justify-content-between px-3 py-2 border-bottom">
+                                    <h6 class="fw-bold text-dark mb-0 d-flex align-items-center gap-1.5" style="font-size: 0.88rem;">
+                                        <i class="bi bi-bell-fill text-primary"></i> Thông báo hệ thống
+                                    </h6>
+                                    <button type="button" class="btn btn-link p-0 text-decoration-none text-muted small" id="btnAdminMarkAllRead" title="Đánh dấu tất cả đã đọc" style="font-size: 0.75rem;">
+                                        <i class="bi bi-check2-all me-1"></i>Đọc tất cả
+                                    </button>
+                                </div>
+                            </li>
+                            <div style="max-height: 380px; overflow-y: auto;">
+                                <li id="adminNotificationEmpty" class="text-center py-4 text-muted small">
+                                    <i class="bi bi-inbox fs-2 text-secondary opacity-50 d-block mb-2"></i>
+                                    Không có thông báo mới
                                 </li>
-                            }
-                            else
-                            {
-                                <li class="text-center py-3 text-muted small">Không có thông báo mới</li>
-                            }
+                                <div id="adminNotificationList" class="p-1"></div>
+                            </div>
                         </ul>
                     </div>
 
@@ -281,16 +303,242 @@
         </div>
     </div>
 
+    <!-- Floating Chat Window (Trao đổi trực tiếp của Admin với Chủ xe & Khách hàng) -->
+    <div class="recar-chat-window" id="recarChatWindow">
+        <div class="chat-header">
+            <div class="d-flex align-items-center gap-2">
+                <span class="rounded-circle bg-success" style="width: 8px; height: 8px;"></span>
+                <span class="fw-bold small text-truncate" id="chatPartnerName" style="max-width: 220px;">Đối tác ReCar</span>
+            </div>
+            <div class="d-flex align-items-center gap-1">
+                <button type="button" class="btn btn-sm btn-link text-white p-0 me-1" onclick="minimizeChat()"><i class="bi bi-dash-lg"></i></button>
+                <button type="button" class="btn btn-sm btn-link text-white p-0" onclick="closeChat()"><i class="bi bi-x-lg"></i></button>
+            </div>
+        </div>
+        <div class="chat-body" id="chatMessages">
+            <div class="chat-bubble from-owner" id="chatFirstMessage">
+                Chào bạn! Tôi là Quản trị viên ReCar. Tôi có thể hỗ trợ gì cho bạn về xe hoặc các thủ tục trên sàn?
+            </div>
+        </div>
+        <div id="chatTypingIndicator" style="display: none; padding: 5px 16px; font-size: 11px; color: #64748b; font-style: italic; background: #f8fafc; border-top: 1px dashed #e2e8f0;">
+            <span class="spinner-grow spinner-grow-sm text-primary me-1" style="width: 8px; height: 8px;" role="status"></span>
+            <span id="chatTypingText">Đối tác đang soạn tin...</span>
+        </div>
+        <div class="chat-footer">
+            <input type="text" class="form-control form-control-sm rounded-pill border" id="chatInputText" placeholder="Nhập tin nhắn..." autocomplete="off">
+            <button class="btn btn-primary btn-sm rounded-circle d-flex align-items-center justify-content-center" id="btnSendChat" style="width: 32px; height: 32px; flex-shrink: 0;">
+                <i class="bi bi-send-fill" style="font-size: 12px;"></i>
+            </button>
+        </div>
+    </div>
+
     <!-- Scripts -->
     <script src="~/admin/assets/vendors/jquery/jquery.min.js"></script>
     <script src="~/admin/assets/js/bootstrap.bundle.min.js"></script>
     <script src="~/assets/js/vendor/signalr.min.js"></script>
     <script>
         window.RECAR_CURRENT_USER = {
-            accountId: @(Function.GetAccountId(Context.Session)),
+            accountId: @(Function.GetAdminAccountId(Context.Session) > 0 ? Function.GetAdminAccountId(Context.Session) : (Function.GetAccountId(Context.Session) > 0 ? Function.GetAccountId(Context.Session) : 1)),
             role: 'Admin',
-            userName: '@(Function.GetUserName(Context.Session) ?? "Super Admin")'
+            userName: '@(Function.GetUserName(Context.Session) ?? "Quản Trị Viên")'
         };
+
+        var currentChatCarId = null;
+        var currentChatPartnerId = null;
+        var currentChatPartnerName = 'Đối tác ReCar';
+
+        function openChatBox(partnerName, greeting, carId, partnerId, carName) {
+            currentChatPartnerName = partnerName || 'Đối tác ReCar';
+            currentChatCarId = carId || null;
+            currentChatPartnerId = partnerId || null;
+
+            $('#chatPartnerName').text(currentChatPartnerName);
+            $('#recarChatWindow').addClass('open');
+            $('#chatMessages').html('<div class="text-center py-3 text-muted small"><div class="spinner-border spinner-border-sm text-primary me-1" role="status"></div> Đang tải lịch sử tin nhắn...</div>');
+
+            $.ajax({
+                url: '/Chat/GetMessages',
+                type: 'GET',
+                data: { carId: currentChatCarId, partnerId: currentChatPartnerId, asAdmin: true },
+                success: function(res) {
+                    $('#chatMessages').empty();
+                    if (res && res.success && res.messages && res.messages.length > 0) {
+                        res.messages.forEach(function(m) {
+                            var bubbleClass = m.isMe ? 'chat-bubble from-user' : 'chat-bubble from-owner';
+                            var bubble = $('<div class="' + bubbleClass + '"></div>');
+                            var senderHeader = m.isMe ? 'Bạn' : m.senderName;
+                            bubble.append($('<div class="fw-bold mb-1" style="font-size: 11px; opacity: 0.85;"></div>').text(senderHeader + ' · ' + m.sentAt));
+                            bubble.append($('<div></div>').text(m.messageText));
+                            $('#chatMessages').append(bubble);
+                        });
+                    } else {
+                        var defaultMsg = greeting || 'Chào bạn! Tôi là Quản trị viên ReCar. Tôi có thể hỗ trợ gì cho bạn?';
+                        var bubble = $('<div class="chat-bubble from-owner"></div>');
+                        bubble.append($('<div class="fw-bold mb-1" style="font-size: 11px; opacity: 0.85;"></div>').text(currentChatPartnerName));
+                        bubble.append($('<div></div>').text(defaultMsg));
+                        $('#chatMessages').append(bubble);
+                    }
+                    $('#chatMessages').scrollTop($('#chatMessages')[0].scrollHeight);
+                },
+                error: function() {
+                    $('#chatMessages').html('<div class="chat-bubble from-owner"><div class="fw-bold mb-1" style="font-size: 11px;">' + currentChatPartnerName + '</div>' + (greeting || 'Chào bạn! Rất vui được hỗ trợ bạn.') + '</div>');
+                }
+            });
+            setTimeout(function() { $('#chatInputText').focus(); }, 200);
+        }
+
+        window.openChatBox = openChatBox;
+        window.closeChat = closeChat;
+        window.minimizeChat = minimizeChat;
+        window.loadRecentChats = loadRecentChats;
+
+        function closeChat() {
+            $('#recarChatWindow').removeClass('open');
+        }
+
+        function minimizeChat() {
+            $('#recarChatWindow').toggleClass('open');
+        }
+
+        function sendChatMessage() {
+            var msg = $('#chatInputText').val().trim();
+            if (!msg || !currentChatPartnerId) return;
+
+            var nowStr = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+            var userBubble = $('<div class="chat-bubble from-user"></div>');
+            userBubble.append($('<div class="fw-bold mb-1" style="font-size: 11px; opacity: 0.85;">Bạn · ' + nowStr + '</div>'));
+            userBubble.append($('<div></div>').text(msg));
+            $('#chatMessages').append(userBubble);
+            $('#chatInputText').val('');
+            $('#chatMessages').scrollTop($('#chatMessages')[0].scrollHeight);
+
+            $.ajax({
+                url: '/Chat/SendMessage',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    carId: currentChatCarId,
+                    receiverId: currentChatPartnerId,
+                    messageText: msg,
+                    asAdmin: true
+                }),
+                success: function(res) {
+                    if (res && res.success) {
+                        loadRecentChats();
+                    }
+                }
+            });
+        }
+
+        function safeDecodeName(str) {
+            if (!str) return 'Đối tác';
+            var s = String(str).replace(/&#x([0-9a-fA-F]+);/g, function(m, h) {
+                return String.fromCharCode(parseInt(h, 16));
+            }).replace(/&#([0-9]+);/g, function(m, d) {
+                return String.fromCharCode(parseInt(d, 10));
+            });
+            try {
+                var ta = document.createElement("textarea");
+                ta.innerHTML = s;
+                var res = ta.value;
+                if (res.indexOf('&') !== -1) {
+                    ta.innerHTML = res;
+                    res = ta.value;
+                }
+                return res;
+            } catch(e) {
+                return s;
+            }
+        }
+
+        function loadRecentChats() {
+            $.ajax({
+                url: '/Chat/GetRecentConversations',
+                data: { asAdmin: true },
+                type: 'GET',
+                success: function(res) {
+                    if (res && typeof res.unreadCount !== 'undefined') {
+                        if (res.unreadCount > 0) {
+                            $('#chatNotificationDot').show();
+                        } else {
+                            $('#chatNotificationDot').hide();
+                        }
+                    }
+
+                    var container = $('#recentChatList');
+                    if (!container.length) return;
+
+                    if (res && res.success && res.conversations && res.conversations.length > 0) {
+                        container.empty();
+                        res.conversations.forEach(function(c) {
+                            var pName = safeDecodeName(c.partnerName);
+                            var initials = pName ? pName.substring(0, 2).toUpperCase() : 'DT';
+                            var item = $('<div class="chat-item"></div>');
+                            item.html('<div class="chat-avatar">' + initials + '</div>' +
+                                '<div class="flex-grow-1 overflow-hidden" style="font-size: 13px;">' +
+                                    '<div class="d-flex justify-content-between">' +
+                                        '<strong class="text-truncate" style="max-width: 140px;">' + pName + '</strong>' +
+                                        '<span class="text-muted" style="font-size: 11px;">' + c.time + '</span>' +
+                                    '</div>' +
+                                    '<p class="text-muted text-truncate m-0" style="font-size: 12px;">' + c.lastMessage + '</p>' +
+                                '</div>');
+                            item.on('click', function() {
+                                openChatBox(pName, c.lastMessage, c.carId, c.partnerId, c.title);
+                            });
+                            container.append(item);
+                        });
+                    } else {
+                        container.html('<div class="text-center py-4 text-muted small" id="emptyChatNotice"><i class="bi bi-chat-dots fs-2 text-secondary opacity-50 d-block mb-2"></i>Chưa có cuộc trò chuyện nào</div>');
+                    }
+                }
+            });
+        }
+
+        window.handleIncomingChatMessage = function(msg) {
+            var isCurrentConversation = false;
+            if (currentChatPartnerId && (msg.senderId == currentChatPartnerId || msg.receiverId == currentChatPartnerId)) {
+                isCurrentConversation = true;
+            }
+
+            if (isCurrentConversation && $('#recarChatWindow').hasClass('open')) {
+                $('#chatTypingIndicator').hide();
+                var isMe = (window.RECAR_CURRENT_USER && window.RECAR_CURRENT_USER.accountId == msg.senderId);
+                var bubbleClass = isMe ? 'chat-bubble from-user' : 'chat-bubble from-owner';
+                var bubble = $('<div class="' + bubbleClass + '"></div>');
+                var senderHeader = isMe ? 'Bạn' : msg.senderName;
+                bubble.append($('<div class="fw-bold mb-1" style="font-size: 11px; opacity: 0.85;">' + senderHeader + ' · ' + msg.sentAt + '</div>'));
+                bubble.append($('<div></div>').text(msg.messageText));
+                $('#chatMessages').append(bubble);
+                $('#chatMessages').scrollTop($('#chatMessages')[0].scrollHeight);
+                loadRecentChats();
+                return true;
+            }
+            loadRecentChats();
+            return false;
+        };
+
+        window.handleIncomingTyping = function(data) {
+            var isCurrent = (currentChatPartnerId && data.senderId == currentChatPartnerId);
+            if (isCurrent && $('#recarChatWindow').hasClass('open')) {
+                if (data.isTyping) {
+                    var sName = data.senderName || 'Đối tác';
+                    $('#chatTypingText').text(sName + ' đang soạn tin...');
+                    $('#chatTypingIndicator').stop(true, true).fadeIn(150);
+                    $('#chatMessages').scrollTop($('#chatMessages')[0].scrollHeight);
+                } else {
+                    $('#chatTypingIndicator').stop(true, true).fadeOut(150);
+                }
+            }
+        };
+
+        $('#btnSendChat').on('click', sendChatMessage);
+        $('#chatInputText').on('keypress', function(e) {
+            if (e.which === 13) sendChatMessage();
+        });
+        $('#btnAdminChat').on('click', function() {
+            $('#chatNotificationDot').fadeOut();
+            loadRecentChats();
+        });
 
         function toggleSidebar() {
             if (window.innerWidth < 992) {
@@ -383,6 +631,23 @@
         });
     </script>
     <script src="~/assets/js/recar-realtime.js"></script>
+    <script src="~/assets/js/recar-notifications.js"></script>
+    <script>
+        $(document).ready(function() {
+            if (typeof RecarNotificationManager !== 'undefined') {
+                RecarNotificationManager.init({
+                    bellBtnId: 'btnAdminBell',
+                    dotId: 'adminNotificationDot',
+                    listId: 'adminNotificationList',
+                    emptyId: 'adminNotificationEmpty',
+                    markAllBtnId: 'btnAdminMarkAllRead'
+                });
+            }
+            if (typeof loadRecentChats === 'function') {
+                loadRecentChats();
+            }
+        });
+    </script>
     @RenderSection("Scripts", required: false)
 </body>
 </html>

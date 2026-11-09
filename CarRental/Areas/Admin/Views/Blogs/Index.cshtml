@@ -2,6 +2,7 @@
 @model IList<Blog>
 @{
     ViewData["Title"] = "Bài viết & tin tức";
+    Layout = "~/Areas/Admin/Views/Shared/_Layout.cshtml";
 }
 
 <div class="container-fluid px-0">
@@ -15,11 +16,19 @@
             <p class="text-muted small mb-0 mt-1">Quản lý cẩm nang du lịch, kinh nghiệm thuê xe và các thông báo khuyến mãi trên sàn ReCar.</p>
         </div>
         <div>
-            <a asp-action="Create" class="btn btn-primary btn-sm rounded-pill px-3 fw-semibold shadow-sm" style="background-color: var(--recar-primary); border: none;">
+            <a asp-action="Create" class="btn btn-primary btn-sm rounded-pill px-3.5 py-2 fw-semibold shadow-sm" style="background-color: var(--recar-primary); border: none;">
                 <i class="bi bi-pencil-square me-1"></i> Viết bài mới
             </a>
         </div>
     </div>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show rounded-3 small fw-medium mb-3" role="alert">
+            <i class="bi bi-check-circle-fill me-1"></i> @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
 
     <!-- Data Table Panel -->
     <div class="recar-panel mb-0">
@@ -49,14 +58,14 @@
                     {
                         foreach (var item in Model)
                         {
-                            <tr>
+                            <tr id="blogRow-@item.BlogId">
                                 <td>
                                     <img src="@(string.IsNullOrEmpty(item.Image) ? "/images/cars/hero.jpg" : item.Image)" 
-                                         alt="@item.Title" class="rounded object-fit-cover" style="width: 60px; height: 42px;" />
+                                         alt="@item.Title" class="rounded object-fit-cover border" style="width: 60px; height: 42px;" />
                                 </td>
                                 <td>
                                     <div class="fw-bold text-dark small" style="max-width: 320px;">@item.Title</div>
-                                    <div class="text-muted" style="font-size: 0.72rem;">Alias: /blog/@item.Alias</div>
+                                    <div class="text-muted" style="font-size: 0.72rem;">Alias: <span class="font-monospace">/blog/@item.Alias</span></div>
                                 </td>
                                 <td>
                                     <div class="text-muted small text-truncate" style="max-width: 360px;" title="@item.Description">
@@ -68,23 +77,29 @@
                                     <div class="text-muted" style="font-size: 0.72rem;">@(item.CreatedDate?.ToString("dd/MM/yyyy") ?? "Mới cập nhật")</div>
                                 </td>
                                 <td>
-                                    @if (item.IsActive)
-                                    {
-                                        <span class="status-badge badge-ready">Đã xuất bản</span>
-                                    }
-                                    else
-                                    {
-                                        <span class="status-badge badge-draft">Bản nháp</span>
-                                    }
+                                    <button type="button" class="btn btn-sm p-0 border-0" onclick="toggleBlogActive(@item.BlogId, this)" title="Bấm để bật/tắt xuất bản">
+                                        @if (item.IsActive)
+                                        {
+                                            <span class="status-badge badge-ready cursor-pointer" id="badge-@item.BlogId">
+                                                <i class="bi bi-check-circle-fill me-1"></i> Đã xuất bản
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="status-badge badge-draft cursor-pointer" id="badge-@item.BlogId">
+                                                <i class="bi bi-pause-circle me-1"></i> Bản nháp
+                                            </span>
+                                        }
+                                    </button>
                                 </td>
                                 <td class="text-end">
                                     <div class="d-inline-flex gap-1.5">
-                                        <a asp-action="Edit" asp-route-id="@item.BlogId" class="btn btn-light btn-sm rounded-pill px-2.5 py-1 text-primary fw-medium" style="font-size: 0.75rem;">
+                                        <a asp-action="Edit" asp-route-id="@item.BlogId" class="btn btn-light btn-sm rounded-pill px-2.5 py-1 text-primary fw-medium border" style="font-size: 0.75rem;">
                                             <i class="bi bi-pencil me-1"></i> Sửa
                                         </a>
-                                        <a asp-action="Delete" asp-route-id="@item.BlogId" class="btn btn-outline-danger btn-sm rounded-pill px-2.5 py-1 fw-medium" style="font-size: 0.75rem;">
+                                        <button type="button" class="btn btn-outline-danger btn-sm rounded-pill px-2.5 py-1 fw-medium" style="font-size: 0.75rem;" onclick="confirmDeleteBlog(@item.BlogId, '@Html.Raw(item.Title?.Replace("'", "\\'"))')">
                                             <i class="bi bi-trash"></i>
-                                        </a>
+                                        </button>
                                     </div>
                                 </td>
                             </tr>
@@ -95,3 +110,112 @@
         </div>
     </div>
 </div>
+
+@Html.AntiForgeryToken()
+
+@section Scripts {
+    <script>
+        function toggleBlogActive(id, btnElement) {
+            var token = $('input[name="__RequestVerificationToken"]').val();
+            $.ajax({
+                url: '/Admin/Blogs/ToggleActive',
+                type: 'POST',
+                data: {
+                    id: id,
+                    __RequestVerificationToken: token
+                },
+                success: function (res) {
+                    if (res.success) {
+                        var badge = document.getElementById('badge-' + id);
+                        if (badge) {
+                            if (res.isActive) {
+                                badge.className = 'status-badge badge-ready cursor-pointer';
+                                badge.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i> Đã xuất bản';
+                            } else {
+                                badge.className = 'status-badge badge-draft cursor-pointer';
+                                badge.innerHTML = '<i class="bi bi-pause-circle me-1"></i> Bản nháp';
+                            }
+                        }
+                        const Toast = Swal.mixin({
+                            toast: true,
+                            position: 'top-end',
+                            showConfirmButton: false,
+                            timer: 2500,
+                            timerProgressBar: true
+                        });
+                        Toast.fire({
+                            icon: 'success',
+                            title: res.message
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Thất bại',
+                            text: res.message || 'Không thể cập nhật trạng thái bài viết.'
+                        });
+                    }
+                },
+                error: function () {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Lỗi',
+                        text: 'Không thể kết nối đến máy chủ.'
+                    });
+                }
+            });
+        }
+
+        function confirmDeleteBlog(id, title) {
+            var token = $('input[name="__RequestVerificationToken"]').val();
+            Swal.fire({
+                title: 'Xóa bài viết này?',
+                html: 'Bạn có chắc chắn muốn xóa bài viết <strong>"' + title + '"</strong>?<br><small class="text-muted">Hành động này không thể hoàn tác.</small>',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: 'Đồng ý xóa',
+                cancelButtonText: 'Hủy bỏ'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: '/Admin/Blogs/DeleteAjax',
+                        type: 'POST',
+                        data: {
+                            id: id,
+                            __RequestVerificationToken: token
+                        },
+                        success: function (res) {
+                            if (res.success) {
+                                var row = document.getElementById('blogRow-' + id);
+                                if (row) {
+                                    row.remove();
+                                }
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Đã xóa!',
+                                    text: res.message,
+                                    timer: 2000,
+                                    showConfirmButton: false
+                                });
+                            } else {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Lỗi',
+                                    text: res.message
+                                });
+                            }
+                        },
+                        error: function () {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Lỗi',
+                                text: 'Đã xảy ra lỗi khi xóa bài viết.'
+                            });
+                        }
+                    });
+                }
+            });
+        }
+    </script>
+}

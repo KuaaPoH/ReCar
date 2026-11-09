@@ -1,6 +1,6 @@
 @model List<CarRental.Models.Car>
 @{
-    ViewData["Title"] = "Quản lý đội xe";
+    ViewData["Title"] = "Quản lý đội xe toàn sàn";
     var brands = ViewBag.Brands as List<string> ?? new List<string>();
     var cities = ViewBag.Cities as string[] ?? new string[0];
 }
@@ -13,11 +13,11 @@
                 <h1 class="h3 fw-bold mb-0 text-dark tracking-tight">Quản lý đội xe toàn sàn</h1>
                 <span class="badge bg-light text-dark border rounded-pill fw-semibold px-2.5 py-1">@Model.Count xe</span>
             </div>
-            <p class="text-muted small mb-0 mt-1">Giám sát toàn bộ phương tiện của các đối tác chủ xe đang đăng ký và lưu hành trên hệ thống ReCar.</p>
+            <p class="text-muted small mb-0 mt-1">Giám sát phương tiện, kết nối chủ xe, thẩm định yêu cầu bảo trì / tạm ngưng và điều phối vận hành.</p>
         </div>
-        <div>
-            <a asp-area="Admin" asp-controller="Cars" asp-action="Pending" class="btn btn-outline-warning btn-sm rounded-pill px-3 fw-semibold">
-                <i class="bi bi-shield-check me-1"></i> Hồ sơ chờ duyệt
+        <div class="d-flex gap-2">
+            <a asp-area="Admin" asp-controller="Cars" asp-action="Pending" class="btn btn-outline-warning btn-sm rounded-pill px-3 fw-semibold d-inline-flex align-items-center gap-1.5">
+                <i class="bi bi-shield-check"></i> Hồ sơ chờ duyệt
             </a>
         </div>
     </div>
@@ -45,9 +45,11 @@
                     <option value="__all">Tất cả trạng thái</option>
                     <option value="Sẵn sàng" selected="@(ViewBag.FilterStatus == "Sẵn sàng")">Sẵn sàng</option>
                     <option value="Đang bận" selected="@(ViewBag.FilterStatus == "Đang bận")">Đang bận (Có khách)</option>
+                    <option value="Chờ bảo trì" selected="@(ViewBag.FilterStatus == "Chờ bảo trì")">Chờ bảo trì (Yêu cầu)</option>
                     <option value="Bảo trì" selected="@(ViewBag.FilterStatus == "Bảo trì")">Bảo trì</option>
-                    <option value="Chờ duyệt" selected="@(ViewBag.FilterStatus == "Chờ duyệt")">Chờ duyệt</option>
+                    <option value="Chờ tạm ngưng" selected="@(ViewBag.FilterStatus == "Chờ tạm ngưng")">Chờ tạm ngưng (Yêu cầu)</option>
                     <option value="Ngưng hoạt động" selected="@(ViewBag.FilterStatus == "Ngưng hoạt động" || ViewBag.FilterStatus == "Tạm ngừng")">Ngưng hoạt động</option>
+                    <option value="Chờ duyệt" selected="@(ViewBag.FilterStatus == "Chờ duyệt")">Chờ duyệt</option>
                 </select>
             </div>
             <div class="col-6 col-md-2">
@@ -84,7 +86,7 @@
                         <th>Giá thuê/ngày</th>
                         <th class="text-center">Số chuyến</th>
                         <th>Trạng thái</th>
-                        <th class="text-end">Thao tác</th>
+                        <th class="text-end" style="min-width: 90px;">Thao tác</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -102,16 +104,21 @@
                         foreach (var car in Model)
                         {
                             var badgeClass = "badge-neutral";
+                            bool hasPendingRequest = car.CarStatus == "Chờ bảo trì" || car.CarStatus == "Chờ tạm ngưng" || car.CarStatus == "Chờ cập nhật";
+
                             if (car.CarStatus == "Sẵn sàng") { badgeClass = "badge-ready"; }
                             else if (car.CarStatus == "Đang bận") { badgeClass = "badge-rented"; }
+                            else if (car.CarStatus == "Chờ bảo trì") { badgeClass = "badge-warning text-dark border border-warning"; }
+                            else if (car.CarStatus == "Chờ cập nhật") { badgeClass = "badge-info text-dark border border-info"; }
                             else if (car.CarStatus == "Bảo trì") { badgeClass = "badge-maintenance"; }
+                            else if (car.CarStatus == "Chờ tạm ngưng") { badgeClass = "badge-warning text-dark border border-warning"; }
                             else if (car.CarStatus == "Chờ duyệt") { badgeClass = "badge-pending"; }
                             else if (car.CarStatus == "Từ chối" || car.CarStatus == "Tạm ngừng" || car.CarStatus == "Ngưng hoạt động") { badgeClass = "badge-danger"; }
 
                             <tr id="fleet-row-@car.CarId">
                                 <td>
                                     <img src="@(string.IsNullOrEmpty(car.Image) ? "/images/cars/car-sedan.jpg" : car.Image)" 
-                                         alt="@car.CarName" class="rounded object-fit-cover" style="width: 60px; height: 42px;" />
+                                         alt="@car.CarName" class="rounded object-fit-cover shadow-xs" style="width: 60px; height: 42px;" />
                                 </td>
                                 <td>
                                     <div class="fw-bold text-dark small">@car.CarName</div>
@@ -121,8 +128,29 @@
                                     <span class="font-mono-plate">@car.LicensePlate</span>
                                 </td>
                                 <td>
-                                    <div class="fw-semibold small">@(car.Owner?.FullName ?? "Chủ xe ReCar")</div>
-                                    <div class="text-muted" style="font-size: 0.72rem;">@(car.Owner?.Phone ?? "09xx.xxx.xxx")</div>
+                                    @if (car.Owner != null)
+                                    {
+                                        <div class="d-flex align-items-center gap-2">
+                                            <div>
+                                                <a href="javascript:void(0)" onclick="showOwnerModal(@car.OwnerId)" 
+                                                   class="fw-semibold text-dark hover-primary small text-decoration-none d-block" 
+                                                   title="Xem hồ sơ chủ xe">
+                                                    @(car.Owner.FullName ?? car.Owner.Name ?? "Chủ xe ReCar")
+                                                    <i class="bi bi-box-arrow-up-right ms-1 text-muted" style="font-size: 0.65rem;"></i>
+                                                </a>
+                                                <div class="text-muted" style="font-size: 0.72rem;">@(car.Owner.Phone ?? "Chưa có SĐT")</div>
+                                            </div>
+                                            <button type="button" class="btn btn-light btn-sm border rounded-circle p-1 text-primary shadow-xs" 
+                                                    onclick="openChatBox('@(car.Owner.FullName ?? car.Owner.Name)', 'Chào bạn! Tôi là Quản trị viên ReCar, liên hệ bạn về xe @car.CarName...', @car.CarId, @car.OwnerId, '@car.CarName')" 
+                                                    title="Nhắn tin trực tiếp với chủ xe">
+                                                <i class="bi bi-chat-dots"></i>
+                                            </button>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted small">Chưa gán chủ xe</span>
+                                    }
                                 </td>
                                 <td class="small text-muted">
                                     <i class="bi bi-geo-alt text-danger me-1"></i>@(car.Location ?? "Toàn quốc")
@@ -134,47 +162,81 @@
                                     <span class="badge bg-light text-dark border rounded-pill">@(car.Trips ?? 0) chuyến</span>
                                 </td>
                                 <td>
-                                    <span class="status-badge @badgeClass" id="status-badge-@car.CarId">
-                                        @(car.CarStatus ?? "Sẵn sàng")
-                                    </span>
+                                    @if (hasPendingRequest)
+                                    {
+                                        <span class="status-badge @badgeClass shadow-xs" id="status-badge-@car.CarId" style="cursor: pointer;" onclick="openStatusRequestModal(@car.CarId)" title="Bấm để xem lý do & phê duyệt yêu cầu">
+                                            @(car.CarStatus ?? "Sẵn sàng") <i class="bi bi-info-circle ms-1 text-warning"></i>
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="status-badge @badgeClass" id="status-badge-@car.CarId">
+                                            @(car.CarStatus ?? "Sẵn sàng")
+                                        </span>
+                                    }
                                 </td>
                                 <td class="text-end">
-                                    <div class="dropdown">
-                                        <button class="btn btn-light btn-sm rounded-circle p-1.5" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                            <i class="bi bi-three-dots-vertical"></i>
-                                        </button>
-                                        <ul class="dropdown-menu dropdown-menu-end shadow-sm p-1 small" style="border-radius: 10px;">
-                                            <li>
-                                                <a class="dropdown-item py-1.5" href="/product/@(car.Alias)-@(car.CarId).html" target="_blank">
-                                                    <i class="bi bi-box-arrow-up-right me-2 text-primary"></i> Xem trên sàn ReCar
-                                                </a>
-                                            </li>
-                                            <li><hr class="dropdown-divider my-1"></li>
-                                            @if (car.CarStatus != "Sẵn sàng")
-                                            {
+                                    <div class="d-inline-flex align-items-center justify-content-end gap-1">
+                                        @if (hasPendingRequest)
+                                        {
+                                            <button type="button" class="btn btn-sm btn-outline-warning text-dark border-warning rounded-circle p-0 d-flex align-items-center justify-content-center shadow-xs" 
+                                                    style="width: 30px; height: 30px; background: #fffbeb;" 
+                                                    onclick="openStatusRequestModal(@car.CarId)" 
+                                                    title="Xem lý do & Duyệt yêu cầu">
+                                                <i class="bi bi-clipboard-check text-warning" style="font-size: 13px;"></i>
+                                            </button>
+                                        }
+
+                                        <!-- Menu thao tác chính -->
+                                        <div class="dropdown">
+                                            <button class="btn btn-light btn-sm rounded-circle p-1.5 border" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Thao tác khác">
+                                                <i class="bi bi-three-dots-vertical"></i>
+                                            </button>
+                                            <ul class="dropdown-menu dropdown-menu-end shadow-sm p-1.5 small" style="border-radius: 12px; min-width: 200px;">
+                                                @if (hasPendingRequest)
+                                                {
+                                                    <li>
+                                                        <a class="dropdown-item py-1.5 rounded fw-semibold text-warning" href="javascript:void(0)" onclick="openStatusRequestModal(@car.CarId)">
+                                                            <i class="bi bi-clipboard-check me-2"></i> Xem xét lý do & Duyệt
+                                                        </a>
+                                                    </li>
+                                                    <li><hr class="dropdown-divider my-1"></li>
+                                                }
                                                 <li>
-                                                    <a class="dropdown-item py-1.5 text-success" href="javascript:void(0)" onclick="toggleFleetStatus(@car.CarId, 'Sẵn sàng')">
-                                                        <i class="bi bi-check-circle me-2"></i> Kích hoạt Sẵn sàng
+                                                    <a class="dropdown-item py-1.5 rounded" href="/product/@(car.Alias)-@(car.CarId).html" target="_blank">
+                                                        <i class="bi bi-box-arrow-up-right me-2 text-primary"></i> Xem trên sàn ReCar
                                                     </a>
                                                 </li>
-                                            }
-                                            @if (car.CarStatus != "Bảo trì")
-                                            {
+                                                @if (car.OwnerId.HasValue && car.OwnerId.Value > 0)
+                                                {
+                                                    <li>
+                                                        <a class="dropdown-item py-1.5 rounded" href="javascript:void(0)" onclick="showOwnerModal(@car.OwnerId)">
+                                                            <i class="bi bi-person-badge me-2 text-info"></i> Xem thông tin Chủ xe
+                                                        </a>
+                                                    </li>
+                                                    <li>
+                                                        <a class="dropdown-item py-1.5 rounded" href="javascript:void(0)" onclick="openChatBox('@(car.Owner?.FullName ?? car.Owner?.Name)', 'Chào bạn! Tôi là Quản trị viên ReCar, liên hệ bạn về xe @car.CarName...', @car.CarId, @car.OwnerId, '@car.CarName')">
+                                                            <i class="bi bi-chat-dots me-2 text-primary"></i> Nhắn tin cho Chủ xe
+                                                        </a>
+                                                    </li>
+                                                }
+                                                <li><hr class="dropdown-divider my-1"></li>
+                                                @if (car.CarStatus != "Ngưng hoạt động" && car.CarStatus != "Tạm ngừng")
+                                                {
+                                                    <li>
+                                                        <a class="dropdown-item py-1.5 rounded text-secondary" href="javascript:void(0)" onclick="toggleFleetStatus(@car.CarId, 'Ngưng hoạt động')">
+                                                            <i class="bi bi-pause-circle me-2"></i> Ngưng hoạt động (Ẩn khỏi sàn)
+                                                        </a>
+                                                    </li>
+                                                }
+                                                <li><hr class="dropdown-divider my-1"></li>
                                                 <li>
-                                                    <a class="dropdown-item py-1.5 text-warning" href="javascript:void(0)" onclick="toggleFleetStatus(@car.CarId, 'Bảo trì')">
-                                                        <i class="bi bi-wrench me-2"></i> Chuyển sang Bảo trì
+                                                    <a class="dropdown-item py-1.5 rounded text-danger fw-medium" href="javascript:void(0)" onclick="confirmDeleteCar(@car.CarId, '@car.CarName', '@car.LicensePlate')">
+                                                        <i class="bi bi-trash3 me-2"></i> Xóa xe khỏi sàn
                                                     </a>
                                                 </li>
-                                            }
-                                            @if (car.CarStatus != "Ngưng hoạt động" && car.CarStatus != "Tạm ngừng")
-                                            {
-                                                <li>
-                                                    <a class="dropdown-item py-1.5 text-danger" href="javascript:void(0)" onclick="toggleFleetStatus(@car.CarId, 'Ngưng hoạt động')">
-                                                        <i class="bi bi-pause-circle me-2"></i> Ngưng hoạt động (Ẩn khỏi sàn)
-                                                    </a>
-                                                </li>
-                                            }
-                                        </ul>
+                                            </ul>
+                                        </div>
                                     </div>
                                 </td>
                             </tr>
@@ -186,12 +248,277 @@
     </div>
 </div>
 
+<!-- Modal 1: Thông tin chi tiết Chủ xe -->
+<div class="modal fade" id="modalOwnerDetail" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 rounded-4 shadow-lg overflow-hidden">
+            <div class="modal-header border-bottom py-3 px-4" style="background-color: #f8fafc;">
+                <h6 class="modal-title fw-bold text-dark d-flex align-items-center gap-2">
+                    <i class="bi bi-person-vcard text-primary fs-5"></i> Hồ sơ đối tác Chủ xe
+                </h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4" id="modalOwnerBody">
+                <div class="text-center py-4 text-muted">
+                    <div class="spinner-border spinner-border-sm text-primary mb-2" role="status"></div>
+                    <p class="small mb-0">Đang tải thông tin chủ xe...</p>
+                </div>
+            </div>
+            <div class="modal-footer border-top py-2.5 px-4 bg-light d-flex justify-content-between">
+                <button type="button" class="btn btn-sm btn-primary rounded-pill px-3 fw-medium" id="btnOwnerChatFromModal" style="display:none;" onclick="chatWithOwnerFromModal()">
+                    <i class="bi bi-chat-dots-fill me-1"></i> Nhắn tin cho đối tác
+                </button>
+                <button type="button" class="btn btn-sm btn-light border rounded-pill px-3 ms-auto" data-bs-dismiss="modal">Đóng</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
 <script>
+    // Xem chi tiết lý do & Xét duyệt yêu cầu chuyển trạng thái
+    function openStatusRequestModal(carId) {
+        if (!carId) return;
+
+        Swal.fire({
+            title: 'Đang tải thông tin xe...',
+            text: 'Vui lòng chờ trong giây lát',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        $.ajax({
+            url: '/Admin/Cars/GetStatusRequest',
+            type: 'GET',
+            data: { id: carId },
+            success: function (res) {
+                if (res && res.success) {
+                    var isMaintenance = (res.carStatus === 'Chờ bảo trì');
+                    var isUpdate = (res.carStatus === 'Chờ cập nhật');
+                    var isSuspend = (res.carStatus === 'Chờ tạm ngưng');
+                    var targetStatus = isMaintenance ? 'Bảo trì' : (isSuspend ? 'Ngưng hoạt động' : 'Sẵn sàng');
+                    var targetColor = isMaintenance ? '#f59e0b' : (isUpdate ? '#0284c7' : '#64748b');
+                    var popupTitle = isUpdate ? 'Xét duyệt cập nhật thông tin xe' : 'Xét duyệt yêu cầu chuyển trạng thái';
+                    var noticeHtml = isUpdate
+                        ? 'Khi <strong>Phê duyệt</strong>, các thông tin cập nhật sẽ được thông qua và xe sẽ được kích hoạt <strong>Sẵn sàng</strong> hiển thị đón khách trên sàn ReCar.'
+                        : `Khi <strong>Phê duyệt</strong>, xe sẽ được chuyển sang <strong>${targetStatus}</strong> và tạm ẩn khỏi sàn cho thuê.`;
+
+                    let diffHtml = '';
+                    if (isUpdate && res.oldSnapshotJson) {
+                        try {
+                            const old = JSON.parse(res.oldSnapshotJson);
+                            function makeModalDiffRow(label, oVal, nVal, isCurr = false, suffix = '') {
+                                const sO = (oVal !== null && oVal !== undefined) ? String(oVal).trim() : '';
+                                const sN = (nVal !== null && nVal !== undefined) ? String(nVal).trim() : '';
+                                const isCh = (sO.toLowerCase() !== sN.toLowerCase());
+                                const dO = isCurr ? (Number(oVal || 0).toLocaleString('vi-VN') + suffix) : (sO || '—');
+                                const dN = isCurr ? (Number(nVal || 0).toLocaleString('vi-VN') + suffix) : (sN || '—');
+                                const bgStyle = isCh ? 'style="background-color: #fff7ed; border-left: 3px solid #f97316;"' : '';
+                                const badgeCh = isCh ? '<span class="badge bg-warning text-dark ms-1" style="font-size: 0.6rem;">Đã đổi</span>' : '';
+                                const textCol = isCh ? 'style="color: #c2410c; font-weight: 700;"' : 'class="text-dark"';
+                                return `
+                                    <tr ${bgStyle}>
+                                        <td class="text-secondary small py-1" style="font-size: 0.75rem;">${label} ${badgeCh}</td>
+                                        <td class="text-muted small py-1" style="font-size: 0.75rem; background: ${isCh ? '#ffedd5' : '#f8fafc'};">${dO}</td>
+                                        <td ${textCol} small py-1" style="font-size: 0.75rem;">${dN}</td>
+                                    </tr>
+                                `;
+                            }
+
+                            let rows = '';
+                            rows += makeModalDiffRow('Tên xe', old.carName, res.carName);
+                            rows += makeModalDiffRow('Biển số', old.licensePlate, res.licensePlate);
+                            rows += makeModalDiffRow('Màu xe', old.color, res.color);
+                            rows += makeModalDiffRow('Giá thuê niêm yết', old.price, res.price, true, ' đ');
+                            rows += makeModalDiffRow('Giá ưu đãi (KM)', old.salePrice, res.salePrice, true, ' đ');
+                            rows += makeModalDiffRow('Phụ phí tài xế', old.driverFee, res.driverFee, true, ' đ/ngày');
+                            rows += makeModalDiffRow('Mức tiêu hao', old.fuelConsumption, res.fuelConsumption);
+                            rows += makeModalDiffRow('Giới hạn km', `${old.mileageLimit || 350} km/ngày`, `${res.mileageLimit || 350} km/ngày`);
+                            rows += makeModalDiffRow('Phí vượt km', old.extraFeePerKm, res.extraFeePerKm, true, ' đ/km');
+                            rows += makeModalDiffRow('Phí giao xe', old.deliveryFee, res.deliveryFee, true, ' đ');
+                            rows += makeModalDiffRow('Địa điểm', old.location, res.location);
+
+                            diffHtml = `
+                                <div class="mb-3">
+                                    <div class="d-flex align-items-center justify-content-between mb-1">
+                                        <span class="fw-bold text-uppercase text-muted" style="font-size: 0.7rem;">
+                                            <i class="bi bi-layout-split text-warning me-1"></i> Bảng đối chiếu thay đổi (Trước & Sau):
+                                        </span>
+                                        <span class="text-xs text-muted">Mục đổi được <strong class="text-warning">bôi cam</strong></span>
+                                    </div>
+                                    <div class="table-responsive rounded-2 border overflow-hidden" style="max-height: 220px;">
+                                        <table class="table table-sm table-bordered align-middle mb-0" style="font-size: 0.75rem;">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th style="width: 30%;">Thông số</th>
+                                                    <th style="width: 35%;">Trước thay đổi</th>
+                                                    <th style="width: 35%; color: #c2410c;">Sau thay đổi</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                ${rows}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            `;
+                        } catch (e) { console.error("Snapshot error:", e); }
+                    }
+
+                    Swal.fire({
+                        title: `<span style="font-size: 1.15rem; font-weight: 700;">${popupTitle}</span>`,
+                        html: `
+                            <div class="text-start" style="font-size: 0.88rem;">
+                                <div class="p-3 rounded-3 mb-3 border" style="background: #f8fafc;">
+                                    <div class="d-flex align-items-center justify-content-between mb-1.5">
+                                        <strong class="text-dark" style="font-size: 0.95rem;">${res.carName}</strong>
+                                        <span class="badge" style="background: ${targetColor}; color: #fff; font-size: 0.72rem;">${res.carStatus}</span>
+                                    </div>
+                                    <div class="text-muted small mb-1">Biển số: <strong class="text-dark font-monospace">${res.licensePlate}</strong></div>
+                                    <div class="text-muted small">Chủ xe: <strong class="text-dark">${res.ownerName}</strong> (${res.ownerPhone})</div>
+                                </div>
+
+                                ${diffHtml}
+
+                                <div class="mb-3">
+                                    <label class="fw-bold text-muted small text-uppercase mb-1 d-block" style="font-size: 0.72rem;">
+                                        <i class="bi bi-chat-left-quote-fill text-warning me-1"></i> Nội dung / Lý do đề xuất:
+                                    </label>
+                                    <div class="p-3 rounded-3 border" style="background: #fffbeb; border-color: #fde68a !important; color: #92400e; font-style: italic; line-height: 1.5; max-height: 90px; overflow-y: auto;">
+                                        "${res.descriptions || 'Chủ xe không nhập ghi chú lý do chi tiết.'}"
+                                    </div>
+                                </div>
+
+                                <div class="alert alert-info py-2 px-3 small border-0 rounded-3 mb-0" style="font-size: 0.75rem;">
+                                    <i class="bi bi-info-circle me-1"></i> ${noticeHtml}
+                                </div>
+                            </div>
+                        `,
+                        icon: 'info',
+                        showCancelButton: true,
+                        showDenyButton: true,
+                        confirmButtonText: isUpdate ? '<i class="bi bi-check-circle-fill me-1"></i> Phê duyệt (Đưa lên sàn)' : '<i class="bi bi-check-circle-fill me-1"></i> Phê duyệt (Duyệt)',
+                        denyButtonText: '<i class="bi bi-x-circle me-1"></i> Từ chối yêu cầu',
+                        cancelButtonText: 'Đóng',
+                        confirmButtonColor: '#16a34a',
+                        denyButtonColor: '#dc2626',
+                        cancelButtonColor: '#94a3b8',
+                        customClass: { popup: 'rounded-4' },
+                        width: (isUpdate && res.oldSnapshotJson) ? '660px' : '520px'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            executeApproveRequest(res.carId, true, '');
+                        } else if (result.isDenied) {
+                            Swal.fire({
+                                title: 'Từ chối yêu cầu?',
+                                input: 'textarea',
+                                inputLabel: 'Nhập lý do từ chối gửi tới chủ xe:',
+                                inputPlaceholder: 'Nhập lý do cụ thể...',
+                                showCancelButton: true,
+                                confirmButtonText: 'Xác nhận từ chối',
+                                cancelButtonText: 'Hủy',
+                                confirmButtonColor: '#dc2626',
+                                customClass: { popup: 'rounded-4' },
+                                inputValidator: (value) => {
+                                    if (!value || !value.trim()) {
+                                        return 'Vui lòng nhập lý do từ chối!';
+                                    }
+                                }
+                            }).then((r) => {
+                                if (r.isConfirmed) {
+                                    executeApproveRequest(res.carId, false, r.value);
+                                }
+                            });
+                        }
+                    });
+                } else {
+                    Swal.fire('Lỗi', res.message || 'Không thể tải thông tin xe.', 'error');
+                }
+            },
+            error: function () {
+                Swal.fire('Lỗi', 'Không thể kết nối máy chủ.', 'error');
+            }
+        });
+    }
+    // 1. Duyệt / Từ chối yêu cầu chuyển trạng thái từ Chủ xe
+    function handleApproveRequest(carId, isApproved, status, carName) {
+        var actionText = isApproved ? 'phê duyệt' : 'từ chối';
+        var promptText = isApproved 
+            ? `Bạn có chắc muốn chấp thuận yêu cầu chuyển trạng thái của xe '${carName}'?`
+            : `Nhập lý do từ chối yêu cầu của chủ xe:`;
+
+        if (!isApproved) {
+            Swal.fire({
+                title: 'Từ chối yêu cầu?',
+                input: 'textarea',
+                inputLabel: 'Lý do từ chối gửi tới chủ xe',
+                inputPlaceholder: 'Nhập lý do cụ thể...',
+                showCancelButton: true,
+                confirmButtonText: 'Xác nhận từ chối',
+                cancelButtonText: 'Hủy',
+                confirmButtonColor: '#dc2626',
+                customClass: { popup: 'rounded-4' },
+                inputValidator: (value) => {
+                    if (!value || !value.trim()) {
+                        return 'Vui lòng nhập lý do từ chối!';
+                    }
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    executeApproveRequest(carId, false, result.value);
+                }
+            });
+        } else {
+            Swal.fire({
+                title: 'Phê duyệt yêu cầu?',
+                text: promptText,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Chấp thuận',
+                cancelButtonText: 'Hủy',
+                confirmButtonColor: '#16a34a',
+                customClass: { popup: 'rounded-4' }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    executeApproveRequest(carId, true, '');
+                }
+            });
+        }
+    }
+
+    function executeApproveRequest(carId, isApproved, note) {
+        $.ajax({
+            url: '/Admin/Cars/ApproveStatusRequest',
+            type: 'POST',
+            data: { id: carId, isApproved: isApproved, note: note },
+            success: function (res) {
+                if (res.success) {
+                    Swal.fire({
+                        title: 'Thành công!',
+                        text: res.message,
+                        icon: 'success',
+                        timer: 1500,
+                        showConfirmButton: false,
+                        customClass: { popup: 'rounded-4' }
+                    });
+                    setTimeout(() => { location.reload(); }, 1200);
+                } else {
+                    Swal.fire('Lỗi', res.message, 'error');
+                }
+            },
+            error: function () {
+                Swal.fire('Lỗi', 'Không thể kết nối máy chủ.', 'error');
+            }
+        });
+    }
+
+    // 2. Chuyển trạng thái chủ động bởi Admin
     function toggleFleetStatus(carId, newStatus) {
         Swal.fire({
             title: 'Thay đổi trạng thái?',
-            text: `Bạn có chắc muốn chuyển trạng thái xe này sang '${newStatus}'?`,
+            text: `Bạn có chắc muốn cưỡng chế chuyển trạng thái xe này sang '${newStatus}'?`,
             icon: 'question',
             showCancelButton: true,
             confirmButtonText: 'Xác nhận',
@@ -225,5 +552,168 @@
             }
         });
     }
+
+    // 3. Xóa xe vĩnh viễn khỏi hệ thống
+    function confirmDeleteCar(carId, carName, plate) {
+        Swal.fire({
+            title: 'Xóa xe khỏi sàn?',
+            html: `Hành động này sẽ xóa vĩnh viễn xe <strong>${carName} (${plate})</strong> cùng toàn bộ tiện nghi và hình ảnh liên quan.<br/><span class="text-danger small">Lưu ý: Không thể hoàn tác sau khi xóa!</span>`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Xác nhận xóa vĩnh viễn',
+            cancelButtonText: 'Hủy bỏ',
+            confirmButtonColor: '#dc2626',
+            customClass: { popup: 'rounded-4' }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: '/Admin/Cars/Delete',
+                    type: 'POST',
+                    data: { id: carId },
+                    success: function (res) {
+                        if (res.success) {
+                            Swal.fire({
+                                title: 'Đã xóa xe!',
+                                text: res.message,
+                                icon: 'success',
+                                timer: 1500,
+                                showConfirmButton: false,
+                                customClass: { popup: 'rounded-4' }
+                            });
+                            $('#fleet-row-' + carId).fadeOut(400, function() { $(this).remove(); });
+                        } else {
+                            Swal.fire('Không thể xóa xe', res.message, 'error');
+                        }
+                    },
+                    error: function () {
+                        Swal.fire('Lỗi', 'Không thể kết nối tới máy chủ.', 'error');
+                    }
+                });
+            }
+        });
+    }
+
+    // 4. Xem chi tiết thông tin Chủ xe (Modal)
+    function showOwnerModal(ownerId) {
+        if (!ownerId) return;
+        var modalEl = document.getElementById('modalOwnerDetail');
+        if (modalEl) {
+            try {
+                if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                    var myModal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+                    myModal.show();
+                } else {
+                    $(modalEl).modal('show');
+                }
+            } catch (e) {
+                $(modalEl).modal('show');
+            }
+        }
+        $('#modalOwnerBody').html(`
+            <div class="text-center py-4 text-muted">
+                <div class="spinner-border spinner-border-sm text-primary mb-2" role="status"></div>
+                <p class="small mb-0">Đang tải hồ sơ chủ xe...</p>
+            </div>
+        `);
+
+        $.get('/Admin/Cars/GetOwnerInfo?id=' + ownerId, function (res) {
+            if (res && res.success && res.owner) {
+                var o = res.owner;
+                var carsHtml = '';
+                if (o.cars && o.cars.length > 0) {
+                    o.cars.forEach(function (c) {
+                        carsHtml += `
+                            <div class="d-flex align-items-center justify-content-between p-2 rounded-3 bg-light mb-1.5 border">
+                                <div class="d-flex align-items-center gap-2">
+                                    <img src="${c.image || '/images/cars/car-sedan.jpg'}" class="rounded object-fit-cover" style="width: 38px; height: 26px;" />
+                                    <div>
+                                        <div class="fw-bold small text-dark" style="font-size: 0.8rem;">${c.carName}</div>
+                                        <div class="text-muted" style="font-size: 0.7rem;">${c.licensePlate}</div>
+                                    </div>
+                                </div>
+                                <span class="badge bg-white text-dark border small">${c.carStatus || 'Sẵn sàng'}</span>
+                            </div>
+                        `;
+                    });
+                } else {
+                    carsHtml = '<p class="text-muted small mb-0">Chưa có xe nào khác.</p>';
+                }
+
+                $('#modalOwnerBody').html(`
+                    <div class="d-flex align-items-center gap-3 pb-3 mb-3 border-bottom">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold shadow-xs flex-shrink-0" 
+                             style="width: 52px; height: 52px; background: linear-gradient(135deg, #0284c7, #0369a1); font-size: 1.25rem;">
+                            ${o.fullName.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                            <h6 class="fw-bold text-dark mb-0.5">${o.fullName}</h6>
+                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle small" style="font-size: 0.72rem;">Đối tác Chủ xe ReCar</span>
+                        </div>
+                    </div>
+                    
+                    <div class="row g-2 mb-3 small">
+                        <div class="col-6">
+                            <span class="text-muted d-block" style="font-size: 0.72rem;">Số điện thoại:</span>
+                            <a href="tel:${o.phone}" class="fw-semibold text-primary text-decoration-none">
+                                <i class="bi bi-telephone-fill me-1"></i>${o.phone}
+                            </a>
+                        </div>
+                        <div class="col-6">
+                            <span class="text-muted d-block" style="font-size: 0.72rem;">Email liên hệ:</span>
+                            <a href="mailto:${o.email}" class="fw-semibold text-dark text-decoration-none text-truncate d-block">
+                                <i class="bi bi-envelope-fill me-1 text-secondary"></i>${o.email}
+                            </a>
+                        </div>
+                        <div class="col-12 mt-2">
+                            <span class="text-muted d-block" style="font-size: 0.72rem;">Địa chỉ:</span>
+                            <span class="text-dark"><i class="bi bi-geo-alt-fill text-danger me-1"></i>${o.address}</span>
+                        </div>
+                    </div>
+
+                    <div class="border-top pt-3">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <span class="fw-bold small text-dark"><i class="bi bi-car-front-fill text-primary me-1"></i>Đội xe sở hữu (${o.carCount} xe)</span>
+                        </div>
+                        <div style="max-height: 180px; overflow-y: auto;">
+                            ${carsHtml}
+                        </div>
+                    </div>
+                `);
+                $('#btnOwnerChatFromModal').show();
+                window._currentModalOwner = o;
+            } else {
+                $('#modalOwnerBody').html('<p class="text-danger small mb-0">Không thể tải thông tin chủ xe.</p>');
+                $('#btnOwnerChatFromModal').hide();
+            }
+        });
+    }
+
+    // 5. Mở ô Chat trực tiếp với Chủ xe từ Modal hồ sơ
+    function chatWithOwnerFromModal() {
+        if (!window._currentModalOwner) return;
+        var o = window._currentModalOwner;
+        var modalEl = document.getElementById('modalOwnerDetail');
+        if (modalEl) {
+            try {
+                var modalInstance = bootstrap.Modal.getInstance(modalEl);
+                if (modalInstance) modalInstance.hide();
+                else $(modalEl).modal('hide');
+            } catch (e) {
+                $(modalEl).modal('hide');
+            }
+        }
+        if (typeof openChatBox === 'function') {
+            openChatBox(o.fullName, 'Chào bạn! Tôi là Quản trị viên ReCar...', null, o.customerId, 'Hồ sơ chủ xe');
+        }
+    }
+
+    // Đăng ký toàn cục để các thẻ html onclick luôn gọi được 100%
+    window.openStatusRequestModal = openStatusRequestModal;
+    window.handleApproveRequest = handleApproveRequest;
+    window.executeApproveRequest = executeApproveRequest;
+    window.toggleFleetStatus = toggleFleetStatus;
+    window.confirmDeleteCar = confirmDeleteCar;
+    window.showOwnerModal = showOwnerModal;
+    window.chatWithOwnerFromModal = chatWithOwnerFromModal;
 </script>
 }

@@ -21,12 +21,12 @@ namespace CarRental.Controllers
         {
             
             ViewBag.productFeatured = _context.Cars
-                .Where(i => i.IsActive && i.CarStatus != "Chờ duyệt" && i.CarStatus != "Từ chối" && i.CarStatus != "Tạm ngừng" && i.CarStatus != "Ngưng hoạt động")
+                .Where(i => i.IsActive && i.CarStatus == "Sẵn sàng")
                 .OrderBy(i => i.CarId)
                 .ToList();
 
             ViewBag.productDealofDay = _context.Cars
-                .Where(i => i.IsSale && i.IsActive && i.CarStatus != "Chờ duyệt" && i.CarStatus != "Từ chối" && i.CarStatus != "Tạm ngừng" && i.CarStatus != "Ngưng hoạt động")
+                .Where(i => i.IsSale && i.IsActive && i.CarStatus == "Sẵn sàng")
                 .OrderByDescending(i => i.CarId)
                 .ToList();
             ViewBag.Blog = _context.Blogs.Where(i => i.IsActive == true).ToList();

@@ -23,8 +23,22 @@ namespace CarRental.Controllers
         /// Xác định Customer thực tế trong bảng Customers đang đăng nhập (Khách hàng, Chủ xe hoặc Admin)
         /// Thống nhất 100% người dùng vào bảng Customers duy nhất.
         /// </summary>
-        private async Task<Customer?> ResolveCurrentCustomerAsync(bool asOwner = false, int? explicitOwnerId = null)
+        private async Task<Customer?> ResolveCurrentCustomerAsync(bool asOwner = false, int? explicitOwnerId = null, bool asAdmin = false)
         {
+            // 0. Session Admin (nếu yêu cầu asAdmin hoặc đang trong phiên Admin)
+            if (asAdmin || Function.IsAdmin(HttpContext.Session))
+            {
+                int adminId = Function.GetAdminAccountId(HttpContext.Session);
+                if (adminId > 0)
+                {
+                    var adminCust = await _context.Customers.FindAsync(adminId);
+                    if (adminCust != null && adminCust.RoleId == 1) return adminCust;
+                }
+
+                var fallbackAdmin = await _context.Customers.FirstOrDefaultAsync(c => c.RoleId == 1);
+                if (fallbackAdmin != null) return fallbackAdmin;
+            }
+
             // 1. Session CarOwner (nếu thao tác ở giao diện chủ xe)
             if (asOwner)
             {
@@ -84,13 +98,14 @@ namespace CarRental.Controllers
             public string? SenderName { get; set; }
             public string? CarName { get; set; }
             public bool AsOwner { get; set; } = false;
+            public bool AsAdmin { get; set; } = false;
         }
 
         [HttpPost]
         public async Task<IActionResult> SendMessage([FromBody] SendMessageRequest req)
         {
             // 1. Kiểm tra người gửi (TUYỆT ĐỐI không lấy req.OwnerId để gán cho người gửi)
-            var senderCust = await ResolveCurrentCustomerAsync(req?.AsOwner == true);
+            var senderCust = await ResolveCurrentCustomerAsync(req?.AsOwner == true, null, req?.AsAdmin == true);
             if (senderCust == null)
             {
                 return Json(new { success = false, requireLogin = true, message = "Vui lòng đăng nhập tài khoản để gửi tin nhắn!" });
@@ -103,7 +118,7 @@ namespace CarRental.Controllers
 
             int currentUserId = senderCust.CustomerId;
             string senderName = !string.IsNullOrWhiteSpace(senderCust.FullName) ? senderCust.FullName : (senderCust.Name ?? "Khách hàng");
-            string senderRole = senderCust.RoleId == 3 ? "CarOwner" : (senderCust.RoleId == 1 ? "Admin" : "Customer");
+            string senderRole = senderCust.RoleId == 1 ? "Admin" : (senderCust.RoleId == 3 ? "CarOwner" : "Customer");
 
             // 2. Xác định người nhận
             // Nếu người gửi là khách hàng và có req.CarId: người nhận chính là chủ sở hữu của chiếc xe đó
@@ -240,10 +255,10 @@ namespace CarRental.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetMessages(int? carId, int? partnerId, int? ownerId, bool asOwner = false)
+        public async Task<IActionResult> GetMessages(int? carId, int? partnerId, int? ownerId, bool asOwner = false, bool asAdmin = false)
         {
             // Kiểm tra đăng nhập (chỉ dùng explicit ownerId khi asOwner == true)
-            var currentCust = await ResolveCurrentCustomerAsync(asOwner, asOwner ? ownerId : null);
+            var currentCust = await ResolveCurrentCustomerAsync(asOwner, asOwner ? ownerId : null, asAdmin);
             if (currentCust == null)
             {
                 return Json(new { success = false, requireLogin = true, messages = new List<object>() });
@@ -336,9 +351,9 @@ namespace CarRental.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetRecentConversations(bool asOwner = false, int? ownerId = null)
+        public async Task<IActionResult> GetRecentConversations(bool asOwner = false, int? ownerId = null, bool asAdmin = false)
         {
-            var currentCust = await ResolveCurrentCustomerAsync(asOwner, asOwner ? ownerId : null);
+            var currentCust = await ResolveCurrentCustomerAsync(asOwner, asOwner ? ownerId : null, asAdmin);
             if (currentCust == null)
             {
                 return Json(new { success = true, unreadCount = 0, conversations = new List<object>() });
@@ -413,9 +428,9 @@ namespace CarRental.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetUnreadCount(bool asOwner = false, int? ownerId = null)
+        public async Task<IActionResult> GetUnreadCount(bool asOwner = false, int? ownerId = null, bool asAdmin = false)
         {
-            var currentCust = await ResolveCurrentCustomerAsync(asOwner, asOwner ? ownerId : null);
+            var currentCust = await ResolveCurrentCustomerAsync(asOwner, asOwner ? ownerId : null, asAdmin);
             if (currentCust == null)
             {
                 return Json(new { success = true, unreadCount = 0 });

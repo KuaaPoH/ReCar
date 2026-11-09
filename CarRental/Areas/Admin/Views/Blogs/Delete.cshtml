@@ -1,133 +1,72 @@
-﻿@model CarRental.Models.Blog
+@model CarRental.Models.Blog
 @{
-    ViewData["Title"] = "Delete";
+    ViewData["Title"] = "Xác nhận xóa bài viết";
     Layout = "~/Areas/Admin/Views/Shared/_Layout.cshtml";
 }
 
-<div id="main">
-    <header class="mb-3">
-        <a href="#" class="burger-btn d-block d-xl-none">
-            <i class="bi bi-justify fs-3"></i>
+<div class="container-fluid px-0" style="max-width: 750px;">
+    <!-- Header -->
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <h1 class="h3 fw-bold mb-0 text-dark tracking-tight">Xóa bài viết</h1>
+            <p class="text-muted small mb-0 mt-1">Hành động này sẽ gỡ bỏ bài viết vĩnh viễn khỏi hệ thống ReCar.</p>
+        </div>
+        <a asp-action="Index" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+            <i class="bi bi-arrow-left me-1"></i> Quay lại
         </a>
-    </header>
+    </div>
 
-    <div class="page-heading">
-        <div class="page-title">
-            <div class="row">
-                <div class="col-12 col-md-6 order-md-1 order-last">
-                    <h3>Thêm mới</h3>
-                    @* <p class="text-subtitle text-muted">
-                        Give textual form controls like input upgrade with
-                        custom styles,
-                        sizing, focus states, and more.
-                    </p> *@
-                </div>
-                <div class="col-12 col-md-6 order-md-2 order-first">
-                    <nav aria-label="breadcrumb" class="breadcrumb-header float-start float-lg-end">
-                        <ol class="breadcrumb">
-                            <li class="breadcrumb-item"><a href="index.html">Dashboard</a></li>
-                            <li class="breadcrumb-item active" aria-current="page">Input</li>
-                        </ol>
-                    </nav>
-                </div>
+    <!-- Panel cảnh báo nguy hiểm -->
+    <div class="recar-panel p-4 border border-danger-subtle shadow-sm mb-4">
+        <div class="d-flex align-items-center gap-3 p-3 bg-danger-subtle text-danger rounded-3 mb-4">
+            <div class="fs-2"><i class="bi bi-exclamation-triangle-fill"></i></div>
+            <div>
+                <h6 class="fw-bold mb-1">Cảnh báo: Bạn có chắc chắn muốn xóa bài viết này không?</h6>
+                <div class="small opacity-90">Bài viết sau khi xóa sẽ không thể phục hồi và mọi liên kết chia sẻ đến bài viết sẽ bị ngắt kết nối (lỗi 404).</div>
             </div>
         </div>
-        <section class="section">
-            <div class="card">
-                <div class="card-header">
-                    <h4 class="card-title">Xoá xe</h4>
+
+        <!-- Tóm tắt bài viết -->
+        <div class="card border rounded-3 p-3 bg-light mb-4">
+            <div class="d-flex flex-column flex-sm-row gap-3">
+                <div style="width: 130px; height: 90px; flex-shrink: 0;" class="rounded-3 overflow-hidden bg-white border">
+                    <img src="@(string.IsNullOrEmpty(Model.Image) ? "/images/cars/hero.jpg" : Model.Image)" 
+                         alt="@Model.Title" class="w-100 h-100 object-fit-cover">
                 </div>
-
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md">
-
-                                <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-
-                                <div class="form-group">
-                                    <label>tiêu đề:</label> <br />
-                                @Html.DisplayFor(mode => mode.Title)
-
-                                </div>
-                                <div class="form-group">
-                                    <label>Mô tả: </label> <br />
-                                @Html.DisplayFor(mode => mode.Description)
-
-                                </div>
-                                <div class="form-group">
-                                    <label >Hình ảnh: </label> <br />
-                              
-                                <img src="@Html.DisplayFor(mode => mode.Image)" width="200" height="200" />
-
-
-                                </div>
-                                  <div class="form-group">
-                                
-                                    <label  for="exampleFormControlTextarea1" class="form-label">
-                                        Chi tiết:
-                                    </label> <br />
-                                @Html.Raw(Model.Detail)
-
-                                </div>
-                                <div class="form-group">
-                                    <label>Người tạo:</label>
-                                    @Html.DisplayFor(model => model.CreatedBy)
-
-                                </div>
-                                <div class="form-group">
-                                    <label>Người sửa:</label>
-                                @Html.DisplayFor(model => model.ModifiedBy)
-
-                                </div>
-                                <div class="form-group">
-                                    <label class="control-label">
-
-                                        Hiển thị:
-                                    </label>
-                                    @Html.DisplayFor(model => model.IsActive)
-
-
-                                </div>
-                               
-                                <form asp-action="Delete">
-                                <input type="hidden" asp-for="BlogId" />
-                                <div class="btn-group mb-3">
-                                    <div class="form-group">
-                                        <input type="submit" value="Delete" class="btn btn-primary" />
-                                    </div>|
-                                    <div class="form-group">
-                                        <a asp-action="Index" class="btn btn-danger">Quay lại</a>
-
-                                    </div>
-                                </div>
-                                </form>
-
-
-
-
-
-                        </div>
-
+                <div class="flex-grow-1 overflow-hidden">
+                    <div class="d-flex align-items-center gap-2 mb-1">
+                        <span class="badge bg-light text-muted border font-monospace">#ID-@Model.BlogId</span>
+                        @if (Model.IsActive)
+                        {
+                            <span class="badge bg-success-subtle text-success">Đang xuất bản</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary-subtle text-secondary">Bản nháp</span>
+                        }
+                    </div>
+                    <h6 class="fw-bold text-dark mb-1">@Model.Title</h6>
+                    <p class="text-muted small mb-2 text-truncate">@Model.Description</p>
+                    <div class="text-muted small" style="font-size: 0.75rem;">
+                        <i class="bi bi-person me-1"></i> Người tạo: <strong>@(Model.CreatedBy ?? "Admin")</strong> · 
+                        <i class="bi bi-calendar me-1"></i> Ngày tạo: <strong>@(Model.CreatedDate?.ToString("dd/MM/yyyy") ?? "N/A")</strong>
                     </div>
                 </div>
             </div>
-        </section>
-
-
-
-    </div>
-
-    <footer>
-        <div class="footer clearfix mb-0 text-muted">
-            <div class="float-start">
-                <p>2021 &copy; Mazer</p>
-            </div>
-            <div class="float-end">
-                <p>
-                    Crafted with <span class="text-danger"><i class="bi bi-heart"></i></span> by <a href="http://ahmadsaugi.com">A. Saugi</a>
-                </p>
-            </div>
         </div>
-    </footer>
-</div>
 
+        <!-- Form xác nhận -->
+        <form asp-action="Delete" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="BlogId" />
+            <div class="d-flex justify-content-end gap-2">
+                <a asp-action="Index" class="btn btn-light rounded-pill px-4 border">
+                    Hủy và giữ lại
+                </a>
+                <button type="submit" class="btn btn-danger rounded-pill px-4 fw-semibold shadow-sm">
+                    <i class="bi bi-trash-fill me-1"></i> Xác nhận xóa vĩnh viễn
+                </button>
+            </div>
+        </form>
+    </div>
+</div>

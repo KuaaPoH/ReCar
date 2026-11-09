@@ -13,6 +13,7 @@
     bool isApproved = status == "Sẵn sàng" || status == "active";
     bool isBusy = status == "Đang bận" || status == "Đang có khách" || status == "busy";
     bool isRejected = status == "Từ chối" || status == "rejected";
+    bool isAlreadyListed = !isRejected && !isPending && (status == "Sẵn sàng" || status == "active" || status == "Đang bận" || status == "Bảo trì" || status == "Ngưng hoạt động" || status == "Chờ bảo trì" || status == "Chờ tạm ngưng");
 
     string submitButtonText = isRejected ? "Gửi lại hồ sơ" : (isPendingUpdate ? "Cập nhật hồ sơ" : "Lưu thay đổi");
 }
@@ -71,7 +72,62 @@
         </div>
     }
 
-    <form asp-action="Edit" method="post" enctype="multipart/form-data" id="editCarForm">
+        <!-- Khối Yêu cầu Thay đổi Trạng thái Xe (Xin phép Bảo trì / Tạm ngưng) -->
+    @if (!isRejected && !isPending)
+    {
+        <div class="card-surface p-4 mb-4 border rounded-4 shadow-xs" style="background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+                <div>
+                    <div class="d-flex align-items-center gap-2 mb-1">
+                        <span class="fw-bold text-dark" style="font-size: 1.05rem;">Trạng thái vận hành xe:</span>
+                        <span class="badge rounded-pill px-3 py-1 fw-bold @(status == "Sẵn sàng" ? "bg-success text-white" : (status == "Đang bận" ? "bg-primary text-white" : (status == "Bảo trì" ? "bg-warning text-dark" : (status == "Chờ bảo trì" || status == "Chờ tạm ngưng" ? "bg-warning-subtle text-warning-emphasis border border-warning" : "bg-secondary text-white"))))" style="font-size: 0.85rem;">
+                            @status
+                        </span>
+                    </div>
+                    <p class="text-secondary small mb-0">
+                        @if (status == "Chờ bảo trì" || status == "Chờ tạm ngưng")
+                        {
+                            <span class="text-warning-emphasis fw-semibold"><i class="bi bi-hourglass-split me-1"></i>Yêu cầu của bạn đang được Ban Quản trị ReCar thẩm định. Khi được duyệt, xe sẽ cập nhật trạng thái mới.</span>
+                        }
+                        else if (isBusy)
+                        {
+                            <span class="text-primary"><i class="bi bi-shield-lock me-1"></i>Xe đang có khách thuê hoạt động. Các thao tác chuyển trạng thái tạm khóa để bảo vệ hợp đồng đang chạy.</span>
+                        }
+                        else
+                        {
+                            <span>Bạn có thể gửi yêu cầu xin phép Ban Quản trị chuyển xe sang <strong>Bảo trì</strong> (sửa chữa, bảo dưỡng) hoặc <strong>Tạm ngưng</strong> (bận việc cá nhân).</span>
+                        }
+                    </p>
+                </div>
+
+                @if (!isBusy && status != "Chờ bảo trì" && status != "Chờ tạm ngưng")
+                {
+                    <div class="d-flex flex-wrap gap-2 flex-shrink-0">
+                        @if (status != "Bảo trì")
+                        {
+                            <button type="button" class="btn btn-sm btn-outline-warning text-dark rounded-pill px-3 fw-semibold shadow-xs" onclick="openRequestStatusModal('Bảo trì')">
+                                <i class="bi bi-wrench me-1"></i>Xin Bảo trì xe
+                            </button>
+                        }
+                        @if (status != "Ngưng hoạt động" && status != "Tạm ngừng")
+                        {
+                            <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3 fw-semibold shadow-xs" onclick="openRequestStatusModal('Ngưng hoạt động')">
+                                <i class="bi bi-pause-circle me-1"></i>Xin Tạm ngưng
+                            </button>
+                        }
+                        @if (status == "Bảo trì" || status == "Ngưng hoạt động" || status == "Tạm ngừng")
+                        {
+                            <button type="button" class="btn btn-sm btn-success rounded-pill px-3 fw-semibold shadow-xs" onclick="openRequestStatusModal('Sẵn sàng')">
+                                <i class="bi bi-check-circle me-1"></i>Mở lại Sẵn sàng
+                            </button>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    }
+
+    <form asp-action="Edit" method="post" enctype="multipart/form-data" id="editCarForm" novalidate>
         @Html.AntiForgeryToken()
         <input type="hidden" asp-for="CarId" />
         <input type="hidden" asp-for="Alias" />
@@ -139,13 +195,45 @@
                         <div class="row g-4">
                             <!-- Hàng 1 -->
                             <div class="col-12 col-md-6">
-                                <label asp-for="CarName" class="form-label-recar">Tên xe</label>
-                                <input asp-for="CarName" class="form-control form-control-recar" id="inputCarName" placeholder="VD: Toyota Vios G 2023" required />
+                                <label asp-for="CarName" class="form-label-recar">
+                                    <span>Tên xe</span>
+                                    @if (isAlreadyListed)
+                                    {
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle ms-1" style="font-size: 10px;">
+                                            <i class="bi bi-lock-fill me-0.5"></i> Đã xác thực
+                                        </span>
+                                    }
+                                </label>
+                                @if (isAlreadyListed)
+                                {
+                                    <input asp-for="CarName" class="form-control form-control-recar bg-light text-muted fw-semibold" id="inputCarName" readonly title="Xe đã lên sàn, thông tin tên xe được khóa bảo vệ hồ sơ." />
+                                    <div class="text-xs text-muted mt-1" style="font-size: 0.72rem;"><i class="bi bi-info-circle me-1"></i>Cố định theo hồ sơ pháp lý đã duyệt</div>
+                                }
+                                else
+                                {
+                                    <input asp-for="CarName" class="form-control form-control-recar" id="inputCarName" placeholder="VD: Toyota Vios G 2023" required />
+                                }
                                 <span asp-validation-for="CarName" class="text-danger small"></span>
                             </div>
 
                             <div class="col-12 col-md-6">
-                                <label asp-for="CarBrand" class="form-label-recar">Hãng xe</label>
+                                <label asp-for="CarBrand" class="form-label-recar">
+                                    <span>Hãng xe</span>
+                                    @if (isAlreadyListed)
+                                    {
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle ms-1" style="font-size: 10px;">
+                                            <i class="bi bi-lock-fill me-0.5"></i> Đã xác thực
+                                        </span>
+                                    }
+                                </label>
+                                @if (isAlreadyListed)
+                                {
+                                    <input type="hidden" asp-for="CarBrand" />
+                                    <input type="text" class="form-control form-control-recar bg-light text-muted fw-semibold" value="@Model.CarBrand" readonly />
+                                    <div class="text-xs text-muted mt-1" style="font-size: 0.72rem;"><i class="bi bi-info-circle me-1"></i>Cố định theo hồ sơ pháp lý đã duyệt</div>
+                                }
+                                else
+                                {
                                 <select asp-for="CarBrand" class="form-select form-select-recar" id="selectCarBrand" required>
                                     <option value="">Chọn hãng</option>
                                     @if (carBrands != null && carBrands.Any())
@@ -167,21 +255,55 @@
                                         <option value="Mitsubishi" selected="@(Model.CarBrand == "Mitsubishi")">Mitsubishi</option>
                                     }
                                 </select>
+                                }
                                 <span asp-validation-for="CarBrand" class="text-danger small"></span>
                             </div>
 
                             <!-- Hàng 2 -->
                             <div class="col-12 col-md-6">
-                                <label asp-for="TypeId" class="form-label-recar">Phân khúc</label>
+                                <label asp-for="TypeId" class="form-label-recar">
+                                    <span>Phân khúc</span>
+                                    @if (isAlreadyListed)
+                                    {
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle ms-1" style="font-size: 10px;">
+                                            <i class="bi bi-lock-fill me-0.5"></i> Đã xác thực
+                                        </span>
+                                    }
+                                </label>
+                                @if (isAlreadyListed)
+                                {
+                                    <input type="hidden" asp-for="TypeId" />
+                                    <input type="text" class="form-control form-control-recar bg-light text-muted fw-semibold" value="@(carTypes.FirstOrDefault(c => c.Selected)?.Text ?? "Xe Sedan")" readonly />
+                                    <div class="text-xs text-muted mt-1" style="font-size: 0.72rem;"><i class="bi bi-info-circle me-1"></i>Cố định theo hồ sơ pháp lý đã duyệt</div>
+                                }
+                                else
+                                {
                                 <select asp-for="TypeId" asp-items="carTypes" class="form-select form-select-recar" id="selectCarType" required>
                                     <option value="">Chọn phân khúc</option>
                                 </select>
+                                }
                                 <span asp-validation-for="TypeId" class="text-danger small"></span>
                             </div>
 
                             <div class="col-12 col-md-6">
-                                <label asp-for="ModelYear" class="form-label-recar">Năm sản xuất</label>
-                                <input asp-for="ModelYear" type="number" min="2010" max="2027" class="form-control form-control-recar" id="selectModelYear" value="@(Model.ModelYear ?? 2024)" required />
+                                <label asp-for="ModelYear" class="form-label-recar">
+                                    <span>Năm sản xuất</span>
+                                    @if (isAlreadyListed)
+                                    {
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle ms-1" style="font-size: 10px;">
+                                            <i class="bi bi-lock-fill me-0.5"></i> Đã xác thực
+                                        </span>
+                                    }
+                                </label>
+                                @if (isAlreadyListed)
+                                {
+                                    <input asp-for="ModelYear" type="number" class="form-control form-control-recar bg-light text-muted fw-semibold" id="selectModelYear" value="@(Model.ModelYear ?? 2024)" readonly />
+                                    <div class="text-xs text-muted mt-1" style="font-size: 0.72rem;"><i class="bi bi-info-circle me-1"></i>Cố định theo hồ sơ pháp lý đã duyệt</div>
+                                }
+                                else
+                                {
+                                    <input asp-for="ModelYear" type="number" min="2010" max="2027" class="form-control form-control-recar" id="selectModelYear" value="@(Model.ModelYear ?? 2024)" required />
+                                }
                                 <span asp-validation-for="ModelYear" class="text-danger small"></span>
                             </div>
 
@@ -196,10 +318,10 @@
                                         </span>
                                     }
                                 </label>
-                                @if (isBusy)
+                                @if (isAlreadyListed || isBusy)
                                 {
-                                    <input asp-for="LicensePlate" class="form-control form-control-recar font-monospace text-uppercase fw-bold" id="inputLicensePlate" readonly title="Xe đang có khách thuê, biển số được khóa bảo vệ." />
-                                    <div class="text-xs text-muted mt-1"><i data-lucide="lock" class="size-3 d-inline"></i> Cố định theo hợp đồng đang chạy</div>
+                                    <input asp-for="LicensePlate" class="form-control form-control-recar font-monospace text-uppercase fw-bold bg-light text-muted" id="inputLicensePlate" readonly title="Biển số xe đã được kiểm định và cố định trên sàn." />
+                                    <div class="text-xs text-muted mt-1" style="font-size: 0.72rem;"><i class="bi bi-lock-fill me-1"></i>Cố định theo giấy đăng ký xe đã duyệt</div>
                                 }
                                 else
                                 {
@@ -282,14 +404,14 @@
                                 }
                                 else
                                 {
-                                    <input asp-for="Price" type="number" min="200000" step="10000" class="form-control form-control-recar" id="inputPrice" value="@((long)Model.Price)" required />
+                                    <input asp-for="Price" type="number" min="200000" step="any" class="form-control form-control-recar" id="inputPrice" value="@((long)Model.Price)" required />
                                 }
                                 <span asp-validation-for="Price" class="text-danger small"></span>
                             </div>
 
                             <div class="col-12 col-md-6">
                                 <label asp-for="SalePrice" class="form-label-recar">Giá khuyến mãi/ngày (không bắt buộc)</label>
-                                <input asp-for="SalePrice" type="number" min="0" step="10000" class="form-control form-control-recar" id="inputSalePrice" value="@(Model.SalePrice.HasValue ? ((long)Model.SalePrice.Value).ToString() : "")" placeholder="Để trống nếu không áp dụng" />
+                                <input asp-for="SalePrice" type="number" min="0" step="any" class="form-control form-control-recar" id="inputSalePrice" value="@(Model.SalePrice.HasValue ? ((long)Model.SalePrice.Value).ToString() : "")" placeholder="Để trống nếu không áp dụng" />
                                 <span class="text-xs text-muted">Giá khuyến mãi phải thấp hơn giá niêm yết</span>
                             </div>
 
@@ -315,13 +437,13 @@
                         <div class="row g-4">
                             <div class="col-12 col-md-6">
                                 <label asp-for="MileageLimit" class="form-label-recar">Giới hạn quãng đường (km/ngày)</label>
-                                <input asp-for="MileageLimit" type="number" min="0" step="10" class="form-control form-control-recar" id="inputMileageLimit" />
+                                <input asp-for="MileageLimit" type="number" min="0" step="any" class="form-control form-control-recar" id="inputMileageLimit" />
                                 <span class="text-xs text-muted">Mặc định 300 - 350 km/ngày</span>
                             </div>
 
                             <div class="col-12 col-md-6">
                                 <label asp-for="ExtraFeePerKm" class="form-label-recar">Phụ phí vượt km (VND/km)</label>
-                                <input asp-for="ExtraFeePerKm" type="number" min="0" step="500" class="form-control form-control-recar" id="inputExtraFeePerKm" value="@((long)Model.ExtraFeePerKm)" />
+                                <input asp-for="ExtraFeePerKm" type="number" min="0" step="any" class="form-control form-control-recar" id="inputExtraFeePerKm" value="@((long)Model.ExtraFeePerKm)" />
                                 <span class="text-xs text-muted">Tính trên mỗi km vượt quá giới hạn</span>
                             </div>
 
@@ -339,7 +461,15 @@
 
                             <div class="col-12 col-md-6 @(Model.DeliverySupported ? "" : "d-none")" id="boxDeliveryFee">
                                 <label asp-for="DeliveryFee" class="form-label-recar">Phí giao xe (VND)</label>
-                                <input asp-for="DeliveryFee" type="number" min="0" step="10000" class="form-control form-control-recar" id="inputDeliveryFee" value="@((long)Model.DeliveryFee)" />
+                                <input asp-for="DeliveryFee" type="number" min="0" step="any" class="form-control form-control-recar" id="inputDeliveryFee" value="@((long)Model.DeliveryFee)" />
+                            </div>
+
+                            <div class="col-12 col-md-6 mt-3">
+                                <label asp-for="DriverFee" class="form-label-recar">
+                                    <i class="bi bi-person-badge text-primary me-1"></i> Phụ phí tài xế riêng (VND/ngày)
+                                </label>
+                                <input asp-for="DriverFee" type="number" min="0" step="any" class="form-control form-control-recar" id="inputDriverFee" value="@((long)Model.DriverFee)" placeholder="VD: 300000" />
+                                <span class="text-xs text-muted">Phụ phí cộng thêm mỗi ngày khi khách hàng có nhu cầu thuê xe kèm tài xế riêng.</span>
                             </div>
                         </div>
                     </div>
@@ -441,8 +571,18 @@
                         </div>
 
                         <div class="mt-4 pt-3 border-top">
-                            <label asp-for="Details" class="form-label-recar">Mô tả bổ sung & Nội quy của chủ xe</label>
-                            <textarea asp-for="Details" rows="4" class="form-control form-control-recar" id="inputDetails" placeholder="Mô tả về tính năng nổi bật, trải nghiệm lái xe, các quy định giữ gìn vệ sinh (không hút thuốc, không chở thú cưng...)..."></textarea>
+                            <div class="p-3.5 rounded-3 border bg-light">
+                                <div class="d-flex align-items-center justify-content-between mb-2">
+                                    <label asp-for="Details" class="form-label mb-0 fw-bold text-dark d-flex align-items-center gap-2" style="font-size: 0.95rem;">
+                                        <i class="bi bi-chat-left-text-fill text-primary"></i> Mô tả & Nội quy của chủ xe
+                                    </label>
+                                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle font-normal" style="font-size: 0.72rem;">Đồng bộ với Khách hàng & Admin</span>
+                                </div>
+                                <p class="text-muted small mb-2" style="font-size: 0.8rem; line-height: 1.4;">
+                                    Ghi rõ các đặc điểm nổi bật của xe và nội quy dành cho khách thuê (ví dụ: giữ gìn vệ sinh sạch sẽ, không hút thuốc trong xe, không chở thú cưng / hải sản nặng mùi, quy định mức xăng khi trả xe...).
+                                </p>
+                                <textarea asp-for="Details" rows="4" class="form-control bg-white rounded-3 shadow-2xs" id="inputDetails" placeholder="Ví dụ: Xe gia đình bảo dưỡng định kỳ, nội thất sạch sẽ thơm tho. Quý khách vui lòng không hút thuốc, không chở thú cưng và giữ vệ sinh chung khi sử dụng xe..."></textarea>
+                            </div>
                         </div>
                     </div>
 
@@ -572,7 +712,7 @@
                                 <span>Tiếp tục</span>
                                 <i data-lucide="arrow-right" class="size-4"></i>
                             </button>
-                            <button type="submit" class="btn btn-primary rounded-xl px-4 py-2 text-sm font-semibold d-none" id="btnSubmitForm" style="background-color: #00a8e8; border-color: #00a8e8;">
+                            <button type="button" class="btn btn-primary rounded-xl px-4 py-2 text-sm font-semibold d-none" id="btnSubmitForm" onclick="submitEditForm()" style="background-color: #00a8e8; border-color: #00a8e8;">
                                 <i data-lucide="check" class="size-4 d-inline me-1"></i> @submitButtonText
                             </button>
                         </div>
@@ -582,6 +722,90 @@
             </div>
         </div>
     </form>
+
+<!-- Modal Xin Chuyển Trạng Thái Xe (Bảo trì / Tạm ngưng) -->
+<div class="modal fade" id="modalRequestStatus" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 rounded-4 shadow-lg overflow-hidden">
+            <div class="modal-header border-bottom py-3 px-4" style="background-color: #f8fafc;">
+                <h6 class="modal-title fw-bold text-dark d-flex align-items-center gap-2" id="reqModalTitle">
+                    <i class="bi bi-send-check text-primary fs-5"></i> Yêu cầu chuyển trạng thái xe
+                </h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <input type="hidden" id="reqStatusValue" />
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold text-dark">Trạng thái xin chuyển sang</label>
+                    <input type="text" class="form-control form-control-sm rounded-3 fw-bold bg-light text-primary" id="reqStatusDisplay" readonly />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold text-dark">Lý do & Thời gian dự kiến <span class="text-danger">*</span></label>
+                    <textarea class="form-control rounded-3" id="reqReason" rows="4" placeholder="VD: Xe cần đi bảo dưỡng định kỳ tại hãng từ 12/11 đến 15/11, hoặc chủ xe bận công tác..."></textarea>
+                    <div class="form-text" style="font-size: 0.75rem;">Vui lòng ghi rõ lý do để Quản trị viên ReCar kiểm duyệt nhanh chóng.</div>
+                </div>
+                <div class="alert alert-warning py-2.5 px-3 small border-0 rounded-3 mb-0" style="font-size: 0.78rem;">
+                    <i class="bi bi-exclamation-triangle-fill me-1 text-warning"></i> Sau khi gửi, yêu cầu sẽ được chuyển tới Ban Quản trị ReCar và bạn sẽ nhận được thông báo phản hồi tại chuông trên Header.
+                </div>
+            </div>
+            <div class="modal-footer border-top py-2.5 px-4 bg-light">
+                <button type="button" class="btn btn-sm btn-light border rounded-pill px-3" data-bs-dismiss="modal">Hủy</button>
+                <button type="button" class="btn btn-sm btn-primary rounded-pill px-4 fw-semibold" onclick="submitStatusRequest()">
+                    <i class="bi bi-send me-1"></i> Gửi yêu cầu
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function openRequestStatusModal(targetStatus) {
+        $('#reqStatusValue').val(targetStatus);
+        var labelText = targetStatus === 'Bảo trì' ? 'Bảo trì xe (Sửa chữa, bảo dưỡng)' : (targetStatus === 'Ngưng hoạt động' ? 'Tạm ngưng hoạt động (Ẩn khỏi sàn)' : 'Kích hoạt lại Sẵn sàng');
+        $('#reqStatusDisplay').val(labelText);
+        $('#reqReason').val('');
+        var modal = new bootstrap.Modal(document.getElementById('modalRequestStatus'));
+        modal.show();
+    }
+
+    function submitStatusRequest() {
+        var status = $('#reqStatusValue').val();
+        var reason = $('#reqReason').val();
+        var carId = @Model.CarId;
+
+        if (!reason || !reason.trim()) {
+            Swal.fire('Lỗi', 'Vui lòng nhập lý do gửi tới Ban Quản trị.', 'warning');
+            return;
+        }
+
+        $.ajax({
+            url: '/CarOwner/Cars/RequestStatusChange',
+            type: 'POST',
+            data: { id: carId, requestedStatus: status, reason: reason },
+            success: function(res) {
+                if (res.success) {
+                    bootstrap.Modal.getInstance(document.getElementById('modalRequestStatus')).hide();
+                    Swal.fire({
+                        title: 'Đã gửi yêu cầu!',
+                        text: res.message,
+                        icon: 'success',
+                        timer: 2000,
+                        showConfirmButton: false,
+                        customClass: { popup: 'rounded-4' }
+                    });
+                    setTimeout(function() { location.reload(); }, 1800);
+                } else {
+                    Swal.fire('Không thể gửi yêu cầu', res.message, 'error');
+                }
+            },
+            error: function() {
+                Swal.fire('Lỗi', 'Không thể kết nối tới máy chủ.', 'error');
+            }
+        });
+    }
+</script>
+
+
 </div>
 
 <script>
@@ -815,4 +1039,111 @@
         }
         updatePricePreview();
     });
+
+    // Hàm submit an toàn không bị chặn bởi HTML5 hidden input validation
+    function submitEditForm() {
+        // 1. Kiểm tra Tên xe
+        const carName = document.getElementById('inputCarName');
+        if (carName && !carName.value.trim()) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Chưa nhập tên xe',
+                text: 'Vui lòng nhập tên phương tiện ở Bước 1.',
+                confirmButtonColor: '#00a8e8'
+            }).then(() => {
+                goToStep(0);
+                carName.focus();
+            });
+            return false;
+        }
+
+        // 2. Kiểm tra Biển số
+        const plate = document.getElementById('inputLicensePlate');
+        if (plate && !plate.value.trim()) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Chưa nhập biển số xe',
+                text: 'Vui lòng nhập biển số xe ở Bước 1.',
+                confirmButtonColor: '#00a8e8'
+            }).then(() => {
+                goToStep(0);
+                plate.focus();
+            });
+            return false;
+        }
+
+        // 3. Kiểm tra Màu xe
+        const color = document.getElementById('inputColor');
+        if (color && !color.value.trim()) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Chưa nhập màu xe',
+                text: 'Vui lòng nhập màu sắc xe ở Bước 1.',
+                confirmButtonColor: '#00a8e8'
+            }).then(() => {
+                goToStep(0);
+                color.focus();
+            });
+            return false;
+        }
+
+        // 4. Kiểm tra Địa chỉ nhận xe
+        const locationInput = document.getElementById('inputLocation');
+        if (locationInput && !locationInput.value.trim()) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Chưa nhập địa chỉ bàn giao',
+                text: 'Vui lòng nhập khu vực bàn giao xe ở Bước 1.',
+                confirmButtonColor: '#00a8e8'
+            }).then(() => {
+                goToStep(0);
+                locationInput.focus();
+            });
+            return false;
+        }
+
+        // 5. Kiểm tra Giá thuê niêm yết
+        const price = document.getElementById('inputPrice');
+        const priceVal = price ? parseInt(price.value) : 0;
+        if (!priceVal || priceVal < 200000) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Giá thuê không hợp lệ',
+                text: 'Giá thuê niêm yết tối thiểu từ 200.000đ/ngày ở Bước 2.',
+                confirmButtonColor: '#00a8e8'
+            }).then(() => {
+                goToStep(1);
+                if (price) price.focus();
+            });
+            return false;
+        }
+
+        // 6. Kiểm tra Giá ưu đãi (nếu có)
+        const sale = document.getElementById('inputSalePrice');
+        const saleVal = sale && sale.value ? parseInt(sale.value) : 0;
+        if (saleVal > 0 && saleVal >= priceVal) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Giá khuyến mãi không hợp lệ',
+                text: 'Giá khuyến mãi phải nhỏ hơn giá thuê niêm yết ở Bước 2.',
+                confirmButtonColor: '#00a8e8'
+            }).then(() => {
+                goToStep(1);
+                if (sale) sale.focus();
+            });
+            return false;
+        }
+
+        // 7. Hiển thị loading và submit form
+        const btn = document.getElementById('btnSubmitForm');
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1.5" role="status" aria-hidden="true"></span> Đang gửi hồ sơ...';
+        }
+
+        // Submit form
+        document.getElementById('editCarForm').submit();
+        return true;
+    }
+
 </script>

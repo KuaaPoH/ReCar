@@ -125,17 +125,45 @@
                 }
                 bool hasFullDocs = !string.IsNullOrEmpty(car.RegistrationImage) && !string.IsNullOrEmpty(car.InspectionImage);
 
+                var carPolicy = CarRental.Utilities.CarPolicy.Parse(car);
+                string? snapJson = CarRental.Utilities.CarPolicy.ExtractOldSnapshotJson(car.Details);
+
+                var carAmenityNames = car.CarAmenities != null && car.CarAmenities.Any()
+                    ? car.CarAmenities.Where(ca => ca.Amenity != null).Select(ca => ca.Amenity!.Name).ToList()
+                    : new List<string>();
+
+                if (!carAmenityNames.Any() && !string.IsNullOrEmpty(car.Details))
+                {
+                    var mAmen = System.Text.RegularExpressions.Regex.Match(car.Details, @"\[Tiện nghi\]:\s*([^\r\n\\]+)");
+                    if (mAmen.Success)
+                    {
+                        carAmenityNames = mAmen.Groups[1].Value.Split(new[] { ',', ';' }, System.StringSplitOptions.RemoveEmptyEntries)
+                            .Select(x => x.Trim()).Where(x => !string.IsNullOrEmpty(x)).ToList();
+                    }
+                }
+
                 var carDetailData = new {
                     id = car.CarId,
                     name = car.CarName ?? "Phương tiện",
                     plate = car.LicensePlate ?? "",
                     brandYear = $"{car.CarBrand ?? "Xe"} · {car.Model ?? 2023}",
+                    brand = car.CarBrand ?? "",
+                    modelYear = car.Model ?? 2024,
+                    color = car.Color ?? "Chưa rõ",
+                    fuelConsumption = carPolicy.FuelConsumption ?? "Tiêu chuẩn",
+                    amenities = carAmenityNames,
                     segment = car.Type?.CarTypeName ?? "Sedan",
                     seats = $"{car.Seat ?? 5}",
                     gearbox = car.Transmission ?? "Số tự động",
                     fuel = car.Fuel ?? "Xăng",
                     price = car.Price ?? 0,
-                    driverFee = car.SalePrice ?? 0,
+                    salePrice = car.SalePrice,
+                    driverFee = carPolicy.DriverFee,
+                    mileageLimit = carPolicy.MileageLimit,
+                    extraFeePerKm = carPolicy.ExtraFeePerKm,
+                    deliverySupported = carPolicy.DeliverySupported,
+                    deliveryFee = carPolicy.DeliveryFee,
+                    extraDesc = carPolicy.ExtraDescription ?? "",
                     owner = ownerName,
                     phone = ownerPhone,
                     handover = handover,
@@ -144,7 +172,9 @@
                     gallery = gallery.Take(4).ToList(),
                     docReg = car.RegistrationImage ?? "",
                     docInsp = car.InspectionImage ?? "",
-                    docIns = car.InsuranceImage ?? ""
+                    docIns = car.InsuranceImage ?? "",
+                    isUpdate = (car.CarStatus == "Chờ cập nhật" || car.CarStatus == "pending_update"),
+                    oldSnapshotJson = snapJson
                 };
                 var carDetailJson = System.Text.Json.JsonSerializer.Serialize(carDetailData);
 
@@ -165,12 +195,23 @@
                                 <p class="text-muted small mb-2" style="font-size: 0.75rem;">@specs</p>
 
                                 <div class="d-flex align-items-baseline justify-content-between mb-3">
-                                    <span class="fs-5 fw-bold text-primary">
-                                        @((car.Price ?? 0).ToString("N0")) đ<span class="text-muted fw-normal" style="font-size: 0.75rem;">/ngày</span>
-                                    </span>
-                                    @if (car.SalePrice.HasValue && car.SalePrice.Value > 0)
+                                    <div>
+                                        <span class="fs-5 fw-bold text-primary">
+                                            @if (car.SalePrice.HasValue && car.SalePrice.Value > 0)
+                                            {
+                                                @((car.SalePrice.Value).ToString("N0")) <text>đ</text>
+                                                <span class="text-decoration-line-through text-muted small fw-normal ms-1" style="font-size: 0.75rem;">@((car.Price ?? 0).ToString("N0")) đ</span>
+                                            }
+                                            else
+                                            {
+                                                @((car.Price ?? 0).ToString("N0")) <text>đ</text>
+                                            }
+                                            <span class="text-muted fw-normal" style="font-size: 0.75rem;">/ngày</span>
+                                        </span>
+                                    </div>
+                                    @if (carPolicy.DriverFee > 0)
                                     {
-                                        <span class="text-muted small" style="font-size: 0.75rem;">Tài xế +@((car.SalePrice.Value).ToString("N0")) đ</span>
+                                        <span class="text-muted small" style="font-size: 0.75rem;"><i class="bi bi-person-badge"></i> Tài xế +@((carPolicy.DriverFee).ToString("N0")) đ</span>
                                     }
                                 </div>
 
@@ -275,17 +316,45 @@
                             }
                             bool hasFullDocsRow = !string.IsNullOrEmpty(car.RegistrationImage) && !string.IsNullOrEmpty(car.InspectionImage);
 
+                            var carPolicyRow = CarRental.Utilities.CarPolicy.Parse(car);
+                            string? snapJsonRow = CarRental.Utilities.CarPolicy.ExtractOldSnapshotJson(car.Details);
+
+                            var carAmenityNamesRow = car.CarAmenities != null && car.CarAmenities.Any()
+                                ? car.CarAmenities.Where(ca => ca.Amenity != null).Select(ca => ca.Amenity!.Name).ToList()
+                                : new List<string>();
+
+                            if (!carAmenityNamesRow.Any() && !string.IsNullOrEmpty(car.Details))
+                            {
+                                var mAmenRow = System.Text.RegularExpressions.Regex.Match(car.Details, @"\[Tiện nghi\]:\s*([^\r\n\\]+)");
+                                if (mAmenRow.Success)
+                                {
+                                    carAmenityNamesRow = mAmenRow.Groups[1].Value.Split(new[] { ',', ';' }, System.StringSplitOptions.RemoveEmptyEntries)
+                                        .Select(x => x.Trim()).Where(x => !string.IsNullOrEmpty(x)).ToList();
+                                }
+                            }
+
                             var carDetailDataRow = new {
                                 id = car.CarId,
                                 name = car.CarName ?? "Phương tiện",
                                 plate = car.LicensePlate ?? "",
                                 brandYear = $"{car.CarBrand ?? "Xe"} · {car.Model ?? 2023}",
+                                brand = car.CarBrand ?? "",
+                                modelYear = car.Model ?? 2024,
+                                color = car.Color ?? "Chưa rõ",
+                                fuelConsumption = carPolicyRow.FuelConsumption ?? "Tiêu chuẩn",
+                                amenities = carAmenityNamesRow,
                                 segment = car.Type?.CarTypeName ?? "Sedan",
                                 seats = $"{car.Seat ?? 5}",
                                 gearbox = car.Transmission ?? "Số tự động",
                                 fuel = car.Fuel ?? "Xăng",
                                 price = car.Price ?? 0,
-                                driverFee = car.SalePrice ?? 0,
+                                salePrice = car.SalePrice,
+                                driverFee = carPolicyRow.DriverFee,
+                                mileageLimit = carPolicyRow.MileageLimit,
+                                extraFeePerKm = carPolicyRow.ExtraFeePerKm,
+                                deliverySupported = carPolicyRow.DeliverySupported,
+                                deliveryFee = carPolicyRow.DeliveryFee,
+                                extraDesc = carPolicyRow.ExtraDescription ?? "",
                                 owner = ownerName,
                                 phone = ownerPhone,
                                 handover = handover,
@@ -294,7 +363,9 @@
                                 gallery = gallery.Take(4).ToList(),
                                 docReg = car.RegistrationImage ?? "",
                                 docInsp = car.InspectionImage ?? "",
-                                docIns = car.InsuranceImage ?? ""
+                                docIns = car.InsuranceImage ?? "",
+                                isUpdate = (car.CarStatus == "Chờ cập nhật" || car.CarStatus == "pending_update"),
+                                oldSnapshotJson = snapJsonRow
                             };
                             var carDetailJsonRow = System.Text.Json.JsonSerializer.Serialize(carDetailDataRow);
 
@@ -418,8 +489,43 @@
             <!-- 4 ảnh sẽ được render từ JS -->
         </div>
 
-        <!-- Bảng thông số 2 cột (Template Replica dl.sheet-spec-grid) -->
-        <dl class="sheet-spec-grid">
+        <!-- Banner Thông báo Yêu cầu Chỉnh sửa (nếu xe đang Chờ cập nhật) -->
+        <div id="sheetUpdateDiffBanner" class="mb-3 d-none">
+            <div class="p-3 rounded-3 border border-warning" style="background: #fffbeb;">
+                <div class="d-flex align-items-center justify-content-between mb-1.5">
+                    <span class="badge bg-warning text-dark fw-bold px-2.5 py-1">
+                        <i class="bi bi-pencil-square me-1"></i> Yêu cầu cập nhật từ chủ xe
+                    </span>
+                    <button type="button" class="btn btn-xs btn-outline-warning text-dark border-warning fw-semibold px-2 py-0.5 rounded-pill shadow-xs" id="btnToggleDiffView" onclick="toggleDiffMode()">
+                        <i class="bi bi-layout-split me-1"></i> So sánh 2 bên (Trước & Sau)
+                    </button>
+                </div>
+                <div class="text-xs text-muted" style="line-height: 1.4;">
+                    Chủ xe đã gửi bản chỉnh sửa thông tin. Bấm nút phía trên để đối chiếu 2 cột: mục nào được thay đổi sẽ được <strong>nổi bật màu cam</strong>.
+                </div>
+            </div>
+        </div>
+
+        <!-- Khung So sánh 2 bên (Trước & Sau) dạng Side-by-Side Diff -->
+        <div id="sheetDiffContainer" class="mb-4 d-none">
+            <div class="table-responsive rounded-3 border overflow-hidden">
+                <table class="table table-sm table-bordered align-middle mb-0" style="font-size: 0.8rem;">
+                    <thead>
+                        <tr class="table-light">
+                            <th style="width: 28%;">Mục kiểm tra</th>
+                            <th style="width: 36%; background: #f8fafc;">Trước thay đổi (Bản cũ)</th>
+                            <th style="width: 36%; background: #fff7ed; color: #c2410c;">Sau thay đổi (Bản mới)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="sheetDiffTableBody">
+                        <!-- Render so sánh qua JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Bảng thông số chi tiết (Chuẩn đầy đủ: Màu xe, Tiêu hao, Phụ phí tài xế, Quy định...) -->
+        <dl class="sheet-spec-grid" id="sheetNormalSpecGrid">
             <div>
                 <dt class="sheet-field-dt">Hãng / Đời</dt>
                 <dd class="sheet-field-dd" id="sheetParamBrandYear">Toyota · 2025</dd>
@@ -434,7 +540,15 @@
             </div>
             <div>
                 <dt class="sheet-field-dt">Số chỗ</dt>
-                <dd class="sheet-field-dd" id="sheetParamSeats">5</dd>
+                <dd class="sheet-field-dd" id="sheetParamSeats">5 chỗ</dd>
+            </div>
+            <div>
+                <dt class="sheet-field-dt">Màu sắc</dt>
+                <dd class="sheet-field-dd" id="sheetParamColor">Trắng</dd>
+            </div>
+            <div>
+                <dt class="sheet-field-dt">Mức tiêu hao</dt>
+                <dd class="sheet-field-dd" id="sheetParamFuelConsumption">6.5L/100km</dd>
             </div>
             <div>
                 <dt class="sheet-field-dt">Hộp số</dt>
@@ -445,15 +559,27 @@
                 <dd class="sheet-field-dd" id="sheetParamFuel">Xăng</dd>
             </div>
             <div>
-                <dt class="sheet-field-dt">Giá thuê/ngày</dt>
+                <dt class="sheet-field-dt">Giá thuê niêm yết</dt>
                 <dd class="sheet-field-dd" id="sheetParamPrice">850.000 <u>đ</u></dd>
             </div>
             <div>
-                <dt class="sheet-field-dt">Phụ phí tài xế</dt>
-                <dd class="sheet-field-dd" id="sheetParamDriverFee">Không</dd>
+                <dt class="sheet-field-dt">Giá ưu đãi (Khuyến mãi)</dt>
+                <dd class="sheet-field-dd" id="sheetParamSalePrice">620.000 <u>đ</u></dd>
             </div>
             <div>
-                <dt class="sheet-field-dt">Chủ xe</dt>
+                <dt class="sheet-field-dt">Phụ phí tài xế riêng</dt>
+                <dd class="sheet-field-dd" id="sheetParamDriverFee">300.000 <u>đ</u></dd>
+            </div>
+            <div>
+                <dt class="sheet-field-dt">Giới hạn quãng đường</dt>
+                <dd class="sheet-field-dd" id="sheetParamMileage">350 km/ngày</dd>
+            </div>
+            <div>
+                <dt class="sheet-field-dt">Giao xe tận nơi</dt>
+                <dd class="sheet-field-dd" id="sheetParamDelivery">Có hỗ trợ (100k)</dd>
+            </div>
+            <div>
+                <dt class="sheet-field-dt">Chủ xe phụ trách</dt>
                 <dd class="sheet-field-dd" id="sheetParamOwner">Lê Quốc Bảo</dd>
             </div>
             <div>
@@ -469,6 +595,26 @@
                 <dd class="sheet-field-dd" id="sheetParamCity">TP. Hồ Chí Minh</dd>
             </div>
         </dl>
+
+        <!-- Khối Tiện ích trang bị của xe -->
+        <div class="mb-3" id="sheetAmenitiesSection">
+            <p class="mb-1.5 text-dark" style="font-size: 0.85rem; font-weight: 600;">
+                <i class="bi bi-stars text-warning me-1"></i> Tiện nghi trang bị
+            </p>
+            <div id="sheetAmenitiesList" class="d-flex flex-wrap gap-1.5">
+                <!-- Render qua JS -->
+            </div>
+        </div>
+
+        <!-- Khối Mô tả bổ sung của chủ xe -->
+        <div class="mb-4" id="sheetExtraDescSection">
+            <p class="mb-1 text-dark" style="font-size: 0.85rem; font-weight: 600;">
+                <i class="bi bi-chat-text text-primary me-1"></i> Mô tả & Nội quy của chủ xe
+            </p>
+            <div id="sheetExtraDescText" class="p-2.5 rounded-3 bg-light border text-muted" style="font-size: 0.8rem; line-height: 1.5; font-style: italic;">
+                Không có ghi chú thêm.
+            </div>
+        </div>
 
         <!-- Khối Giấy tờ xác minh -->
         <div class="mb-4">
@@ -580,6 +726,28 @@
         }
     }
 
+        let isDiffModeActive = false;
+
+    // Toggle chế độ so sánh 2 bên (Trước & Sau)
+    function toggleDiffMode() {
+        isDiffModeActive = !isDiffModeActive;
+        const diffCont = document.getElementById('sheetDiffContainer');
+        const normalGrid = document.getElementById('sheetNormalSpecGrid');
+        const btnToggle = document.getElementById('btnToggleDiffView');
+
+        if (isDiffModeActive) {
+            diffCont.classList.remove('d-none');
+            normalGrid.classList.add('d-none');
+            btnToggle.innerHTML = '<i class="bi bi-card-list me-1"></i> Xem thông số chuẩn';
+            btnToggle.className = 'btn btn-xs btn-outline-secondary fw-semibold px-2 py-0.5 rounded-pill shadow-xs';
+        } else {
+            diffCont.classList.add('d-none');
+            normalGrid.classList.remove('d-none');
+            btnToggle.innerHTML = '<i class="bi bi-layout-split me-1"></i> So sánh 2 bên (Trước & Sau)';
+            btnToggle.className = 'btn btn-xs btn-outline-warning text-dark border-warning fw-semibold px-2 py-0.5 rounded-pill shadow-xs';
+        }
+    }
+
     // Mở Sheet chi tiết
     function openCarDetailSheet(data) {
         currentCarId = data.id;
@@ -588,19 +756,127 @@
         currentCarGallery = data.gallery || [];
 
         document.getElementById('sheetCarTitle').innerText = data.name;
-        document.getElementById('sheetCarSubtitle').innerText = 'Hồ sơ gửi lúc ' + data.dateStr;
+        document.getElementById('sheetCarSubtitle').innerText = (data.isUpdate ? 'Yêu cầu cập nhật lúc ' : 'Hồ sơ gửi lúc ') + data.dateStr;
         document.getElementById('sheetParamBrandYear').innerText = data.brandYear;
         document.getElementById('sheetParamPlate').innerText = data.plate;
         document.getElementById('sheetParamSegment').innerText = data.segment;
-        document.getElementById('sheetParamSeats').innerText = data.seats;
+        document.getElementById('sheetParamSeats').innerText = data.seats + ' chỗ';
+        document.getElementById('sheetParamColor').innerText = data.color || 'Chưa rõ';
+        document.getElementById('sheetParamFuelConsumption').innerText = data.fuelConsumption || 'Tiêu chuẩn';
         document.getElementById('sheetParamGearbox').innerText = data.gearbox;
         document.getElementById('sheetParamFuel').innerText = data.fuel;
         document.getElementById('sheetParamPrice').innerHTML = Number(data.price).toLocaleString('vi-VN') + ' <u style="text-decoration: underline;">đ</u>';
-        document.getElementById('sheetParamDriverFee').innerText = data.driverFee > 0 ? (Number(data.driverFee).toLocaleString('vi-VN') + ' đ') : 'Không';
+        if (data.salePrice && Number(data.salePrice) > 0) {
+            document.getElementById('sheetParamSalePrice').innerHTML = '<span class="text-danger fw-bold">' + Number(data.salePrice).toLocaleString('vi-VN') + ' <u style="text-decoration: underline;">đ</u></span> <span class="badge bg-danger-subtle text-danger ms-1" style="font-size: 0.68rem;">Ưu đãi</span>';
+        } else {
+            document.getElementById('sheetParamSalePrice').innerHTML = '<span class="text-muted">Không áp dụng</span>';
+        }
+        document.getElementById('sheetParamDriverFee').innerHTML = data.driverFee > 0 ? (Number(data.driverFee).toLocaleString('vi-VN') + ' <u style="text-decoration: underline;">đ/ngày</u>') : '<span class="text-muted">Không áp dụng</span>';
+        document.getElementById('sheetParamMileage').innerText = `${data.mileageLimit || 350} km/ngày (Vượt ${Number(data.extraFeePerKm || 3000).toLocaleString('vi-VN')} đ/km)`;
+        document.getElementById('sheetParamDelivery').innerText = data.deliverySupported ? `Có hỗ trợ (${Number(data.deliveryFee || 100000).toLocaleString('vi-VN')} đ)` : 'Nhận tại bãi xe';
         document.getElementById('sheetParamOwner').innerText = data.owner;
         document.getElementById('sheetParamPhone').innerText = data.phone;
         document.getElementById('sheetParamHandover').innerText = data.handover;
         document.getElementById('sheetParamCity').innerText = data.city;
+
+        // Render mô tả bổ sung (làm sạch toàn bộ thẻ tag hệ thống & Base64 nếu có)
+        function cleanDescJs(text) {
+            if (!text) return 'Không có ghi chú thêm.';
+            var s = String(text).replace(/\\r\\n/g, '\n').replace(/\\n/g, '\n').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+            var lastIdx = s.lastIndexOf('[Mô tả bổ sung]:');
+            if (lastIdx !== -1) {
+                s = s.substring(lastIdx + '[Mô tả bổ sung]:'.length);
+            }
+            s = s.replace(/\[(?:Tiện nghi|Quy định quãng đường|Giao nhận xe|Phụ phí tài xế|Snapshot|Bản lưu trước sửa|Mô tả)[^\]]*\]:[^\n]*/gi, '');
+            s = s.replace(/[A-Za-z0-9+/=]{40,}/g, '');
+            var lines = s.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+            return lines.join('\n').trim() || 'Không có ghi chú thêm.';
+        }
+        document.getElementById('sheetExtraDescText').innerText = cleanDescJs(data.extraDesc);
+
+        // Render danh sách Tiện nghi trang bị
+        const amenEl = document.getElementById('sheetAmenitiesList');
+        if (amenEl) {
+            const list = data.amenities || [];
+            if (list.length > 0) {
+                amenEl.innerHTML = list.map(item => `
+                    <span class="badge bg-light text-dark border px-2.5 py-1.5 rounded-pill d-inline-flex align-items-center gap-1.5 shadow-xs" style="font-size: 0.78rem; font-weight: 500;">
+                        <i class="bi bi-check-circle-fill text-success" style="font-size: 0.8rem;"></i>
+                        <span>${item}</span>
+                    </span>
+                `).join('');
+            } else {
+                amenEl.innerHTML = '<span class="text-muted small fst-italic">Xe chưa cập nhật danh sách tiện nghi.</span>';
+            }
+        }
+
+        // Xử lý Chế độ So Sánh 2 Bên (Trước & Sau) khi xe có yêu cầu cập nhật
+        const banner = document.getElementById('sheetUpdateDiffBanner');
+        const diffCont = document.getElementById('sheetDiffContainer');
+        const normalGrid = document.getElementById('sheetNormalSpecGrid');
+        const diffTableBody = document.getElementById('sheetDiffTableBody');
+
+        if (data.isUpdate && data.oldSnapshotJson) {
+            banner.classList.remove('d-none');
+            try {
+                const old = JSON.parse(data.oldSnapshotJson);
+                let diffRows = '';
+
+                function makeDiffRow(fieldLabel, oldVal, newVal, isCurrency = false, suffix = '') {
+                    const sOld = (oldVal !== null && oldVal !== undefined) ? String(oldVal).trim() : '';
+                    const sNew = (newVal !== null && newVal !== undefined) ? String(newVal).trim() : '';
+                    const isChanged = (sOld.toLowerCase() !== sNew.toLowerCase());
+
+                    let dOldText = isCurrency ? (Number(oldVal || 0).toLocaleString('vi-VN') + suffix) : (sOld || '—');
+                    let dNewText = isCurrency ? (Number(newVal || 0).toLocaleString('vi-VN') + suffix) : (sNew || '—');
+
+                    const rowBg = isChanged ? 'style="background-color: #fff7ed; border-left: 4px solid #f97316;"' : '';
+                    const changedBadge = isChanged ? '<span class="badge bg-warning text-dark ms-2 font-monospace" style="font-size: 0.65rem;">Thay đổi</span>' : '';
+                    const newCellColor = isChanged ? 'class="fw-bold text-dark"' : 'class="text-muted"';
+
+                    return `
+                        <tr ${rowBg}>
+                            <td class="fw-semibold text-secondary" style="font-size: 0.78rem;">${fieldLabel} ${changedBadge}</td>
+                            <td class="text-muted" style="font-size: 0.8rem; background: ${isChanged ? '#ffedd5' : '#f8fafc'};">${dOldText}</td>
+                            <td ${newCellColor} style="font-size: 0.8rem; ${isChanged ? 'color: #c2410c !important;' : ''}">${dNewText}</td>
+                        </tr>
+                    `;
+                }
+
+                diffRows += makeDiffRow('Tên phương tiện', old.carName, data.name);
+                diffRows += makeDiffRow('Hãng xe & Đời', `${old.carBrand} · ${old.modelYear}`, data.brandYear);
+                diffRows += makeDiffRow('Biển số xe', old.licensePlate, data.plate);
+                diffRows += makeDiffRow('Màu sắc ngoại thất', old.color, data.color);
+                diffRows += makeDiffRow('Số chỗ ngồi', `${old.seat} chỗ`, `${data.seats} chỗ`);
+                diffRows += makeDiffRow('Hộp số', old.transmission, data.gearbox);
+                diffRows += makeDiffRow('Nhiên liệu', old.fuel, data.fuel);
+                diffRows += makeDiffRow('Mức tiêu hao', old.fuelConsumption, data.fuelConsumption);
+                diffRows += makeDiffRow('Giá thuê niêm yết', old.price, data.price, true, ' đ/ngày');
+                diffRows += makeDiffRow('Giá ưu đãi (Khuyến mãi)', old.salePrice, data.salePrice, true, ' đ/ngày');
+                diffRows += makeDiffRow('Phụ phí tài xế riêng', old.driverFee, data.driverFee, true, ' đ/ngày');
+                diffRows += makeDiffRow('Giới hạn quãng đường', `${old.mileageLimit || 350} km/ngày`, `${data.mileageLimit || 350} km/ngày`);
+                diffRows += makeDiffRow('Phụ phí vượt quãng đường', old.extraFeePerKm, data.extraFeePerKm, true, ' đ/km');
+                diffRows += makeDiffRow('Phí giao xe tận nơi', old.deliveryFee, data.deliveryFee, true, ' đ');
+                diffRows += makeDiffRow('Khu vực bàn giao', old.location, data.handover);
+
+                diffTableBody.innerHTML = diffRows;
+
+                // Mặc định tự động mở chế độ So Sánh 2 Bên cho xe Chờ cập nhật
+                isDiffModeActive = true;
+                diffCont.classList.remove('d-none');
+                normalGrid.classList.add('d-none');
+                document.getElementById('btnToggleDiffView').innerHTML = '<i class="bi bi-card-list me-1"></i> Xem thông số chuẩn';
+            } catch (e) {
+                console.error("Diff Parse Error:", e);
+                diffCont.classList.add('d-none');
+                normalGrid.classList.remove('d-none');
+            }
+        } else {
+            banner.classList.add('d-none');
+            diffCont.classList.add('d-none');
+            normalGrid.classList.remove('d-none');
+            isDiffModeActive = false;
+        }
 
         // Render 4 ảnh sạch sẽ chuẩn template (aspect 4/3, ĐÃ BỎ TOÀN BỘ NHÃN GÓC theo yêu cầu)
         let galleryHtml = '';

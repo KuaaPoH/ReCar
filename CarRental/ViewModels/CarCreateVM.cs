@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Http;
+using System.Collections.Generic;
 
 namespace CarRental.ViewModels
 {
@@ -69,6 +70,9 @@ namespace CarRental.ViewModels
         [Display(Name = "Phí giao xe tận nơi (VNĐ)")]
         public decimal DeliveryFee { get; set; } = 100000;
 
+        [Display(Name = "Phụ phí tài xế riêng (VNĐ/ngày)")]
+        public decimal DriverFee { get; set; } = 300000;
+
         [Display(Name = "Tiện nghi trang bị")]
         public List<string> Features { get; set; } = new List<string>();
 
@@ -83,6 +87,19 @@ namespace CarRental.ViewModels
 
         [Display(Name = "Đường dẫn ảnh trực tuyến (nếu không tải file)")]
         public string? ImageUrl { get; set; }
+
+        // 4 ảnh góc xung quanh xe (Bắt buộc)
+        [Display(Name = "Ảnh đầu xe (Mặt trước)")]
+        public IFormFile? Image1File { get; set; }
+
+        [Display(Name = "Ảnh đuôi xe (Mặt sau)")]
+        public IFormFile? Image2File { get; set; }
+
+        [Display(Name = "Ảnh nội thất khoang lái")]
+        public IFormFile? Image3File { get; set; }
+
+        [Display(Name = "Ảnh sườn xe (Góc nghiêng)")]
+        public IFormFile? Image4File { get; set; }
 
         [Display(Name = "Album ảnh chi tiết xe")]
         public List<IFormFile>? DetailImages { get; set; }

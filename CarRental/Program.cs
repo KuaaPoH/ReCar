@@ -32,6 +32,7 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
     });
 
 builder.Services.AddSingleton<IVnpayServices,VnPayService>();
+builder.Services.AddScoped<CarRental.Services.INotificationService, CarRental.Services.NotificationService>();
 builder.Services.AddSignalR();
 var app = builder.Build();
 

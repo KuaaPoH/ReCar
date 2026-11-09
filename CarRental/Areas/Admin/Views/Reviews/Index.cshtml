@@ -1,5 +1,6 @@
 @{
     ViewData["Title"] = "Quản lý đánh giá & bình luận";
+    Layout = "~/Areas/Admin/Views/Shared/_Layout.cshtml";
     var activeTab = ViewBag.ActiveTab as string ?? "cars";
     var carReviews = ViewBag.CarReviews as List<CarRental.Models.CarReview> ?? new List<CarRental.Models.CarReview>();
     var blogComments = ViewBag.BlogComments as List<CarRental.Models.BlogComment> ?? new List<CarRental.Models.BlogComment>();
@@ -98,10 +99,10 @@
                                                     }
                                                     else
                                                     {
-                                                        <i class="bi bi-star text-muted"></i>
+                                                        <i class="bi bi-star text-muted opacity-50"></i>
                                                     }
                                                 }
-                                                <span class="ms-1.5 fw-bold text-dark small">(@(r.Star ?? 5)/5)</span>
+                                                <span class="ms-1.5 fw-bold text-dark small">@r.Star ★</span>
                                             </div>
                                         </td>
                                         <td>
@@ -128,9 +129,9 @@
                                             </form>
                                         </td>
                                         <td class="text-end">
-                                            <form asp-action="DeleteCarReview" asp-route-id="@r.CarReviewId" method="post" class="d-inline" onsubmit="return confirm('Bạn có chắc chắn muốn xóa đánh giá này?');">
+                                            <form asp-action="DeleteCarReview" asp-route-id="@r.CarReviewId" method="post" class="d-inline" id="deleteReviewForm-@r.CarReviewId">
                                                 @Html.AntiForgeryToken()
-                                                <button type="submit" class="btn btn-sm btn-light border text-danger" title="Xóa">
+                                                <button type="button" class="btn btn-sm btn-light border text-danger" title="Xóa" onclick="confirmDeleteReview(@r.CarReviewId, '@Html.Raw(r.Name?.Replace("'", "\\'"))')">
                                                     <i class="bi bi-trash"></i> Xóa
                                                 </button>
                                             </form>
@@ -212,9 +213,9 @@
                                             </form>
                                         </td>
                                         <td class="text-end">
-                                            <form asp-action="DeleteBlogComment" asp-route-id="@c.CommentId" method="post" class="d-inline" onsubmit="return confirm('Bạn có chắc chắn muốn xóa bình luận này?');">
+                                            <form asp-action="DeleteBlogComment" asp-route-id="@c.CommentId" method="post" class="d-inline" id="deleteCommentForm-@c.CommentId">
                                                 @Html.AntiForgeryToken()
-                                                <button type="submit" class="btn btn-sm btn-light border text-danger" title="Xóa">
+                                                <button type="button" class="btn btn-sm btn-light border text-danger" title="Xóa" onclick="confirmDeleteComment(@c.CommentId, '@Html.Raw(c.Name?.Replace("'", "\\'"))')">
                                                     <i class="bi bi-trash"></i> Xóa
                                                 </button>
                                             </form>
@@ -229,3 +230,41 @@
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        function confirmDeleteReview(id, author) {
+            Swal.fire({
+                title: 'Xóa đánh giá này?',
+                html: 'Bạn có chắc muốn xóa đánh giá của <strong>"' + author + '"</strong>?<br><small class="text-muted">Hành động này không thể hoàn tác.</small>',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: 'Đồng ý xóa',
+                cancelButtonText: 'Hủy bỏ'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    document.getElementById('deleteReviewForm-' + id).submit();
+                }
+            });
+        }
+
+        function confirmDeleteComment(id, author) {
+            Swal.fire({
+                title: 'Xóa bình luận này?',
+                html: 'Bạn có chắc muốn xóa bình luận của <strong>"' + author + '"</strong>?<br><small class="text-muted">Hành động này không thể hoàn tác.</small>',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: 'Đồng ý xóa',
+                cancelButtonText: 'Hủy bỏ'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    document.getElementById('deleteCommentForm-' + id).submit();
+                }
+            });
+        }
+    </script>
+}

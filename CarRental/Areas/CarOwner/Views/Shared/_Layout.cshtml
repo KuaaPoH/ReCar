@@ -307,45 +307,30 @@
 
 
                 <!-- Chuông thông báo Real-time -->
-
                 <div class="dropdown">
-
-                    <button class="btn-owner-bell" type="button" data-bs-toggle="dropdown" aria-expanded="false" id="btnOwnerBell" title="Thông báo đối tác"><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-bell"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
-
+                    <button class="btn-owner-bell position-relative" type="button" data-bs-toggle="dropdown" aria-expanded="false" id="btnOwnerBell" title="Thông báo đối tác">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-bell"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
                         <span id="ownerNotificationDot" class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle" style="display: none; width: 8px; height: 8px; margin-top: 6px; margin-left: -6px;"></span>
-
                     </button>
-
-                    <ul class="dropdown-menu dropdown-menu-end shadow-lg p-2 border-0" style="width: 340px; border-radius: 16px; margin-top: 10px;">
-
+                    <ul class="dropdown-menu dropdown-menu-end shadow-lg p-2 border-0" style="width: 360px; max-width: 90vw; border-radius: 16px; margin-top: 10px;">
                         <li>
-
                             <div class="d-flex align-items-center justify-content-between px-3 py-2 border-bottom">
-
-                                <h6 class="fw-bold text-dark mb-0 d-flex align-items-center gap-1">
-
-                                    <i data-lucide="bell" style="width: 15px; height: 15px; color: #0284c7;"></i> Thông báo đối tác
-
+                                <h6 class="fw-bold text-dark mb-0 d-flex align-items-center gap-1.5" style="font-size: 0.88rem;">
+                                    <i class="bi bi-bell-fill text-primary"></i> Thông báo đối tác
                                 </h6>
-
-                                <span class="badge bg-light text-muted small">Realtime</span>
-
+                                <button type="button" class="btn btn-link p-0 text-decoration-none text-muted small" id="btnMarkAllRead" title="Đánh dấu tất cả đã đọc" style="font-size: 0.75rem;">
+                                    <i class="bi bi-check2-all me-1"></i>Đọc tất cả
+                                </button>
                             </div>
-
                         </li>
-
-                        <li id="ownerNotificationEmpty" class="text-center py-4 text-muted small">
-
-                            <i class="bi bi-inbox fs-2 text-secondary opacity-50 d-block mb-2"></i>
-
-                            Chưa có thông báo mới nào
-
-                        </li>
-
-                        <div id="ownerNotificationList"></div>
-
+                        <div style="max-height: 380px; overflow-y: auto;">
+                            <li id="ownerNotificationEmpty" class="text-center py-4 text-muted small">
+                                <i class="bi bi-inbox fs-2 text-secondary opacity-50 d-block mb-2"></i>
+                                Chưa có thông báo mới nào
+                            </li>
+                            <div id="ownerNotificationList" class="p-1"></div>
+                        </div>
                     </ul>
-
                 </div>
 
 
@@ -962,7 +947,20 @@
 
         });
 
+        // Khởi tạo hệ thống thông báo ReCar
+        $(document).ready(function() {
+            if (typeof RecarNotificationManager !== 'undefined') {
+                RecarNotificationManager.init({
+                    bellBtnId: 'btnOwnerBell',
+                    dotId: 'ownerNotificationDot',
+                    listId: 'ownerNotificationList',
+                    emptyId: 'ownerNotificationEmpty',
+                    markAllBtnId: 'btnMarkAllRead'
+                });
+            }
+        });
     </script>
+    <script src="~/assets/js/recar-notifications.js"></script>
 
     @RenderSection("Scripts", required: false)
 

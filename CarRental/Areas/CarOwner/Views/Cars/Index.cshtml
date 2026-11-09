@@ -1,4 +1,4 @@
-﻿@model IList<CarRental.Models.Car>
+@model IList<CarRental.Models.Car>
 @using CarRental.Utilities
 @{
     ViewData["Title"] = "Quản lý xe";
@@ -233,6 +233,7 @@
                                     <input class="form-check-input" type="checkbox" role="switch" 
                                            id="toggleSale-@car.CarId" 
                                            @(car.IsSale ? "checked" : "")
+                                           @(isPending || isPendingUpdate || isRejected ? "disabled" : "")
                                            onchange="toggleCarSale(@car.CarId, this)" />
                                 </div>
                             </td>
@@ -243,33 +244,57 @@
                                     <button class="btn btn-sm btn-light border rounded-pill px-2 py-1 text-muted" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                                         <i class="bi bi-three-dots"></i>
                                     </button>
-                                    <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 p-2" style="border-radius: 12px; font-size: 0.84rem;">
-                                        <li>
-                                            <a class="dropdown-item rounded-2 py-2" href="/CarOwner/Calendar/Index?carId=@car.CarId">
-                                                <i class="bi bi-calendar3 me-2 text-info"></i>Lá»‹ch & Cháº·n ngĂ y
-                                            </a>
-                                        </li>
-                                        <li>
-                                            <a class="dropdown-item rounded-2 py-2" href="/CarOwner/Cars/Details/@car.CarId">
-                                                <i class="bi bi-eye me-2 text-primary"></i>Chi tiết xe
-                                            </a>
-                                        </li>
-                                        <li>
-                                            <a class="dropdown-item rounded-2 py-2" href="/CarOwner/Cars/Edit/@car.CarId">
-                                                <i class="bi bi-pencil me-2 text-warning"></i>Chỉnh sửa
-                                            </a>
-                                        </li>
-                                        <li>
-                                            <a class="dropdown-item rounded-2 py-2" href="/product/@(car.Alias)-@(car.CarId).html" target="_blank">
-                                                <i class="bi bi-box-arrow-up-right me-2 text-muted"></i>Xem trên sàn
-                                            </a>
-                                        </li>
-                                        <li><hr class="dropdown-divider my-1"></li>
-                                        <li>
-                                            <a class="dropdown-item rounded-2 py-2 text-danger" href="/CarOwner/Cars/Delete/@car.CarId">
-                                                <i class="bi bi-trash3 me-2"></i>Gỡ xe khỏi sàn
-                                            </a>
-                                        </li>
+                                    <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 p-2" style="border-radius: 12px; font-size: 0.84rem; min-width: 190px;">
+                                        @if (isPending || isPendingUpdate || isRejected)
+                                        {
+                                            <!-- Khi xe mới gửi lên / Chờ duyệt / Bị từ chối: Chỉ hiển thị 3 thao tác cần thiết -->
+                                            <li>
+                                                <a class="dropdown-item rounded-2 py-2 text-primary fw-medium" href="/CarOwner/Cars/Details/@car.CarId">
+                                                    <i class="bi bi-shield-check me-2 text-primary"></i>Tình trạng duyệt hồ sơ
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item rounded-2 py-2" href="/CarOwner/Cars/Edit/@car.CarId">
+                                                    <i class="bi bi-pencil me-2 text-warning"></i>Chỉnh sửa
+                                                </a>
+                                            </li>
+                                            <li><hr class="dropdown-divider my-1"></li>
+                                            <li>
+                                                <a class="dropdown-item rounded-2 py-2 text-danger" href="/CarOwner/Cars/Delete/@car.CarId">
+                                                    <i class="bi bi-trash3 me-2"></i>Gỡ xe khỏi sàn
+                                                </a>
+                                            </li>
+                                        }
+                                        else
+                                        {
+                                            <!-- Khi xe đã được phê duyệt hoạt động -->
+                                            <li>
+                                                <a class="dropdown-item rounded-2 py-2" href="/CarOwner/Calendar/Index?carId=@car.CarId">
+                                                    <i class="bi bi-calendar3 me-2 text-info"></i>Lịch & Chặn ngày
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item rounded-2 py-2" href="/CarOwner/Cars/Details/@car.CarId">
+                                                    <i class="bi bi-eye me-2 text-primary"></i>Chi tiết xe
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item rounded-2 py-2" href="/CarOwner/Cars/Edit/@car.CarId">
+                                                    <i class="bi bi-pencil me-2 text-warning"></i>Chỉnh sửa
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item rounded-2 py-2" href="/product/@(car.Alias)-@(car.CarId).html" target="_blank">
+                                                    <i class="bi bi-box-arrow-up-right me-2 text-muted"></i>Xem trên sàn
+                                                </a>
+                                            </li>
+                                            <li><hr class="dropdown-divider my-1"></li>
+                                            <li>
+                                                <a class="dropdown-item rounded-2 py-2 text-danger" href="/CarOwner/Cars/Delete/@car.CarId">
+                                                    <i class="bi bi-trash3 me-2"></i>Gỡ xe khỏi sàn
+                                                </a>
+                                            </li>
+                                        }
                                     </ul>
                                 </div>
                             </td>

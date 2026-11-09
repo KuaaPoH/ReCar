@@ -60,6 +60,13 @@ public partial class Customer
 
     public string? Avartar { get; set; }
 
+    [NotMapped]
+    public string? Avatar
+    {
+        get => Avartar;
+        set => Avartar = value;
+    }
+
     public virtual Role? Role { get; set; }
 
     public virtual ICollection<CarRentalOrder> CarRentalOrders { get; set; } = new List<CarRentalOrder>();

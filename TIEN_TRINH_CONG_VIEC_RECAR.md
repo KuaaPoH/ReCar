@@ -1091,3 +1091,496 @@ Nhằm giúp đồ án tạo được ấn tượng mạnh mẽ với hội đ�
   - **Sidebar Admin (`Areas/Admin/Views/Shared/_Layout.cshtml`):** Truy vấn động `_db.Menus.Where(m => m.Subsystem == "Admin" && m.IsActive)` theo từng nhóm, giữ nguyên logic badge số lượng thông báo thực tế (Xe chờ duyệt, Hồ sơ chủ xe chờ duyệt).
 - **Kiểm thử thực tế thành công:** Tạo menu mới `test` ở phân hệ Khách hàng với thứ tự vị trí số 4 (`Position = 4`), menu lập tức xuất hiện trực tiếp trên thanh Navbar Header giữa `Cẩm nang` và `Tin tức` mà không cần chỉnh sửa bất kỳ dòng code nào.
 - Toàn bộ giải pháp đạt chuẩn bảo mật, thiết kế pixel-perfect và biên dịch **`Build succeeded. 0 Error(s)`**.
+
+
+---
+
+## 25. CẬP NHẬT TIẾN TRÌNH: RÀ SOÁT, DỌN DẸP TOÀN BỘ TÀN DƯ MAZER VÀ ĐỒNG BỘ 100% PHÂN HỆ ADMIN (NGÀY 09/11/2026)
+
+### 25.1. Tái Thiết Kế & Nâng Cấp Toàn Diện Phân Hệ Bài Viết & Tin Tức (`Areas/Admin/Views/Blogs/`)
+1. **Loại bỏ 100% template Mazer cũ:**
+   - Xóa bỏ triệt để các thẻ `#main`, `.burger-btn`, `.page-heading` và footer Mazer 2021 của A. Saugi trong toàn bộ các view của Blogs.
+   - Sửa lỗi nghiêm trọng: Tiêu đề card bị ghi nhầm thành *"Thêm mới xe"* / *"Xoá xe"*.
+2. **Thiết kế mới theo ReCar Design System:**
+   - [`Blogs/Create.cshtml`](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Views/Blogs/Create.cshtml): Form 2 cột hiện đại, tiêu đề, tóm tắt Sapo, textarea chi tiết bài viết, switch bật/tắt xuất bản, hỗ trợ tải lên file ảnh hoặc nhập URL kèm **Live Preview xem trước ảnh tức thì**.
+   - [`Blogs/Edit.cshtml`](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Views/Blogs/Edit.cshtml): Giữ nguyên thông tin người tạo, ngày tạo, cập nhật bài viết mượt mà, xem trước ảnh hiện tại.
+   - [`Blogs/Delete.cshtml`](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Views/Blogs/Delete.cshtml): Thẻ cảnh báo nguy hiểm bo viền đỏ chuyên nghiệp, tóm tắt bài viết cần xóa, nút xác nhận xóa vĩnh viễn.
+   - [`Blogs/Index.cshtml`](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Views/Blogs/Index.cshtml): Bổ sung nút Toggle trạng thái (*Đã xuất bản / Bản nháp*) bằng AJAX SweetAlert2 và nút Xóa nhanh không cần tải lại trang.
+3. **Nâng cấp Controller ([`BlogsController.cs`](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Controllers/BlogsController.cs)):**
+   - Bổ sung kiểm tra quyền Admin chặt chẽ qua `CheckAdmin()`.
+   - Bổ sung xử lý upload file ảnh vào `/wwwroot/images/blogs/`.
+   - Bổ sung 2 endpoint AJAX: `DeleteAjax` (xóa an toàn qua modal) và `ToggleActive` (bật/tắt xuất bản tức thì).
+
+### 25.2. Dọn Dẹp Phân Hệ Quản Lý Đơn Hàng (`Areas/Admin/Views/Orders/`)
+- Đã xóa bỏ tệp view Mazer cũ [`Orders/OrderDetails.cshtml`](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Views/Orders/OrderDetails.cshtml).
+- Toàn bộ luồng xem chi tiết và cập nhật đơn hàng phía Admin tập trung duy nhất tại [`Orders/Edit.cshtml`](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Views/Orders/Edit.cshtml) chuẩn ReCar Panel có bóc tách phí hoa hồng sàn và tiền cọc.
+
+### 25.3. Dọn Dẹp Phân Hệ Thư Viện Ảnh Xe (`CarImages`)
+- Đã xóa bỏ toàn bộ thư mục view scaffolding thô sơ `Areas/Admin/Views/CarImages/` và controller không dùng `Areas/Admin/Controllers/CarImagesController.cs`.
+- Bảo toàn 100% bảng CSDL `carimages` và logic truy vấn ảnh xe của hệ thống trong `CarsController.cs`.
+
+### 25.4. Dọn Dẹp Thư Mục View Tàn Dư Cũ (`Customer/` & `Product/`)
+- Xóa bỏ 2 thư mục view Mazer cũ: `Areas/Admin/Views/Customer/` và `Areas/Admin/Views/Product/`.
+- Chuẩn hóa [`ProductController.cs`](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Controllers/ProductController.cs) và [`CustomerController.cs`](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Controllers/CustomerController.cs) tự động chuyển hướng mọi truy vấn cũ về `/Admin/Cars` và `/Admin/UserManagement`.
+
+### 25.5. Dọn Dẹp Trình Quản Lý Tệp (FileManager & elFinder)
+- Xóa bỏ thư mục `Areas/Admin/Views/FileManager/`.
+- Xóa bỏ tệp `Areas/Admin/Views/Shared/_SummerNote.cshtml` (nguyên nhân gây xung đột CSS Bootstrap cũ).
+- Xóa bỏ `Areas/Admin/Controllers/FileManagerController.cs`, `FileSystemController.cs` và `Areas/Admin/Models/SummerNote.cs`.
+
+### 25.6. Đồng Bộ Toàn Diện Trải Nghiệm Người Dùng (UX & SweetAlert2)
+- Loại bỏ hoàn toàn các hàm `onsubmit="return confirm(...)"` mặc định thô sơ của trình duyệt.
+- Thay thế 100% bằng popup xác nhận xóa **SweetAlert2** bo góc hiện đại, đồng bộ trên toàn bộ các trang Admin:
+  - [`CarTypes/Index.cshtml`](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Views/CarTypes/Index.cshtml): Xác nhận xóa kiểu xe / phân khúc.
+  - [`Locations/Index.cshtml`](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Views/Locations/Index.cshtml): Xác nhận xóa địa điểm nhận xe.
+  - [`Reviews/Index.cshtml`](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Views/Reviews/Index.cshtml): Xác nhận xóa đánh giá chuyến đi của khách và bình luận bài viết.
+- **Kết quả rà soát:** Phân hệ Admin đạt **0% tàn dư Mazer**, đồng bộ 100% theo ReCar Design System.
+
+
+### 25.7. Khắc Phục Lỗi Biên Dịch (Build Succeeded: 0 Error)
+- **Lỗi phát hiện:** Tệp [`Areas/Admin/Views/Locations/Index.cshtml`](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Views/Locations/Index.cshtml) gọi thuộc tính không tồn tại `@item.SearchKeywords` trong Model `Location`, dẫn đến lỗi `error CS1061: 'Location' does not contain a definition for 'SearchKeywords'`.
+- **Khắc phục:** Đã điều chỉnh hiển thị sang thuộc tính chuẩn `@item.Region`.
+- **Kết quả biên dịch:** **`Build succeeded. 0 Error(s)`**.
+
+
+---
+
+## 26. CẬP NHẬT TIẾN TRÌNH: HOÀN THIỆN PHÂN HỆ THÊM XE CHỦ XE & ĐỒNG BỘ HIỂN THỊ 4 ẢNH GÓC XE (NGÀY 09/11/2026)
+
+### 26.1. Sửa Lỗi Font Chữ Dropdown Quản Lý Xe (`Areas/CarOwner/Views/Cars/Index.cshtml`)
+- **Vấn đề:** Trong menu thả xuống "Hành động" của từng xe, mục lịch bị lỗi hiển thị mã hóa font thành `Lá»«ch & Cháº·n ngĂ y`.
+- **Khắc phục:** Đã chuẩn hóa mã hóa UTF-8 và điều chỉnh chính xác thành nhãn `Lịch & Chặn ngày`.
+
+### 26.2. Nâng Cấp Form Thêm Mới Xe Phía Chủ Xe (`/CarOwner/Cars/Create`)
+1. **Mở rộng ViewModel ([`CarCreateVM.cs`](file:///d:/CarRental_TTCN/CarRental/ViewModels/CarCreateVM.cs)):**
+   - Bổ sung 4 trường `IFormFile`: `Image1File` (Đầu xe / Mặt trước), `Image2File` (Đuôi xe / Mặt sau), `Image3File` (Nội thất khoang lái), `Image4File` (Sườn xe / Toàn cảnh nghiêng).
+2. **Thiết kế lại Bước 5 (Hình ảnh xe & Pháp lý) theo ReCar Design System:**
+   - Bổ sung khung lưới 4 ô tải ảnh 4 góc xung quanh xe với hướng dẫn cụ thể, xem trước ảnh Live Preview tức thì và nút chọn ảnh riêng biệt.
+   - Tách biệt rõ ràng 3 nhóm ảnh: **Ảnh đại diện hiển thị sàn**, **4 ảnh chụp thực tế 4 góc xe** và **3 ảnh giấy tờ pháp lý bảo mật (Cà vẹt, Đăng kiểm, Bảo hiểm)**.
+3. **Cập nhật Bước 6 (Xác nhận & Gửi duyệt):**
+   - Bổ sung dải hiển thị xem trước 4 ảnh góc xe ngay cạnh ảnh đại diện để chủ xe kiểm tra tổng quan trước khi bấm nút gửi hồ sơ xét duyệt.
+4. **Ràng Buộc Chặt Chẽ Dữ Liệu Nhập (Form Validation & UX):**
+   - Tích hợp hàm kiểm tra `validateStep(stepIndex)` trước mỗi lần bấm nút chuyển bước:
+     - **Bước 1 (Thông tin cơ bản):** Bắt buộc nhập đầy đủ Tên xe, Hãng sản xuất, Năm sản xuất, Biển số xe, Phân khúc, Số chỗ ngồi, Hộp số, Nhiên liệu, Mức tiêu hao.
+     - **Bước 2 (Địa chỉ giao nhận):** Bắt buộc chọn Tỉnh/Thành phố, Quận/Huyện và nhập Địa chỉ nhận xe chi tiết.
+     - **Bước 3 (Đơn giá & Thế chấp):** Bắt buộc nhập Giá thuê theo ngày, Số tiền đặt cọc và chọn Tài sản thế chấp yêu cầu.
+     - **Bước 5 (Hình ảnh):** Bắt buộc tải lên đủ toàn bộ 8 hình ảnh (1 ảnh đại diện + 4 ảnh 4 góc xe + 3 ảnh giấy tờ). Nếu thiếu bất kỳ ảnh nào, hệ thống chặn chuyển bước và hiển thị cảnh báo **SweetAlert2** trực quan chỉ rõ ô còn thiếu.
+5. **Tối ưu Cơ chế Lưu CSDL ([`CarsController.cs`](file:///d:/CarRental_TTCN/CarRental/Areas/CarOwner/Controllers/CarsController.cs)):**
+   - Khi chủ xe thêm xe mới: Tạo đúng 1 bản ghi `CarImage` liên kết với `CarId`, đồng thời lưu đầy đủ 4 đường dẫn ảnh vào 4 cột `Image1, Image2, Image3, Image4` của bảng `carimages`.
+
+### 26.3. Đồng Bộ Hiển Thị 4 Ảnh Chi Tiết Trên Toàn Bộ Hệ Thống
+1. **Giao diện Khách hàng (`Views/Product/Details.cshtml` & `ProductController.cs`):**
+   - Truy vấn toàn bộ 4 ảnh góc xe từ `CarImages` và kết hợp cùng ảnh đại diện thành thư viện hình ảnh `allPhotos`, cho phép khách hàng xem đầy đủ ảnh thật của xe khi bấm vào xem chi tiết xe.
+2. **Giao diện Admin Duyệt xe (`Areas/Admin/Views/Cars/Pending.cshtml` & `CarsController.cs`):**
+   - Gom dữ liệu `CarImages` vào danh sách ảnh chi tiết; khi Admin bấm nút xem thông tin xe trong Drawer kiểm duyệt, toàn bộ 4 ảnh xung quanh xe và ảnh giấy tờ đều được hiển thị rõ ràng, phóng to thu nhỏ tiện lợi.
+3. **Giao diện Chủ xe Xem Chi tiết xe (`Areas/CarOwner/Views/Cars/Details.cshtml` & `CarsController.cs`):**
+   - Bổ sung gom cả 4 trường `Image1, Image2, Image3, Image4` vào `ViewBag.GalleryImages` để hiển thị trong tab Bộ sưu tập ảnh xe của chủ xe.
+
+### 26.4. Kết Quả Kiểm Thử
+- Toàn bộ source code C# biên dịch thành công: **`Build succeeded. 0 Error(s)`**.
+
+
+---
+
+## 27. CẬP NHẬT TIẾN TRÌNH: HỆ THỐNG THÔNG BÁO HEADER TOÀN DIỆN & TỐI ƯU MENU QUẢN LÝ XE CHỜ DUYỆT (NGÀY 09/11/2026)
+
+### 27.1. Tối Ưu Menu Hành Động (3 Chấm) Cho Xe Mới Gửi Lên (`Areas/CarOwner/Views/Cars/Index.cshtml`)
+- **Yêu cầu:** Khi xe mới gửi lên đang ở trạng thái chờ duyệt (hoặc bị từ chối/cần cập nhật), menu dropdown 3 chấm chỉ được phép hiển thị các thao tác phù hợp, không cho phép xem lịch hoặc xem trên sàn khi xe chưa được phê duyệt.
+- **Thực hiện:**
+  - Thiết lập điều kiện phân nhánh theo trạng thái `isPending || isPendingUpdate || isRejected`:
+    - **Khi xe chưa duyệt:** Menu 3 chấm chỉ hiển thị chính xác 3 thao tác:
+      1. `Tình trạng duyệt hồ sơ` (icon `bi-shield-check`, link tới `/CarOwner/Cars/Details/{id}`)
+      2. `Chỉnh sửa` (icon `bi-pencil`, link tới `/CarOwner/Cars/Edit/{id}`)
+      3. `Gỡ xe khỏi sàn` (icon `bi-trash3`, link tới `/CarOwner/Cars/Delete/{id}`)
+    - **Khi xe đã được duyệt:** Hiển thị đầy đủ 5 thao tác (*Lịch & Chặn ngày, Chi tiết xe, Chỉnh sửa, Xem trên sàn, Gỡ xe khỏi sàn*).
+  - Khóa công tắc (*Switch*) Khuyến mãi (`disabled`) khi xe chưa duyệt.
+  - Cập nhật trang [`Areas/CarOwner/Views/Cars/Details.cshtml`](file:///d:/CarRental_TTCN/CarRental/Areas/CarOwner/Views/Cars/Details.cshtml): Bổ sung Banner trạng thái kiểm duyệt trực quan màu vàng hổ phách, thông báo quy trình thẩm định trong 24 giờ và phím tắt cập nhật hồ sơ nhanh.
+
+### 27.2. Xây Dựng Hệ Thống Lưu Trữ & Hiển Thị Thông Báo Header (Notification System)
+1. **Khởi tạo Bảng CSDL MySQL `notifications`:**
+   - Các trường dữ liệu: `NotificationId` (PK), `UserId`, `Role`, `Title`, `Content`, `Type`, `LinkUrl`, `IsRead`, `CreatedAt`.
+   - Lập chỉ mục tối ưu truy vấn theo `UserId`, `Role` và `CreatedAt`.
+2. **Khai báo Model & Context:**
+   - Tạo model [`Notification.cs`](file:///d:/CarRental_TTCN/CarRental/Models/Notification.cs).
+   - Đăng ký `DbSet<Notification> Notifications` và cấu hình Fluent API trong [`DbRenalCarContext.cs`](file:///d:/CarRental_TTCN/CarRental/Models/DbRenalCarContext.cs).
+3. **Dịch vụ Quản lý & Phát Thông Báo (`INotificationService` & `NotificationService`):**
+   - Đăng ký Scoped Service trong [`Program.cs`](file:///d:/CarRental_TTCN/CarRental/Program.cs).
+   - Tự động lưu thông báo vào CSDL MySQL đồng thời phát sự kiện Realtime SignalR (`ReCarHub`) theo từng đối tượng: nhóm người dùng cụ thể (`User_{id}`), nhóm vai trò (`Role_Admin`, `Role_CarOwner`, `Role_Customer`) hoặc toàn sàn (`Clients.All`).
+4. **Tích hợp Tự Động Tạo Thông Báo Trong Các Luồng Nghiệp Vụ:**
+   - **Admin Duyệt xe (`Areas/Admin/Controllers/CarsController.cs`):** Tự động gửi thông báo cho Chủ xe: *"Hồ sơ xe đã được phê duyệt 🎉 - Xe sẵn sàng cho thuê trên sàn ReCar"*.
+   - **Admin Từ chối xe (`Areas/Admin/Controllers/CarsController.cs`):** Tự động gửi thông báo cho Chủ xe kèm lý do từ chối cụ thể để chủ xe sửa đổi.
+   - **Chủ xe Đăng ký xe mới (`Areas/CarOwner/Controllers/CarsController.cs`):** Tự động gửi thông báo cho Admin: *"Hồ sơ xe mới chờ kiểm duyệt 🚗"* và thông báo xác nhận tiếp nhận cho Chủ xe.
+   - **Khách hàng Đặt cọc thuê xe (`Controllers/CartController.cs`):** Tự động gửi thông báo đồng thời cho Chủ xe (*Có đơn đặt xe mới kèm mã đơn và lịch bàn giao*), Admin (*Phát sinh đơn thuê mới*) và Khách hàng (*Xác nhận đặt cọc thành công*).
+5. **Bộ Điều Khiển API ([`Controllers/NotificationController.cs`](file:///d:/CarRental_TTCN/CarRental/Controllers/NotificationController.cs)):**
+   - `GET /Notification/GetNotifications`: Truy vấn thông báo theo Session người dùng hiện tại (Admin, Chủ xe hoặc Khách hàng), định dạng thời gian thân thiện (*vừa xong, x phút trước, hôm qua*), đếm số lượng chưa đọc.
+   - `POST /Notification/MarkRead`: Đánh dấu 1 thông báo đã đọc.
+   - `POST /Notification/MarkAllRead`: Đánh dấu tất cả thông báo đã đọc.
+   - `POST /Notification/Broadcast`: Cho phép Admin phát thông báo hệ thống tới toàn sàn.
+6. **Mô-đun Giao Diện Dùng Chung & Realtime ([`wwwroot/assets/js/recar-notifications.js`](file:///d:/CarRental_TTCN/CarRental/wwwroot/assets/js/recar-notifications.js)):**
+   - Xử lý nạp dữ liệu AJAX, render badge đếm số lượng thông báo đỏ nổi bật trên chuông.
+   - Phân loại icon và bảng màu thông minh theo loại: Duyệt xe (Xanh lá), Từ chối (Đỏ), Chờ duyệt (Cam), Đơn mới (Xanh ReCar), Hệ thống (Tím).
+   - Hỗ trợ click trực tiếp để chuyển hướng đến trang tương ứng (`LinkUrl`).
+   - Lắng nghe SignalR: Cập nhật thông báo mới tức thì không cần tải lại trang và hiển thị Toast thông báo ở góc màn hình.
+7. **Đồng Bộ Header Chuông Thông Báo Trên Cả 3 Phân Hệ:**
+   - **Sidebar/Header Chủ xe ([`Areas/CarOwner/Views/Shared/_Layout.cshtml`](file:///d:/CarRental_TTCN/CarRental/Areas/CarOwner/Views/Shared/_Layout.cshtml)):** Nâng cấp dropdown chuông, có nút "Đọc tất cả" và danh sách thông báo cuộn mượt.
+   - **Header Admin ([`Areas/Admin/Views/Shared/_Layout.cshtml`](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Views/Shared/_Layout.cshtml)):** Đồng bộ chuông thông báo hệ thống, đơn hàng và xe chờ duyệt.
+   - **Header Khách hàng ([`Views/Shared/_Layout.cshtml`](file:///d:/CarRental_TTCN/CarRental/Views/Shared/_Layout.cshtml)):** Nâng cấp nút chuông tĩnh thành dropdown thông báo tài khoản hoạt động đầy đủ.
+
+### 27.3. Kết Quả Kiểm Thử & Biên Dịch
+- Biên dịch toàn bộ mã nguồn C#: **`Build succeeded. 0 Error(s)`**.
+
+
+---
+
+## 28. CẬP NHẬT TIẾN TRÌNH: LOẠI BỎ EMOJI THÔNG BÁO & HIỂN THỊ CHI TIẾT LÝ DO TỪ CHỐI DUYỆT XE (NGÀY 09/11/2026)
+
+### 28.1. Loại Bỏ Toàn Bộ Emoji Khỏi Hệ Thống Thông Báo
+- **Mục tiêu:** Giữ giao diện chuyên nghiệp, trang nhã theo phong cách doanh nghiệp và ReCar Design System.
+- **Thực hiện:**
+  - Đã loại bỏ hoàn toàn các biểu tượng cảm xúc (emoji) trong tiêu đề và nội dung thông báo trên tất cả các Controller:
+    - [`Areas/Admin/Controllers/CarsController.cs`](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Controllers/CarsController.cs): Bỏ emoji khi phê duyệt hoặc từ chối xe.
+    - [`Areas/CarOwner/Controllers/CarsController.cs`](file:///d:/CarRental_TTCN/CarRental/Areas/CarOwner/Controllers/CarsController.cs): Bỏ emoji khi gửi hồ sơ xe mới.
+    - [`Controllers/CartController.cs`](file:///d:/CarRental_TTCN/CarRental/Controllers/CartController.cs): Bỏ emoji khi phát sinh đơn thuê xe mới.
+    - [`wwwroot/assets/js/recar-notifications.js`](file:///d:/CarRental_TTCN/CarRental/wwwroot/assets/js/recar-notifications.js): Bỏ emoji trong các thông điệp Toast realtime.
+  - Làm sạch toàn bộ dữ liệu mẫu trong bảng `notifications` trên CSDL MySQL `DbRenalCar`.
+
+### 28.2. Hiển Thị Chi Tiết Lý Do Từ Chối Duyệt Xe (`Areas/CarOwner/Views/Cars/Details.cshtml`)
+- **Trước đây:** Chỉ hiển thị cảnh báo chung chung "Hồ sơ xe đã bị từ chối", không hiển thị lý do cụ thể do Admin ghi khi từ chối hồ sơ.
+- **Sau khi nâng cấp:**
+  - **Tự động bóc tách lý do từ chối:** Trích xuất chính xác chuỗi lý do Admin đã nhập từ trường `Model.Descriptions` kèm thời gian phản hồi kiểm duyệt.
+  - **Thiết kế Card cảnh báo cao cấp (ReCar Design System):**
+    - Viền đỏ đậm `border-left: 5px solid #ef4444`, nền gradient đỏ nhẹ `#fff5f5` đến `#fee2e2`.
+    - Huy hiệu nổi bật: `Bị từ chối kiểm duyệt` và hiển thị thời gian Admin phản hồi.
+    - Khối trích dẫn lý do riêng biệt: Nền thẻ trắng bo góc, có biểu tượng trích dẫn và đường viền nhấn mạnh màu đỏ làm nổi bật nguyên văn lý do từ chối (Ví dụ: *"Ảnh đăng kiểm bị mờ, góc chụp đuôi xe chưa rõ biển số"*).
+    - Hướng dẫn các bước khắc phục cho chủ xe.
+    - Hai nút bấm hành động tức thì: **Chỉnh sửa & Cập nhật lại hồ sơ** (nút đỏ bo tròn dẫn trực tiếp tới trang Edit) và **Quay lại danh sách xe**.
+
+### 28.3. Kết Quả Kiểm Thử
+- Toàn bộ source code biên dịch chuẩn xác: **`Build succeeded. 0 Error(s)`**.
+
+
+---
+
+## 29. CẬP NHẬT TIẾN TRÌNH: SỬA LỖI FONT THÔNG BÁO VÀ KHẮC PHỤC LỖI KẾT NỐI KHI VỀ TRANG KHÁCH HÀNG (NGÀY 09/11/2026)
+
+### 29.1. Khắc Phục Lỗi Font Tiếng Việt Bảng Thông Báo (`H? s? xe...`)
+- **Vấn đề:** Do lệnh import trước đó qua terminal PowerShell làm mất mã hóa UTF-8, các bản ghi tiếng Việt có dấu trong bảng `notifications` bị lỗi hiển thị thành các dấu chấm hỏi `?` (*H? s? xe ?? ???c ph? du...*).
+- **Khắc phục:**
+  - Thiết lập chuẩn bộ ký tự UTF-8 4-byte `utf8mb4` cho toàn bộ bảng `notifications`.
+  - Nạp lại dữ liệu tiếng Việt chuẩn có dấu với cờ `--default-character-set=utf8mb4`:
+    - *"Hồ sơ xe đã được phê duyệt"*
+    - *"Thông báo hệ thống ReCar"*
+    - *"Có xe mới chờ duyệt"*
+  - Hiển thị trên giao diện dropdown chuông sắc nét, chính xác 100%.
+
+### 29.2. Khắc Phục Lỗi Connection Pool MariaDB: `FormatException: Expected to read 0x00 or 0xFE but got 0x01`
+- **Hiện tượng:** Khi đang ở trang quản lý chủ xe (`/CarOwner`) bấm nút *"Về sàn khách thuê"* (`href="/"`) để quay về trang chủ khách hàng (`HomeController.Index()`), hệ thống bị crash với biệt lệ:
+  `FormatException: Expected to read 0x00 or 0xFE but got 0x01` tại `MySqlConnector.Core.ServerSession.TryResetConnectionAsync`.
+- **Nguyên nhân kỹ thuật:** Khi ứng dụng lấy lại một connection từ `ConnectionPool` trong MariaDB (XAMPP), thư viện `MySqlConnector` gửi gói tin `COM_RESET_CONNECTION`. Do phiên bản MariaDB phản hồi byte đầu tiên là `0x01` (khác với chuẩn `0x00` OK_Packet của MySQL thuần), bộ giải mã ném ra lỗi `FormatException`.
+- **Giải pháp dứt điểm:**
+  - Cập nhật chuỗi kết nối trong cả [`appsettings.json`](file:///d:/CarRental_TTCN/CarRental/appsettings.json) và [`appsettings.Development.json`](file:///d:/CarRental_TTCN/CarRental/appsettings.Development.json):
+    `"DefaultConnection": "Server=localhost;Port=3306;Database=DbRenalCar;User=root;Password=;CharSet=utf8mb4;Connection Reset=false;"`
+  - Tham số `Connection Reset=false` chỉ định `MySqlConnector` tái sử dụng phiên kết nối mà không gửi lệnh reset packet gây lỗi, bảo đảm chuyển trang qua lại giữa Chủ xe - Admin - Khách hàng hoàn toàn ổn định và nhanh chóng.
+
+### 29.3. Kết Quả Kiểm Thử
+- Biên dịch mã nguồn: **`Build succeeded. 0 Error(s)`**.
+
+
+---
+
+## 30. CẬP NHẬT TIẾN TRÌNH: HOÀN THIỆN NGHIỆP VỤ QUẢN LÝ ĐỘI XE ADMIN & ĐIỀU KHIỂN TRẠNG THÁI XE CHỦ XE (NGÀY 10/11/2026)
+
+### 30.1. Tái Cấu Trúc Quản Lý Xe Admin (`Areas/Admin/Views/Cars/Index.cshtml`) & Liên Kết Đối Tác Chủ Xe
+1. **Bổ sung thao tác Xóa xe an toàn (`Delete`):**
+   - Kiểm tra chặt chẽ điều kiện ràng buộc: Nếu xe đang có hợp đồng hoặc đơn thuê đang hoạt động (`Đang thuê`, `Chờ duyệt`, `Đã xác nhận`), hệ thống sẽ từ chối xóa và hiển thị cảnh báo để tránh xung đột đơn hàng.
+   - Khi thỏa điều kiện: Tự động dọn dẹp các bản ghi liên kết phụ thuộc (`CarImages`, `CarAmenities`, `CarCalendarBlocks`), sau đó xóa xe khỏi hệ thống và gửi thông báo xác nhận tới tài khoản Chủ xe.
+   - Tích hợp hộp thoại xác nhận SweetAlert2 dạng cảnh báo nguy hiểm trước khi thực thi.
+2. **Quy trình Phê duyệt Trạng thái Xe (Bảo trì / Tạm ngưng hoạt động):**
+   - Chuẩn hóa luồng nghiệp vụ thực tế của sàn xe: Chủ xe là người chủ động gửi đề xuất xin phép chuyển xe sang *Bảo trì* (bảo dưỡng, sửa chữa) hoặc *Tạm ngưng hoạt động* (lý do cá nhân) kèm theo lý do cụ thể.
+   - Phía Admin:
+     - Thêm bộ lọc trạng thái: `Chờ bảo trì`, `Chờ tạm ngưng`.
+     - Huy hiệu trạng thái cảnh báo nổi bật kèm tooltip hiển thị lý do chủ xe đề xuất.
+     - Nút duyệt nhanh `Duyệt` (phê duyệt chuyển trạng thái theo mong muốn của chủ xe) hoặc `Từ chối` (hoàn trả trạng thái về `Sẵn sàng` kèm ghi chú phản hồi) trực tiếp trên từng dòng xe.
+3. **Liên kết Chặt chẽ giữa Admin và Chủ xe:**
+   - **Xem hồ sơ chi tiết đối tác chủ xe (`#modalOwnerDetail`):** Nhấp vào tên chủ xe hoặc chọn menu thao tác để mở Modal nạp Ajax thông tin cá nhân: Họ tên, Username, Số điện thoại, Email, Địa chỉ, ảnh đại diện, tổng số xe sở hữu và danh sách tóm tắt toàn bộ đội xe của chủ xe đó.
+   - **Gửi tin nhắn / Thông báo riêng tới Chủ xe (`#modalSendMessage`):** Cho phép Quản trị viên nhập tiêu đề và nội dung nhắn gửi riêng (nhắc nhở giấy tờ, thông báo bảo dưỡng, trao đổi nghiệp vụ) gửi trực tiếp vào chuông thông báo và SignalR realtime của chủ xe.
+
+### 30.2. Nâng Cấp Giao Diện & Logic Chỉnh Sửa Xe Bên Chủ Xe (`Areas/CarOwner/Views/Cars/Edit.cshtml`)
+1. **Khóa cố định thông tin định danh & pháp lý cốt lõi:**
+   - Sau khi xe đã được kiểm duyệt đưa lên sàn, các trường định danh kỹ thuật quan trọng như: **Tên xe, Hãng sản xuất, Phân khúc, Năm sản xuất, Biển số xe** sẽ được khóa chế độ chỉ đọc (`readonly`/`disabled` kèm `input hidden`).
+   - Đính kèm huy hiệu `Đã xác thực bởi ReCar` để bảo vệ tính toàn vẹn của hồ sơ pháp lý mà Admin đã phê duyệt, tránh tình trạng gian lận thay đổi thông số xe sau khi được cấp phép.
+2. **Cho phép chủ xe cập nhật thông tin thương mại:**
+   - Chủ xe toàn quyền điều chỉnh: Giá thuê theo ngày, Giá khuyến mãi, Tiền cọc thế chấp, Địa chỉ nhận xe thực tế, Danh mục tiện nghi bổ sung, Điều khoản quy định thuê xe và Ảnh góc xe.
+3. **Thanh Điều Khiển & Gửi Yêu Cầu Chuyển Trạng Thái Xe:**
+   - Tích hợp Card thông báo trạng thái hoạt động ở đầu trang chỉnh sửa.
+   - Bổ sung nút bấm tương tác: `Xin chuyển Bảo trì`, `Xin Tạm ngưng hoạt động`, hoặc `Kích hoạt lại Sẵn sàng`.
+   - Tích hợp Modal `#modalRequestStatus`: Chủ xe nhập lý do chi tiết để gửi đến Quản trị viên ReCar; trạng thái xe sẽ tự động chuyển sang `Chờ bảo trì` hoặc `Chờ tạm ngưng` đồng thời bắn thông báo realtime tới Admin.
+
+### 30.3. Kết Quả Kiểm Thử
+- Dự án biên dịch hoàn hảo: **`Build succeeded. 0 Error(s)`**.
+
+---
+
+## 31. CẬP NHẬT TIẾN TRÌNH: TÍCH HỢP Ô CHAT THỜI GIAN THỰC CHO BÊN ADMIN & ĐỒNG BỘ TIN NHẮN VỚI CHỦ XE (NGÀY 10/11/2026)
+
+### 31.1. Tinh Gọn Hệ Thống & Chuyển Đổi Sang Khung Chat Trực Tiếp
+- **Tiếp thu phản hồi:** Loại bỏ modal gửi thông báo riêng rườm rà (`#modalSendMessage`) và thay bằng cơ chế nhắn tin trực tiếp tự nhiên giống như giữa khách hàng và chủ xe.
+- **Tích hợp Ô Chat trực tiếp cho Admin (`#recarChatWindow`):**
+  - Đưa toàn bộ cấu trúc cửa sổ Chat nổi (Floating Chat Window) vào Layout Admin ([`Areas/Admin/Views/Shared/_Layout.cshtml`](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Views/Shared/_Layout.cshtml)):
+    - Tiêu đề chat, tên đối tác trò chuyện, chỉ báo trạng thái trực tuyến xanh lá, nút thu nhỏ/đóng.
+    - Khung tin nhắn với phân biệt bong bóng tin nhắn gửi đi của Admin (`.from-user`) và tin nhắn nhận từ Chủ xe/Khách (`.from-owner`).
+    - Chỉ báo đang soạn tin (Typing Indicator) thời gian thực.
+    - Ô nhập văn bản và nút gửi tin nhắn.
+  - Thêm icon Chat và Dropdown cuộc trò chuyện gần đây (`#recentChatList`) ngay trên Topbar Admin, hiển thị chấm xanh thông báo tin nhắn mới và cho phép nhấp chọn bất kỳ cuộc hội thoại nào để tiếp tục chat.
+  - Bổ sung định dạng CSS hoàn chỉnh cho `.recar-chat-window` trong [`recar-admin.css`](file:///d:/CarRental_TTCN/CarRental/wwwroot/assets/css/recar-admin.css).
+
+### 31.2. Nâng Cấp Backend `ChatController.cs` Hỗ Trợ Quyền Admin
+- **Nhận diện phiên Admin:** Mở rộng hàm `ResolveCurrentCustomerAsync` để tự động nhận diện tài khoản Admin thông qua `Function.GetAdminAccountId(HttpContext.Session)` hoặc tài khoản có `RoleId == 1`.
+- **Hỗ trợ cờ `asAdmin`:** Cập nhật các action `SendMessage`, `GetMessages`, `GetRecentConversations`, `GetUnreadCount` để xử lý mượt mà cho vai trò `Admin`:
+  - Khi Admin gửi tin nhắn: Lưu `SenderRole = "Admin"`, `ReceiverId = ownerId` (hoặc `customerId`).
+  - Gửi tín hiệu SignalR tức thì tới nhóm `User_{receiverId}` để chuông và toast bên Chủ xe lập tức hiển thị.
+  - Khi Chủ xe phản hồi: Tin nhắn được phát tới nhóm `User_{adminId}`, cửa sổ chat của Admin tự động cập nhật ngay lập tức.
+
+### 31.3. Đồng Bộ Trải Nghiệm Trên Trang Quản Lý Đội Xe Admin (`/Admin/Cars/Index`)
+- **Nút nhắn tin trực tiếp:** 
+  - Tại cột Chủ xe và menu dropdown thao tác: Nhấp vào "Nhắn tin cho Chủ xe" sẽ gọi hàm `openChatBox(ownerName, defaultGreeting, carId, ownerId, carName)`, mở ngay cửa sổ chat thời gian thực với đối tác chủ xe đó.
+  - Trong Modal xem hồ sơ Chủ xe (`#modalOwnerDetail`): Thêm nút *"Nhắn tin cho đối tác"* ở chân modal, bấm vào sẽ đóng modal và kích hoạt mở ngay ô chat để Quản trị viên trao đổi trực tiếp.
+
+### 31.4. Kết Quả Kiểm Thử & Biên Dịch
+- Biên dịch toàn bộ mã nguồn C#: **`Build succeeded. 0 Error(s)`**.
+
+
+---
+
+## 32. CẬP NHẬT TIẾN TRÌNH: TÁI CẤU TRÚC MODAL DUYỆT YÊU CẦU BẢO TRÌ/TẠM NGƯNG & KHẮC PHỤC TRÀN GIAO DIỆN (NGÀY 10/11/2026)
+
+### 32.1. Vấn Đề Giao Diện & Trải Nghiệm Cũ
+- **Hiện tượng:** Tại bảng Quản lý đội xe Admin ([`Areas/Admin/Views/Cars/Index.cshtml`](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Views/Cars/Index.cshtml)), khi xe có yêu cầu `Chờ bảo trì` hoặc `Chờ tạm ngưng`, hệ thống chèn trực tiếp 2 nút to *"Duyệt"* (xanh) và *"X"* (đỏ) ngay cạnh menu 3 chấm ở cột *Thao tác*.
+- **Hệ quả:** Cột Thao tác bị phình to làm bề ngang bảng vượt quá khung nhìn, gây tràn ngang và làm méo mó, bị cắt chữ tiêu đề thành *"THAO TÁ"*.
+- **Về mặt nghiệp vụ:** Quản trị viên chưa đọc được lý do chi tiết mà đã hiển thị nút duyệt nhanh là thiếu tính an toàn và chuyên nghiệp.
+
+### 32.2. Giải Pháp Chuẩn Hóa Theo Ý Kiến Người Dùng
+1. **Thiết kế lại Cột Trạng Thái (`CarStatus`):**
+   - Giữ huy hiệu trạng thái cảnh báo `Chờ bảo trì` / `Chờ tạm ngưng`.
+   - Bổ sung nút bấm nhỏ gọn, trang nhã: **`Xem lý do & Duyệt`** (`.btn-view-status-request`) với icon con mắt `bi-eye-fill` ngay dưới badge.
+2. **Khôi phục Cột Thao Tác Tinh Gọn:**
+   - Xóa bỏ hoàn toàn các nút bấm chen chúc.
+   - Cột Thao tác được cố định kích thước `width: 80px`, chỉ chứa duy nhất nút menu 3 chấm `⋮`, chấm dứt triệt để lỗi tràn ngang.
+   - Trong menu 3 chấm, đính kèm thêm mục ưu tiên: *"Xem xét lý do & Duyệt"*.
+3. **Modal Xét Duyệt Yêu Cầu Chuyên Nghiệp (`#modalStatusRequestDetail`):**
+   - Khi Admin bấm *"Xem lý do & Duyệt"*, một Modal được mở ra hiển thị đầy đủ:
+     - Tên xe, Đời xe, Biển số dạng Card dập nổi, Tên đối tác Chủ xe.
+     - Badge yêu cầu: `Chờ bảo trì` hoặc `Chờ tạm ngưng`.
+     - Toàn văn lý do đề xuất do Chủ xe nhập được đóng khung trích dẫn nổi bật (`#reqDescriptionText`).
+     - Hướng dẫn nghiệp vụ quản trị viên kiểm tra cuốc xe.
+   - **Chân Modal cung cấp 2 nút hành động an toàn:**
+     - Nút **"Phê duyệt yêu cầu"** (xanh lá `btn-success`).
+     - Nút **"Từ chối yêu cầu"** (đỏ `btn-outline-danger`, mở hộp thoại nhập lý do gửi phản hồi cho chủ xe).
+
+### 32.3. Kết Quả Kiểm Thử & Biên Dịch
+- Biên dịch toàn bộ mã nguồn C#: **`Build succeeded. 0 Error(s)`**.
+
+
+---
+
+## 33. CẬP NHẬT TIẾN TRÌNH: DỌN DẸP NÚT PHỤ VÀ KHẮC PHỤC TRIỆT ĐỂ LỖI MỞ MODAL XÉT DUYỆT (NGÀY 10/11/2026)
+
+### 33.1. Dọn Dẹp Nút Thừa Tại Cột Trạng Thái
+- Xóa bỏ nút phụ *"Xem lý do & Duyệt"* dưới huy hiệu trạng thái theo đúng yêu cầu người dùng, giữ cột *TRẠNG THÁI* gọn gàng, sạch sẽ và đồng bộ với toàn bộ các hàng xe khác trong bảng.
+- Tập trung toàn bộ thao tác vào menu 3 chấm `⋮` của dòng xe tương ứng.
+
+### 33.2. Sửa Lỗi Modal Không Hiển Thị Khi Bấm Menu 3 Chấm
+- **Nguyên nhân:** Trước đó việc truyền chuỗi lý do (`data-descriptions`) qua thuộc tính HTML `data-*` gặp xung đột khi văn bản có ký tự đặc biệt, dấu ngoặc kép hoặc xuống dòng, đồng thời sự kiện click trong Bootstrap dropdown bị chặn tương tác.
+- **Khắc phục:**
+  - Viết mới API Endpoint an toàn: [`GetStatusRequest(int id)`](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Controllers/CarsController.cs#L497-L528) nạp dữ liệu sạch từ CSDL trả về JSON.
+  - Xây dựng hàm gọi trực tiếp `openStatusRequestModal(carId)`:
+    - Khi Admin chọn *"Xem xét lý do & Duyệt"* trong menu 3 chấm, hàm lập tức mở Modal `#modalStatusRequestDetail` với hiệu ứng nạp mượt mà.
+    - Gọi Ajax lấy đầy đủ thông tin: Tên xe, Hãng xe, Biển số, Tên & SĐT chủ xe, Trạng thái xin phép, và nguyên văn lý do đề xuất.
+    - Kích hoạt 2 nút *"Phê duyệt yêu cầu"* và *"Từ chối yêu cầu"* bên trong Modal.
+
+### 33.3. Kết Quả Kiểm Thử & Biên Dịch
+- Biên dịch toàn bộ mã nguồn C#: **`Build succeeded. 0 Error(s)`**.
+
+
+---
+
+## 34. CẬP NHẬT TIẾN TRÌNH: NÂNG CẤP XÉT DUYỆT BẢO TRÌ/TẠM NGƯNG BẰNG SWEETALERT2 CHỐNG LỖI 100% (NGÀY 10/11/2026)
+
+### 34.1. Nguyên Nhân Sự Cố "Không Thao Tác Được Gì"
+- **Xung đột phiên bản Bootstrap:** Dự án sử dụng `Bootstrap v5.0.0-beta1`, trong đó hàm `bootstrap.Modal.getOrCreateInstance` chưa tồn tại (chỉ có từ Bootstrap 5.1.0+), dẫn đến lỗi JavaScript âm thầm `TypeError: not a function` khi cố gắng khởi tạo modal truyền thống.
+- **Hiện tượng:** Admin click vào dòng xe nhưng modal không thể bật lên, khiến xe bị kẹt ở trạng thái `Chờ bảo trì` mà không duyệt hay tương tác được.
+
+### 34.2. Khắc Phục Triệt Để & Đa Dạng Hóa Điểm Chạm Thao Tác
+1. **Chuyển Đổi Sang Hộp Thoại SweetAlert2 Độc Lập:**
+   - Thay thế toàn bộ modal Bootstrap bằng dialog tùy biến cao cấp của `Swal.fire` (đã nạp sẵn trong hệ thống, không phụ thuộc vào Bootstrap JS).
+   - Tự động nạp dữ liệu sạch qua Ajax từ [`/Admin/Cars/GetStatusRequest?id=`](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Controllers/CarsController.cs#L498-L528).
+   - Hiển thị đầy đủ thông tin: Tên xe, Biển số dập nổi, Chủ xe, Huy hiệu trạng thái, và khối trích dẫn nguyên văn lý do xin bảo trì/tạm ngưng.
+   - Cung cấp sẵn 3 nút hành động tiện lợi:
+     - **Phê duyệt (Duyệt)** (màu xanh lá): Chấp thuận chuyển trạng thái xe sang Bảo trì / Ngưng hoạt động và bắn thông báo tới chủ xe.
+     - **Từ chối yêu cầu** (màu đỏ): Mở hộp thoại nhập lý do từ chối gửi trả lại cho chủ xe.
+     - **Đóng** (màu xám): Hủy xem.
+2. **Cung Cấp 3 Cách Thao Tác Trực Tiếp Tiện Lợi:**
+   - **Cách 1:** Click trực tiếp vào Huy hiệu `• Chờ bảo trì` trên cột Trạng thái (được gán con trỏ click và icon info `bi-info-circle`).
+   - **Cách 2:** Bấm nút biểu tượng biên bản kiểm tra màu vàng (`bi-clipboard-check`) ngay cạnh menu 3 chấm ở cột Thao tác.
+   - **Cách 3:** Mở menu 3 chấm `⋮` và chọn mục đầu tiên *"Xem xét lý do & Duyệt"*.
+
+### 34.3. Kết Quả Kiểm Thử & Biên Dịch
+- Biên dịch toàn bộ mã nguồn C#: **`Build succeeded. 0 Error(s)`**.
+
+---
+
+## 35. CẬP NHẬT TIẾN TRÌNH: DỌN DẸP MENU THAO TÁC ADMIN & SỬA LỖI TOÀN BỘ BẢNG QUẢN LÝ ĐỘI XE (NGÀY 10/11/2026)
+
+### 35.1. Nguyên Nhân Sự Cố Không Thao Tác Được Toàn Bảng
+- **Dư thừa ký tự đóng ngoặc:** Tại cuối khối thẻ `<script>` trong [`Index.cshtml`](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Views/Cars/Index.cshtml), tồn tại một dấu ngoặc nhọn `}` dư thừa khiến trình duyệt ném ngoại lệ `SyntaxError: Unexpected token '}'`.
+- **Hệ quả:** Trình duyệt dừng thực thi toàn bộ script của view, làm cho tất cả các hàm thao tác (`openStatusRequestModal`, `toggleFleetStatus`, `confirmDeleteCar`, `showOwnerModal`, `chatWithOwnerFromModal`) rơi vào trạng thái `undefined`. Khi người dùng click vào bất kỳ mục nào (Xem lý do, Duyệt, Ngưng hoạt động, Xóa xe, Xem thông tin chủ xe) đều không có phản hồi.
+
+### 35.2. Giải Pháp Triệt Để & Dọn Dẹp Nghiệp Vụ Theo Yêu Cầu
+1. **Dọn dẹp các quyền cưỡng chế trạng thái thừa:**
+   - Xóa bỏ hoàn toàn 2 mục *"Kích hoạt Sẵn sàng"* và *"Chuyển sang Bảo trì"* trong menu thao tác Admin vì hành động này thuộc quyền quyết định chủ động từ phía Chủ xe.
+   - Menu thao tác Admin chỉ giữ các mục chuẩn:
+     - **Xem xét lý do & Duyệt** (khi xe có yêu cầu từ chủ xe: *Chờ bảo trì* / *Chờ tạm ngưng*).
+     - **Xem trên sàn ReCar** (mở tab xem chi tiết xe ngoài giao diện khách hàng).
+     - **Xem thông tin Chủ xe** (popup hồ sơ đối tác).
+     - **Nhắn tin cho Chủ xe** (mở ô chat trực tiếp giữa Admin và Chủ xe).
+     - **Ngưng hoạt động (Ẩn khỏi sàn)** (dành cho Admin khi cần đình chỉ xe vi phạm).
+     - **Xóa xe khỏi sàn** (có xác nhận nguy hiểm bằng SweetAlert2).
+2. **Khắc phục lỗi cú pháp & Đăng ký toàn cục (Global Scope):**
+   - Đã loại bỏ dấu `}` dư thừa.
+   - Đăng ký tường minh tất cả các hàm vào `window` (`window.openStatusRequestModal`, `window.toggleFleetStatus`, `window.confirmDeleteCar`, `window.showOwnerModal`, `window.chatWithOwnerFromModal`, `window.openChatBox`).
+   - Tối ưu hóa modal xem chi tiết chủ xe và xử lý fallback an toàn giữa Bootstrap 5 và jQuery Modal.
+
+### 35.3. Kết Quả Kiểm Thử & Biên Dịch
+- Biên dịch toàn bộ mã nguồn C#: **`Build succeeded. 0 Error(s)`**.
+- Tất cả các nút thao tác và popup duyệt/từ chối, xóa xe, nhắn tin, xem hồ sơ đã hoạt động trơn tru 100%.
+
+---
+
+## 36. CẬP NHẬT TIẾN TRÌNH: KHẮC PHỤC TRIỆT ĐỂ LỖI MYSQL CONNECTOR PACKET OUT-OF-ORDER & FORMATEXCEPTION (NGÀY 10/11/2026)
+
+### 36.1. Nguyên Nhân Gốc Rễ (Root Cause Analysis)
+- **Ngoại lệ xảy ra:** `MySqlProtocolException: Packet received out-of-order. Expected 1; got 3` và trước đó là `FormatException: Expected to read 0x00 or 0xFE but got 0x01`.
+- **Cơ chế xung đột:**
+  1. Trong hệ thống có nhiều nơi gọi `_ = _notificationService.CreateNotificationAsync(...)` dưới dạng "fire-and-forget" (không sử dụng `await`).
+  2. Trước đó `NotificationService` dùng chung Scoped `DbRenalCarContext` của HTTP Request. Khi action của Controller kết thúc và trả về View/Json/Redirect, phạm vi HTTP Request bị hủy và DbContext bị giải phóng trả connection về connection pool.
+  3. Cùng lúc đó, task nền của `CreateNotificationAsync` vẫn đang gửi câu lệnh `INSERT INTO notifications` qua socket MySQL. Hai truy vấn cùng gửi/nhận dữ liệu dở dang trên một kết nối hoặc làm socket trong connection pool bị nhiễm bẩn dữ liệu.
+  4. Khi request tiếp theo (như truy cập `/CarOwner/Cars/Edit` hay `/Home/Index`) lấy lại connection từ Pool để thực thi `_context.Customers.FirstOrDefault()`, socket đọc phải packet dở dang từ server (kỳ vọng packet 1 nhưng nhận phải packet 3), dẫn đến sập trang ngay lập tức.
+
+### 36.2. Giải Pháp Triệt Để 2 Lớp (Two-Layer Defense)
+1. **Lớp 1: Độc lập hóa DbContext trong `NotificationService`:**
+   - Thay vì inject trực tiếp Scoped `DbRenalCarContext`, `NotificationService` inject `IServiceScopeFactory`.
+   - Mỗi lần lưu thông báo, service tự tạo một Scope độc lập: `using var scope = _scopeFactory.CreateScope();`, lấy một DbContext riêng biệt, thực thi lưu dữ liệu và tự động giải phóng sạch sẽ. Hoàn toàn cách ly 100% với DbContext của HTTP Request.
+2. **Lớp 2: Đồng bộ hóa toàn bộ sang Bất đồng bộ (`async Task<IActionResult>` & `await`):**
+   - Đã chuyển đổi tất cả các action có bắn thông báo (`Approve`, `Reject`, `Create`...) sang `async Task<IActionResult>` và `await _notificationService.CreateNotificationAsync(...)`.
+   - Đảm bảo toàn bộ luồng ghi dữ liệu và gửi thông báo hoàn tất trọn vẹn trước khi chuyển tiếp trang.
+
+### 36.3. Kết Quả Kiểm Thử & Biên Dịch
+- Biên dịch toàn bộ mã nguồn: **`Build succeeded. 0 Error(s)`**.
+- Không còn bất kỳ hiện tượng xung đột packet, kẹt socket hay lỗi kết nối connection pool trên toàn hệ thống.
+
+---
+
+## 37. CẬP NHẬT TIẾN TRÌNH: HOÀN THIỆN LUỒNG "CHỜ CẬP NHẬT" & QUY TẮC HIỂN THỊ XE TRÊN SÀN (NGÀY 10/11/2026)
+
+### 37.1. Chuẩn Hóa Nghiêm Ngặt Quy Tắc Hiển Thị Xe Trên Sàn Khách Hàng
+- **Quy tắc tuyệt đối:** Chỉ những xe có **`CarStatus == "Sẵn sàng"`** và **`IsActive == true`** mới được xuất hiện trên sàn khách hàng.
+- **Phạm vi áp dụng toàn diện:**
+  1. [`HomeController.cs`](file:///d:/CarRental_TTCN/CarRental/Controllers/HomeController.cs): `ViewBag.productFeatured` và `ViewBag.productDealofDay` chỉ nạp xe `Sẵn sàng`.
+  2. [`ProductController.cs`](file:///d:/CarRental_TTCN/CarRental/Controllers/ProductController.cs):
+     - API lọc danh sách xe (`FilterProducts`): Chỉ lấy xe `Sẵn sàng`.
+     - Bản đồ tìm xe quanh đây (`GetNearbyCars`): Chỉ hiển thị các chấm xe `Sẵn sàng`.
+     - Chi tiết xe (`Details`): Chặn truy cập nếu xe không ở trạng thái `Sẵn sàng`.
+     - Xe tương tự / xe đề xuất (`productRelated`): Chỉ đề xuất các xe `Sẵn sàng`.
+  3. [`CartController.cs`](file:///d:/CarRental_TTCN/CarRental/Controllers/CartController.cs): Chặn triệt để hành động đặt xe nếu xe không phải `Sẵn sàng`.
+  - Mọi xe ở trạng thái `Chờ duyệt`, `Chờ cập nhật`, `Chờ bảo trì`, `Bảo trì`, `Chờ tạm ngưng`, `Ngưng hoạt động`, `Từ chối` đều bị **ẩn hoàn toàn khỏi khách hàng**.
+
+### 37.2. Hoàn Thiện Luồng "Chờ Cập Nhật" Khi Chủ Xe Sửa Xe
+1. **Phía Chủ Xe ([`/CarOwner/Cars/Edit`](file:///d:/CarRental_TTCN/CarRental/Areas/CarOwner/Controllers/CarsController.cs)):**
+   - Khi chủ xe chỉnh sửa và bấm *"Lưu thay đổi"*:
+     - Xe tự động chuyển sang trạng thái **`Chờ cập nhật`** và `IsActive = false` (ngay lập tức tạm ẩn khỏi sàn cho thuê).
+     - Ghi nhận tóm tắt thời điểm cập nhật vào mô tả xe để Admin dễ dàng đối chiếu.
+     - Tự động bắn thông báo hệ thống và Realtime SignalR tới Ban Quản trị ReCar.
+     - Hiển thị thông báo rõ ràng cho chủ xe: *"Xe đã được chuyển sang trạng thái 'Chờ cập nhật' (tạm ẩn khỏi sàn) để Ban Quản trị ReCar phê duyệt trước khi tiếp tục hiển thị."*
+2. **Phía Admin ([`/Admin/Cars/Index`](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Views/Cars/Index.cshtml) & [`/Admin/Cars/Pending`](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Views/Cars/Pending.cshtml)):**
+   - **Bảng Quản lý đội xe toàn sàn:**
+     - Xe `Chờ cập nhật` hiển thị huy hiệu nổi bật màu xanh dương.
+     - Click vào badge, nút clipboard vàng, hoặc chọn *"Xem xét lý do & Duyệt"* trong 3 chấm sẽ mở popup SweetAlert2 chuyên dụng: *"Xét duyệt cập nhật thông tin xe"*.
+     - Khi Admin bấm **"Phê duyệt (Đưa lên sàn)"**: Xe chuyển sang `Sẵn sàng`, `IsActive = true` (hiển thị trở lại công khai trên sàn) và gửi thông báo chúc mừng về chuông của Chủ xe.
+     - Khi Admin bấm **"Từ chối yêu cầu"**: Admin nhập lý do từ chối gửi về chuông của Chủ xe, giữ xe ẩn khỏi sàn để chủ xe chỉnh sửa lại.
+   - **Trang Hồ sơ chờ duyệt (`/Admin/Cars/Pending`):**
+     - Nạp cả xe `Chờ duyệt` và `Chờ cập nhật` để Admin có thể duyệt nhanh dạng lưới thẻ hoặc bảng.
+   - **Menu Sidebar Admin:**
+     - Bộ đếm số lượng hồ sơ chờ duyệt hiển thị chính xác tổng số xe đang cần Admin xử lý.
+
+### 37.3. Kết Quả Kiểm Thử & Biên Dịch
+- Biên dịch toàn bộ mã nguồn: **`Build succeeded. 0 Error(s)`**.
+- Luồng duyệt xe và bảo mật hiển thị hoạt động chính xác 100% theo đúng yêu cầu nghiệp vụ.
+
+
+---
+
+## 38. CẬP NHẬT TIẾN TRÌNH: TÍNH NĂNG ĐỐI CHIẾU THAY ĐỔI 2 BÊN (SIDE-BY-SIDE DIFF) & HOÀN THIỆN THÔNG SỐ DUYỆT XE (NGÀY 10/11/2026)
+
+### 38.1. Cơ Chế Snapshot & Đối Chiếu Thay Đổi Trước - Sau
+1. **Chụp Bản Lưu Cũ (Snapshot) Tại Backend ([`CarOwner/CarsController.cs`](file:///d:/CarRental_TTCN/CarRental/Areas/CarOwner/Controllers/CarsController.cs)):**
+   - Khi chủ xe gửi bản chỉnh sửa thông tin xe, trước khi áp dụng các thay đổi mới, hệ thống tự động đóng gói toàn bộ thông số cũ thành JSON snapshot:
+     - Tên xe, Hãng xe, Phân khúc, Năm sản xuất, Biển số, Màu sắc, Số chỗ ngồi, Hộp số, Nhiên liệu.
+     - Giá thuê niêm yết, Giá ưu đãi (SalePrice), Phụ phí tài xế riêng (DriverFee).
+     - Giới hạn km, Phụ phí vượt km, Phí giao xe tận nơi, Mức tiêu hao nhiên liệu, Danh sách tiện nghi, Mô tả của chủ xe.
+   - Snapshot được mã hóa an toàn dưới dạng Base64 và lưu trữ kèm trong cấu trúc trường `Details` của xe.
+2. **Bảng Đối Chiếu Thay Đổi Trực Quan Tại Giao Diện Admin:**
+   - **Sheet Phê duyệt xe ([`Admin/Cars/Pending.cshtml`](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Views/Cars/Pending.cshtml)):**
+     - Xe ở trạng thái `Chờ cập nhật` tự động hiển thị banner thông báo kèm nút chuyển đổi chế độ xem.
+     - Bảng đối chiếu 2 cột (Cột Trước thay đổi - Bản cũ vs Cột Sau thay đổi - Bản mới): **Mục nào có sự thay đổi sẽ tự động được làm nổi bật với viền và nền màu cam kèm huy hiệu "Thay đổi"**.
+   - **Modal Xét duyệt yêu cầu tại Quản lý xe ([`Admin/Cars/Index.cshtml`](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Views/Cars/Index.cshtml)):**
+     - Tích hợp bảng đối chiếu thu gọn trực tiếp bên trong popup SweetAlert2, giúp Admin nắm bắt ngay tức thì các trường thông tin mà chủ xe vừa điều chỉnh.
+
+### 38.2. Hoàn Thiện Đầy Đủ Các Thông Số Kiểm Tra Hồ Sơ
+- Bổ sung hiển thị đầy đủ và chuẩn xác các trường thông tin quan trọng vào Sheet duyệt xe Admin:
+  - **Màu sắc ngoại thất** (`Color`).
+  - **Mức tiêu hao nhiên liệu** (`FuelConsumption`).
+  - **Giá thuê niêm yết** và **Giá ưu đãi / khuyến mãi** (`SalePrice` kèm badge Ưu đãi đỏ).
+  - **Phụ phí tài xế riêng** (`DriverFee` - tính theo ngày).
+  - **Quy định quãng đường** (`MileageLimit` và `ExtraFeePerKm`).
+  - **Giao xe tận nơi** (`DeliverySupported` và `DeliveryFee`).
+  - **Tiện nghi trang bị** (Danh sách badge có icon).
+  - **Mô tả & Nội quy của chủ xe**.
+
+### 38.3. Sửa Lỗi Kẹt Nút "Gửi Lại Hồ Sơ" Tại Form Chỉnh Sửa Xe
+- **Nguyên nhân:** Trường `SalePrice` có thuộc tính `step="10000"`, khi người dùng nhập số lẻ (ví dụ 625.000đ) bị HTML5 validation âm thầm chặn submit; đồng thời các input ở các bước trước bị ẩn (`display: none`) gây kẹt form không phản hồi.
+- **Khắc phục:** 
+  - Đổi `step="any"` cho tất cả các trường tiền tệ.
+  - Bổ sung thuộc tính `novalidate` cho form.
+  - Viết hàm `submitEditForm()` validate dữ liệu tổng hợp bằng SweetAlert2 trước khi gửi form, hiển thị thông báo tiến trình rõ ràng.
+
+---
+
+## 39. CẬP NHẬT TIẾN TRÌNH: HIỂN THỊ TIỆN NGHI TRANG BỊ & ĐỘC LẬP HÓA "MÔ TẢ & NỘI QUY CỦA CHỦ XE" (NGÀY 10/11/2026)
+
+### 39.1. Khắc Phục Lỗi Hiển Thị "Tiện Nghi Trang Bị" Trên Sheet Duyệt Xe Admin
+- **Nguyên nhân:** Trong Action `Pending` của [`Admin/CarsController.cs`](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Controllers/CarsController.cs) trước đó chưa nạp `.Include(c => c.CarAmenities).ThenInclude(ca => ca.Amenity)`, đồng thời phần tử `<div id="sheetAmenitiesList">` trong JavaScript chưa được render dữ liệu.
+- **Khắc phục:**
+  - Nạp đầy đủ quan hệ bảng liên kết `CarAmenities` từ cơ sở dữ liệu.
+  - Thiết lập cơ chế Fallback thông minh: nếu bảng liên kết rỗng, tự động bóc tách từ tag `[Tiện nghi]:` trong trường `Details`.
+  - Render danh sách tiện nghi thành các badge sang trọng với icon tích xanh (`bi-check-circle-fill`), hiển thị nổi bật dưới mục **`✨ Tiện nghi trang bị`**.
+
+### 39.2. Độc Lập Hóa & Chuẩn Hóa Ô Nhập "Mô Tả & Nội Quy Của Chủ Xe"
+- **Vấn đề trước đây:** Trường mô tả xe thường bị hệ thống tự động ghi đè (`Tiêu hao: ... · Tiện nghi...`) hoặc bị lồng ghép các thẻ tag cấu hình hệ thống (`[Tiện nghi]`, `[Quy định]`, `[Snapshot]`, chuỗi Base64), không có ô nhập độc lập cho chủ xe tự do quy định.
+- **Nâng cấp giải pháp:**
+  1. **Tại Form Thêm xe ([`CarOwner/Cars/Create.cshtml`](file:///d:/CarRental_TTCN/CarRental/Areas/CarOwner/Views/Cars/Create.cshtml)):**
+     - Bố trí Card nhập riêng biệt có icon `bi-chat-left-text-fill`, nhãn **`Mô tả & Nội quy của chủ xe`**, badge `Đồng bộ với Khách hàng & Admin` và văn bản hướng dẫn cụ thể (giữ gìn vệ sinh, cấm hút thuốc, cấm chở thú cưng/hải sản, quy định vạch xăng khi trả xe...).
+  2. **Tại Form Sửa xe ([`CarOwner/Cars/Edit.cshtml`](file:///d:/CarRental_TTCN/CarRental/Areas/CarOwner/Views/Cars/Edit.cshtml)):**
+     - Nạp sẵn nội dung văn bản thuần túy của chủ xe, loại bỏ hoàn toàn các mã kỹ thuật.
+  3. **Bộ lọc làm sạch 2 lớp (Two-Layer Sanitization):**
+     - **Backend ([`CarPolicy.cs`](file:///d:/CarRental_TTCN/CarRental/Utilities/CarPolicy.cs)):** Hàm `CleanExtraDescription` chuẩn hóa xuống dòng (`\r\n`, literal `\n`), tìm tag `[Mô tả bổ sung]:` cuối cùng, lọc bỏ toàn bộ các thẻ tag hệ thống và chuỗi Base64 dài.
+     - **Frontend ([`Pending.cshtml`](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Views/Cars/Pending.cshtml)):** Hàm `cleanDescJs` làm sạch thêm 1 lớp bảo vệ trực tiếp trên trình duyệt.
+  4. **Đồng bộ hóa xuyên suốt 4 bên:**
+     - **Admin - Duyệt xe ([`Pending.cshtml`](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Views/Cars/Pending.cshtml)):** Hiển thị văn bản thuần túy, sạch sẽ 100%.
+     - **Admin - Quản lý đội xe ([`Index.cshtml`](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Views/Cars/Index.cshtml)):** Modal xét duyệt hiển thị rõ ràng nội dung chủ xe đề xuất.
+     - **Chủ xe - Chi tiết xe ([`Details.cshtml`](file:///d:/CarRental_TTCN/CarRental/Areas/CarOwner/Views/Cars/Details.cshtml)):** Hiển thị khối **"Mô tả & Nội quy của xe"** kèm icon trích dẫn.
+     - **Khách hàng - Đặt xe ([`Product/Details.cshtml`](file:///d:/CarRental_TTCN/CarRental/Views/Product/Details.cshtml)):** Khung card viền bo tròn **"Mô tả & Nội quy từ chủ xe"** giúp khách đọc kỹ lưu ý trước khi quyết định thuê xe.
+
+### 39.3. Làm Sạch Dữ Liệu Thực Tế Trong Database & Biên Dịch
+- Đã chuẩn hóa chuỗi `Details` và đồng bộ 6 tiện nghi vào bảng `car_amenities` cho xe kiểm thử `abc` (CarId = 26).
+- Biên dịch toàn bộ mã nguồn C#: **`Build succeeded. 0 Error(s)`**.
+- Khởi động lại ứng dụng web CarRental trên cổng `http://0.0.0.0:5163`, kiểm tra HTTP status 200 OK.

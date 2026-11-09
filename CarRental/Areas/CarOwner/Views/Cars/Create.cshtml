@@ -10,17 +10,17 @@
 }
 
 <div class="container-fluid px-0 pb-5">
-    <!-- Page Header Khớp 100% Ảnh 2 Template -->
+    <!-- Page Header -->
     <div class="mb-4">
         <h1 class="h4 fw-bold text-dark tracking-tight mb-1" style="font-size: 1.45rem;">Đăng ký xe mới</h1>
         <p class="text-muted small mb-0" style="font-size: 0.875rem;">Hoàn thành 6 bước để gửi hồ sơ xe cho Admin phê duyệt.</p>
     </div>
 
-    <form asp-action="Create" method="post" enctype="multipart/form-data" id="createCarForm">
+    <form asp-action="Create" method="post" enctype="multipart/form-data" id="createCarForm" onsubmit="return validateAllBeforeSubmit()">
         @Html.AntiForgeryToken()
 
         <div class="row g-4">
-            <!-- Cột Trái (240px): Vertical Stepper Navigation Khớp 100% Ảnh 2 -->
+            <!-- Cột Trái (240px): Vertical Stepper Navigation -->
             <div class="col-12 col-lg-3">
                 <div class="card-surface p-2 sticky-top" style="top: 80px; z-index: 10;">
                     <ol class="list-unstyled mb-0 d-flex flex-column gap-1" id="stepperNavList">
@@ -64,12 +64,12 @@
                 </div>
             </div>
 
-            <!-- Cột Phải: Step Form Panes Khớp 100% Ảnh 2 -->
+            <!-- Cột Phải: Step Form Panes -->
             <div class="col-12 col-lg-9">
                 <div class="card-surface p-4 p-md-5">
 
                     <!-- ============================================== -->
-                    <!-- BƯỚC 1: THÔNG TIN CƠ BẢN (2 CỘT ĐỀU NHAU NHƯ ẢNH 2) -->
+                    <!-- BƯỚC 1: THÔNG TIN CƠ BẢN                       -->
                     <!-- ============================================== -->
                     <div class="form-step-pane active" id="stepPane-0">
                         <h2 class="h5 fw-bold text-dark mb-4 pb-2 border-bottom" style="font-size: 1.15rem;">Bước 1: Thông tin cơ bản</h2>
@@ -77,15 +77,15 @@
                         <div class="row g-4">
                             <!-- Hàng 1 -->
                             <div class="col-12 col-md-6">
-                                <label asp-for="CarName" class="form-label-recar">Tên xe</label>
+                                <label asp-for="CarName" class="form-label-recar">Tên xe <span class="text-danger">*</span></label>
                                 <input asp-for="CarName" class="form-control form-control-recar" id="inputCarName" placeholder="VD: Toyota Vios G 2023" required />
                                 <span asp-validation-for="CarName" class="text-danger small"></span>
                             </div>
 
                             <div class="col-12 col-md-6">
-                                <label asp-for="CarBrand" class="form-label-recar">Hãng xe</label>
+                                <label asp-for="CarBrand" class="form-label-recar">Hãng xe <span class="text-danger">*</span></label>
                                 <select asp-for="CarBrand" class="form-select form-select-recar" id="selectCarBrand" required>
-                                    <option value="">Chọn hãng</option>
+                                    <option value="">-- Chọn hãng xe --</option>
                                     @if (carBrands != null && carBrands.Any())
                                     {
                                         foreach (var b in carBrands)
@@ -110,40 +110,46 @@
 
                             <!-- Hàng 2 -->
                             <div class="col-12 col-md-6">
-                                <label asp-for="TypeId" class="form-label-recar">Phân khúc</label>
+                                <label asp-for="TypeId" class="form-label-recar">Phân khúc <span class="text-danger">*</span></label>
                                 <select asp-for="TypeId" asp-items="carTypes" class="form-select form-select-recar" id="selectCarType" required>
-                                    <option value="">Chọn phân khúc</option>
+                                    <option value="">-- Chọn phân khúc --</option>
                                 </select>
                                 <span asp-validation-for="TypeId" class="text-danger small"></span>
                             </div>
 
                             <div class="col-12 col-md-6">
-                                <label asp-for="ModelYear" class="form-label-recar">Năm sản xuất</label>
-                                <input asp-for="ModelYear" type="number" min="2010" max="2027" class="form-control form-control-recar" id="selectModelYear" value="2024" required />
+                                <label asp-for="ModelYear" class="form-label-recar">Năm sản xuất <span class="text-danger">*</span></label>
+                                <input asp-for="ModelYear" type="number" min="2012" max="2027" class="form-control form-control-recar" id="selectModelYear" value="2024" required />
                                 <span asp-validation-for="ModelYear" class="text-danger small"></span>
                             </div>
 
                             <!-- Hàng 3 -->
                             <div class="col-12 col-md-6">
-                                <label asp-for="LicensePlate" class="form-label-recar">Biển số</label>
-                                <input asp-for="LicensePlate" class="form-control form-control-recar font-monospace text-uppercase" id="inputLicensePlate" placeholder="51K-238.45" required />
+                                <label asp-for="LicensePlate" class="form-label-recar">Biển số xe kiểm định <span class="text-danger">*</span></label>
+                                <input asp-for="LicensePlate" class="form-control form-control-recar font-monospace text-uppercase" id="inputLicensePlate" placeholder="VD: 51K-238.45" required />
                                 <span asp-validation-for="LicensePlate" class="text-danger small"></span>
                             </div>
 
                             <div class="col-12 col-md-6">
-                                <label asp-for="Color" class="form-label-recar">Màu xe</label>
-                                <input asp-for="Color" class="form-control form-control-recar" id="inputColor" placeholder="Trắng, Đen, Xám..." required />
+                                <label asp-for="Color" class="form-label-recar">Màu xe <span class="text-danger">*</span></label>
+                                <input asp-for="Color" class="form-control form-control-recar" id="inputColor" placeholder="VD: Trắng, Đen, Xám, Đỏ..." required />
                                 <span asp-validation-for="Color" class="text-danger small"></span>
                             </div>
 
                             <!-- Hàng 4 -->
                             <div class="col-12 col-md-6">
-                                <label asp-for="Seat" class="form-label-recar">Số chỗ ngồi</label>
-                                <input asp-for="Seat" type="number" min="2" max="16" class="form-control form-control-recar" id="selectSeat" value="5" required />
+                                <label asp-for="Seat" class="form-label-recar">Số chỗ ngồi <span class="text-danger">*</span></label>
+                                <select asp-for="Seat" class="form-select form-select-recar" id="selectSeat" required>
+                                    <option value="4">4 chỗ</option>
+                                    <option value="5" selected>5 chỗ</option>
+                                    <option value="7">7 chỗ</option>
+                                    <option value="8">8 chỗ</option>
+                                    <option value="16">16 chỗ</option>
+                                </select>
                             </div>
 
                             <div class="col-12 col-md-6">
-                                <label asp-for="Transmission" class="form-label-recar">Hộp số</label>
+                                <label asp-for="Transmission" class="form-label-recar">Hộp số <span class="text-danger">*</span></label>
                                 <select asp-for="Transmission" class="form-select form-select-recar" id="selectTransmission" required>
                                     <option value="Tự động" selected>Tự động</option>
                                     <option value="Số sàn">Số sàn</option>
@@ -152,7 +158,7 @@
 
                             <!-- Hàng 5 -->
                             <div class="col-12 col-md-6">
-                                <label asp-for="Fuel" class="form-label-recar">Nhiên liệu</label>
+                                <label asp-for="Fuel" class="form-label-recar">Nhiên liệu <span class="text-danger">*</span></label>
                                 <select asp-for="Fuel" class="form-select form-select-recar" id="selectFuel" required>
                                     <option value="Xăng" selected>Xăng</option>
                                     <option value="Dầu">Dầu</option>
@@ -162,14 +168,15 @@
                             </div>
 
                             <div class="col-12 col-md-6">
-                                <label asp-for="FuelConsumption" class="form-label-recar">Mức tiêu thụ nhiên liệu</label>
-                                <input asp-for="FuelConsumption" class="form-control form-control-recar" id="inputConsumption" placeholder="6L/100km" />
+                                <label asp-for="FuelConsumption" class="form-label-recar">Mức tiêu thụ nhiên liệu <span class="text-danger">*</span></label>
+                                <input asp-for="FuelConsumption" class="form-control form-control-recar" id="inputConsumption" placeholder="VD: 6.5L/100km hoặc 14kWh/100km" required />
+                                <span asp-validation-for="FuelConsumption" class="text-danger small"></span>
                             </div>
 
-                            <!-- Hàng 6 (1 Cột Chiếm Toàn Bộ Chiều Ngang Chuẩn Ảnh 2) -->
+                            <!-- Hàng 6: Địa điểm -->
                             <div class="col-12">
-                                <label asp-for="Location" class="form-label-recar">Địa điểm nhận xe</label>
-                                <input asp-for="Location" class="form-control form-control-recar" id="inputLocation" placeholder="Quận 7, TP.HCM" required />
+                                <label asp-for="Location" class="form-label-recar">Địa điểm giao nhận xe <span class="text-danger">*</span></label>
+                                <input asp-for="Location" class="form-control form-control-recar" id="inputLocation" placeholder="VD: Số 123 Nguyễn Thị Thập, Tân Phú, Quận 7, TP.HCM" required />
                                 <span asp-validation-for="Location" class="text-danger small"></span>
                             </div>
                         </div>
@@ -183,24 +190,25 @@
 
                         <div class="row g-4">
                             <div class="col-12 col-md-6">
-                                <label asp-for="Price" class="form-label-recar">Giá thuê/ngày (VND)</label>
+                                <label asp-for="Price" class="form-label-recar">Giá thuê niêm yết/ngày (VND) <span class="text-danger">*</span></label>
                                 <input asp-for="Price" type="number" min="200000" step="10000" class="form-control form-control-recar" id="inputPrice" placeholder="VD: 850000" required />
                                 <span asp-validation-for="Price" class="text-danger small"></span>
+                                <div class="form-text small text-muted">Giá thuê tối thiểu 200.000 đ/ngày.</div>
                             </div>
 
                             <div class="col-12 col-md-6">
                                 <label asp-for="SalePrice" class="form-label-recar">Giá khuyến mãi/ngày (không bắt buộc)</label>
-                                <input asp-for="SalePrice" type="number" min="0" step="10000" class="form-control form-control-recar" id="inputSalePrice" placeholder="Để trống nếu không có" />
+                                <input asp-for="SalePrice" type="number" min="0" step="10000" class="form-control form-control-recar" id="inputSalePrice" placeholder="Để trống nếu không áp dụng ưu đãi" />
                             </div>
 
                             <div class="col-12">
                                 <div class="rounded-xl border p-4" style="background-color: #f8fafc;">
-                                    <p class="text-xs text-muted mb-1 font-semibold uppercase tracking-wider">Khách sẽ thấy</p>
+                                    <p class="text-xs text-muted mb-1 font-semibold uppercase tracking-wider">Khách thuê sẽ nhìn thấy:</p>
                                     <div class="d-flex align-items-baseline gap-2 mb-1" id="previewPriceContainer">
-                                        <span class="fs-3 fw-bold text-primary" id="previewPriceDisplay">0 đ</span>
+                                        <span class="fs-3 fw-bold text-primary" id="previewPriceDisplay">850.000 đ</span>
                                         <span class="text-sm text-muted text-decoration-line-through d-none" id="previewOriginalPrice"></span>
                                     </div>
-                                    <p class="text-xs text-muted mb-0">/ngày · giá khuyến mãi chỉ áp dụng khi bạn bật trong Quản lý xe</p>
+                                    <p class="text-xs text-muted mb-0">/ ngày · Bạn sẽ nhận trực tiếp tiền thuê và thanh toán quyết toán từ sàn ReCar.</p>
                                 </div>
                             </div>
                         </div>
@@ -210,34 +218,44 @@
                     <!-- BƯỚC 3: QUY ĐỊNH                               -->
                     <!-- ============================================== -->
                     <div class="form-step-pane" id="stepPane-2">
-                        <h2 class="h5 fw-bold text-dark mb-4 pb-2 border-bottom" style="font-size: 1.15rem;">Bước 3: Quy định</h2>
+                        <h2 class="h5 fw-bold text-dark mb-4 pb-2 border-bottom" style="font-size: 1.15rem;">Bước 3: Quy định di chuyển</h2>
 
                         <div class="row g-4">
                             <div class="col-12 col-md-6">
-                                <label asp-for="MileageLimit" class="form-label-recar">Giới hạn quãng đường (km/ngày)</label>
-                                <input asp-for="MileageLimit" type="number" min="0" step="10" class="form-control form-control-recar" id="inputMileageLimit" value="300" />
+                                <label asp-for="MileageLimit" class="form-label-recar">Giới hạn quãng đường (km/ngày) <span class="text-danger">*</span></label>
+                                <input asp-for="MileageLimit" type="number" min="50" step="10" class="form-control form-control-recar" id="inputMileageLimit" value="350" required />
+                                <div class="form-text small text-muted">Khuyến nghị từ 300 - 400 km/ngày.</div>
                             </div>
 
                             <div class="col-12 col-md-6">
-                                <label asp-for="ExtraFeePerKm" class="form-label-recar">Phụ phí vượt km (VND/km)</label>
-                                <input asp-for="ExtraFeePerKm" type="number" min="0" step="500" class="form-control form-control-recar" id="inputExtraFeePerKm" value="3000" />
+                                <label asp-for="ExtraFeePerKm" class="form-label-recar">Phụ phí vượt giới hạn km (VND/km) <span class="text-danger">*</span></label>
+                                <input asp-for="ExtraFeePerKm" type="number" min="1000" step="500" class="form-control form-control-recar" id="inputExtraFeePerKm" value="3000" required />
+                                <div class="form-text small text-muted">Phụ phí tính trên mỗi km vượt hạn mức.</div>
                             </div>
 
                             <div class="col-12">
                                 <div class="rounded-xl border p-4 d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-3">
                                     <div>
-                                        <div class="fw-bold text-dark text-sm">Giao xe tận nơi</div>
-                                        <div class="text-xs text-muted">Tăng khả năng được chọn của xe</div>
+                                        <div class="fw-bold text-dark text-sm">Hỗ trợ giao xe tận nơi cho khách</div>
+                                        <div class="text-xs text-muted">Bật để tăng cơ hội nhận được nhiều đơn thuê xe hơn</div>
                                     </div>
                                     <div class="form-check form-switch m-0 fs-5">
-                                        <input asp-for="DeliverySupported" class="form-check-input" type="checkbox" id="checkDelivery" role="switch" onchange="toggleDeliverySwitch(this.checked)" />
+                                        <input asp-for="DeliverySupported" class="form-check-input" type="checkbox" id="checkDelivery" role="switch" onchange="toggleDeliverySwitch(this.checked)" checked />
                                     </div>
                                 </div>
                             </div>
 
-                            <div class="col-12 col-md-6 d-none" id="boxDeliveryFee">
-                                <label asp-for="DeliveryFee" class="form-label-recar">Phí giao xe (VND)</label>
+                            <div class="col-12 col-md-6" id="boxDeliveryFee">
+                                <label asp-for="DeliveryFee" class="form-label-recar">Phí giao nhận xe tận nơi (VND)</label>
                                 <input asp-for="DeliveryFee" type="number" min="0" step="10000" class="form-control form-control-recar" id="inputDeliveryFee" value="100000" />
+                            </div>
+
+                            <div class="col-12 col-md-6 mt-3">
+                                <label asp-for="DriverFee" class="form-label-recar">
+                                    <i class="bi bi-person-badge text-primary me-1"></i> Phụ phí tài xế riêng (VND/ngày)
+                                </label>
+                                <input asp-for="DriverFee" type="number" min="0" step="50000" class="form-control form-control-recar" id="inputDriverFee" value="300000" placeholder="VD: 300000" />
+                                <span class="text-xs text-muted">Phụ phí cộng thêm mỗi ngày khi khách hàng có nhu cầu thuê xe kèm tài xế riêng.</span>
                             </div>
                         </div>
                     </div>
@@ -246,7 +264,9 @@
                     <!-- BƯỚC 4: TIỆN NGHI                              -->
                     <!-- ============================================== -->
                     <div class="form-step-pane" id="stepPane-3">
-                        <h2 class="h5 fw-bold text-dark mb-4 pb-2 border-bottom" style="font-size: 1.15rem;">Bước 4: Tiện nghi</h2>
+                        <h2 class="h5 fw-bold text-dark mb-4 pb-2 border-bottom" style="font-size: 1.15rem;">Bước 4: Tiện nghi & Mô tả xe</h2>
+
+                        <p class="text-sm text-muted mb-3">Chọn các tính năng và trang bị có sẵn trên xe của bạn:</p>
 
                         <div class="row g-3 mb-4">
                             @{
@@ -318,8 +338,18 @@
                         <div id="hiddenAmenityInputs"></div>
 
                         <div class="mt-4 pt-3 border-top">
-                            <label asp-for="Details" class="form-label-recar">Mô tả bổ sung & Nội quy của chủ xe</label>
-                            <textarea asp-for="Details" rows="4" class="form-control form-control-recar" id="inputDetails" placeholder="Mô tả về tính năng nổi bật, trải nghiệm lái xe, các quy định giữ gìn vệ sinh (không hút thuốc, không chở thú cưng...)..."></textarea>
+                            <div class="p-3.5 rounded-3 border bg-light">
+                                <div class="d-flex align-items-center justify-content-between mb-2">
+                                    <label asp-for="Details" class="form-label mb-0 fw-bold text-dark d-flex align-items-center gap-2" style="font-size: 0.95rem;">
+                                        <i class="bi bi-chat-left-text-fill text-primary"></i> Mô tả & Nội quy của chủ xe
+                                    </label>
+                                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle font-normal" style="font-size: 0.72rem;">Đồng bộ với Khách hàng & Admin</span>
+                                </div>
+                                <p class="text-muted small mb-2" style="font-size: 0.8rem; line-height: 1.4;">
+                                    Ghi rõ các đặc điểm nổi bật của xe và nội quy dành cho khách thuê (ví dụ: giữ gìn vệ sinh sạch sẽ, không hút thuốc trong xe, không chở thú cưng / hải sản nặng mùi, quy định mức xăng khi trả xe...).
+                                </p>
+                                <textarea asp-for="Details" rows="4" class="form-control bg-white rounded-3 shadow-2xs" id="inputDetails" placeholder="Ví dụ: Xe gia đình bảo dưỡng định kỳ, nội thất sạch sẽ thơm tho. Quý khách vui lòng không hút thuốc, không chở thú cưng và giữ vệ sinh chung khi sử dụng xe..."></textarea>
+                            </div>
                         </div>
                     </div>
 
@@ -329,11 +359,11 @@
                     <div class="form-step-pane" id="stepPane-4">
                         <h2 class="h5 fw-bold text-dark mb-4 pb-2 border-bottom" style="font-size: 1.15rem;">Bước 5: Hình ảnh & Giấy tờ</h2>
 
-                        <!-- 1. Ảnh đại diện -->
+                        <!-- 1. Ảnh đại diện chính -->
                         <div class="mb-4 pb-3 border-bottom">
-                            <label class="form-label-recar">Ảnh đại diện</label>
+                            <label class="form-label-recar fw-bold">1. Ảnh đại diện chính của xe <span class="text-danger">*</span></label>
                             <div class="d-flex flex-wrap align-items-center gap-3 mt-2">
-                                <div class="position-relative overflow-hidden rounded-xl border bg-light d-grid place-items-center" style="width: 176px; height: 112px;">
+                                <div class="position-relative overflow-hidden rounded-xl border bg-light d-grid place-items-center" style="width: 180px; height: 115px;">
                                     <img id="previewAvatarImg" src="" alt="Ảnh đại diện" class="w-100 h-100 object-fit-cover d-none" />
                                     <div id="emptyAvatarPlaceholder" class="text-muted text-center p-2">
                                         <i data-lucide="image-plus" class="size-6 d-block mx-auto mb-1 opacity-50"></i>
@@ -346,48 +376,111 @@
                                         <span>Chọn ảnh đại diện</span>
                                         <input type="file" asp-for="ImageFile" id="inputImageFile" accept="image/*" class="d-none" onchange="previewImageFile(this, 'previewAvatarImg', 'emptyAvatarPlaceholder')" required />
                                     </label>
-                                    <div class="text-xs text-muted">Chỉ chấp nhận JPG, PNG, WEBP (tối đa 5MB)</div>
+                                    <div class="text-xs text-muted">Ảnh chụp góc nghiêng đẹp nhất làm đại diện trên sàn (tối đa 5MB).</div>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- 2. Giấy tờ pháp lý (KYC) -->
+                        <!-- 2. Ảnh 4 góc chi tiết xung quanh xe (MỚI BỔ SUNG THEO YÊU CẦU) -->
+                        <div class="mb-4 pb-3 border-bottom">
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                <label class="form-label-recar fw-bold mb-0">2. Ảnh chụp 4 góc xung quanh xe <span class="text-danger">*</span></label>
+                                <span class="badge bg-primary-subtle text-primary border border-primary-subtle small">Bắt buộc đủ 4 góc</span>
+                            </div>
+                            <p class="text-xs text-muted mb-3">Hiển thị trong album ảnh để khách hàng ngắm xe và Admin kiểm tra ngoại quan.</p>
+
+                            <div class="row g-3">
+                                <!-- Góc 1: Đầu xe (Mặt trước) -->
+                                <div class="col-12 col-sm-6 col-md-3">
+                                    <label class="d-flex flex-column align-items-center justify-content-center p-3 rounded-xl border border-dashed bg-light text-center cursor-pointer h-100 position-relative overflow-hidden" style="min-height: 140px;">
+                                        <img id="previewImg1" src="" class="position-absolute inset-0 w-100 h-100 object-fit-cover d-none" alt="Đầu xe" />
+                                        <div id="placeholderImg1" class="d-flex flex-column align-items-center justify-content-center gap-1 text-muted">
+                                            <i data-lucide="camera" class="size-6 text-primary mb-1"></i>
+                                            <span class="text-xs fw-bold text-dark">Đầu xe (Mặt trước)</span>
+                                            <span class="text-xs text-muted" style="font-size: 11px;">Rõ logo & biển số</span>
+                                        </div>
+                                        <input type="file" asp-for="Image1File" id="inputImage1File" accept="image/*" class="d-none" onchange="previewImageFile(this, 'previewImg1', 'placeholderImg1')" required />
+                                    </label>
+                                </div>
+
+                                <!-- Góc 2: Đuôi xe (Mặt sau) -->
+                                <div class="col-12 col-sm-6 col-md-3">
+                                    <label class="d-flex flex-column align-items-center justify-content-center p-3 rounded-xl border border-dashed bg-light text-center cursor-pointer h-100 position-relative overflow-hidden" style="min-height: 140px;">
+                                        <img id="previewImg2" src="" class="position-absolute inset-0 w-100 h-100 object-fit-cover d-none" alt="Đuôi xe" />
+                                        <div id="placeholderImg2" class="d-flex flex-column align-items-center justify-content-center gap-1 text-muted">
+                                            <i data-lucide="camera" class="size-6 text-primary mb-1"></i>
+                                            <span class="text-xs fw-bold text-dark">Đuôi xe (Mặt sau)</span>
+                                            <span class="text-xs text-muted" style="font-size: 11px;">Rõ cụm đèn & cốp</span>
+                                        </div>
+                                        <input type="file" asp-for="Image2File" id="inputImage2File" accept="image/*" class="d-none" onchange="previewImageFile(this, 'previewImg2', 'placeholderImg2')" required />
+                                    </label>
+                                </div>
+
+                                <!-- Góc 3: Nội thất khoang lái -->
+                                <div class="col-12 col-sm-6 col-md-3">
+                                    <label class="d-flex flex-column align-items-center justify-content-center p-3 rounded-xl border border-dashed bg-light text-center cursor-pointer h-100 position-relative overflow-hidden" style="min-height: 140px;">
+                                        <img id="previewImg3" src="" class="position-absolute inset-0 w-100 h-100 object-fit-cover d-none" alt="Nội thất xe" />
+                                        <div id="placeholderImg3" class="d-flex flex-column align-items-center justify-content-center gap-1 text-muted">
+                                            <i data-lucide="camera" class="size-6 text-primary mb-1"></i>
+                                            <span class="text-xs fw-bold text-dark">Nội thất khoang lái</span>
+                                            <span class="text-xs text-muted" style="font-size: 11px;">Toàn cảnh taplo & ghế</span>
+                                        </div>
+                                        <input type="file" asp-for="Image3File" id="inputImage3File" accept="image/*" class="d-none" onchange="previewImageFile(this, 'previewImg3', 'placeholderImg3')" required />
+                                    </label>
+                                </div>
+
+                                <!-- Góc 4: Sườn xe (Góc nghiêng) -->
+                                <div class="col-12 col-sm-6 col-md-3">
+                                    <label class="d-flex flex-column align-items-center justify-content-center p-3 rounded-xl border border-dashed bg-light text-center cursor-pointer h-100 position-relative overflow-hidden" style="min-height: 140px;">
+                                        <img id="previewImg4" src="" class="position-absolute inset-0 w-100 h-100 object-fit-cover d-none" alt="Sườn xe" />
+                                        <div id="placeholderImg4" class="d-flex flex-column align-items-center justify-content-center gap-1 text-muted">
+                                            <i data-lucide="camera" class="size-6 text-primary mb-1"></i>
+                                            <span class="text-xs fw-bold text-dark">Sườn xe (Góc nghiêng)</span>
+                                            <span class="text-xs text-muted" style="font-size: 11px;">Toàn cảnh thân xe</span>
+                                        </div>
+                                        <input type="file" asp-for="Image4File" id="inputImage4File" accept="image/*" class="d-none" onchange="previewImageFile(this, 'previewImg4', 'placeholderImg4')" required />
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 3. Giấy tờ pháp lý (KYC) -->
                         <div>
-                            <label class="form-label-recar">Ảnh giấy tờ pháp lý (Đăng ký xe, Đăng kiểm, Bảo hiểm)</label>
+                            <label class="form-label-recar fw-bold">3. Ảnh giấy tờ pháp lý (Đăng ký xe, Đăng kiểm, Bảo hiểm) <span class="text-danger">*</span></label>
                             <div class="row g-3 mt-1">
                                 <!-- Đăng ký xe / Cà vẹt -->
                                 <div class="col-12 col-sm-4">
-                                    <label class="d-flex flex-column align-items-center justify-content-center p-3 rounded-xl border border-dashed bg-light text-center cursor-pointer h-100 position-relative overflow-hidden" style="min-height: 128px;">
+                                    <label class="d-flex flex-column align-items-center justify-content-center p-3 rounded-xl border border-dashed bg-light text-center cursor-pointer h-100 position-relative overflow-hidden" style="min-height: 130px;">
                                         <img id="previewDocReg" src="" class="position-absolute inset-0 w-100 h-100 object-fit-cover d-none" alt="Cà vẹt xe" />
                                         <div id="placeholderDocReg" class="d-flex flex-column align-items-center justify-content-center gap-1 text-muted">
-                                            <i data-lucide="image-plus" class="size-5"></i>
-                                            <span class="text-xs fw-semibold">Đăng ký xe / cà vẹt</span>
+                                            <i data-lucide="file-text" class="size-6 text-warning mb-1"></i>
+                                            <span class="text-xs fw-bold text-dark">Đăng ký xe / Cà vẹt <span class="text-danger">*</span></span>
                                         </div>
-                                        <input type="file" asp-for="RegistrationImageFile" accept="image/*" class="d-none" onchange="previewImageFile(this, 'previewDocReg', 'placeholderDocReg')" required />
+                                        <input type="file" asp-for="RegistrationImageFile" id="inputDocReg" accept="image/*" class="d-none" onchange="previewImageFile(this, 'previewDocReg', 'placeholderDocReg')" required />
                                     </label>
                                 </div>
 
                                 <!-- Sổ đăng kiểm -->
                                 <div class="col-12 col-sm-4">
-                                    <label class="d-flex flex-column align-items-center justify-content-center p-3 rounded-xl border border-dashed bg-light text-center cursor-pointer h-100 position-relative overflow-hidden" style="min-height: 128px;">
+                                    <label class="d-flex flex-column align-items-center justify-content-center p-3 rounded-xl border border-dashed bg-light text-center cursor-pointer h-100 position-relative overflow-hidden" style="min-height: 130px;">
                                         <img id="previewDocInsp" src="" class="position-absolute inset-0 w-100 h-100 object-fit-cover d-none" alt="Sổ đăng kiểm" />
                                         <div id="placeholderDocInsp" class="d-flex flex-column align-items-center justify-content-center gap-1 text-muted">
-                                            <i data-lucide="image-plus" class="size-5"></i>
-                                            <span class="text-xs fw-semibold">Sổ đăng kiểm</span>
+                                            <i data-lucide="file-check" class="size-6 text-success mb-1"></i>
+                                            <span class="text-xs fw-bold text-dark">Sổ đăng kiểm <span class="text-danger">*</span></span>
                                         </div>
-                                        <input type="file" asp-for="InspectionImageFile" accept="image/*" class="d-none" onchange="previewImageFile(this, 'previewDocInsp', 'placeholderDocInsp')" required />
+                                        <input type="file" asp-for="InspectionImageFile" id="inputDocInsp" accept="image/*" class="d-none" onchange="previewImageFile(this, 'previewDocInsp', 'placeholderDocInsp')" required />
                                     </label>
                                 </div>
 
                                 <!-- Bảo hiểm xe -->
                                 <div class="col-12 col-sm-4">
-                                    <label class="d-flex flex-column align-items-center justify-content-center p-3 rounded-xl border border-dashed bg-light text-center cursor-pointer h-100 position-relative overflow-hidden" style="min-height: 128px;">
+                                    <label class="d-flex flex-column align-items-center justify-content-center p-3 rounded-xl border border-dashed bg-light text-center cursor-pointer h-100 position-relative overflow-hidden" style="min-height: 130px;">
                                         <img id="previewDocIns" src="" class="position-absolute inset-0 w-100 h-100 object-fit-cover d-none" alt="Bảo hiểm xe" />
                                         <div id="placeholderDocIns" class="d-flex flex-column align-items-center justify-content-center gap-1 text-muted">
-                                            <i data-lucide="image-plus" class="size-5"></i>
-                                            <span class="text-xs fw-semibold">Bảo hiểm xe</span>
+                                            <i data-lucide="shield" class="size-6 text-info mb-1"></i>
+                                            <span class="text-xs fw-bold text-dark">Bảo hiểm TNDS <span class="text-danger">*</span></span>
                                         </div>
-                                        <input type="file" asp-for="InsuranceImageFile" accept="image/*" class="d-none" onchange="previewImageFile(this, 'previewDocIns', 'placeholderDocIns')" required />
+                                        <input type="file" asp-for="InsuranceImageFile" id="inputDocIns" accept="image/*" class="d-none" onchange="previewImageFile(this, 'previewDocIns', 'placeholderDocIns')" required />
                                     </label>
                                 </div>
                             </div>
@@ -399,11 +492,11 @@
                     <!-- BƯỚC 6: KIỂM TRA & GỬI                         -->
                     <!-- ============================================== -->
                     <div class="form-step-pane" id="stepPane-5">
-                        <h2 class="h5 fw-bold text-dark mb-4 pb-2 border-bottom" style="font-size: 1.15rem;">Bước 6: Kiểm tra & Gửi</h2>
+                        <h2 class="h5 fw-bold text-dark mb-4 pb-2 border-bottom" style="font-size: 1.15rem;">Bước 6: Kiểm tra & Gửi hồ sơ</h2>
 
                         <!-- Card preview tóm tắt thông tin xe -->
                         <div class="card-surface p-4 mb-4 border d-flex flex-column flex-md-row gap-4 align-items-start">
-                            <div class="rounded-xl overflow-hidden flex-shrink-0" style="width: 100%; max-width: 208px; aspect-ratio: 16/10; background-color: #0f172a;">
+                            <div class="rounded-xl overflow-hidden flex-shrink-0" style="width: 100%; max-width: 220px; aspect-ratio: 16/10; background-color: #0f172a;">
                                 <img id="summaryPreviewImg" src="/images/cars/default-car.jpg" alt="Tóm tắt xe" class="w-100 h-100 object-fit-cover" />
                             </div>
 
@@ -422,28 +515,39 @@
                                 </div>
 
                                 <div class="fs-6 fw-bold text-primary mb-2" id="summaryPriceText">
-                                    0 đ / ngày
+                                    850.000 đ / ngày
                                 </div>
 
                                 <div class="text-xs text-muted mb-2" id="summaryRuleText">
-                                    Giới hạn 300 km/ngày · Vượt 3.000 đ/km · Không giao xe
+                                    Giới hạn 350 km/ngày · Vượt 3.000 đ/km
                                 </div>
 
-                                <div class="text-xs text-muted" id="summaryAmenitiesText">
+                                <div class="text-xs text-muted mb-3" id="summaryAmenitiesText">
                                     Tiện nghi: Chưa chọn tiện nghi
+                                </div>
+
+                                <!-- Dải 4 ảnh góc xung quanh xe preview -->
+                                <div class="pt-2 border-top">
+                                    <div class="text-xs fw-bold text-dark mb-2">4 Ảnh góc xung quanh xe đã tải lên:</div>
+                                    <div class="d-flex gap-2" id="summaryGalleryRow">
+                                        <img id="summaryThumb1" src="" class="rounded-2 border object-fit-cover d-none" style="width: 60px; height: 42px;" alt="Đầu xe" />
+                                        <img id="summaryThumb2" src="" class="rounded-2 border object-fit-cover d-none" style="width: 60px; height: 42px;" alt="Đuôi xe" />
+                                        <img id="summaryThumb3" src="" class="rounded-2 border object-fit-cover d-none" style="width: 60px; height: 42px;" alt="Nội thất" />
+                                        <img id="summaryThumb4" src="" class="rounded-2 border object-fit-cover d-none" style="width: 60px; height: 42px;" alt="Sườn xe" />
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
                         <div class="rounded-xl p-4 text-sm" style="background-color: #fefce8; border: 1px solid #fef08a; color: #854d0e;">
                             <p class="fw-semibold mb-1 d-flex align-items-center gap-2">
-                                <i data-lucide="info" class="size-4 text-warning"></i> Sau khi gửi
+                                <i data-lucide="info" class="size-4 text-warning"></i> Quy trình phê duyệt
                             </p>
-                            <p class="mb-0">Sau khi gửi, xe ở trạng thái <strong>Chờ duyệt</strong> và chỉ hiển thị trên sàn khi Admin phê duyệt.</p>
+                            <p class="mb-0">Sau khi bạn bấm <strong>"Gửi hồ sơ phê duyệt"</strong>, hồ sơ xe sẽ ở trạng thái <strong>Chờ duyệt</strong>. Ban Quản trị ReCar sẽ kiểm định giấy tờ trong vòng 24h và thông báo kết quả cho bạn.</p>
                         </div>
                     </div>
 
-                    <!-- Footer Buttons Điều Hướng Khớp 100% Ảnh 2 Template -->
+                    <!-- Footer Buttons Điều Hướng -->
                     <div class="mt-5 pt-3 border-top d-flex justify-content-between align-items-center">
                         <button type="button" class="btn btn-outline-secondary rounded-xl px-4 py-2 text-sm font-medium" id="btnPrevStep" onclick="prevStep()" disabled>
                             Quay lại
@@ -469,8 +573,143 @@
     let currentStep = 0;
     const totalSteps = 6;
 
+    // VALIDATE CHẶT CHẼ TỪNG BƯỚC KHÔNG ĐƯỢC ĐỂ TRỐNG
+    function validateStep(stepIndex) {
+        // Reset toàn bộ class is-invalid trước đó
+        document.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+
+        if (stepIndex === 0) {
+            // Bước 1: Thông tin cơ bản
+            const carName = document.getElementById('inputCarName');
+            const brand = document.getElementById('selectCarBrand');
+            const type = document.getElementById('selectCarType');
+            const year = document.getElementById('selectModelYear');
+            const plate = document.getElementById('inputLicensePlate');
+            const color = document.getElementById('inputColor');
+            const seat = document.getElementById('selectSeat');
+            const trans = document.getElementById('selectTransmission');
+            const fuel = document.getElementById('selectFuel');
+            const consumption = document.getElementById('inputConsumption');
+            const location = document.getElementById('inputLocation');
+
+            let missingFields = [];
+            let firstInvalid = null;
+
+            function markInvalid(el, fieldName) {
+                if (el) {
+                    el.classList.add('is-invalid');
+                    missingFields.push(fieldName);
+                    if (!firstInvalid) firstInvalid = el;
+                }
+            }
+
+            if (!carName || !carName.value.trim()) markInvalid(carName, 'Tên xe');
+            if (!brand || !brand.value.trim()) markInvalid(brand, 'Hãng xe');
+            if (!type || !type.value.trim()) markInvalid(type, 'Phân khúc xe');
+            if (!year || !year.value.trim() || parseInt(year.value) < 2012) markInvalid(year, 'Năm sản xuất');
+            if (!plate || !plate.value.trim()) markInvalid(plate, 'Biển số xe');
+            if (!color || !color.value.trim()) markInvalid(color, 'Màu sắc xe');
+            if (!seat || !seat.value.trim()) markInvalid(seat, 'Số chỗ ngồi');
+            if (!trans || !trans.value.trim()) markInvalid(trans, 'Hộp số');
+            if (!fuel || !fuel.value.trim()) markInvalid(fuel, 'Nhiên liệu');
+            if (!consumption || !consumption.value.trim()) markInvalid(consumption, 'Mức tiêu thụ nhiên liệu');
+            if (!location || !location.value.trim()) markInvalid(location, 'Địa điểm giao nhận xe');
+
+            if (missingFields.length > 0) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Thông tin chưa đầy đủ',
+                    html: 'Vui lòng điền các mục bắt buộc sau:<br><strong class="text-danger">' + missingFields.join(', ') + '</strong>',
+                    confirmButtonColor: '#00a8e8'
+                });
+                if (firstInvalid) firstInvalid.focus();
+                return false;
+            }
+            return true;
+        }
+
+        if (stepIndex === 1) {
+            // Bước 2: Giá thuê
+            const price = document.getElementById('inputPrice');
+            if (!price || !price.value.trim() || parseInt(price.value) < 200000) {
+                price.classList.add('is-invalid');
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Giá thuê chưa hợp lệ',
+                    text: 'Vui lòng nhập giá thuê tối thiểu từ 200.000 đ/ngày.',
+                    confirmButtonColor: '#00a8e8'
+                });
+                price.focus();
+                return false;
+            }
+            return true;
+        }
+
+        if (stepIndex === 2) {
+            // Bước 3: Quy định
+            const limit = document.getElementById('inputMileageLimit');
+            const fee = document.getElementById('inputExtraFeePerKm');
+            if (!limit || !limit.value.trim() || parseInt(limit.value) <= 0) {
+                limit.classList.add('is-invalid');
+                Swal.fire({ icon: 'warning', title: 'Quy định di chuyển', text: 'Vui lòng nhập giới hạn quãng đường (km/ngày).', confirmButtonColor: '#00a8e8' });
+                limit.focus();
+                return false;
+            }
+            if (!fee || !fee.value.trim() || parseInt(fee.value) < 0) {
+                fee.classList.add('is-invalid');
+                Swal.fire({ icon: 'warning', title: 'Quy định di chuyển', text: 'Vui lòng nhập phụ phí quá km hợp lệ.', confirmButtonColor: '#00a8e8' });
+                fee.focus();
+                return false;
+            }
+            return true;
+        }
+
+        if (stepIndex === 4) {
+            // Bước 5: Hình ảnh & giấy tờ (BẮT BUỘC ĐỦ CẢ ẢNH ĐẠI DIỆN + 4 ẢNH GÓC XE + 3 ẢNH GIẤY TỜ)
+            const avatar = document.getElementById('inputImageFile');
+            const img1 = document.getElementById('inputImage1File');
+            const img2 = document.getElementById('inputImage2File');
+            const img3 = document.getElementById('inputImage3File');
+            const img4 = document.getElementById('inputImage4File');
+            const docReg = document.getElementById('inputDocReg');
+            const docInsp = document.getElementById('inputDocInsp');
+            const docIns = document.getElementById('inputDocIns');
+
+            let missingPhotos = [];
+
+            if (!avatar || !avatar.files.length) missingPhotos.push('Ảnh đại diện chính');
+            if (!img1 || !img1.files.length) missingPhotos.push('Ảnh đầu xe (mặt trước)');
+            if (!img2 || !img2.files.length) missingPhotos.push('Ảnh đuôi xe (mặt sau)');
+            if (!img3 || !img3.files.length) missingPhotos.push('Ảnh nội thất khoang lái');
+            if (!img4 || !img4.files.length) missingPhotos.push('Ảnh sườn xe (góc nghiêng)');
+            if (!docReg || !docReg.files.length) missingPhotos.push('Đăng ký xe (cà vẹt)');
+            if (!docInsp || !docInsp.files.length) missingPhotos.push('Sổ đăng kiểm');
+            if (!docIns || !docIns.files.length) missingPhotos.push('Bảo hiểm TNDS bắt buộc');
+
+            if (missingPhotos.length > 0) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Chưa đủ hình ảnh và giấy tờ',
+                    html: 'Bạn cần tải lên đầy đủ các ảnh sau:<br><strong class="text-danger">' + missingPhotos.join('<br>') + '</strong>',
+                    confirmButtonColor: '#00a8e8'
+                });
+                return false;
+            }
+            return true;
+        }
+
+        return true;
+    }
+
     function goToStep(stepIndex) {
         if (stepIndex < 0 || stepIndex >= totalSteps) return;
+
+        // Nếu muốn nhảy cóc tới bước xa hơn thì phải thỏa mãn validate các bước trước
+        if (stepIndex > currentStep) {
+            for (let s = currentStep; s < stepIndex; s++) {
+                if (!validateStep(s)) return;
+            }
+        }
 
         // Cập nhật panes
         document.querySelectorAll('.form-step-pane').forEach((p, idx) => {
@@ -521,13 +760,12 @@
             lucide.createIcons();
         }
 
-        // Scroll nhẹ lên đầu card nếu mobile
-        if (window.innerWidth < 992) {
-            window.scrollTo({ top: 80, behavior: 'smooth' });
-        }
+        // Scroll lên đầu card
+        window.scrollTo({ top: 80, behavior: 'smooth' });
     }
 
     function nextStep() {
+        if (!validateStep(currentStep)) return;
         if (currentStep < totalSteps - 1) {
             goToStep(currentStep + 1);
         }
@@ -537,6 +775,16 @@
         if (currentStep > 0) {
             goToStep(currentStep - 1);
         }
+    }
+
+    function validateAllBeforeSubmit() {
+        for (let s = 0; s < 5; s++) {
+            if (!validateStep(s)) {
+                goToStep(s);
+                return false;
+            }
+        }
+        return true;
     }
 
     // Toggle switch Giao xe tận nơi
@@ -580,7 +828,7 @@
     document.getElementById('inputPrice')?.addEventListener('input', updatePricePreview);
     document.getElementById('inputSalePrice')?.addEventListener('input', updatePricePreview);
 
-    // Toggle tiện nghi và sync inputs vào CSDL (AmenityIds & Features)
+    // Toggle tiện nghi
     function toggleAmenity(btn) {
         btn.classList.toggle('active');
         const amenityId = btn.getAttribute('data-id');
@@ -591,7 +839,6 @@
         let featInput = document.getElementById('featureInput_' + (amenityId || amenityName));
 
         if (btn.classList.contains('active')) {
-            // 1. Đồng bộ AmenityId để lưu vào bảng CarAmenities
             if (amenityId) {
                 if (!idInput) {
                     idInput = document.createElement('input');
@@ -607,7 +854,6 @@
                 }
             }
 
-            // 2. Đồng bộ tên tiện nghi vào chuỗi text Details/Descriptions
             if (!featInput) {
                 featInput = document.createElement('input');
                 featInput.type = 'checkbox';
@@ -658,7 +904,7 @@
         const consumption = document.getElementById('inputConsumption')?.value || '';
         const price = parseInt(document.getElementById('inputPrice')?.value) || 0;
         const sale = parseInt(document.getElementById('inputSalePrice')?.value) || 0;
-        const limitKm = document.getElementById('inputMileageLimit')?.value || '300';
+        const limitKm = document.getElementById('inputMileageLimit')?.value || '350';
         const overKm = parseInt(document.getElementById('inputExtraFeePerKm')?.value) || 0;
         const delivery = document.getElementById('checkDelivery')?.checked;
         const deliveryFee = parseInt(document.getElementById('inputDeliveryFee')?.value) || 0;
@@ -667,6 +913,16 @@
         const avatarPreview = document.getElementById('previewAvatarImg')?.src;
         if (avatarPreview && !document.getElementById('previewAvatarImg').classList.contains('d-none')) {
             document.getElementById('summaryPreviewImg').src = avatarPreview;
+        }
+
+        // 4 ảnh góc preview
+        for (let i = 1; i <= 4; i++) {
+            const thumb = document.getElementById('summaryThumb' + i);
+            const preview = document.getElementById('previewImg' + i);
+            if (thumb && preview && !preview.classList.contains('d-none')) {
+                thumb.src = preview.src;
+                thumb.classList.remove('d-none');
+            }
         }
 
         document.getElementById('summaryCarName').innerText = carName;
@@ -682,7 +938,6 @@
 
         document.getElementById('summaryRuleText').innerText = `Giới hạn ${limitKm} km/ngày · Vượt ${overKm.toLocaleString('vi-VN')} đ/km · ${delivery ? `Giao xe ${deliveryFee.toLocaleString('vi-VN')} đ` : 'Không giao xe'}`;
 
-        // Lấy tiện nghi đang active
         const activeAmenities = [];
         document.querySelectorAll('.amenity-toggle-btn.active').forEach(b => {
             activeAmenities.push(b.getAttribute('data-name'));

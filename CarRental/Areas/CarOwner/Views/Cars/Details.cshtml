@@ -17,8 +17,35 @@
     bool isAvailable = status == "Sẵn sàng" || (status == "active" && Model.IsActive);
     bool isBusy = status == "Đang bận" || status == "Đang có khách" || status == "busy";
     bool isPending = status == "Chờ duyệt" || status == "pending";
+    bool isPendingUpdate = status == "Chờ cập nhật" || status == "pending_update";
     bool isPaused = status == "Tạm ngưng" || status == "paused";
     bool isRejected = status == "Từ chối" || status == "rejected";
+
+    // Bóc tách lý do từ chối từ Quản trị viên nếu có
+    string rejectionReason = "";
+    string rejectionTime = "";
+    if (isRejected && !string.IsNullOrWhiteSpace(Model.Descriptions))
+    {
+        string desc = Model.Descriptions;
+        if (desc.Contains("Lý do từ chối:"))
+        {
+            int startIdx = desc.IndexOf("Lý do từ chối:") + "Lý do từ chối:".Length;
+            int timeIdx = desc.LastIndexOf("(Cập nhật lúc");
+            if (timeIdx > startIdx)
+            {
+                rejectionReason = desc.Substring(startIdx, timeIdx - startIdx).Trim();
+                rejectionTime = desc.Substring(timeIdx).Replace("(", "").Replace(")", "").Replace("Cập nhật lúc", "").Trim();
+            }
+            else
+            {
+                rejectionReason = desc.Substring(startIdx).Trim();
+            }
+        }
+        else
+        {
+            rejectionReason = desc.Trim();
+        }
+    }
 
     decimal regularPrice = Model.Price ?? 0;
     decimal? salePrice = Model.SalePrice;
@@ -37,13 +64,79 @@
         </a>
     </div>
 
+    <!-- Thông báo nếu xe đang chờ duyệt -->
+    @if (isPending || isPendingUpdate)
+    {
+        <div class="alert border-0 rounded-4 shadow-sm mb-4 p-4" style="background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%); border-left: 5px solid #f59e0b !important;">
+            <div class="d-flex align-items-start gap-3">
+                <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width: 42px; height: 42px; background: #fde68a; color: #b45309;">
+                    <i class="bi bi-hourglass-split fs-5"></i>
+                </div>
+                <div class="flex-grow-1">
+                    <h6 class="fw-bold mb-1 text-dark d-flex align-items-center gap-2">
+                        <span>Hồ sơ xe đang chờ Quản trị viên ReCar kiểm duyệt</span>
+                        <span class="badge rounded-pill bg-warning text-dark px-2.5 py-1" style="font-size: 0.72rem;">Chờ thẩm định</span>
+                    </h6>
+                    <p class="text-secondary small mb-2">
+                        Hồ sơ đăng ký của bạn đã được chuyển tới Ban Kiểm duyệt ReCar. Đội ngũ thẩm định sẽ kiểm tra thông tin pháp lý (Cà vẹt, Đăng kiểm, Bảo hiểm) và hình ảnh xe trong vòng <strong>24 giờ làm việc</strong>.
+                    </p>
+                    <div class="d-flex flex-wrap gap-2 pt-1">
+                        <a href="/CarOwner/Cars/Edit/@Model.CarId" class="btn btn-sm btn-outline-warning text-dark rounded-pill px-3 fw-semibold">
+                            <i class="bi bi-pencil me-1.5"></i>Chỉnh sửa bổ sung thông tin
+                        </a>
+                        <a href="/CarOwner/Cars" class="btn btn-sm btn-light border rounded-pill px-3 text-secondary">
+                            <i class="bi bi-arrow-left me-1.5"></i>Quay lại danh sách xe
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
     <!-- Thông báo nếu bị từ chối -->
     @if (isRejected)
     {
-        <div class="alert alert-danger rounded-3 d-flex align-items-center gap-2 mb-4" role="alert">
-            <i class="bi bi-exclamation-circle-fill text-danger me-2"></i>
-            <div>
-                <strong>Hồ sơ xe đã bị từ chối:</strong> Vui lòng bấm <em>Chỉnh sửa</em> để cập nhật lại thông tin hoặc bổ sung giấy tờ xe theo yêu cầu từ Quản trị viên.
+        <div class="alert border-0 rounded-4 shadow-sm mb-4 p-4" style="background: linear-gradient(135deg, #fff5f5 0%, #fee2e2 100%); border-left: 5px solid #ef4444 !important;">
+            <div class="d-flex align-items-start gap-3">
+                <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width: 44px; height: 44px; background: #fecaca; color: #dc2626;">
+                    <i class="bi bi-x-octagon-fill fs-5"></i>
+                </div>
+                <div class="flex-grow-1">
+                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-1.5">
+                        <h6 class="fw-bold mb-0 text-dark d-flex align-items-center gap-2">
+                            <span>Hồ sơ xe không được phê duyệt</span>
+                            <span class="badge rounded-pill bg-danger text-white px-2.5 py-1" style="font-size: 0.72rem;">Bị từ chối kiểm duyệt</span>
+                        </h6>
+                        @if (!string.IsNullOrEmpty(rejectionTime))
+                        {
+                            <span class="text-muted small" style="font-size: 0.76rem;">
+                                <i class="bi bi-clock me-1"></i>Thời gian: @rejectionTime
+                            </span>
+                        }
+                    </div>
+
+                    <div class="p-3 my-2.5 rounded-3 bg-white border border-danger-subtle shadow-xs">
+                        <div class="d-flex align-items-center gap-2 text-danger fw-bold small mb-1.5">
+                            <i class="bi bi-chat-quote-fill"></i> Lý do từ chối từ Quản trị viên:
+                        </div>
+                        <div class="text-dark fw-medium ps-3 border-start border-3 border-danger" style="font-size: 0.92rem; line-height: 1.55;">
+                            @(string.IsNullOrWhiteSpace(rejectionReason) ? "Thông tin phương tiện hoặc hình ảnh giấy tờ pháp lý chưa đạt tiêu chuẩn kiểm duyệt. Vui lòng kiểm tra lại ảnh chụp cà vẹt, sổ đăng kiểm và bảo hiểm xe." : rejectionReason)
+                        </div>
+                    </div>
+
+                    <p class="text-secondary small mb-3" style="line-height: 1.45;">
+                        Bạn có thể bấm <strong>Chỉnh sửa & Cập nhật lại hồ sơ</strong> bên dưới để cập nhật lại thông tin xe hoặc tải lại hình ảnh giấy tờ pháp lý rõ nét hơn. Sau khi lưu, hồ sơ sẽ được tự động gửi lại để Ban Quản trị ReCar thẩm định.
+                    </p>
+
+                    <div class="d-flex flex-wrap gap-2 pt-1">
+                        <a href="/CarOwner/Cars/Edit/@Model.CarId" class="btn btn-sm btn-danger rounded-pill px-3.5 py-1.5 fw-semibold shadow-xs">
+                            <i class="bi bi-pencil-square me-1.5"></i>Chỉnh sửa & Cập nhật lại hồ sơ
+                        </a>
+                        <a href="/CarOwner/Cars" class="btn btn-sm btn-light border rounded-pill px-3 py-1.5 text-secondary">
+                            <i class="bi bi-arrow-left me-1.5"></i>Quay lại danh sách xe
+                        </a>
+                    </div>
+                </div>
             </div>
         </div>
     }
@@ -243,6 +336,15 @@
                     {
                         <span class="text-muted small fst-italic">Chưa cập nhật tiện nghi cho xe này. Bấm Chỉnh sửa xe để chọn tiện nghi.</span>
                     }
+                </div>
+
+                <div class="mt-4 pt-3 border-top">
+                    <h4 class="h6 fw-bold text-dark mb-2 d-flex align-items-center gap-2">
+                        <i class="bi bi-chat-left-quote-fill text-primary"></i> Mô tả & Nội quy của xe
+                    </h4>
+                    <div class="p-3 bg-light rounded-3 border text-secondary small" style="line-height: 1.6; white-space: pre-line;">
+                        @(string.IsNullOrWhiteSpace(carPolicy.ExtraDescription) ? "Bạn chưa nhập mô tả hoặc nội quy riêng cho xe này. Bấm nút Chỉnh sửa xe ở trên để bổ sung." : carPolicy.ExtraDescription)
+                    </div>
                 </div>
             </div>
         </div>

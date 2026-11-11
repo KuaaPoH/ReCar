@@ -1,0 +1,218 @@
+@model CarRental.Models.CarBrand
+@{
+    ViewData["Title"] = "Chỉnh sửa hãng xe";
+    Layout = "~/Areas/Admin/Views/Shared/_Layout.cshtml";
+    int carCount = ViewBag.CarCount != null ? (int)ViewBag.CarCount : 0;
+}
+
+<div class="container-fluid px-0" style="max-width: 1050px;">
+    <!-- Header chuẩn Admin ReCar -->
+    <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4">
+        <div>
+            <div class="d-flex align-items-center gap-2">
+                <a asp-action="Index" class="btn btn-light btn-sm rounded-circle p-2 text-muted me-1 shadow-xs" title="Quay lại danh sách">
+                    <i class="bi bi-arrow-left"></i>
+                </a>
+                <h1 class="h3 fw-bold mb-0 text-dark tracking-tight">Chỉnh sửa hãng xe</h1>
+                <span class="badge bg-light text-muted border font-monospace">#ID-@Model.BrandId</span>
+            </div>
+            <p class="text-muted small mb-0 mt-1 ms-5">Cập nhật thông tin thương hiệu, xuất xứ và thứ tự ưu tiên của hãng xe <strong>@Model.BrandName</strong>.</p>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <button type="button" class="btn btn-outline-danger btn-sm rounded-pill px-3 py-1.5 fw-semibold" 
+                    onclick="confirmDeleteBrand(@Model.BrandId, '@Html.Raw(Model.BrandName?.Replace("'", "\\'"))', @carCount)">
+                <i class="bi bi-trash3 me-1"></i> Xóa hãng xe
+            </button>
+            <a asp-action="Index" class="btn btn-outline-secondary btn-sm rounded-pill px-3.5 py-1.5 fw-semibold">
+                <i class="bi bi-arrow-left me-1"></i> Quay lại
+            </a>
+        </div>
+    </div>
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show rounded-3 small fw-medium mb-3 shadow-xs" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-1.5"></i> @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <form asp-action="Edit" method="post" id="editCarBrandForm">
+        @Html.AntiForgeryToken()
+        <input type="hidden" asp-for="BrandId" />
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger rounded-3 small mb-3"></div>
+
+        <div class="row g-4">
+            <!-- Cột trái: Thông tin chính của hãng xe -->
+            <div class="col-lg-7">
+                <div class="recar-panel p-4 mb-4 shadow-sm border rounded-4 bg-white">
+                    <div class="d-flex align-items-center justify-content-between pb-3 mb-3 border-bottom">
+                        <h5 class="fw-bold text-dark mb-0">
+                            <i class="bi bi-tag-fill text-primary me-2"></i> Thông tin thương hiệu
+                        </h5>
+                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-2.5 py-1 small">
+                            Cập nhật hồ sơ
+                        </span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="BrandName" class="form-label fw-semibold small text-dark">
+                            Tên hãng xe / Thương hiệu <span class="text-danger">*</span>
+                        </label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light text-secondary border-end-0 rounded-start-3">
+                                <i class="bi bi-patch-check"></i>
+                            </span>
+                            <input asp-for="BrandName" class="form-control border-start-0 rounded-end-3" placeholder="VD: Toyota, Mazda, VinFast..." required />
+                        </div>
+                        <span asp-validation-for="BrandName" class="text-danger small"></span>
+                        <div class="form-text small text-muted">Lưu ý: Nếu bạn đổi tên thương hiệu, toàn bộ các xe đang thuộc hãng này sẽ tự động cập nhật theo tên mới.</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Country" class="form-label fw-semibold small text-dark">Quốc gia xuất xứ / Trụ sở chính</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light text-secondary border-end-0 rounded-start-3">
+                                <i class="bi bi-geo-alt"></i>
+                            </span>
+                            <input asp-for="Country" class="form-control border-start-0 rounded-end-3" placeholder="VD: Nhật Bản, Hàn Quốc, Việt Nam..." id="countryInput" />
+                        </div>
+                        <span asp-validation-for="Country" class="text-danger small"></span>
+                        <!-- Gợi ý nhanh các quốc gia phổ biến -->
+                        <div class="d-flex flex-wrap gap-1.5 mt-2">
+                            <span class="small text-muted me-1">Gợi ý nhanh:</span>
+                            <button type="button" class="badge bg-light text-dark border border-dashed rounded-pill text-decoration-none py-1 px-2 btn-quick-country" onclick="selectCountry('Việt Nam')">Việt Nam</button>
+                            <button type="button" class="badge bg-light text-dark border border-dashed rounded-pill text-decoration-none py-1 px-2 btn-quick-country" onclick="selectCountry('Nhật Bản')">Nhật Bản</button>
+                            <button type="button" class="badge bg-light text-dark border border-dashed rounded-pill text-decoration-none py-1 px-2 btn-quick-country" onclick="selectCountry('Hàn Quốc')">Hàn Quốc</button>
+                            <button type="button" class="badge bg-light text-dark border border-dashed rounded-pill text-decoration-none py-1 px-2 btn-quick-country" onclick="selectCountry('Đức')">Đức</button>
+                            <button type="button" class="badge bg-light text-dark border border-dashed rounded-pill text-decoration-none py-1 px-2 btn-quick-country" onclick="selectCountry('Mỹ')">Mỹ</button>
+                            <button type="button" class="badge bg-light text-dark border border-dashed rounded-pill text-decoration-none py-1 px-2 btn-quick-country" onclick="selectCountry('Anh')">Anh</button>
+                            <button type="button" class="badge bg-light text-dark border border-dashed rounded-pill text-decoration-none py-1 px-2 btn-quick-country" onclick="selectCountry('Pháp')">Pháp</button>
+                            <button type="button" class="badge bg-light text-dark border border-dashed rounded-pill text-decoration-none py-1 px-2 btn-quick-country" onclick="selectCountry('Trung Quốc')">Trung Quốc</button>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="DisplayOrder" class="form-label fw-semibold small text-dark">Thứ tự ưu tiên hiển thị</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light text-secondary border-end-0 rounded-start-3">
+                                <i class="bi bi-sort-numeric-down"></i>
+                            </span>
+                            <input asp-for="DisplayOrder" type="number" min="0" max="999" class="form-control border-start-0 rounded-end-3" />
+                        </div>
+                        <span asp-validation-for="DisplayOrder" class="text-danger small"></span>
+                    </div>
+
+                    <!-- Box thống kê xe sàn -->
+                    <div class="p-3 bg-light rounded-3 border mt-4">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="rounded-circle bg-primary bg-opacity-10 text-primary p-2 d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+                                    <i class="bi bi-car-front"></i>
+                                </div>
+                                <div>
+                                    <div class="fw-semibold small text-dark">Xe mang thương hiệu @Model.BrandName</div>
+                                    <div class="text-muted" style="font-size: 0.75rem;">Số lượng xe của chủ xe đang lưu hành trên sàn</div>
+                                </div>
+                            </div>
+                            <a asp-area="Admin" asp-controller="Cars" asp-action="Index" class="badge bg-primary text-white text-decoration-none rounded-pill px-3 py-1.5 fw-semibold shadow-xs">
+                                @carCount xe trên sàn <i class="bi bi-arrow-right ms-1"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cột phải: Trạng thái & Hành động -->
+            <div class="col-lg-5">
+                <div class="recar-panel p-4 mb-4 shadow-sm border rounded-4 bg-white">
+                    <h6 class="fw-bold text-dark mb-3">
+                        <i class="bi bi-sliders text-success me-2"></i> Trạng thái & Hành động
+                    </h6>
+
+                    <div class="form-check form-switch mb-3 p-3 bg-light rounded-3 border">
+                        <input class="form-check-input ms-0 me-2" type="checkbox" asp-for="IsActive" id="switchBrandActive" />
+                        <label class="form-check-label fw-semibold small text-dark" for="switchBrandActive">
+                            Kích hoạt hiển thị công khai
+                        </label>
+                        <div class="form-text small text-muted mt-1">Khi tắt, hãng xe này sẽ tạm ẩn khỏi bộ lọc tìm kiếm và form đăng ký xe.</div>
+                    </div>
+
+                    <div class="p-3 bg-light rounded-3 small text-muted mb-4 border">
+                        <div class="d-flex justify-content-between mb-1.5">
+                            <span>Mã thương hiệu:</span>
+                            <strong class="text-dark font-monospace">#BRAND-@Model.BrandId</strong>
+                        </div>
+                        <div class="d-flex justify-content-between mb-1.5">
+                            <span>Đội xe trực thuộc:</span>
+                            <span class="text-dark fw-semibold">@carCount xe</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span>Trạng thái sàn:</span>
+                            <span class="badge @(Model.IsActive ? "bg-success-subtle text-success border border-success-subtle" : "bg-light text-muted border") rounded-pill px-2 py-0.5">
+                                @(Model.IsActive ? "Đang bật" : "Tạm ẩn")
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="d-flex flex-column gap-2">
+                        <button type="submit" class="btn btn-primary w-100 rounded-pill py-2.5 fw-bold shadow-sm" style="background-color: var(--recar-primary); border: none;">
+                            <i class="bi bi-check2-circle me-1.5"></i> Cập nhật thay đổi
+                        </button>
+                        <a asp-action="Index" class="btn btn-light w-100 rounded-pill py-2 text-muted fw-semibold border">
+                            Hủy bỏ & Quay lại
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+
+    <!-- Form ẩn xóa hãng xe -->
+    <form asp-action="Delete" asp-route-id="@Model.BrandId" method="post" id="deleteBrandForm-@Model.BrandId" class="d-none">
+        @Html.AntiForgeryToken()
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        function selectCountry(country) {
+            document.getElementById('countryInput').value = country;
+        }
+
+        function confirmDeleteBrand(id, name, carCount) {
+            if (carCount > 0) {
+                Swal.fire({
+                    title: 'Không thể xóa hãng xe!',
+                    html: 'Hãng xe <strong>"' + name + '"</strong> hiện đang có <strong>' + carCount + ' xe</strong> trên hệ thống.<br><br><span class="text-muted small">Vui lòng chuyển các xe này sang thương hiệu khác hoặc xóa các xe liên quan trước.</span>',
+                    icon: 'warning',
+                    confirmButtonColor: '#0284c7',
+                    confirmButtonText: 'Đã hiểu'
+                });
+                return;
+            }
+
+            Swal.fire({
+                title: 'Xóa hãng xe này?',
+                html: 'Bạn có chắc chắn muốn xóa hãng xe <strong>"' + name + '"</strong> khỏi hệ thống?<br><span class="text-danger small">Hành động này không thể hoàn tác.</span>',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: '<i class="bi bi-trash3 me-1"></i> Đồng ý xóa',
+                cancelButtonText: 'Hủy bỏ',
+                customClass: {
+                    confirmButton: 'rounded-pill px-3 py-2 fw-semibold',
+                    cancelButton: 'rounded-pill px-3 py-2'
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    var form = document.getElementById('deleteBrandForm-' + id);
+                    if (form) form.submit();
+                }
+            });
+        }
+    </script>
+}
+

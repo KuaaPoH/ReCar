@@ -434,6 +434,175 @@ static void EnsureAllTablesExist(DbRenalCarContext context, ILogger logger)
             logger.LogWarning("Kiểm tra/cập nhật schema Snapshot carrentalorders: {msg}", colEx.Message);
         }
 
+        // Bổ sung an toàn các cột Views, IsFeatured, Badge cho bảng news và seed tin tức chuẩn
+        try
+        {
+            var conn = context.Database.GetDbConnection();
+            bool needClose = false;
+            if (conn.State != System.Data.ConnectionState.Open)
+            {
+                conn.Open();
+                needClose = true;
+            }
+
+            try
+            {
+                using var cmd = conn.CreateCommand();
+                cmd.CommandText = "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'news' AND COLUMN_NAME IN ('Views', 'IsFeatured', 'Badge');";
+                var existingCols = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                using (var reader = cmd.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        existingCols.Add(reader.GetString(0));
+                    }
+                }
+
+                if (!existingCols.Contains("Views"))
+                {
+                    using var alterCmd = conn.CreateCommand();
+                    alterCmd.CommandText = "ALTER TABLE `news` ADD COLUMN `Views` INT NOT NULL DEFAULT 0;";
+                    alterCmd.ExecuteNonQuery();
+                }
+
+                if (!existingCols.Contains("IsFeatured"))
+                {
+                    using var alterCmd = conn.CreateCommand();
+                    alterCmd.CommandText = "ALTER TABLE `news` ADD COLUMN `IsFeatured` TINYINT(1) NOT NULL DEFAULT 0;";
+                    alterCmd.ExecuteNonQuery();
+                }
+
+                if (!existingCols.Contains("Badge"))
+                {
+                    using var alterCmd = conn.CreateCommand();
+                    alterCmd.CommandText = "ALTER TABLE `news` ADD COLUMN `Badge` VARCHAR(50) NULL;";
+                    alterCmd.ExecuteNonQuery();
+                }
+            }
+            finally
+            {
+                if (needClose && conn.State == System.Data.ConnectionState.Open) conn.Close();
+            }
+
+            // Seed các bài tin tức mẫu vào database nếu chưa có để đảm bảo cả Admin và Khách hàng đồng bộ 5 bài
+            try
+            {
+                var curatedList = CarRental.Controllers.NewsController.GetCuratedNews();
+                foreach (var c in curatedList)
+                {
+                    if (!context.News.Any(n => n.Alias == c.Alias || n.Title == c.Title))
+                    {
+                        var newNews = new News
+                        {
+                            Title = c.Title,
+                            Alias = c.Alias,
+                            Description = c.Description,
+                            Detail = c.Detail,
+                            Image = c.Image,
+                            CreatedBy = c.CreatedBy,
+                            CreatedDate = c.CreatedDate,
+                            SeoKeywords = c.SeoKeywords,
+                            IsActive = true
+                        };
+
+                        if (c.Alias.Contains("da-lat")) { newNews.Views = 1520; newNews.IsFeatured = true; newNews.Badge = "Nổi bật"; }
+                        else if (c.Alias.Contains("vinfast")) { newNews.Views = 2340; newNews.IsFeatured = true; newNews.Badge = "Xu hướng"; }
+                        else { newNews.Views = 860; newNews.IsFeatured = false; newNews.Badge = "Mới nhất"; }
+
+                        context.News.Add(newNews);
+                    }
+                }
+
+                // Cập nhật số lượt xem và nhãn mẫu cho các bài có sẵn nếu Views còn bằng 0 hoặc có emoji
+                var existingNewsList = context.News.ToList();
+                foreach (var item in existingNewsList)
+                {
+                    if (item.Views == null || item.Views == 0)
+                    {
+                        item.Views = item.Title.Contains("Porsche") ? 3120 : (item.Title.Contains("Đà Lạt") ? 1520 : 680);
+                    }
+                    if (!string.IsNullOrEmpty(item.Badge))
+                    {
+                        item.Badge = item.Badge.Replace("🔥 ", "").Replace("⭐ ", "").Replace("⚡ ", "").Trim();
+                    }
+                }
+
+                // Cập nhật schema cho bảng Blog: Views, IsFeatured, Badge
+                try
+                {
+                    var blogConn = context.Database.GetDbConnection();
+                    bool blogNeedClose = false;
+                    if (blogConn.State != System.Data.ConnectionState.Open)
+                    {
+                        blogConn.Open();
+                        blogNeedClose = true;
+                    }
+
+                    var blogCols = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                    using (var cmd = blogConn.CreateCommand())
+                    {
+                        cmd.CommandText = "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME IN ('Blog', 'blogs', 'blog');";
+                        using var reader = cmd.ExecuteReader();
+                        while (reader.Read())
+                        {
+                            blogCols.Add(reader.GetString(0));
+                        }
+                    }
+
+                    if (!blogCols.Contains("Views"))
+                    {
+                        using var alterCmd = blogConn.CreateCommand();
+                        alterCmd.CommandText = "ALTER TABLE `Blog` ADD COLUMN `Views` INT NOT NULL DEFAULT 0;";
+                        alterCmd.ExecuteNonQuery();
+                    }
+
+                    if (!blogCols.Contains("IsFeatured"))
+                    {
+                        using var alterCmd = blogConn.CreateCommand();
+                        alterCmd.CommandText = "ALTER TABLE `Blog` ADD COLUMN `IsFeatured` TINYINT(1) NOT NULL DEFAULT 0;";
+                        alterCmd.ExecuteNonQuery();
+                    }
+
+                    if (!blogCols.Contains("Badge"))
+                    {
+                        using var alterCmd = blogConn.CreateCommand();
+                        alterCmd.CommandText = "ALTER TABLE `Blog` ADD COLUMN `Badge` VARCHAR(50) NULL;";
+                        alterCmd.ExecuteNonQuery();
+                    }
+
+                    if (blogNeedClose && blogConn.State == System.Data.ConnectionState.Open) blogConn.Close();
+
+                    // Seed mẫu lượt xem cho các bài Blog nếu Views còn 0
+                    var existingBlogList = context.Blogs.ToList();
+                    foreach (var b in existingBlogList)
+                    {
+                        if (b.Views == null || b.Views == 0)
+                        {
+                            b.Views = b.Title.Contains("Đà Lạt") ? 2890 : (b.Title.Contains("giấy tờ") ? 1750 : 920);
+                        }
+                        if (!string.IsNullOrEmpty(b.Badge))
+                        {
+                            b.Badge = b.Badge.Replace("🔥 ", "").Replace("⭐ ", "").Replace("⚡ ", "").Trim();
+                        }
+                    }
+                }
+                catch (Exception blogSchemaEx)
+                {
+                    logger.LogWarning("Kiểm tra/cập nhật schema Blog: {msg}", blogSchemaEx.Message);
+                }
+
+                context.SaveChanges();
+            }
+            catch (Exception seedNewsEx)
+            {
+                logger.LogWarning(seedNewsEx, "Lỗi seed bài viết tin tức: {msg}", seedNewsEx.Message);
+            }
+        }
+        catch (Exception newsEx)
+        {
+            logger.LogWarning("Kiểm tra/cập nhật schema news: {msg}", newsEx.Message);
+        }
+
         // Tự động Seed cấu hình hệ thống mặc định nếu bảng system_settings chưa có dữ liệu
         try
         {
@@ -538,6 +707,77 @@ static void EnsureAllTablesExist(DbRenalCarContext context, ILogger logger)
             catch (Exception osEx)
             {
                 logger.LogWarning(osEx, "Could not ensure OrderStatus 5: {Message}", osEx.Message);
+            }
+
+            // Đảm bảo Menu "Quản lý hãng xe" luôn tồn tại trong phân hệ Admin
+            try
+            {
+                var brandMenuExists = context.Menus.Any(m => m.Subsystem == "Admin" && (m.Url == "/Admin/CarBrands" || m.Alias == "Admin/CarBrands"));
+                if (!brandMenuExists)
+                {
+                    var carGroup = context.Menus.FirstOrDefault(m => m.Subsystem == "Admin" && (m.ParentId == null || m.ParentId == 0) && (m.Title.Contains("XE") || m.Title.Contains("ĐƠN HÀNG")));
+                    int? parentId = carGroup?.MenuId;
+
+                    var carTypeMenu = context.Menus.FirstOrDefault(m => m.Subsystem == "Admin" && (m.Url == "/Admin/CarTypes" || m.Alias == "Admin/CarTypes"));
+                    int pos = carTypeMenu != null ? (carTypeMenu.Position ?? 4) + 1 : 5;
+
+                    context.Menus.Add(new Menu
+                    {
+                        Title = "Quản lý hãng xe",
+                        Alias = "Admin/CarBrands",
+                        Url = "/Admin/CarBrands",
+                        Icon = "bi-patch-check",
+                        Subsystem = "Admin",
+                        ParentId = parentId,
+                        Levels = parentId.HasValue ? 2 : 1,
+                        Position = pos,
+                        IsActive = true
+                    });
+                    context.SaveChanges();
+                    logger.LogInformation("Menu 'Quản lý hãng xe' seeded successfully into Admin subsystem.");
+                }
+            }
+            catch (Exception menuEx)
+            {
+                logger.LogWarning(menuEx, "Could not seed CarBrands menu: {Message}", menuEx.Message);
+            }
+
+            // Đảm bảo Menu "Quản lý tin tức" và chuẩn hóa "Quản lý cẩm nang" luôn tồn tại trong phân hệ Admin
+            try
+            {
+                var blogMenu = context.Menus.FirstOrDefault(m => m.Subsystem == "Admin" && (m.Url == "/Admin/Blogs" || m.Alias == "Admin/Blogs" || m.Title.Contains("Bài viết")));
+                if (blogMenu != null)
+                {
+                    blogMenu.Title = "Quản lý cẩm nang";
+                    blogMenu.Icon = "bi-journal-bookmark";
+                    blogMenu.Url = "/Admin/Blogs";
+                }
+
+                var newsMenuExists = context.Menus.Any(m => m.Subsystem == "Admin" && (m.Url == "/Admin/News" || m.Alias == "Admin/News"));
+                if (!newsMenuExists)
+                {
+                    int? parentId = blogMenu?.ParentId;
+                    int pos = blogMenu != null ? (blogMenu.Position ?? 6) + 1 : 7;
+
+                    context.Menus.Add(new Menu
+                    {
+                        Title = "Quản lý tin tức",
+                        Alias = "Admin/News",
+                        Url = "/Admin/News",
+                        Icon = "bi-newspaper",
+                        Subsystem = "Admin",
+                        ParentId = parentId,
+                        Levels = parentId.HasValue ? 2 : 1,
+                        Position = pos,
+                        IsActive = true
+                    });
+                    logger.LogInformation("Menu 'Quản lý tin tức' seeded successfully into Admin subsystem.");
+                }
+                context.SaveChanges();
+            }
+            catch (Exception newsMenuEx)
+            {
+                logger.LogWarning(newsMenuEx, "Could not seed News menu: {Message}", newsMenuEx.Message);
             }
         }
         catch (Exception amenEx)

@@ -19,6 +19,7 @@ namespace CarRental.Controllers
         }
 
         [Route("/blog/{alias}-{id}.html")]
+        [Route("/Blog/Details/{id:int}")]
         public async Task<IActionResult> Details(int? id)
         {
             if (id == null || _context.Cars == null)
@@ -39,6 +40,17 @@ namespace CarRental.Controllers
             {
                 return NotFound();
             }
+
+            // Tự động tăng lượt xem
+            try
+            {
+                if (blog.BlogId > 0 && await _context.Blogs.AnyAsync(b => b.BlogId == blog.BlogId))
+                {
+                    blog.Views = (blog.Views ?? 0) + 1;
+                    await _context.SaveChangesAsync();
+                }
+            }
+            catch { }
 
             ViewBag.blogComment = await _context.BlogComments
                 .Where(i => i.BlogId == id && (i.IsActive == null || i.IsActive == true))

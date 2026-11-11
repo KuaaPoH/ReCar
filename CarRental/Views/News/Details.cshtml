@@ -1,4 +1,4 @@
-﻿@model CarRental.Models.News
+@model CarRental.Models.News
 @{
     ViewData["Title"] = (Model.Title ?? "Chi tiết bản tin") + " – Tin tức ReCar";
     Layout = "~/Views/Shared/_Layout.cshtml";
@@ -42,7 +42,18 @@
                         <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-1 fw-semibold">
                             <i class="bi bi-newspaper me-1"></i> @categoryName
                         </span>
+                        @{
+                            string detBadge = !string.IsNullOrEmpty(Model.Badge) ? Model.Badge.Trim() : "";
+                        }
+                        @if (!string.IsNullOrEmpty(detBadge))
+                        {
+                            <span class="badge bg-danger text-white rounded-pill px-3 py-1 fw-semibold shadow-sm">
+                                @detBadge
+                            </span>
+                        }
                         <span class="text-muted small"><i class="bi bi-calendar3 me-1"></i>@publishDate</span>
+                        <span class="text-muted small">·</span>
+                        <span class="text-muted small"><i class="bi bi-eye text-primary me-1"></i>@((Model.Views ?? 0).ToString("N0")) lượt xem</span>
                         <span class="text-muted small">·</span>
                         <span class="text-muted small"><i class="bi bi-clock me-1"></i>5 phút đọc</span>
                     </div>

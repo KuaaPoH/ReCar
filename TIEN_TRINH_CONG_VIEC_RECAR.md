@@ -1584,3 +1584,371 @@ Nhằm giúp đồ án tạo được ấn tượng mạnh mẽ với hội đ�
 - Đã chuẩn hóa chuỗi `Details` và đồng bộ 6 tiện nghi vào bảng `car_amenities` cho xe kiểm thử `abc` (CarId = 26).
 - Biên dịch toàn bộ mã nguồn C#: **`Build succeeded. 0 Error(s)`**.
 - Khởi động lại ứng dụng web CarRental trên cổng `http://0.0.0.0:5163`, kiểm tra HTTP status 200 OK.
+
+---
+
+## 40. CẬP NHẬT TIẾN TRÌNH: ĐỒNG BỘ NÚT THAO TÁC QUẢN LÝ KIỂU XE & TÍCH HỢP UPLOAD HÌNH ẢNH TỪ THƯ VIỆN MÁY TÍNH (NGÀY 10/11/2026)
+
+### 40.1. Đồng Bộ Nút Thao Tác Chuẩn Admin ReCar ([`Admin/CarTypes/Index.cshtml`](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Views/CarTypes/Index.cshtml))
+- **Vấn đề trước đây:** Bảng danh sách kiểu xe hiển thị 2 nút phẳng chữ "Sửa" và "Xóa" không đồng nhất với phong cách chung của các bảng khác trong Admin.
+- **Giải pháp hoàn thiện:**
+  1. Thay thế bằng tổ hợp thao tác chuẩn SaaS Admin:
+     - Nút **Sửa nhanh** dạng icon tròn (`bi-pencil`) giúp quản trị viên 1-click vào trang chỉnh sửa ngay lập tức.
+     - Nút **Menu 3 chấm dropdown** (`bi-three-dots-vertical`) mở rộng danh mục tùy chọn:
+       - *Chỉnh sửa kiểu xe*: Chuyển hướng tới trang cập nhật thông tin.
+       - *Xem đội xe*: Điều hướng sang danh sách xe thuộc kiểu xe này.
+       - Đường kẻ phân cách và nút *Xóa kiểu xe* với màu đỏ cảnh báo.
+  2. Tích hợp popup xác nhận bằng SweetAlert2 thông minh:
+     - Tự động kiểm tra số lượng xe đang liên kết (`carCount`). Nếu đang có xe thuộc dòng này, hiển thị modal cảnh báo vàng chặn không cho xóa trực tiếp.
+     - Nếu không có xe nào liên kết, hiển thị modal xác nhận xóa chuẩn ReCar (nút đỏ nguy hiểm, có thể hủy bỏ).
+  3. Bổ sung cơ chế fallback `onerror` cho hình ảnh kiểu xe, chống vỡ layout khi link ảnh bị lỗi.
+
+### 40.2. Tích Hợp Upload Hình Ảnh Từ Thư Viện Máy Tính ([`Create.cshtml`](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Views/CarTypes/Create.cshtml) & [`Edit.cshtml`](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Views/CarTypes/Edit.cshtml))
+- **Vấn đề trước đây:** Form thêm và sửa kiểu xe chỉ có ô input text bắt dán URL/link ảnh, không hỗ trợ người dùng tải file ảnh từ máy tính.
+- **Giải pháp hoàn thiện:**
+  1. **Nâng cấp Backend ([`CarTypesController.cs`](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Controllers/CarTypesController.cs)):**
+     - Inject `IWebHostEnvironment` vào Controller.
+     - Cập nhật cả 2 action `Create` và `Edit` nhận tham số `IFormFile? imageFile`.
+     - Viết hàm `ProcessUploadedImageAsync`:
+       - Tự động tạo thư mục `wwwroot/images/cartypes` nếu chưa có.
+       - Kiểm tra định dạng hợp lệ (`.jpg`, `.jpeg`, `.png`, `.webp`, `.gif`).
+       - Đổi tên file duy nhất chống trùng lặp theo timestamp và GUID: `cartype_{timestamp}_{hash}.ext`.
+       - Lưu file và gán đường dẫn web tương đối `/images/cartypes/{fileName}` vào trường `Image`.
+       - Tại Action `Edit`: Giữ nguyên ảnh hiện tại nếu người dùng không chọn tải ảnh mới từ máy và không dán link mới.
+  2. **Nâng cấp Giao diện Thêm mới & Chỉnh sửa ([`Create.cshtml`](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Views/CarTypes/Create.cshtml) & [`Edit.cshtml`](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Views/CarTypes/Edit.cshtml)):**
+     - Thêm `enctype="multipart/form-data"` cho `<form>`.
+     - Thiết kế card tải ảnh chuyên nghiệp với nút **"Chọn ảnh từ thư viện máy"** (`bi-folder2-open`).
+     - Khung xem trước trực tiếp (Live Image Preview) thời gian thực bằng JavaScript `FileReader`.
+     - Kiểm tra trực tiếp tại Client: Cảnh báo file quá 5MB hoặc sai định dạng bằng SweetAlert2.
+     - Tại trang `Edit`: Hiển thị sẵn ảnh hiện tại kèm badge "Ảnh hiện tại". Khi chọn file mới từ máy sẽ tự động chuyển sang xem trước ảnh mới kèm badge "Ảnh mới chọn từ máy" và nút "Khôi phục ảnh cũ".
+     - Giữ tùy chọn dán link URL dạng Accordion thu gọn dự phòng cho quản trị viên muốn dán link CDN ngoài.
+
+### 40.3. Tái Cấu Trúc Toàn Diện Giao Diện Thêm/Sửa Kiểu Xe Theo Layout 2 Cột Chuẩn Admin ReCar
+- **Vấn đề được phản hồi:** Trang chỉnh sửa trước đó bị mất cân đối (1 cột dài hẹp 800px), thiếu các thành phần đặc trưng của Admin SaaS và không đồng nhất với các màn hình khác như `Admin/Blogs/Edit.cshtml` hay `Admin/UserManagement/Edit.cshtml`.
+- **Giải pháp hoàn thiện:**
+  1. **Đồng bộ Header chuẩn ReCar:**
+     - Nút quay lại dạng icon tròn bo mềm (`bi-arrow-left`).
+     - Badge mã định danh kiểu font-monospace `#ID-@Model.TypeId`.
+     - Cụm nút thao tác trên Topbar: Nút Xóa kiểu xe bằng SweetAlert2 (`btn-outline-danger`) và Nút Quay lại (`btn-outline-secondary`).
+  2. **Kiến trúc Layout 2 cột (Two-Column SaaS Layout - 1100px):**
+     - **Cột trái (col-lg-7):** Card `recar-panel` chứa form nhập liệu chính: Tên kiểu xe/phân khúc, Số chỗ ngồi, Hãng đại diện kèm icon input-group, cùng khối thống kê tóm tắt số lượng xe đang thuộc phân khúc này trên sàn.
+     - **Cột phải (col-lg-5):**
+       - **Card Trạng thái & Hành động (Actions Card):** Nút *Lưu thay đổi* màu xanh ReCar Blue to rõ (`w-100 py-2.5 fw-bold`), Nút *Hủy bỏ & Quay lại*, cùng hộp tóm tắt thông số mã phân khúc, trạng thái sàn và số xe trực thuộc.
+       - **Card Hình ảnh minh họa (Media Card):** Khung xem trước Live Preview bo tròn `rounded-4 shadow-sm` tỷ lệ chuẩn xe, nút tải file từ máy tính, badge trạng thái ảnh động và ô nhập URL dự phòng.
+  3. **Đồng bộ hóa 100% sang cả Trang Thêm mới ([`Create.cshtml`](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Views/CarTypes/Create.cshtml)):**
+     - Cả 2 trang Thêm mới và Chỉnh sửa hiện đã sở hữu layout 2 cột đồng nhất, sang trọng và chuẩn mực.
+
+### 40.4. Kết Quả Kiểm Thử & Biên Dịch
+- Biên dịch mã nguồn C#: **`Build succeeded. 0 Warning(s). 0 Error(s)`**.
+- Khởi động ứng dụng web thành công tại `http://0.0.0.0:5163`.
+
+---
+
+## 41. CẬP NHẬT TIẾN TRÌNH: ĐỒNG BỘ HIỂN THỊ KIỂU XE MỚI RA TRANG CHỦ, BỘ LỌC THUÊ XE & XÁC THỰC PHÂN HỆ CHỦ XE (NGÀY 11/11/2026)
+
+### 41.1. Khắc Phục Giới Hạn Hiển Thị Kiểu Xe Trên Trang Chủ ([`Views/Home/Index.cshtml`](file:///d:/CarRental_TTCN/CarRental/Views/Home/Index.cshtml))
+- **Nguyên nhân:** Trước đó vòng lặp hiển thị danh mục dòng xe bị giới hạn cứng `carTypes.Take(5)`. Do đó, bất kỳ kiểu xe nào từ thứ 6 trở đi khi Admin thêm mới đều bị ẩn hoàn toàn khỏi Trang chủ.
+- **Khắc phục:**
+  - Bỏ giới hạn `.Take(5)` để hiển thị đầy đủ toàn bộ danh mục xe từ CSDL.
+  - Nâng cấp lưới hiển thị co giãn linh hoạt: `row-cols-2 row-cols-sm-3 row-cols-md-4 row-cols-lg-5 row-cols-xl-6 g-3`, tự động thích ứng với số lượng danh mục.
+  - Bổ sung cơ chế fallback `onerror` cho ảnh kiểu xe, chống vỡ giao diện nếu link ảnh trống hoặc bị lỗi.
+
+### 41.2. Động Hóa Bộ Lọc Dòng Xe Trên Trang Thuê Xe ([`Controllers/ProductController.cs`](file:///d:/CarRental_TTCN/CarRental/Controllers/ProductController.cs) & [`Views/Product/Index.cshtml`](file:///d:/CarRental_TTCN/CarRental/Views/Product/Index.cshtml))
+- **Nguyên nhân:**
+  1. Trong `ProductController.Index()` trước đó chưa nạp `ViewBag.CarTypes`.
+  2. Trong `Views/Product/Index.cshtml`, 5 chip dòng xe đang bị hardcode cứng với `data-type="1"` đến `data-type="5"`, không render từ cơ sở dữ liệu. Khi khách chọn phân khúc xe mới từ Trang chủ hoặc lọc tại trang tìm kiếm, hệ thống không tìm thấy chip tương ứng để kích hoạt.
+- **Khắc phục:**
+  - Trong `ProductController.cs`: Nạp đầy đủ danh sách `ViewBag.CarTypes = _context.CarTypes.OrderBy(t => t.TypeId).ToList();`.
+  - Trong `Product/Index.cshtml`: Thay thế 5 chip hardcode bằng vòng lặp `@foreach (var ct in carTypes)`, gán động `data-type="@ct.TypeId"` và tên hiển thị `@ct.CarTypeName`.
+  - Tích hợp liên kết 2 chiều: Khi khách hàng bấm vào danh mục xe ở Trang chủ (`/Product?TypeId=...`), trang danh sách xe tự động bắt `TypeId`, làm sáng chip phân khúc tương ứng và kích hoạt AJAX lọc xe ngay lập tức.
+
+### 41.3. Xác Thực Kiểm Tra Phân Hệ Đối Tác Chủ Xe ([`Areas/CarOwner`](file:///d:/CarRental_TTCN/CarRental/Areas/CarOwner))
+- **Kết quả kiểm tra:**
+  - Tại Form Thêm xe ([`CarOwner/Cars/Create.cshtml`](file:///d:/CarRental_TTCN/CarRental/Areas/CarOwner/Views/Cars/Create.cshtml)) và Form Chỉnh sửa xe ([`CarOwner/Cars/Edit.cshtml`](file:///d:/CarRental_TTCN/CarRental/Areas/CarOwner/Views/Cars/Edit.cshtml)): Dropdown phân khúc (`selectCarType`) được nạp trực tiếp và động 100% từ `_context.CarTypes` thông qua `ViewBag.CarTypes`.
+  - **Khẳng định:** Mọi kiểu xe mới được Admin tạo lập sẽ **xuất hiện ngay lập tức** trong danh sách lựa chọn phân khúc khi Chủ xe đăng ký xe mới hoặc sửa xe mà không cần cấu hình thêm.
+
+### 41.4. Kết Quả Kiểm Thử
+- Dự án biên dịch thành công: **`Build succeeded. 0 Error(s)`**.
+- Khởi động ứng dụng web trên cổng `http://0.0.0.0:5163`.
+
+---
+
+## 42. CẬP NHẬT TIẾN TRÌNH: TRIỂN KHAI TOÀN DIỆN PHÂN HỆ QUẢN LÝ HÃNG XE (CAR BRANDS) CHO ADMIN (NGÀY 11/11/2026)
+
+### 42.1. Bối Cảnh & Sự Cần Thiết
+- Hệ thống trước đó đã có bảng `car_brands` và Entity `CarBrand.cs` phục vụ cho Chủ xe chọn hãng khi thêm xe và Khách thuê lọc xe, nhưng Ban Quản trị (Admin) chưa hề có Controller, View hay Menu để quản lý danh mục này.
+- Admin không thể thêm các hãng xe mới (Porsche, Lexus, BMW, Mercedes-Benz, Audi, Subaru, BYD...), không thể đổi tên, sắp xếp thứ tự hoặc tạm ẩn thương hiệu.
+
+### 42.2. Triển Khai Backend ([`CarBrandsController.cs`](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Controllers/CarBrandsController.cs))
+- **`Index`**: Liệt kê danh sách thương hiệu theo `DisplayOrder`, tự động tổng hợp số lượng xe sàn thực tế thuộc từng hãng bằng `GroupBy` linh hoạt.
+- **`Create`**: Thêm hãng xe mới với kiểm tra trùng tên, tự động gợi ý thứ tự tiếp theo `nextOrder`.
+- **`Edit`**: Cập nhật thông tin thương hiệu, quốc gia xuất xứ, thứ tự ưu tiên và trạng thái. Đồng thời nếu Admin đổi tên hãng (ví dụ "Vinfast" -> "VinFast"), hệ thống tự động cập nhật đồng bộ toàn bộ xe sàn đang thuộc hãng đó.
+- **`Delete`**: Ràng buộc bảo vệ dữ liệu toàn sàn: Nếu có xe đang mang thương hiệu này, hệ thống sẽ chặn xóa an toàn.
+- **`ToggleActive`**: Bật/tắt trạng thái hiển thị nhanh bằng AJAX & SweetAlert2.
+
+### 42.3. Thiết Kế Giao Diện Chuẩn ReCar Admin SaaS
+- **Trang Danh Sách ([`Index.cshtml`](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Views/CarBrands/Index.cshtml)):** Bảng `recar-table` chuẩn mực, avatar ký tự chữ cái đầu của thương hiệu, badge quốc gia xuất xứ, nút Sửa nhanh và Dropdown menu 3 chấm tròn chuẩn ReCar, popup xóa SweetAlert2 thông minh.
+- **Trang Thêm Mới ([`Create.cshtml`](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Views/CarBrands/Create.cshtml)) & Chỉnh Sửa ([`Edit.cshtml`](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Views/CarBrands/Edit.cshtml)):**
+  - Layout 2 cột sang trọng đồng nhất với `CarTypes`.
+  - Bộ nút gợi ý nhanh quốc gia xuất xứ phổ biến (Việt Nam, Nhật Bản, Hàn Quốc, Đức, Mỹ, Anh, Pháp, Trung Quốc).
+  - Khối thống kê số lượng xe sàn thuộc thương hiệu đang quản lý.
+
+### 42.4. Tự Động Đồng Bộ Hệ Thống & Menu Sidebar Admin
+- **Động hóa Bộ Lọc Khách Thuê ([`ProductController.cs`](file:///d:/CarRental_TTCN/CarRental/Controllers/ProductController.cs) & [`Product/Index.cshtml`](file:///d:/CarRental_TTCN/CarRental/Views/Product/Index.cshtml)):** Bộ lọc hãng xe tại trang Thuê xe hiện được nạp trực tiếp từ `_context.CarBrands.Where(b => b.IsActive)`. Bất kỳ hãng xe mới nào được Admin tạo sẽ hiển thị ngay lập tức trên bộ lọc.
+- **Seed Menu Sidebar Admin ([`Program.cs`](file:///d:/CarRental_TTCN/CarRental/Program.cs)):** Tự động khởi tạo menu `"Quản lý hãng xe"` (`Url = "/Admin/CarBrands"`, `Icon = "bi-patch-check"`) vào nhóm `XE & ĐƠN HÀNG` ngay cạnh `Quản lý kiểu xe`.
+
+### 42.5. Tinh Chỉnh Giao Diện Hãng Xe & Tích Hợp Popup Đội Xe Kèm Chi Tiết Xe
+1. **Loại bỏ Avatar Chữ Cái Tròn:**
+   - Đã gỡ bỏ toàn bộ avatar tròn chữ cái ở cột *"Tên thương hiệu"*, chuyển sang hiển thị tên thương hiệu dạng chữ đậm tinh tế, gọn gàng và hiện đại theo phản hồi người dùng.
+2. **Popup Danh Sách Đội Xe Thuộc Hãng (`#brandFleetModal`):**
+   - Khi bấm vào badge số lượng xe trên sàn hoặc chọn *"Xem đội xe"* trong menu 3 chấm, hệ thống lập tức mở popup danh sách các xe thuộc thương hiệu đó qua AJAX `GetCarsByBrand`.
+   - Mỗi xe hiển thị dạng card sang trọng: Ảnh xe, Tên xe, Phân khúc, Biển số (font-mono), Năm SX, Hộp số, Số chỗ, Giá thuê/ngày (kèm giá ưu đãi nếu có) và Tên chủ xe.
+3. **Popup Xem Chi Tiết Chiếc Xe (`#carDetailModal`):**
+   - Khi click vào bất kỳ chiếc xe nào trong popup đội xe, hệ thống sẽ mở ngay popup chi tiết thông số xe qua AJAX `GetCarDetail`:
+     - Xem đầy đủ ảnh xe và 4 ảnh góc (có thể click đổi ảnh chính).
+     - Chi tiết thông số kỹ thuật (Hãng, Phân khúc, Năm SX, Màu sắc, Số chỗ, Hộp số, Nhiên liệu, Mức tiêu hao).
+     - Thông tin tài chính (Giá thuê, Phụ phí tài xế, Giới hạn km, Phụ phí vượt km, Giao xe tận nơi).
+     - Danh sách tiện nghi trang bị (badge tích xanh).
+     - Thông tin Chủ xe liên hệ và Mô tả / Nội quy của xe.
+     - Nút *"Quay lại đội xe"* và nút *"Xem trên sàn"* (mở tab trực tiếp ra trang sản phẩm khách thuê).
+
+### 42.6. Tinh Chỉnh Bố Cục 2 Popup Đội Xe & Chi Tiết Xe Đạt Tỷ Lệ Cân Xứng Hoàn Hảo & Khắc Phục Triệt Để Méo Ảnh
+1. **Khắc Phục Hiện Tượng Ảnh Méo & Khoảng Trống Thừa Tại Popup Đội Xe (`#brandFleetModal`):**
+   - **Hiện tượng cũ:**
+     - Thiết lập `object-fit: cover` khiến ảnh xe ô tô (vốn chụp ngang trên studio nền trắng) bị cắt mất bánh xe, trần xe hoặc bị co ép méo mó.
+     - Lưới 3 cột (`col-lg-4`) trên modal quá rộng làm cho thương hiệu có 2 xe (như VinFast) bị dạt hết sang bên trái, bỏ trống nguyên 1/3 diện tích modal bên phải.
+   - **Cải tiến:**
+     - Chuyển sang kích thước `modal-lg` chuẩn gọn (940px).
+     - Thiết kế dạng **Thẻ Ngang (Horizontal Card) 2 cột (`col-12 col-md-6`)**: Khi có 2 xe, 2 card chia đôi màn hình (50% - 50%) vừa vặn, không còn bất kỳ khoảng trống thừa nào.
+     - Khung ảnh chiếm 42% chiều rộng card: Đặt nền xám nhạt `#f8fafc`, áp dụng `object-fit: contain; max-width: 90%; max-height: 90%;` -> **Chiếc xe hiển thị trọn vẹn 100%, sắc nét, giữ nguyên tỷ lệ thật, tuyệt đối không bị méo mó hay bẹp dúm**.
+     - Cột nội dung bên phải (58%): Badge phân khúc, Tên xe, 3 thông số vận hành, Giá thuê to rõ và nút "Chi tiết >" cân đối, thanh lịch.
+
+2. **Tối Ưu Hóa Toàn Diện Popup Chi Tiết Xe (`#carDetailModal`) Thoáng Đãng, Rộng Rãi:**
+   - **Phục hồi kích thước ảnh to rõ như ban đầu:** Khung ảnh chính được mở rộng lên chiều cao `290px`, bo tròn góc `rounded-4`, ảnh xe to nét căng tràn viền, góc chụp studio sắc nét không bị méo.
+   - **Xóa bỏ hoàn toàn text overlay:** Gỡ bỏ triệt để dải chữ *"Bấm ảnh nhỏ để đổi góc"* theo đúng yêu cầu người dùng.
+   - **Khắc phục triệt để lỗi icon dính vào chữ & tách bạch các ô thông số:**
+     - Thay vì dồn ép 4 cột làm chữ bị cắt thành `Crossover/SU...`, khối Thông số kỹ thuật chuyển sang dạng **2 cột lớn rộng rãi (`row g-3`)**: Mỗi ô có icon tròn nền pastel riêng biệt, tách biệt khỏi chữ với khoảng cách thoáng đãng `gap: 12px`, tiêu đề và giá trị to rõ, hiển thị trọn vẹn 100% không bị cắt chữ.
+     - Khối Bảng giá & Phụ phí: To rõ, icon cách chữ với khoảng đệm `gap: 10px`, giá thuê nổi bật.
+     - Khối Tiện nghi trang bị: Các badge pill to rõ, icon tích xanh tách chữ `gap: 8px`.
+     - Khối Chủ xe & Mô tả nội quy: Rộng rãi, dễ đọc, bố cục đẳng cấp SaaS.
+
+   - **Xóa bỏ hoàn toàn hiện tượng đường kẻ line đè/dính vào chữ:**
+     - **Tại Thẻ xe (Popup Đội xe):** Thay thế đường kẻ `border-top` mỏng bị đè lên chữ giá tiền bằng **Khung hộp chân thẻ bo góc (`bg-light-subtle rounded-3 p-2.5 border-light-subtle`)**. Giá tiền nằm gọn gàng bên trái, nút Chi tiết bên phải, hoàn toàn không còn đường kẻ nào cắt ngang hay dính vào chữ.
+     - **Tại Khối Bảng giá & Phụ phí (Popup Chi tiết):** Xóa bỏ hoàn toàn cách chia 2 cột chật hẹp và các đường line kẻ `border-bottom` cũ (vốn làm chữ *"Giao xe tận nơi"* và *"Giới hạn quãng đường"* bị gãy đôi, chữ rơi đè lên đường kẻ). Thay thế bằng **Banner giá thuê trên + 3 Card Box phụ phí độc lập ở dưới (`row g-3`)**: Mỗi phụ phí nằm trong một ô card màu trắng bo góc sạch sẽ, icon pastel riêng biệt, chữ hiển thị thẳng hàng không bị rớt dòng và không còn bất kỳ line kẻ nào bị dính.
+
+### 42.7. Thiết Kế Lại Hoàn Toàn 2 Popup (Đội Xe & Chi Tiết Xe) Bằng CSS Riêng `rc-*`
+- **Nguyên nhân gốc của lỗi "dính nhau":** các class đã dùng như `p-2.5`, `gap-2.5`, `py-1.5`, `g-3.5`, `mb-0.5` **không tồn tại trong Bootstrap 5** (chỉ có 0-5) nên padding/gap bằng 0.
+- **Giải pháp:** viết bộ CSS riêng (`.rc-modal`, `.rc-card`, `.rc-spec`, `.rc-info`...) với khoảng cách px cụ thể, không phụ thuộc utility Bootstrap.
+- **Popup Đội xe:** `modal-xl`, lưới `auto-fill minmax(330px)` gap 24px; thẻ xe dọc (ảnh 200px `object-fit: cover`, biển số + trạng thái trên ảnh, phân khúc, tên, chip thông số, hộp giá + nút Chi tiết).
+- **Popup Chi tiết:** lưới 2 cột (5fr/6fr). Trái: ảnh 16:10 + 4 thumbnail (có viền chọn), chủ xe, tiện nghi. Phải: 8 ô thông số (lưới 2 cột), banner giá + 3 dòng phụ phí có đệm 16px, mô tả. Đã xóa text "Bấm ảnh nhỏ để đổi góc". Responsive dưới 992px.
+
+### 42.8. Kết Quả Kiểm Thử
+- Biên dịch toàn bộ mã nguồn: **`Build succeeded. 0 Error(s)`**.
+- Ứng dụng ReCar đã khởi chạy và sẵn sàng trải nghiệm tại: **`http://localhost:5163/Admin/CarBrands`**.
+
+---
+
+## 43. ĐỒNG BỘ POPUP ĐỘI XE & CHI TIẾT XE SANG QUẢN LÝ KIỂU XE (`/Admin/CarTypes`)
+
+### 43.1. Nghiệp Vụ & Mục Tiêu
+- Đồng bộ toàn bộ trải nghiệm Popup Đội xe và Popup Chi tiết xe cùng phong cách thiết kế CSS chuyên nghiệp `rc-*` từ phân hệ Quản lý hãng xe (`/Admin/CarBrands`) sang phân hệ **Quản lý kiểu xe & phân khúc (`/Admin/CarTypes`)**.
+- Cho phép Quản trị viên khi xem danh sách các kiểu xe (Sedan, SUV, Crossover, MPV, Bán tải,...) có thể:
+  1. Bấm trực tiếp vào badge *"X xe đang có"* hoặc mục *"Xem đội xe"* trong menu 3 chấm để xem nhanh toàn bộ danh sách các xe thuộc kiểu xe đó trong Popup Modal dạng lưới thẻ hiện đại.
+  2. Bấm vào bất kỳ xe nào để mở Popup Modal Chi tiết xe đầy đủ (ảnh đa góc, thông số kỹ thuật, giá thuê, phụ phí, tiện nghi, hồ sơ chủ xe, mô tả).
+  3. Có nút quay lại danh sách xe phân khúc mượt mà mà không phải tải lại trang.
+
+### 43.2. Triển Khai Backend (`CarTypesController.cs`)
+- Thêm action `GetCarsByType(int typeId)`: Lấy danh sách các xe thuộc phân khúc cùng thông tin cơ bản, biển số, chủ xe, phân khúc và giá thuê.
+- Thêm action `GetCarDetail(int id)`: Lấy hồ sơ chi tiết của xe bao gồm 4 góc ảnh, thông số vận hành, chính sách giá và phụ phí (tài xế, giao xe, vượt km), danh sách tiện nghi và nội quy sử dụng.
+
+### 43.3. Triển Khai Giao Diện (`CarTypes/Index.cshtml`)
+- Cập nhật bảng dữ liệu: Cột số lượng xe và menu 3 chấm gọi hàm JavaScript `openTypeFleetModal(typeId, typeName, carCount)`.
+- Tích hợp 2 Modal:
+  - `#typeFleetModal`: Modal Đội xe phân khúc với tiêu đề động theo tên kiểu xe, lưới thẻ xe dọc `.rc-fleet-grid` và `.rc-car-card`.
+  - `#carDetailModal`: Modal Chi tiết xe 2 cột thoáng đãng, tỉ lệ 16:10, 8 ô thông số, hộp bảng giá & phụ phí và thông tin đối tác chủ xe.
+- Tích hợp toàn bộ hệ thống CSS `rc-*` độc lập với khoảng cách `px` cố định, giải quyết triệt để lỗi icon dính chữ và đường kẻ đè vào nội dung.
+
+### 43.4. Kiểm Thử & Trạng Thái
+- Biên dịch thành công: **`0 Error(s)`**.
+- Ứng dụng đã chạy và sẵn sàng tại: **`http://localhost:5163/Admin/CarTypes`**.
+
+---
+
+## 44. NÂNG CẤP TOÀN DIỆN PHÂN HỆ QUẢN LÝ BÀI VIẾT & TIN TỨC (`/Admin/Blogs`)
+
+### 44.1. Nghiệp Vụ & Yêu Cầu Người Dùng
+1. **Menu 3 chấm & Xem giao diện khách thuê (`Index.cshtml`):**
+   - Bổ sung menu dropdown 3 chấm chuẩn Admin ReCar vào cột Thao tác.
+   - Thêm tính năng *"Xem trên web"* (mở tab mới bài viết phía người dùng thực tế) và Popup Modal *"Xem nhanh bài viết"* (`#blogPreviewModal`) mô phỏng giao diện bài viết như khách thấy ngay trong Admin.
+   - Bổ sung nút Xem nhanh, Sửa nhanh và Xóa bằng SweetAlert2.
+2. **Trình soạn thảo trực quan WYSIWYG (`Create.cshtml` & `Edit.cshtml`):**
+   - Xóa bỏ việc người dùng phải nhìn và gõ code HTML thô (`<h2>`, `name=`, `style=`, `id=`).
+   - Tích hợp trình soạn thảo WYSIWYG **Summernote Lite** hỗ trợ tiếng Việt đầy đủ (tiêu đề H2-H4, in đậm, in nghiêng, trích dẫn, gạch đầu dòng, căn chỉnh,...).
+   - Tích hợp tính năng **Chèn ảnh trực tiếp vào nội dung bài viết**: Chọn ảnh hoặc kéo thả từ máy tính, tự động upload qua AJAX lên `/images/blogs/content/` và chèn vào bài viết với kích thước chuẩn, responsive.
+3. **Đơn giản hóa Khung Ảnh bìa:**
+   - Xóa bỏ hoàn toàn ô nhập URL thô *"Hoặc sửa đường dẫn ảnh (URL):"*.
+   - Chỉ giữ lại thao tác tải ảnh mới từ máy tính (`ImageFile`) kèm khung xem trước Live Preview trực quan và input ẩn giữ ảnh cũ.
+
+### 44.2. Cập Nhật Backend (`BlogsController.cs` & `BlogController.cs`)
+- Thêm action `UploadEditorImage(IFormFile file)` trong `BlogsController`: Nhận ảnh từ Summernote, kiểm tra định dạng an toàn, lưu vào `wwwroot/images/blogs/content` và trả về JSON URL.
+- Thêm action `GetBlogPreview(int id)`: Trả về JSON dữ liệu bài viết phục vụ Modal xem trước trực tiếp trên trang Index.
+- Cập nhật routing trong `BlogController.cs`: Bổ sung route `[Route("/Blog/Details/{id:int}")]` song song với `[Route("/blog/{alias}-{id}.html")]`.
+
+### 44.3. Kiểm Thử & Trạng Thái
+- Biên dịch thành công: **`0 Error(s)`**.
+- Ứng dụng đã chạy và sẵn sàng trải nghiệm tại: **`http://localhost:5163/Admin/Blogs`**.
+
+### 44.4. Tinh Gọn Bảng Danh Sách Bài Viết (Ẩn Tóm Tắt & Tối Giản Nút Thao Tác)
+- **Ẩn cột "Tóm tắt nội dung":** Loại bỏ hoàn toàn cột tóm tắt nội dung khỏi bảng để giao diện thoáng đãng, tiêu đề bài viết hiển thị rộng rãi, không bị dồn ép cột.
+- **Tối giản cột "Thao tác":** Gỡ bỏ 2 nút con (Xem nhanh & Sửa nhanh) ngoài bảng, chỉ để duy nhất **1 nút menu 3 chấm tròn** thanh lịch chuẩn SaaS. Mọi tác vụ (Xem trên web của khách, Xem nhanh Preview modal, Chỉnh sửa bài viết, Đổi trạng thái, Xóa) đều nằm gọn gàng bên trong menu.
+
+---
+
+## 45. PHÁT TRIỂN MỚI PHÂN HỆ QUẢN LÝ TIN TỨC THỊ TRƯỜNG XE (`/Admin/News`) & PHÂN ĐỊNH RÀNH MẠCH VỚI CẨM NANG
+
+### 45.1. Bối Cảnh & Sự Khác Biệt
+- **Phía người dùng (Client):** Có 2 mục hoàn toàn độc lập:
+  1. *Cẩm nang du lịch & thuê xe* (`/Blog`): Sử dụng bảng CSDL `Blogs`.
+  2. *Tin tức thị trường xe* (`/News`): Sử dụng bảng CSDL `News`.
+- **Phía quản trị (Admin):** Trước đây chỉ có `/Admin/Blogs` (thao tác trên bảng `Blogs`), còn bảng `News` hoàn toàn chưa có phân hệ quản lý trong Admin.
+- **Giải pháp:** Tách biệt rõ ràng 2 phân hệ độc lập:
+  - **Quản lý cẩm nang** (`/Admin/Blogs`): Icon sổ tay `bi-journal-bookmark`.
+  - **Quản lý tin tức** (`/Admin/News`): Icon tờ báo `bi-newspaper`.
+
+### 45.2. Triển Khai Toàn Diện Phân Hệ News
+1. **Backend Controller (`Areas/Admin/Controllers/NewsController.cs`):**
+   - Đầy đủ các CRUD action: `Index`, `Create`, `Edit`, `Delete`, `DeleteAjax`, `ToggleActive`.
+   - Action `UploadEditorImage`: Upload ảnh từ Summernote lưu vào `wwwroot/images/news/content/`.
+   - Action `GetNewsPreview`: Trả về dữ liệu bản tin phục vụ Popup Modal xem trước.
+2. **Giao diện Views (`Areas/Admin/Views/News/`):**
+   - `Index.cshtml`: Bảng danh sách tinh gọn (không có cột tóm tắt), menu 3 chấm tròn, Modal xem trước `#newsPreviewModal` mô phỏng giao diện khách thấy.
+   - `Create.cshtml` & `Edit.cshtml`: Trình soạn thảo WYSIWYG Summernote Lite tiếng Việt, chèn ảnh từ máy tính, đã xóa ô URL thô, xem trước ảnh bìa Live Preview.
+   - `Delete.cshtml`: Xác nhận xóa bản tin an toàn.
+3. **Cơ sở dữ liệu & Sidebar Admin (`Program.cs`):**
+   - Tự động seed mục menu "Quản lý tin tức" (`/Admin/News`) vào sidebar Admin.
+   - Cập nhật mục menu cũ thành "Quản lý cẩm nang" (`/Admin/Blogs`).
+
+### 45.3. Kiểm Thử & Trạng Thái
+- Biên dịch thành công: **`0 Error(s)`**.
+- Ứng dụng đã chạy và sẵn sàng tại:
+  - Quản lý cẩm nang: **`http://localhost:5163/Admin/Blogs`**
+  - Quản lý tin tức: **`http://localhost:5163/Admin/News`**
+
+---
+
+## 46. ĐỒNG BỘ DỮ LIỆU BẢN TIN TIN TỨC, TÍNH NĂNG MẮT XEM TỰ ĐỘNG & TÙY CHỌN GẮN NHÃN NỔI BẬT
+
+### 46.1. Nguyên Nhân Sự Chênh Lệch Dữ Liệu (5 bài Khách vs 2 bài Admin)
+- Trong CSDL MySQL trước đây chỉ có 2 bài tin tức thực sự được lưu vào bảng `news`.
+- Phía Client (`/News`) trước đó được lập trình viên hard-code thêm 3 bài phụ trong hàm `NewsController.GetCuratedNews()` (ID 901, 902, 903) và `NewsViewComponent.cs` gộp vào danh sách hiển thị, dẫn tới việc Khách thấy 5 bài nhưng Admin truy vấn từ CSDL chỉ thấy 2 bài.
+- **Giải pháp:** Chuyển đổi toàn bộ 3 bài tin tức mẫu này vào logic Seed CSDL tự động trong `Program.cs`. Toàn bộ 5 bài hiện đã được lưu trữ thực sự trong bảng `news` của MySQL, giúp dữ liệu giữa Admin và Client đồng nhất 100%.
+
+### 46.2. Mở Rộng Cơ Sở Dữ Liệu (`News`)
+- Bổ sung 3 trường dữ liệu mới cho Entity `News`:
+  - `Views` (`int?`): Lượt mắt xem của bản tin (mặc định = 0).
+  - `IsFeatured` (`bool?`): Đánh dấu tin bài nổi bật thủ công (mặc định = false).
+  - `Badge` (`string?`, tối đa 50 ký tự): Nhãn huy hiệu tùy biến (ví dụ: `🔥 Nổi bật`, `⭐ Xu hướng`, `⚡ Mới nhất`, `🚗 Xe điện`,...).
+- Tự động bổ sung cột an toàn qua `INFORMATION_SCHEMA.COLUMNS` trong `Program.cs` và cấu hình Fluent API trong `DbRenalCarContext.cs`.
+
+### 46.3. Cơ Chế Tự Động Tăng Lượt Xem & Tự Gắn Nhãn Nổi Bật
+- **Tự động tăng mắt xem:** Mỗi khi người dùng bấm vào xem chi tiết bài viết tại `/News/Details/{id}` hoặc `/news/{alias}-{id}.html`, hệ thống tự động tăng `Views` lên 1 và lưu vào CSDL.
+- **Tự động gắn nhãn "🔥 Nổi bật":** Khi một bài viết đạt mốc $\ge 500$ lượt xem hoặc được bật cờ `IsFeatured == true`, hệ thống tự động gán và hiển thị nhãn nổi bật mà không bắt buộc quản trị viên phải can thiệp thủ công.
+
+### 46.4. Nâng Cấp Giao Diện Phía Admin (`/Admin/News`)
+- **Trang Tạo mới (`Create.cshtml`) & Chỉnh sửa (`Edit.cshtml`):** Bổ sung Card *"Mắt xem & Nhãn nổi bật"* bên cột phải:
+  - Công tắc bật/tắt (Switch): Đánh dấu bài viết nổi bật (`IsFeatured`).
+  - Ô nhập Huy hiệu / Nhãn hiển thị (`Badge`) kèm danh sách gợi ý sẵn (`🔥 Nổi bật`, `⭐ Xu hướng`, `⚡ Mới nhất`, `🚗 Xe điện`, `💡 Cẩm nang hot`).
+  - Ô chỉnh sửa số lượt mắt xem (`Views`): Cho phép điều chỉnh hoặc đặt lượt xem ban đầu theo ý muốn.
+- **Trang Danh sách (`Index.cshtml`):** Hiển thị số mắt xem (`<i class="bi bi-eye"></i>`) và huy hiệu nổi bật ngay bên cạnh tiêu đề bài viết; cập nhật modal xem trước Live Preview thể hiện số lượt xem thực tế.
+
+### 46.5. Đồng Bộ Giao Diện Phía Khách Hàng (`/News`)
+- Cập nhật `CarRental/Views/Shared/Components/News/Default.cshtml` và `CarRental/Views/News/Details.cshtml`:
+  - Thể hiện nhãn huy hiệu nổi bật trên góc ảnh bản tin tiêu điểm và danh sách các thẻ bài viết.
+  - Hiển thị trực quan số lượt xem kèm icon con mắt xanh: `[Lượt xem] lượt xem`.
+
+### 46.6. Kiểm Thử & Trạng Thái
+- Biên dịch dự án: **`0 Error(s)`**.
+- Hệ thống đang chạy ổn định tại:
+  - Client Tin tức: **`http://localhost:5163/News`**
+  - Admin Quản lý tin tức: **`http://localhost:5163/Admin/News`**
+
+---
+
+## 47. CHUẨN HÓA HỆ THỐNG TAG/NHÃN, TỰ ĐỘNG ĐẾM LƯỢT XEM & THAY THẾ TÁC GIẢ BẰNG PHÂN LOẠI CHỦ ĐỀ CHO CẢ TIN TỨC VÀ CẨM NANG
+
+### 47.1. Bỏ Ô Chỉnh Sửa Lượt Mắt Xem (Views) Thủ Công & Tinh Gọn Khung Thông Tin
+- **Nguyên lý:** Lượt xem (mắt xem) là chỉ số thống kê hệ thống khách quan, phản ánh mức độ quan tâm thực tế của khách thuê đối với bài viết.
+- **Giải pháp:**
+  - Loại bỏ hoàn toàn ô nhập số lượt xem (`<input type="number" asp-for="Views" />`) trong form Tạo mới (`Create.cshtml`) và Chỉnh sửa (`Edit.cshtml`) của cả hai phân hệ **Tin tức** và **Cẩm nang**.
+  - Đã lược bỏ toàn bộ khung viền hiển thị text chỉ đọc "Lượt mắt xem..." trên form Chỉnh sửa theo yêu cầu để giao diện tinh gọn, thoáng đãng tối đa, chỉ lưu trữ `Views` ngầm qua thẻ `<input type="hidden" asp-for="Views" />`.
+  - Trong Controller Backend: không cho phép form ghi đè lượt xem, luôn bảo toàn số lượt xem thật từ CSDL.
+
+### 47.2. Chuẩn Hóa Nhãn Nổi Bật (Badge): Chuyển Sang Dropdown & Loại Bỏ Hoàn Toàn Emoji
+- **Chuyển sang Dropdown `<select>`:** Thay thế ô nhập text tự do và datalist bằng hộp chọn `<select asp-for="Badge">` chuyên nghiệp với các tùy chọn chuẩn SaaS:
+  - `-- Không gắn nhãn --`
+  - `Nổi bật`
+  - `Xu hướng`
+  - `Mới nhất`
+  - `Ưu đãi`
+  - `Đặc sắc`
+  - `Đọc nhiều`
+- **Loại bỏ Emoji:** Bỏ toàn bộ các icon biểu cảm (`🔥`, `⭐`, `⚡`,...) ở các nhãn hiển thị trong CSDL, giao diện bảng Admin, modal Preview và giao diện ngoài sàn của khách hàng để tạo phong cách thanh lịch, tối giản và hiện đại.
+- **Áp dụng đồng bộ cho Cẩm nang (`Blog`):** Bổ sung các cột `Views`, `IsFeatured`, `Badge` cho bảng `Blog` trong MySQL, cập nhật Entity `Blog.cs` và cấu hình Fluent API trong `DbRenalCarContext.cs`.
+
+### 47.3. Thay Thế Phần "Tác Giả" Bằng "Chủ Đề / Thẻ Phân Loại" (Tag)
+- **Vấn đề trước đây:** Trường tác giả cố định là "Admin" hoặc "ReCar Editorial" mà không chỉnh sửa được, chiếm diện tích cột trong bảng và không hỗ trợ nhiều cho việc phân loại nội dung.
+- **Giải pháp chuyển đổi:**
+  - **Trên bảng danh sách (`Index.cshtml` của Blogs & News):** Đổi cột *"Tác giả & Ngày đăng"* thành *"Chủ đề & Ngày đăng"*. Hiển thị huy hiệu chủ đề bài viết (`SeoKeywords`) dạng viên thuốc nổi bật (`badge-primary-subtle`) kèm ngày đăng bên dưới.
+  - **Trên form Soạn thảo (`Create.cshtml` & `Edit.cshtml` của Blogs & News):** Bỏ phần hiển thị tác giả tĩnh, thay bằng trường chọn **Chủ đề / Phân loại** (`SeoKeywords`) dạng dropdown `<select>` tương ứng với các danh mục lọc ngoài sàn:
+    - *Cẩm nang:* `Kinh nghiệm thuê xe`, `Thủ tục & Giấy tờ`, `Lái xe an toàn`, `Kỹ thuật & Vận hành`, `Cung đường du lịch`.
+    - *Tin tức:* `Tin tức ReCar`, `Công nghệ & Xe điện`, `Hành trình du lịch`, `Thị trường ô tô`, `Chính sách & Pháp luật`.
+
+### 47.4. Kiểm Thử & Trạng Thái Hệ Thống
+- Biên dịch toàn bộ giải pháp: **`0 Error(s)`**.
+- Ứng dụng đang chạy ổn định tại:
+  - Quản lý cẩm nang: **`http://localhost:5163/Admin/Blogs`**
+  - Quản lý tin tức: **`http://localhost:5163/Admin/News`**
+  - Cẩm nang người dùng: **`http://localhost:5163/Blog`**
+  - Tin tức người dùng: **`http://localhost:5163/News`**
+
+---
+
+## 48. TÁCH BẠCH ĐỘC LẬP TÍNH NĂNG "ĐƯA LÊN ĐẦU TRANG" (ISFEATURED) VÀ "NHÃN BÀI VIẾT" (BADGE)
+
+### 48.1. Hủy Bỏ Cơ Chế Tự Động Gắn Nhãn Theo Lượt Xem (Views >= 500)
+- **Yêu cầu:** Không tự động gán nhãn "Nổi bật" khi bài viết vượt mốc 500 lượt xem. Lượt xem chỉ mang tính chất ghi nhận số lượng độc giả quan tâm đơn thuần.
+- **Triển khai:**
+  - Loại bỏ hoàn toàn điều kiện `Views >= 500` tự động gán `Badge = "Nổi bật"` trong `NewsController.cs` và `BlogController.cs`.
+  - Loại bỏ việc gán ngầm nhãn nổi bật trong logic `Create`, `Edit` và `GetPreview` của Admin.
+  - Loại bỏ điều kiện `Views >= 500` trên giao diện bảng Admin, modal xem trước và giao diện phía khách hàng (`/News`, `/Blog`).
+
+### 48.2. Định Nghĩa Rõ Vai Trò Duy Nhất Của Switch "Nổi Bật" (`IsFeatured`)
+- **Mục đích:** Switch *"Đánh dấu là Bản tin / Bài viết nổi bật"* chỉ có **duy nhất 1 nhiệm vụ**: khi admin chủ động **bật lên** (`IsFeatured == true`), bài viết đó sẽ được ưu tiên xếp lên vị trí đầu tiên của trang (bản tin / bài viết tiêu điểm khổ lớn).
+- **Sắp xếp ViewComponent:**
+  - `NewsViewComponent`: Sắp xếp ưu tiên theo `.OrderByDescending(m => m.IsFeatured ?? false).ThenByDescending(m => m.CreatedDate)`.
+  - `BlogVIewComponent`: Sắp xếp ưu tiên theo `.OrderByDescending(i => i.IsFeatured ?? false).ThenByDescending(i => i.CreatedDate)`.
+- Khi switch bị tắt (`IsFeatured == false`), bài viết sẽ trở về vị trí danh sách bình thường theo thứ tự thời gian.
+
+### 48.3. Nhãn Hiển Thị (`Badge`): Tuân Thủ Tuyệt Đối Lựa Chọn Của Admin
+- Nhãn hiển thị trên ảnh bài viết chỉ xuất hiện khi và chỉ khi admin chủ động chọn một nhãn cụ thể trong Dropdown (`Nổi bật`, `Xu hướng`, `Mới nhất`, `Ưu đãi`, `Đặc sắc`, `Đọc nhiều`).
+- Nếu admin để `-- Không gắn nhãn --` (`Badge == null` hoặc rỗng), bài viết sẽ hoàn toàn không có huy hiệu nhãn, kể cả khi bài viết có nhiều lượt xem hay đang được ghim lên đầu trang.
+
+### 48.4. Kiểm Thử & Trạng Thái Hệ Thống
+- Biên dịch toàn bộ giải pháp: **`0 Error(s)`**.
+- Ứng dụng đang chạy ổn định tại:
+  - Admin Tin tức: **`http://localhost:5163/Admin/News`**
+  - Admin Cẩm nang: **`http://localhost:5163/Admin/Blogs`**
+  - Client Tin tức: **`http://localhost:5163/News`**
+  - Client Cẩm nang: **`http://localhost:5163/Blog`**
+
+
+
+
+
+
+
+
+
+
+
+

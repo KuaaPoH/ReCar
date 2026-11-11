@@ -1,7 +1,7 @@
 @using CarRental.Models;
 @model IList<Blog>
 @{
-    ViewData["Title"] = "Bài viết & tin tức";
+    ViewData["Title"] = "Quản lý cẩm nang du lịch & thuê xe";
     Layout = "~/Areas/Admin/Views/Shared/_Layout.cshtml";
 }
 
@@ -10,47 +10,51 @@
     <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4">
         <div>
             <div class="d-flex align-items-center gap-2">
-                <h1 class="h3 fw-bold mb-0 text-dark tracking-tight">Bài viết & Tin tức</h1>
+                <h1 class="h3 fw-bold mb-0 text-dark tracking-tight">Cẩm nang du lịch &amp; Thuê xe</h1>
                 <span class="badge bg-light text-dark border rounded-pill fw-semibold px-2.5 py-1">@Model.Count bài viết</span>
             </div>
-            <p class="text-muted small mb-0 mt-1">Quản lý cẩm nang du lịch, kinh nghiệm thuê xe và các thông báo khuyến mãi trên sàn ReCar.</p>
+            <p class="text-muted small mb-0 mt-1">Quản lý cẩm nang du lịch, kinh nghiệm thuê xe và hướng dẫn hành trình hiển thị tại mục Cẩm nang trên sàn ReCar.</p>
         </div>
         <div>
             <a asp-action="Create" class="btn btn-primary btn-sm rounded-pill px-3.5 py-2 fw-semibold shadow-sm" style="background-color: var(--recar-primary); border: none;">
-                <i class="bi bi-pencil-square me-1"></i> Viết bài mới
+                <i class="bi bi-pencil-square me-1"></i> Viết cẩm nang mới
             </a>
         </div>
     </div>
 
     @if (TempData["Success"] != null)
     {
-        <div class="alert alert-success alert-dismissible fade show rounded-3 small fw-medium mb-3" role="alert">
-            <i class="bi bi-check-circle-fill me-1"></i> @TempData["Success"]
+        <div class="alert alert-success alert-dismissible fade show rounded-3 small fw-medium mb-3 shadow-xs" role="alert">
+            <i class="bi bi-check-circle-fill me-1.5"></i> @TempData["Success"]
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     }
 
     <!-- Data Table Panel -->
-    <div class="recar-panel mb-0">
+    <div class="recar-panel mb-0 shadow-sm border rounded-4 bg-white overflow-hidden">
         <div class="table-responsive">
             <table class="table recar-table align-middle mb-0">
-                <thead>
+                <thead class="bg-light">
                     <tr>
-                        <th style="width: 70px;">Ảnh bìa</th>
+                        <th style="width: 90px;" class="ps-3">Ảnh bìa</th>
                         <th>Tiêu đề bài viết</th>
-                        <th>Tóm tắt nội dung</th>
-                        <th>Tác giả / Ngày đăng</th>
-                        <th>Trạng thái</th>
-                        <th class="text-end">Thao tác</th>
+                        <th style="width: 180px;">Chủ đề &amp; Ngày đăng</th>
+                        <th style="width: 140px;" class="text-center">Trạng thái</th>
+                        <th class="text-end pe-3" style="width: 80px;">Thao tác</th>
                     </tr>
                 </thead>
                 <tbody>
                     @if (Model == null || Model.Count == 0)
                     {
                         <tr>
-                            <td colspan="6" class="text-center py-5 text-muted">
-                                <i class="bi bi-journal-x fs-2 text-secondary d-block mb-2"></i>
-                                Chưa có bài viết nào trong hệ thống.
+                            <td colspan="5" class="text-center py-5 text-muted">
+                                <i class="bi bi-journal-x fs-1 text-secondary opacity-50 d-block mb-2"></i>
+                                <span class="fw-medium">Chưa có bài viết nào trong hệ thống.</span>
+                                <div class="mt-2">
+                                    <a asp-action="Create" class="btn btn-sm btn-outline-primary rounded-pill px-3">
+                                        <i class="bi bi-plus me-1"></i> Viết bài đầu tiên
+                                    </a>
+                                </div>
                             </td>
                         </tr>
                     }
@@ -58,48 +62,110 @@
                     {
                         foreach (var item in Model)
                         {
+                            var aliasSafe = string.IsNullOrEmpty(item.Alias) ? "bai-viet" : item.Alias;
+                            var clientUrl = $"/blog/{aliasSafe}-{item.BlogId}.html";
+                            var safeTitle = (item.Title ?? "").Replace("'", "\\'");
+                            var blogImg = string.IsNullOrEmpty(item.Image) ? "/images/cars/hero.jpg" : item.Image;
+
                             <tr id="blogRow-@item.BlogId">
-                                <td>
-                                    <img src="@(string.IsNullOrEmpty(item.Image) ? "/images/cars/hero.jpg" : item.Image)" 
-                                         alt="@item.Title" class="rounded object-fit-cover border" style="width: 60px; height: 42px;" />
-                                </td>
-                                <td>
-                                    <div class="fw-bold text-dark small" style="max-width: 320px;">@item.Title</div>
-                                    <div class="text-muted" style="font-size: 0.72rem;">Alias: <span class="font-monospace">/blog/@item.Alias</span></div>
-                                </td>
-                                <td>
-                                    <div class="text-muted small text-truncate" style="max-width: 360px;" title="@item.Description">
-                                        @item.Description
+                                <td class="ps-3">
+                                    <div class="position-relative d-inline-block">
+                                        <img src="@blogImg" 
+                                             alt="@item.Title" 
+                                             class="rounded-3 object-fit-cover border shadow-xs" 
+                                             style="width: 72px; height: 48px;" 
+                                             onerror="this.onerror=null; this.src='/images/cars/hero.jpg';" />
                                     </div>
                                 </td>
                                 <td>
-                                    <div class="small fw-medium text-dark">@(item.CreatedBy ?? "ReCar Editorial")</div>
-                                    <div class="text-muted" style="font-size: 0.72rem;">@(item.CreatedDate?.ToString("dd/MM/yyyy") ?? "Mới cập nhật")</div>
+                                    <div class="d-flex align-items-center flex-wrap gap-1.5 mb-1">
+                                        @{
+                                            string cleanBlogBadge = !string.IsNullOrEmpty(item.Badge) ? item.Badge.Replace("🔥 ", "").Replace("⭐ ", "").Replace("⚡ ", "").Trim() : "";
+                                        }
+                                        @if (!string.IsNullOrEmpty(cleanBlogBadge))
+                                        {
+                                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill fw-semibold" style="font-size: 0.72rem;">
+                                                @cleanBlogBadge
+                                            </span>
+                                        }
+
+                                        <span class="badge bg-light text-secondary border rounded-pill" style="font-size: 0.72rem;">
+                                            <i class="bi bi-eye text-primary me-1"></i>@((item.Views ?? 0).ToString("N0")) lượt xem
+                                        </span>
+                                    </div>
+                                    <div class="fw-bold text-dark mb-1" style="font-size: 0.95rem; line-height: 1.4;">
+                                        <a href="javascript:void(0)" onclick="openBlogPreviewModal(@item.BlogId)" class="text-dark text-decoration-none hover-primary" title="Bấm để xem nhanh">
+                                            @item.Title
+                                        </a>
+                                    </div>
+                                    <div class="text-muted small d-flex align-items-center gap-1.5" style="font-size: 0.72rem;">
+                                        <i class="bi bi-link-45deg"></i>
+                                        <span class="font-monospace text-truncate" style="max-width: 320px;">@clientUrl</span>
+                                    </div>
                                 </td>
                                 <td>
-                                    <button type="button" class="btn btn-sm p-0 border-0" onclick="toggleBlogActive(@item.BlogId, this)" title="Bấm để bật/tắt xuất bản">
-                                        @if (item.IsActive)
-                                        {
-                                            <span class="status-badge badge-ready cursor-pointer" id="badge-@item.BlogId">
-                                                <i class="bi bi-check-circle-fill me-1"></i> Đã xuất bản
-                                            </span>
-                                        }
-                                        else
-                                        {
-                                            <span class="status-badge badge-draft cursor-pointer" id="badge-@item.BlogId">
-                                                <i class="bi bi-pause-circle me-1"></i> Bản nháp
-                                            </span>
-                                        }
+                                    <div class="mb-1">
+                                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-2 py-0.5 fw-semibold" style="font-size: 0.75rem;">
+                                            @(string.IsNullOrEmpty(item.SeoKeywords) ? "Kinh nghiệm thuê xe" : item.SeoKeywords)
+                                        </span>
+                                    </div>
+                                    <div class="text-muted" style="font-size: 0.75rem;">
+                                        <i class="bi bi-calendar3 me-1"></i>@(item.CreatedDate?.ToString("dd/MM/yyyy") ?? "Mới cập nhật")
+                                    </div>
+                                </td>
+                                <td class="text-center">
+                                    <button type="button" 
+                                            class="btn btn-sm rounded-pill px-2.5 py-0.5 border fw-semibold btn-toggle-status @(item.IsActive ? "btn-success-subtle text-success border-success-subtle" : "btn-light text-muted border")" 
+                                            style="font-size: 0.75rem;" 
+                                            id="badge-@item.BlogId" 
+                                            onclick="toggleBlogActive(@item.BlogId, this)" 
+                                            title="Bấm để chuyển đổi trạng thái xuất bản">
+                                        <i class="bi @(item.IsActive ? "bi-check-circle-fill" : "bi-pause-circle") me-1"></i>
+                                        <span>@(item.IsActive ? "Đã xuất bản" : "Bản nháp")</span>
                                     </button>
                                 </td>
-                                <td class="text-end">
-                                    <div class="d-inline-flex gap-1.5">
-                                        <a asp-action="Edit" asp-route-id="@item.BlogId" class="btn btn-light btn-sm rounded-pill px-2.5 py-1 text-primary fw-medium border" style="font-size: 0.75rem;">
-                                            <i class="bi bi-pencil me-1"></i> Sửa
-                                        </a>
-                                        <button type="button" class="btn btn-outline-danger btn-sm rounded-pill px-2.5 py-1 fw-medium" style="font-size: 0.75rem;" onclick="confirmDeleteBlog(@item.BlogId, '@Html.Raw(item.Title?.Replace("'", "\\'"))')">
-                                            <i class="bi bi-trash"></i>
+                                <td class="text-end pe-3">
+                                    <!-- Chỉ hiển thị nút menu 3 chấm chuẩn Admin ReCar -->
+                                    <div class="dropdown d-inline-block">
+                                        <button class="btn btn-light btn-sm rounded-circle p-1.5 border" 
+                                                type="button" 
+                                                data-bs-toggle="dropdown" 
+                                                aria-expanded="false" 
+                                                title="Thao tác khác" 
+                                                style="width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center;">
+                                            <i class="bi bi-three-dots-vertical"></i>
                                         </button>
+                                        <ul class="dropdown-menu dropdown-menu-end shadow-sm p-1.5 small" style="border-radius: 12px; min-width: 215px;">
+                                            <li>
+                                                <!-- Xem giao diện người dùng thực tế trên web -->
+                                                <a class="dropdown-item py-1.5 rounded fw-medium" href="@clientUrl" target="_blank">
+                                                    <i class="bi bi-box-arrow-up-right me-2 text-primary"></i> Xem trên web (Khách)
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <!-- Mở Popup xem nhanh nội dung -->
+                                                <a class="dropdown-item py-1.5 rounded" href="javascript:void(0)" onclick="openBlogPreviewModal(@item.BlogId)">
+                                                    <i class="bi bi-eye me-2 text-info"></i> Xem nhanh bài viết
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item py-1.5 rounded" asp-action="Edit" asp-route-id="@item.BlogId">
+                                                    <i class="bi bi-pencil-square me-2 text-warning"></i> Chỉnh sửa nội dung
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item py-1.5 rounded text-secondary" href="javascript:void(0)" onclick="toggleBlogActive(@item.BlogId, document.getElementById('badge-@item.BlogId'))">
+                                                    <i class="bi bi-arrow-repeat me-2"></i> Đổi trạng thái xuất bản
+                                                </a>
+                                            </li>
+                                            <li><hr class="dropdown-divider my-1"></li>
+                                            <li>
+                                                <a class="dropdown-item py-1.5 rounded text-danger fw-medium" href="javascript:void(0)" 
+                                                   onclick="confirmDeleteBlog(@item.BlogId, '@safeTitle')">
+                                                    <i class="bi bi-trash3 me-2"></i> Xóa bài viết
+                                                </a>
+                                            </li>
+                                        </ul>
                                     </div>
                                 </td>
                             </tr>
@@ -111,12 +177,131 @@
     </div>
 </div>
 
+<!-- ==================== MODAL XEM TRƯỚC BÀI VIẾT (PREVIEW NHƯ NGƯỜI DÙNG THẤY) ==================== -->
+<div class="modal fade rc-modal" id="blogPreviewModal" tabindex="-1" aria-labelledby="blogPreviewModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="rc-modal-head">
+                <div class="rc-head-left">
+                    <span class="rc-head-ico" style="background: #eef2ff; color: #4f46e5;"><i class="bi bi-newspaper"></i></span>
+                    <div>
+                        <h5 class="rc-head-title">Xem trước bài viết: <span id="previewTitleHeader" class="text-primary">--</span></h5>
+                        <div class="rc-head-sub">Giao diện mô phỏng nội dung hiển thị cho khách hàng trên sàn ReCar</div>
+                    </div>
+                </div>
+                <div class="rc-head-right">
+                    <a href="#" target="_blank" class="rc-btn rc-btn-primary-soft" id="btnLiveViewClient">
+                        <i class="bi bi-box-arrow-up-right"></i><span>Xem trên web</span>
+                    </a>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+            </div>
+
+            <div class="rc-modal-body" style="background: #f8fafc; padding: 28px;">
+                <!-- Loading spinner -->
+                <div class="text-center py-5" id="blogPreviewSpinner">
+                    <div class="spinner-border text-primary" role="status"><span class="visually-hidden">Đang tải...</span></div>
+                    <div class="text-muted small mt-3">Đang tải nội dung bài viết...</div>
+                </div>
+
+                <!-- Preview Article Content -->
+                <div id="blogPreviewContent" class="d-none">
+                    <article class="bg-white rounded-4 border p-4 p-md-5 shadow-xs mx-auto" style="max-width: 860px;">
+                        <!-- Ảnh bìa bài viết -->
+                        <div class="position-relative mb-4 rounded-3 overflow-hidden border shadow-xs" style="max-height: 380px;">
+                            <img src="" id="previewBlogImage" alt="Ảnh bìa" class="w-100 object-fit-cover d-block" style="max-height: 380px;" onerror="this.onerror=null; this.src='/images/cars/hero.jpg';" />
+                        </div>
+
+                        <!-- Meta Info -->
+                        <div class="d-flex align-items-center flex-wrap gap-2 pb-3 mb-4 border-bottom text-muted small">
+                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-2.5 py-1 fw-semibold" id="previewBlogTopic">
+                                Kinh nghiệm thuê xe
+                            </span>
+                            <span id="previewBlogBadgeWrap"></span>
+                            <span>•</span>
+                            <span class="d-inline-flex align-items-center gap-1.5">
+                                <i class="bi bi-calendar3"></i> <span id="previewBlogDate">--</span>
+                            </span>
+                            <span>•</span>
+                            <span class="d-inline-flex align-items-center gap-1.5 text-primary">
+                                <i class="bi bi-eye"></i> <span id="previewBlogViews">0</span> lượt xem
+                            </span>
+                            <span>•</span>
+                            <span id="previewBlogStatusBadge" class="rc-badge rc-badge-ok">Đã xuất bản</span>
+                        </div>
+
+                        <!-- Tiêu đề bài viết -->
+                        <h1 class="h2 fw-bold text-dark mb-3 lh-sm" id="previewBlogTitle">--</h1>
+
+                        <!-- Đoạn mở đầu / Sapo tóm tắt -->
+                        <div class="p-3.5 mb-4 rounded-3 bg-light border-start border-4 border-primary text-secondary" style="font-size: 1.05rem; line-height: 1.6; font-style: italic;" id="previewBlogLead">
+                            --
+                        </div>
+
+                        <!-- Nội dung chi tiết bài viết (Render HTML từ trình soạn thảo) -->
+                        <div class="rc-article-body text-dark" id="previewBlogDetail" style="font-size: 15px; line-height: 1.8;">
+                            --
+                        </div>
+                    </article>
+                </div>
+            </div>
+
+            <div class="rc-modal-foot">
+                <a href="#" class="rc-btn rc-btn-outline" id="btnEditFromPreview">
+                    <i class="bi bi-pencil-square"></i><span>Chỉnh sửa bài viết</span>
+                </a>
+                <button type="button" class="rc-btn rc-btn-dark" data-bs-dismiss="modal">Đóng</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @Html.AntiForgeryToken()
+
+<style>
+    /* Hover link */
+    .hover-primary:hover { color: var(--recar-primary, #0284c7) !important; text-decoration: underline !important; }
+
+    /* Modal styling chuẩn ReCar */
+    .rc-modal .modal-content { border: 0; border-radius: 20px; overflow: hidden; box-shadow: 0 25px 60px -12px rgba(15,23,42,.35); }
+    .rc-modal-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 18px 28px; background: #fff; border-bottom: 1px solid #e8edf3; }
+    .rc-head-left, .rc-head-right { display: flex; align-items: center; gap: 16px; min-width: 0; }
+    .rc-head-ico { width: 46px; height: 46px; border-radius: 14px; background: #e8f1fd; color: #2563eb; display: inline-flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
+    .rc-head-title { margin: 0; font-size: 18px; font-weight: 700; color: #0f172a; line-height: 1.3; }
+    .rc-head-sub { margin-top: 3px; font-size: 13px; color: #64748b; }
+    .rc-modal-body { overflow-y: auto; max-height: calc(85vh - 140px); }
+    .rc-modal-foot { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 28px; background: #fff; border-top: 1px solid #e8edf3; }
+
+    .rc-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 9px 20px; border-radius: 999px; font-size: 14px; font-weight: 600; line-height: 1.2; border: 1px solid transparent; cursor: pointer; text-decoration: none; transition: all .15s ease; white-space: nowrap; }
+    .rc-btn-outline { background: #fff; color: #475569; border-color: #d5dde8; }
+    .rc-btn-outline:hover { background: #f1f5f9; color: #0f172a; }
+    .rc-btn-dark { background: #64748b; color: #fff; padding: 9px 28px; }
+    .rc-btn-dark:hover { background: #475569; color: #fff; }
+    .rc-btn-primary-soft { background: #fff; color: #2563eb; border-color: #2563eb; }
+    .rc-btn-primary-soft:hover { background: #2563eb; color: #fff; }
+
+    .rc-badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+    .rc-badge-ok { background: #e7f7ee; color: #15803d; border: 1px solid #bfe8d0; }
+    .rc-badge-draft { background: #f1f5f9; color: #64748b; border: 1px solid #dde4ee; }
+
+    /* Nội dung bài viết render */
+    .rc-article-body img { max-width: 100% !important; height: auto !important; border-radius: 12px; margin: 16px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+    .rc-article-body h2, .rc-article-body h3, .rc-article-body h4 { font-weight: 700; color: #0f172a; margin-top: 24px; margin-bottom: 12px; }
+    .rc-article-body p { margin-bottom: 14px; }
+    .rc-article-body ul, .rc-article-body ol { padding-left: 24px; margin-bottom: 16px; }
+</style>
 
 @section Scripts {
     <script>
+        let previewModalInstance = null;
+
+        $(document).ready(function () {
+            previewModalInstance = new bootstrap.Modal(document.getElementById('blogPreviewModal'));
+        });
+
+        // Bật / tắt xuất bản bài viết qua AJAX
         function toggleBlogActive(id, btnElement) {
-            var token = $('input[name="__RequestVerificationToken"]').val();
+            var token = $('input[name="__RequestVerificationToken"]').first().val();
             $.ajax({
                 url: '/Admin/Blogs/ToggleActive',
                 type: 'POST',
@@ -125,22 +310,26 @@
                     __RequestVerificationToken: token
                 },
                 success: function (res) {
-                    if (res.success) {
-                        var badge = document.getElementById('badge-' + id);
-                        if (badge) {
+                    if (res && res.success) {
+                        var badge = $(btnElement);
+                        if (badge.length) {
+                            var icon = badge.find('i');
+                            var span = badge.find('span');
                             if (res.isActive) {
-                                badge.className = 'status-badge badge-ready cursor-pointer';
-                                badge.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i> Đã xuất bản';
+                                badge.removeClass('btn-light text-muted border').addClass('btn-success-subtle text-success border-success-subtle');
+                                icon.removeClass('bi-pause-circle').addClass('bi-check-circle-fill');
+                                span.text('Đã xuất bản');
                             } else {
-                                badge.className = 'status-badge badge-draft cursor-pointer';
-                                badge.innerHTML = '<i class="bi bi-pause-circle me-1"></i> Bản nháp';
+                                badge.removeClass('btn-success-subtle text-success border-success-subtle').addClass('btn-light text-muted border');
+                                icon.removeClass('bi-check-circle-fill').addClass('bi-pause-circle');
+                                span.text('Bản nháp');
                             }
                         }
                         const Toast = Swal.mixin({
                             toast: true,
                             position: 'top-end',
                             showConfirmButton: false,
-                            timer: 2500,
+                            timer: 2200,
                             timerProgressBar: true
                         });
                         Toast.fire({
@@ -148,34 +337,91 @@
                             title: res.message
                         });
                     } else {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Thất bại',
-                            text: res.message || 'Không thể cập nhật trạng thái bài viết.'
-                        });
+                        Swal.fire('Thất bại', res.message || 'Không thể cập nhật trạng thái bài viết.', 'error');
                     }
                 },
                 error: function () {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Lỗi',
-                        text: 'Không thể kết nối đến máy chủ.'
-                    });
+                    Swal.fire('Lỗi', 'Không thể kết nối đến máy chủ.', 'error');
                 }
             });
         }
 
+        // Mở popup xem trước bài viết mô phỏng giao diện khách thấy
+        function openBlogPreviewModal(id) {
+            $('#blogPreviewSpinner').removeClass('d-none');
+            $('#blogPreviewContent').addClass('d-none');
+            $('#previewTitleHeader').text('Đang tải...');
+
+            previewModalInstance.show();
+
+            $.ajax({
+                url: '/Admin/Blogs/GetBlogPreview',
+                type: 'GET',
+                data: { id: id },
+                success: function (res) {
+                    $('#blogPreviewSpinner').addClass('d-none');
+                    if (res && res.success && res.blog) {
+                        const b = res.blog;
+                        $('#previewTitleHeader').text(b.title);
+                        $('#previewBlogTitle').text(b.title);
+                        $('#previewBlogTopic').text(b.seoKeywords || 'Kinh nghiệm thuê xe');
+                        $('#previewBlogDate').text(b.createdDate);
+                        $('#previewBlogViews').text(new Intl.NumberFormat('vi-VN').format(b.views || 0));
+
+                        const badgeWrap = $('#previewBlogBadgeWrap');
+                        badgeWrap.empty();
+                        const cleanBadge = (b.badge || '').replace('🔥 ', '').replace('⭐ ', '').replace('⚡ ', '').trim();
+                        if (cleanBadge) {
+                            badgeWrap.html(`<span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill fw-semibold">${cleanBadge}</span>`);
+                        }
+
+                        $('#previewBlogLead').text(b.description || 'Chưa có tóm tắt bài viết.');
+                        $('#previewBlogImage').attr('src', b.image);
+                        $('#previewBlogDetail').html(b.detail || '<p class="text-muted italic">Chưa có nội dung bài viết chi tiết.</p>');
+
+                        // Trạng thái badge
+                        const stBadge = $('#previewBlogStatusBadge');
+                        if (b.isActive) {
+                            stBadge.attr('class', 'rc-badge rc-badge-ok').text('Đã xuất bản');
+                        } else {
+                            stBadge.attr('class', 'rc-badge rc-badge-draft').text('Bản nháp');
+                        }
+
+                        // Link xem trực tiếp trên web
+                        const clientUrl = `/blog/${b.alias || 'bai-viet'}-${b.id}.html`;
+                        $('#btnLiveViewClient').attr('href', clientUrl);
+                        $('#btnEditFromPreview').attr('href', `/Admin/Blogs/Edit/${b.id}`);
+
+                        $('#blogPreviewContent').removeClass('d-none');
+                    } else {
+                        Swal.fire('Lỗi', res.message || 'Không thể tải nội dung bài viết.', 'error');
+                        previewModalInstance.hide();
+                    }
+                },
+                error: function () {
+                    $('#blogPreviewSpinner').addClass('d-none');
+                    Swal.fire('Lỗi', 'Không thể kết nối đến máy chủ để lấy nội dung bài viết.', 'error');
+                    previewModalInstance.hide();
+                }
+            });
+        }
+
+        // Xác nhận xóa bài viết với SweetAlert2
         function confirmDeleteBlog(id, title) {
-            var token = $('input[name="__RequestVerificationToken"]').val();
+            var token = $('input[name="__RequestVerificationToken"]').first().val();
             Swal.fire({
                 title: 'Xóa bài viết này?',
-                html: 'Bạn có chắc chắn muốn xóa bài viết <strong>"' + title + '"</strong>?<br><small class="text-muted">Hành động này không thể hoàn tác.</small>',
+                html: 'Bạn có chắc chắn muốn xóa bài viết <strong>"' + title + '"</strong>?<br><span class="text-danger small">Hành động này không thể hoàn tác.</span>',
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonColor: '#ef4444',
                 cancelButtonColor: '#64748b',
-                confirmButtonText: 'Đồng ý xóa',
-                cancelButtonText: 'Hủy bỏ'
+                confirmButtonText: '<i class="bi bi-trash3 me-1"></i> Đồng ý xóa',
+                cancelButtonText: 'Hủy bỏ',
+                customClass: {
+                    confirmButton: 'rounded-pill px-3 py-2 fw-semibold',
+                    cancelButton: 'rounded-pill px-3 py-2'
+                }
             }).then((result) => {
                 if (result.isConfirmed) {
                     $.ajax({
@@ -199,19 +445,11 @@
                                     showConfirmButton: false
                                 });
                             } else {
-                                Swal.fire({
-                                    icon: 'error',
-                                    title: 'Lỗi',
-                                    text: res.message
-                                });
+                                Swal.fire('Lỗi', res.message, 'error');
                             }
                         },
                         error: function () {
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'Lỗi',
-                                text: 'Đã xảy ra lỗi khi xóa bài viết.'
-                            });
+                            Swal.fire('Lỗi', 'Đã xảy ra lỗi khi xóa bài viết.', 'error');
                         }
                     });
                 }

@@ -1,5 +1,7 @@
-﻿@{
+@{
     ViewData["Title"] = "Danh sách xe cho thuê | ReCar";
+    var carTypes = ViewBag.CarTypes as List<CarRental.Models.CarType> ?? new List<CarRental.Models.CarType>();
+    var carBrands = ViewBag.CarBrands as List<CarRental.Models.CarBrand> ?? new List<CarRental.Models.CarBrand>();
 }
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
@@ -86,13 +88,23 @@
                 <div class="filter-group-divider">
                     <p class="filter-section-title">Hãng xe</p>
                     <div class="d-flex flex-wrap gap-2" id="brandChipsWrap">
-                        <button type="button" class="recar-chip chip-brand" data-brand="VinFast">VinFast</button>
-                        <button type="button" class="recar-chip chip-brand" data-brand="Toyota">Toyota</button>
-                        <button type="button" class="recar-chip chip-brand" data-brand="Mazda">Mazda</button>
-                        <button type="button" class="recar-chip chip-brand" data-brand="Hyundai">Hyundai</button>
-                        <button type="button" class="recar-chip chip-brand" data-brand="Kia">Kia</button>
-                        <button type="button" class="recar-chip chip-brand" data-brand="Honda">Honda</button>
-                        <button type="button" class="recar-chip chip-brand" data-brand="Ford">Ford</button>
+                        @if (carBrands.Any())
+                        {
+                            foreach (var b in carBrands)
+                            {
+                                <button type="button" class="recar-chip chip-brand" data-brand="@b.BrandName">@b.BrandName</button>
+                            }
+                        }
+                        else
+                        {
+                            <button type="button" class="recar-chip chip-brand" data-brand="VinFast">VinFast</button>
+                            <button type="button" class="recar-chip chip-brand" data-brand="Toyota">Toyota</button>
+                            <button type="button" class="recar-chip chip-brand" data-brand="Mazda">Mazda</button>
+                            <button type="button" class="recar-chip chip-brand" data-brand="Hyundai">Hyundai</button>
+                            <button type="button" class="recar-chip chip-brand" data-brand="Kia">Kia</button>
+                            <button type="button" class="recar-chip chip-brand" data-brand="Honda">Honda</button>
+                            <button type="button" class="recar-chip chip-brand" data-brand="Ford">Ford</button>
+                        }
                     </div>
                 </div>
 
@@ -101,11 +113,13 @@
                     <p class="filter-section-title">Dòng xe</p>
                     <div class="d-flex flex-wrap gap-2" id="typeChipsWrap">
                         <button type="button" class="recar-chip chip-type active" data-type="">Tất cả</button>
-                        <button type="button" class="recar-chip chip-type" data-type="1">Xe mini đô thị</button>
-                        <button type="button" class="recar-chip chip-type" data-type="2">Sedan 5 chỗ</button>
-                        <button type="button" class="recar-chip chip-type" data-type="3">Crossover/SUV 7 chỗ</button>
-                        <button type="button" class="recar-chip chip-type" data-type="4">MPV đa dụng</button>
-                        <button type="button" class="recar-chip chip-type" data-type="5">Xe bán tải</button>
+                        @if (carTypes.Any())
+                        {
+                            foreach (var ct in carTypes)
+                            {
+                                <button type="button" class="recar-chip chip-type" data-type="@ct.TypeId">@ct.CarTypeName</button>
+                            }
+                        }
                     </div>
                 </div>
 

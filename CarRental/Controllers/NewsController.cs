@@ -18,7 +18,8 @@ namespace CarRental.Controllers
         }
 
         [Route("/news/{alias}-{id}.html")]
-        public async Task<IActionResult> Details(string alias, int? id)
+        [Route("/News/Details/{id:int}")]
+        public async Task<IActionResult> Details(string? alias, int? id)
         {
             if (id == null || _context.News == null)
             {
@@ -35,6 +36,14 @@ namespace CarRental.Controllers
             {
                 return NotFound();
             }
+
+            // Tự động tăng lượt xem (mắt xem) khi có người đọc bài
+            try
+            {
+                news.Views = (news.Views ?? 0) + 1;
+                await _context.SaveChangesAsync();
+            }
+            catch { }
 
             ViewBag.newsComment = await _context.NewsComments
                 .Where(r => r.NewsId == news.NewsId)

@@ -1,4 +1,4 @@
-﻿@using CarRental.Models
+@using CarRental.Models
 @{
     ViewData["Title"] = "ReCar – Chủ động mọi hành trình | Thuê ô tô trực tuyến";
     List<Car> productFeatured = ViewBag.productFeatured ?? new List<Car>();
@@ -142,14 +142,15 @@
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h2 class="fs-4 fw-bold m-0" style="color: var(--recar-navy);">Danh mục dòng xe</h2>
         </div>
-        <div class="row row-cols-2 row-cols-md-5 g-3 align-items-stretch">
+        <div class="row row-cols-2 row-cols-sm-3 row-cols-md-4 row-cols-lg-5 row-cols-xl-6 g-3 align-items-stretch">
             @if (carTypes != null && carTypes.Any())
             {
-                foreach (var ct in carTypes.Take(5))
+                foreach (var ct in carTypes)
                 {
+                    var img = string.IsNullOrEmpty(ct.Image) ? "/images/cars/hero.jpg" : ct.Image;
                     <div class="col d-flex">
                         <a href="/Product?TypeId=@ct.TypeId" class="recar-cat-card w-100">
-                            <img src="@ct.Image" alt="@ct.CarTypeName" class="recar-cat-img" loading="lazy" />
+                            <img src="@img" alt="@ct.CarTypeName" class="recar-cat-img" loading="lazy" onerror="this.onerror=null; this.src='/images/cars/hero.jpg';" />
                             <div class="recar-cat-body">
                                 <span class="recar-cat-title" title="@ct.CarTypeName">@ct.CarTypeName</span>
                                 <span class="recar-cat-arrow">Xem xe →</span>

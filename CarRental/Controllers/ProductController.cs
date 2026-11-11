@@ -1,4 +1,4 @@
-﻿using CarRental.Extensions;
+using CarRental.Extensions;
 using CarRental.Models;
 using CarRental.Utilities;
 using Microsoft.AspNetCore.Http;
@@ -20,6 +20,8 @@ namespace CarRental.Controllers
         {
             ViewBag.TypeId = TypeId;
             ViewBag.SelectedCity = city;
+            ViewBag.CarTypes = _context.CarTypes.OrderBy(t => t.TypeId).ToList();
+            ViewBag.CarBrands = _context.CarBrands.Where(b => b.IsActive).OrderBy(b => b.DisplayOrder).ToList();
             ViewBag.Locations = _context.Locations.Where(l => l.IsActive).OrderBy(l => l.DisplayOrder).ToList();
             return View();
         }

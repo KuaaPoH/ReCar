@@ -16,7 +16,8 @@ namespace CarRental.ViewComponents
         {
             var items = _context.Blogs
                 .Where(i => i.IsActive == true)
-                .OrderByDescending(i => i.CreatedDate)
+                .OrderByDescending(i => i.IsFeatured ?? false)
+                .ThenByDescending(i => i.CreatedDate)
                 .ToList();
 
             foreach (var curated in BlogController.GetCuratedBlogs())

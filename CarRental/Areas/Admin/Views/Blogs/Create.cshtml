@@ -4,17 +4,20 @@
     Layout = "~/Areas/Admin/Views/Shared/_Layout.cshtml";
 }
 
-<div class="container-fluid px-0" style="max-width: 1100px;">
+<!-- Summernote Lite CSS -->
+<link rel="stylesheet" href="/admin/assets/vendors/summernote/summernote-lite.min.css" />
+
+<div class="container-fluid px-0" style="max-width: 1140px;">
     <!-- Header -->
     <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4">
         <div>
             <div class="d-flex align-items-center gap-2">
-                <a asp-action="Index" class="btn btn-light btn-sm rounded-circle p-2 text-muted me-1">
+                <a asp-action="Index" class="btn btn-light btn-sm rounded-circle p-2 text-muted me-1 shadow-xs border">
                     <i class="bi bi-arrow-left"></i>
                 </a>
                 <h1 class="h3 fw-bold mb-0 text-dark tracking-tight">Viết bài mới</h1>
             </div>
-            <p class="text-muted small mb-0 mt-1 ms-5">Soạn thảo cẩm nang du lịch, kinh nghiệm thuê xe hoặc thông báo khuyến mãi cho sàn ReCar.</p>
+            <p class="text-muted small mb-0 mt-1 ms-5">Soạn thảo cẩm nang du lịch, kinh nghiệm thuê xe hoặc tin tức sự kiện cho sàn ReCar.</p>
         </div>
         <div>
             <a asp-action="Index" class="btn btn-outline-secondary btn-sm rounded-pill px-3.5 py-1.5 fw-semibold">
@@ -23,52 +26,87 @@
         </div>
     </div>
 
-    <form asp-action="Create" method="post" enctype="multipart/form-data">
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show rounded-3 small fw-medium mb-3 shadow-xs" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-1.5"></i> @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <form asp-action="Create" method="post" enctype="multipart/form-data" id="createBlogForm">
         @Html.AntiForgeryToken()
         <div asp-validation-summary="ModelOnly" class="alert alert-danger rounded-3 small mb-3"></div>
 
         <div class="row g-4">
-            <!-- Cột trái: Nội dung chính -->
+            <!-- CỘT TRÁI: Nội dung chính bài viết (Trình soạn thảo WYSIWYG) -->
             <div class="col-lg-8">
-                <div class="recar-panel p-4 mb-4">
-                    <h5 class="fw-bold text-dark mb-3">
-                        <i class="bi bi-card-heading text-primary me-2"></i> Nội dung bài viết
+                <div class="recar-panel p-4 mb-4 shadow-sm border rounded-4 bg-white">
+                    <h5 class="fw-bold text-dark mb-3 d-flex align-items-center gap-2">
+                        <i class="bi bi-card-heading text-primary"></i> 
+                        <span>Nội dung bài viết</span>
                     </h5>
 
+                    <!-- Tiêu đề -->
                     <div class="mb-3">
-                        <label asp-for="Title" class="form-label fw-semibold small">Tiêu đề bài viết <span class="text-danger">*</span></label>
-                        <input asp-for="Title" class="form-control" placeholder="VD: Top 5 cung đường phượt bằng xe tự lái đẹp nhất..." required />
+                        <label asp-for="Title" class="form-label fw-semibold small text-dark">Tiêu đề bài viết <span class="text-danger">*</span></label>
+                        <input asp-for="Title" class="form-control form-control-lg fs-6 fw-semibold rounded-3" placeholder="VD: Top 5 cung đường phượt bằng xe tự lái đẹp nhất tại Đà Lạt..." required />
                         <span asp-validation-for="Title" class="text-danger small"></span>
                     </div>
 
+                    <!-- Tóm tắt ngắn -->
                     <div class="mb-3">
-                        <label asp-for="Description" class="form-label fw-semibold small">Tóm tắt ngắn (Lead / Sapo) <span class="text-danger">*</span></label>
-                        <textarea asp-for="Description" rows="3" class="form-control" placeholder="Mô tả tóm tắt nội dung chính (1 - 2 câu ngắn gọn hiển thị ở danh sách bài viết)" required></textarea>
+                        <label asp-for="Description" class="form-label fw-semibold small text-dark">Tóm tắt ngắn (Lead / Sapo) <span class="text-danger">*</span></label>
+                        <textarea asp-for="Description" rows="3" class="form-control rounded-3" placeholder="Mô tả tóm tắt nội dung chính (1 - 2 câu ngắn gọn hiển thị ở danh sách bài viết ngoài trang chủ)" required></textarea>
                         <span asp-validation-for="Description" class="text-danger small"></span>
                     </div>
 
+                    <!-- Nội dung chi tiết: Trình soạn thảo WYSIWYG trực quan -->
                     <div class="mb-2">
-                        <label asp-for="Detail" class="form-label fw-semibold small">Nội dung chi tiết bài viết <span class="text-danger">*</span></label>
-                        <textarea asp-for="Detail" id="BlogDetail" rows="12" class="form-control" placeholder="Nhập nội dung bài viết đầy đủ tại đây..." required></textarea>
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <label asp-for="Detail" class="form-label fw-semibold small text-dark mb-0">
+                                Nội dung chi tiết bài viết <span class="text-danger">*</span>
+                            </label>
+                            <span class="badge bg-light text-muted border small">
+                                <i class="bi bi-magic me-1 text-primary"></i>Soạn thảo trực quan (hỗ trợ chèn ảnh)
+                            </span>
+                        </div>
+                        <textarea asp-for="Detail" id="BlogDetail" class="form-control" style="display: none;"></textarea>
                         <span asp-validation-for="Detail" class="text-danger small"></span>
                     </div>
                 </div>
             </div>
 
-            <!-- Cột phải: Cài đặt & Ảnh bìa -->
+            <!-- CỘT PHẢI: Cài đặt & Ảnh bìa -->
             <div class="col-lg-4">
-                <!-- Card Xuất bản -->
-                <div class="recar-panel p-4 mb-4">
-                    <h6 class="fw-bold text-dark mb-3">
-                        <i class="bi bi-send text-success me-2"></i> Trạng thái xuất bản
+                <!-- Card Trạng thái Xuất bản -->
+                <div class="recar-panel p-4 mb-4 shadow-sm border rounded-4 bg-white">
+                    <h6 class="fw-bold text-dark mb-3 d-flex align-items-center gap-2">
+                        <i class="bi bi-send text-success"></i> 
+                        <span>Trạng thái xuất bản</span>
                     </h6>
 
                     <div class="form-check form-switch mb-3">
-                        <input class="form-check-input" type="checkbox" asp-for="IsActive" id="switchIsActive" checked>
-                        <label class="form-check-label fw-semibold small text-dark" for="switchIsActive">
+                        <input class="form-check-input" type="checkbox" asp-for="IsActive" id="switchIsActive" checked style="cursor: pointer;">
+                        <label class="form-check-label fw-semibold small text-dark" for="switchIsActive" style="cursor: pointer;">
                             Xuất bản ngay lên sàn ReCar
                         </label>
-                        <div class="form-text small text-muted">Nếu tắt, bài viết sẽ được lưu dưới dạng Bản nháp và không hiển thị ra trang chủ.</div>
+                        <div class="form-text small text-muted">Nếu tắt, bài viết sẽ lưu dưới dạng Bản nháp và không hiển thị cho khách thuê.</div>
+                    </div>
+
+                    <!-- Thẻ phân loại / Chủ đề cẩm nang -->
+                    <div class="mb-3">
+                        <label asp-for="SeoKeywords" class="form-label fw-semibold small text-dark">
+                            <i class="bi bi-tag text-primary me-1"></i>Chủ đề / Phân loại:
+                        </label>
+                        <select asp-for="SeoKeywords" class="form-select form-select-sm rounded-3">
+                            <option value="Kinh nghiệm thuê xe">Kinh nghiệm thuê xe</option>
+                            <option value="Thủ tục & Giấy tờ">Thủ tục & Giấy tờ</option>
+                            <option value="Lái xe an toàn">Lái xe an toàn</option>
+                            <option value="Kỹ thuật & Vận hành">Kỹ thuật & Vận hành</option>
+                            <option value="Cung đường du lịch">Cung đường du lịch</option>
+                        </select>
+                        <div class="form-text small text-muted">Phân loại cẩm nang trên bộ lọc ngoài sàn ReCar.</div>
                     </div>
 
                     <hr class="my-3">
@@ -83,29 +121,60 @@
                     </div>
                 </div>
 
-                <!-- Card Ảnh bìa -->
-                <div class="recar-panel p-4 mb-4">
-                    <h6 class="fw-bold text-dark mb-2">
-                        <i class="bi bi-image text-info me-2"></i> Ảnh bìa bài viết
+                <!-- Card Nhãn nổi bật -->
+                <div class="recar-panel p-4 mb-4 shadow-sm border rounded-4 bg-white">
+                    <h6 class="fw-bold text-dark mb-3 d-flex align-items-center gap-2">
+                        <i class="bi bi-bookmark-star text-danger"></i> 
+                        <span>Nhãn nổi bật</span>
                     </h6>
-                    <p class="text-muted small mb-3">Kích thước khuyến nghị: 1200 x 630 px (Tỷ lệ 16:9 hoặc 3:2).</p>
 
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold small">Tải lên tệp ảnh từ máy tính:</label>
-                        <input type="file" id="imageFileInput" name="ImageFile" accept="image/*" class="form-control form-control-sm rounded-3 mb-2" />
+                    <!-- Switch Đánh dấu nổi bật -->
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" name="IsFeatured" value="true" id="switchIsFeatured" style="cursor: pointer;" @(Model?.IsFeatured == true ? "checked" : "")>
+                        <label class="form-check-label fw-semibold small text-dark" for="switchIsFeatured" style="cursor: pointer;">
+                            Đánh dấu là Bài viết nổi bật
+                        </label>
+                        <div class="form-text small text-muted">Ưu tiên hiển thị vị trí đầu cẩm nang trên sàn.</div>
                     </div>
 
+                    <!-- Dropdown gắn nhãn (không emoji) -->
+                    <div class="mb-0">
+                        <label asp-for="Badge" class="form-label fw-semibold small text-dark">
+                            <i class="bi bi-tag-fill text-danger me-1"></i>Tùy chọn gắn nhãn:
+                        </label>
+                        <select asp-for="Badge" class="form-select form-select-sm rounded-3">
+                            <option value="">-- Không gắn nhãn --</option>
+                            <option value="Nổi bật">Nổi bật</option>
+                            <option value="Xu hướng">Xu hướng</option>
+                            <option value="Mới nhất">Mới nhất</option>
+                            <option value="Ưu đãi">Ưu đãi</option>
+                            <option value="Đặc sắc">Đặc sắc</option>
+                            <option value="Đọc nhiều">Đọc nhiều</option>
+                        </select>
+                        <div class="form-text small text-muted">Huy hiệu hiển thị trên ảnh bài viết.</div>
+                    </div>
+                </div>
+
+                <!-- Card Ảnh bìa (ĐÃ XÓA PHẦN NHẬP URL THÔ THEO YÊU CẦU) -->
+                <div class="recar-panel p-4 mb-4 shadow-sm border rounded-4 bg-white">
+                    <h6 class="fw-bold text-dark mb-2 d-flex align-items-center gap-2">
+                        <i class="bi bi-image text-info"></i> 
+                        <span>Ảnh bìa bài viết</span>
+                    </h6>
+                    <p class="text-muted small mb-3">Tải ảnh đại diện từ máy tính cho bài viết.</p>
+
                     <div class="mb-3">
-                        <label class="form-label fw-semibold small">Hoặc nhập đường dẫn ảnh (URL):</label>
-                        <input asp-for="Image" id="imageInputUrl" class="form-control form-control-sm" placeholder="https://... hoặc /images/blogs/..." />
+                        <label class="form-label fw-semibold small text-dark">Chọn tệp ảnh từ máy tính:</label>
+                        <input type="file" id="imageFileInput" name="ImageFile" accept="image/*" class="form-control form-control-sm rounded-3 mb-2" />
+                        <div class="form-text small text-muted">Hỗ trợ JPG, PNG, WEBP (Tỷ lệ khuyến nghị 16:9).</div>
                     </div>
 
                     <!-- Khung xem trước ảnh Live Preview -->
-                    <div class="border rounded-3 p-2 bg-light text-center">
-                        <img id="imagePreview" src="/images/cars/hero.jpg" alt="Xem trước ảnh bìa" class="img-fluid rounded-3 object-fit-cover w-100 shadow-xs" style="max-height: 180px; display: none;" />
+                    <div class="border rounded-3 p-2 bg-light text-center position-relative overflow-hidden">
+                        <img id="imagePreview" src="/images/cars/hero.jpg" alt="Xem trước ảnh bìa" class="img-fluid rounded-3 object-fit-cover w-100 shadow-xs" style="max-height: 190px; display: none;" />
                         <div id="noPreviewText" class="text-muted small py-4">
                             <i class="bi bi-card-image fs-1 d-block text-secondary opacity-50 mb-1"></i>
-                            Chưa có ảnh bìa xem trước
+                            Chưa chọn ảnh bìa
                         </div>
                     </div>
                 </div>
@@ -115,36 +184,92 @@
 </div>
 
 @section Scripts {
-    <script>
-        // Xem trước ảnh Live Preview khi chọn file
-        document.getElementById('imageFileInput')?.addEventListener('change', function (e) {
-            const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function (e) {
-                    const img = document.getElementById('imagePreview');
-                    const noText = document.getElementById('noPreviewText');
-                    img.src = e.target.result;
-                    img.style.display = 'block';
-                    if (noText) noText.style.display = 'none';
-                };
-                reader.readAsDataURL(file);
-            }
-        });
+    <!-- Summernote Lite JS & Tiếng Việt -->
+    <script src="/admin/assets/vendors/summernote/summernote-lite.min.js"></script>
+    <script src="/admin/assets/vendors/summernote/lang/summernote-vi-VN.min.js"></script>
 
-        // Xem trước ảnh Live Preview khi nhập URL
-        document.getElementById('imageInputUrl')?.addEventListener('input', function (e) {
-            const url = e.target.value.trim();
-            const img = document.getElementById('imagePreview');
-            const noText = document.getElementById('noPreviewText');
-            if (url) {
-                img.src = url;
-                img.style.display = 'block';
-                if (noText) noText.style.display = 'none';
-            } else if (!document.getElementById('imageFileInput').files.length) {
-                img.style.display = 'none';
-                if (noText) noText.style.display = 'block';
+    <script>
+        $(document).ready(function () {
+            // Khởi tạo trình soạn thảo trực quan Summernote Lite trên textarea BlogDetail
+            $('#BlogDetail').summernote({
+                placeholder: 'Bắt đầu soạn thảo nội dung bài viết tại đây... Bạn có thể bôi đen văn bản để định dạng tiêu đề, in đậm, đổi màu hoặc bấm nút chèn ảnh từ máy tính.',
+                tabsize: 2,
+                height: 420,
+                minHeight: 280,
+                lang: 'vi-VN',
+                toolbar: [
+                    ['style', ['style']],
+                    ['font', ['bold', 'italic', 'underline', 'clear']],
+                    ['fontname', ['fontname']],
+                    ['color', ['color']],
+                    ['para', ['ul', 'ol', 'paragraph']],
+                    ['table', ['table']],
+                    ['insert', ['link', 'picture', 'video', 'hr']],
+                    ['view', ['fullscreen', 'codeview', 'help']]
+                ],
+                styleTags: [
+                    'p',
+                    { title: 'Tiêu đề lớn (H2)', tag: 'h2', className: 'fw-bold text-dark mt-4 mb-2', value: 'h2' },
+                    { title: 'Tiêu đề vừa (H3)', tag: 'h3', className: 'fw-bold text-dark mt-3 mb-2', value: 'h3' },
+                    { title: 'Tiêu đề nhỏ (H4)', tag: 'h4', className: 'fw-semibold text-dark mt-2 mb-1', value: 'h4' },
+                    { title: 'Trích dẫn nổi bật', tag: 'blockquote', className: 'blockquote border-start border-4 border-primary ps-3 text-secondary my-3', value: 'blockquote' },
+                    'pre'
+                ],
+                callbacks: {
+                    // Xử lý kéo thả hoặc chọn chèn ảnh từ máy tính vào nội dung bài viết
+                    onImageUpload: function (files) {
+                        for (let i = 0; i < files.length; i++) {
+                            uploadSummernoteImage(files[i]);
+                        }
+                    }
+                }
+            });
+
+            // Hàm gửi ảnh qua AJAX để lưu vào thư mục /images/blogs/content/
+            function uploadSummernoteImage(file) {
+                let data = new FormData();
+                data.append("file", file);
+
+                $.ajax({
+                    url: '/Admin/Blogs/UploadEditorImage',
+                    type: 'POST',
+                    data: data,
+                    cache: false,
+                    contentType: false,
+                    processData: false,
+                    success: function (res) {
+                        if (res && res.success && res.url) {
+                            $('#BlogDetail').summernote('insertImage', res.url, function ($image) {
+                                $image.addClass('img-fluid rounded-3 my-3 shadow-xs');
+                                $image.attr('alt', file.name || 'Ảnh bài viết ReCar');
+                            });
+                        } else {
+                            Swal.fire('Lỗi tải ảnh', res.message || 'Không thể tải ảnh lên máy chủ.', 'error');
+                        }
+                    },
+                    error: function () {
+                        Swal.fire('Lỗi', 'Không thể kết nối đến máy chủ khi tải ảnh lên.', 'error');
+                    }
+                });
             }
+
+            // Xem trước ảnh bìa Live Preview khi chọn tệp từ máy tính
+            document.getElementById('imageFileInput')?.addEventListener('change', function (e) {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function (e) {
+                        const img = document.getElementById('imagePreview');
+                        const noText = document.getElementById('noPreviewText');
+                        if (img) {
+                            img.src = e.target.result;
+                            img.style.display = 'block';
+                        }
+                        if (noText) noText.style.display = 'none';
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
         });
     </script>
 }

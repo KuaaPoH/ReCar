@@ -41,6 +41,12 @@ public partial class Blog
 
     public bool IsActive { get; set; }
 
+    public int? Views { get; set; } = 0;
+
+    public bool? IsFeatured { get; set; } = false;
+
+    public string? Badge { get; set; }
+
     public virtual Customer? Customer { get; set; }
 
     [NotMapped]

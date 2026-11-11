@@ -1,56 +1,351 @@
 @model CarRental.Models.CarType
 @{
     ViewData["Title"] = "Chỉnh sửa kiểu xe";
+    Layout = "~/Areas/Admin/Views/Shared/_Layout.cshtml";
+    var currentImg = !string.IsNullOrEmpty(Model.Image) ? Model.Image : "";
+    var hasCurrentImg = !string.IsNullOrEmpty(Model.Image);
+    var carCount = Model.Cars?.Count ?? 0;
 }
 
-<div class="container-fluid px-0" style="max-width: 800px;">
-    <div class="d-flex align-items-center justify-content-between mb-4">
+<div class="container-fluid px-0" style="max-width: 1100px;">
+    <!-- Header chuẩn Admin ReCar -->
+    <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4">
         <div>
-            <h1 class="h3 fw-bold mb-0 text-dark">Chỉnh sửa kiểu xe</h1>
-            <p class="text-muted small mb-0 mt-1">Cập nhật thông tin phân khúc xe #@Model.TypeId</p>
+            <div class="d-flex align-items-center gap-2">
+                <a asp-action="Index" class="btn btn-light btn-sm rounded-circle p-2 text-muted me-1 shadow-xs" title="Quay lại danh sách">
+                    <i class="bi bi-arrow-left"></i>
+                </a>
+                <h1 class="h3 fw-bold mb-0 text-dark tracking-tight">Chỉnh sửa kiểu xe</h1>
+                <span class="badge bg-light text-muted border font-monospace">#ID-@Model.TypeId</span>
+            </div>
+            <p class="text-muted small mb-0 mt-1 ms-5">Cập nhật thông tin phân khúc, số chỗ ngồi, hãng đại diện và hình ảnh minh họa cho dòng xe <strong>@Model.CarTypeName</strong>.</p>
         </div>
-        <a asp-action="Index" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
-            <i class="bi bi-arrow-left me-1"></i> Quay lại
-        </a>
+        <div class="d-flex align-items-center gap-2">
+            <button type="button" class="btn btn-outline-danger btn-sm rounded-pill px-3 py-1.5 fw-semibold" 
+                    onclick="confirmDeleteCarType(@Model.TypeId, '@Html.Raw(Model.CarTypeName?.Replace("'", "\\'"))', @carCount)">
+                <i class="bi bi-trash3 me-1"></i> Xóa kiểu xe
+            </button>
+            <a asp-action="Index" class="btn btn-outline-secondary btn-sm rounded-pill px-3.5 py-1.5 fw-semibold">
+                <i class="bi bi-arrow-left me-1"></i> Quay lại
+            </a>
+        </div>
     </div>
 
-    <div class="recar-panel p-4">
-        <form asp-action="Edit" method="post">
-            @Html.AntiForgeryToken()
-            <input type="hidden" asp-for="TypeId" />
-            <div asp-validation-summary="ModelOnly" class="text-danger small mb-3"></div>
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show rounded-3 small fw-medium mb-3 shadow-xs" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-1.5"></i> @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
 
-            <div class="mb-3">
-                <label asp-for="CarTypeName" class="form-label fw-semibold small">Tên kiểu xe / phân khúc <span class="text-danger">*</span></label>
-                <input asp-for="CarTypeName" class="form-control" required />
-                <span asp-validation-for="CarTypeName" class="text-danger small"></span>
-            </div>
+    <!-- Form chính 2 cột đồng nhất với Admin Blogs / Cars / UserManagement -->
+    <form asp-action="Edit" method="post" enctype="multipart/form-data" id="editCarTypeForm">
+        @Html.AntiForgeryToken()
+        <input type="hidden" asp-for="TypeId" />
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger rounded-3 small mb-3"></div>
 
-            <div class="row g-3 mb-3">
-                <div class="col-md-6">
-                    <label asp-for="Seats" class="form-label fw-semibold small">Số chỗ ngồi tiêu chuẩn</label>
-                    <input asp-for="Seats" type="number" min="2" max="45" class="form-control" />
-                    <span asp-validation-for="Seats" class="text-danger small"></span>
+        <div class="row g-4">
+            <!-- Cột trái: Thông tin chính của kiểu xe -->
+            <div class="col-lg-7">
+                <div class="recar-panel p-4 mb-4 shadow-sm border rounded-4 bg-white">
+                    <div class="d-flex align-items-center justify-content-between pb-3 mb-3 border-bottom">
+                        <h5 class="fw-bold text-dark mb-0">
+                            <i class="bi bi-car-front-fill text-primary me-2"></i> Thông tin kiểu xe & phân khúc
+                        </h5>
+                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-2.5 py-1 small">
+                            Thông tin hiển thị
+                        </span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="CarTypeName" class="form-label fw-semibold small text-dark">
+                            Tên kiểu xe / phân khúc <span class="text-danger">*</span>
+                        </label>
+                        <input asp-for="CarTypeName" class="form-control rounded-3" placeholder="VD: Sedan, SUV 7 chỗ, Crossover đô thị, MPV..." required />
+                        <span asp-validation-for="CarTypeName" class="text-danger small"></span>
+                        <div class="form-text small text-muted">Tên phân khúc sẽ hiển thị trên thanh tìm kiếm và bộ lọc xe của khách thuê.</div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label asp-for="Seats" class="form-label fw-semibold small text-dark">Số chỗ ngồi tiêu chuẩn</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light text-secondary border-end-0 rounded-start-3">
+                                    <i class="bi bi-people"></i>
+                                </span>
+                                <input asp-for="Seats" type="number" min="2" max="54" class="form-control border-start-0 rounded-end-3" placeholder="VD: 4, 5, 7, 16..." />
+                            </div>
+                            <span asp-validation-for="Seats" class="text-danger small"></span>
+                            <div class="form-text small text-muted">Để trống nếu phân khúc có nhiều cấu hình ghế.</div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="Manufacturer" class="form-label fw-semibold small text-dark">Hãng xe tiêu biểu đại diện</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light text-secondary border-end-0 rounded-start-3">
+                                    <i class="bi bi-tag"></i>
+                                </span>
+                                <input asp-for="Manufacturer" class="form-control border-start-0 rounded-end-3" placeholder="VD: Toyota, Mazda, Hyundai, VinFast..." />
+                            </div>
+                            <span asp-validation-for="Manufacturer" class="text-danger small"></span>
+                            <div class="form-text small text-muted">Hãng xe thường xuất hiện tiêu biểu cho dòng này.</div>
+                        </div>
+                    </div>
+
+                    <!-- Box thống kê xe đang hoạt động -->
+                    <div class="p-3 bg-light rounded-3 border mt-4">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="rounded-circle bg-primary bg-opacity-10 text-primary p-2 d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+                                    <i class="bi bi-speedometer2"></i>
+                                </div>
+                                <div>
+                                    <div class="fw-semibold small text-dark">Xe thuộc phân khúc này</div>
+                                    <div class="text-muted" style="font-size: 0.75rem;">Số lượng xe do chủ xe đăng ký đang liên kết</div>
+                                </div>
+                            </div>
+                            <a asp-area="Admin" asp-controller="Cars" asp-action="Index" class="badge bg-primary text-white text-decoration-none rounded-pill px-3 py-1.5 fw-semibold shadow-xs">
+                                @carCount xe đang có <i class="bi bi-arrow-right ms-1"></i>
+                            </a>
+                        </div>
+                    </div>
                 </div>
-                <div class="col-md-6">
-                    <label asp-for="Manufacturer" class="form-label fw-semibold small">Hãng xe tiêu biểu</label>
-                    <input asp-for="Manufacturer" class="form-control" />
-                    <span asp-validation-for="Manufacturer" class="text-danger small"></span>
+            </div>
+
+            <!-- Cột phải: Cài đặt, Hành động & Ảnh minh họa -->
+            <div class="col-lg-5">
+                <!-- Card 1: Hành động lưu & Trạng thái -->
+                <div class="recar-panel p-4 mb-4 shadow-sm border rounded-4 bg-white">
+                    <h6 class="fw-bold text-dark mb-3">
+                        <i class="bi bi-sliders text-success me-2"></i> Trạng thái & Hành động
+                    </h6>
+
+                    <div class="p-3 bg-light rounded-3 small text-muted mb-3 border">
+                        <div class="d-flex justify-content-between mb-1.5">
+                            <span>Mã phân khúc:</span>
+                            <strong class="text-dark font-monospace">#TYPE-@Model.TypeId</strong>
+                        </div>
+                        <div class="d-flex justify-content-between mb-1.5">
+                            <span>Trạng thái sàn:</span>
+                            <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2 py-0.5">Khả dụng</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span>Đội xe trực thuộc:</span>
+                            <span class="text-dark fw-semibold">@carCount xe</span>
+                        </div>
+                    </div>
+
+                    <div class="d-flex flex-column gap-2">
+                        <button type="submit" class="btn btn-primary w-100 rounded-pill py-2.5 fw-bold shadow-sm" style="background-color: var(--recar-primary); border: none;">
+                            <i class="bi bi-check2-circle me-1.5"></i> Cập nhật thay đổi
+                        </button>
+                        <a asp-action="Index" class="btn btn-light w-100 rounded-pill py-2 text-muted fw-semibold border">
+                            Hủy bỏ & Quay lại
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Card 2: Hình ảnh minh họa kiểu xe -->
+                <div class="recar-panel p-4 mb-4 shadow-sm border rounded-4 bg-white">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <h6 class="fw-bold text-dark mb-0">
+                            <i class="bi bi-image text-info me-2"></i> Hình ảnh minh họa
+                        </h6>
+                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-2 py-0.5 small" id="badgeStatus">
+                            @(hasCurrentImg ? "Ảnh hiện tại" : "Chưa có ảnh")
+                        </span>
+                    </div>
+                    <p class="text-muted small mb-3">Tải ảnh đại diện từ máy tính hoặc cập nhật đường dẫn URL.</p>
+
+                    <!-- Khung Preview Ảnh Live -->
+                    <div class="border rounded-4 p-2 bg-light text-center mb-3 position-relative overflow-hidden shadow-xs">
+                        <img id="imagePreview" src="@(!string.IsNullOrEmpty(currentImg) ? currentImg : "/images/cars/hero.jpg")" 
+                             alt="@Model.CarTypeName" 
+                             class="img-fluid rounded-3 object-fit-cover w-100 @(hasCurrentImg ? "" : "d-none")" 
+                             style="max-height: 180px; object-fit: cover;"
+                             onerror="this.onerror=null; this.src='/images/cars/hero.jpg';" />
+                        <div id="noPreviewText" class="text-muted small py-4 @(hasCurrentImg ? "d-none" : "")">
+                            <i class="bi bi-card-image fs-1 d-block text-secondary opacity-50 mb-1"></i>
+                            Chưa có ảnh minh họa
+                        </div>
+                    </div>
+
+                    <!-- Nút chọn file từ máy -->
+                    <div class="mb-3">
+                        <input type="file" id="imageFileInput" name="imageFile" 
+                               accept="image/png, image/jpeg, image/jpg, image/webp" class="d-none" />
+                        <div class="d-grid gap-2">
+                            <button type="button" class="btn btn-outline-primary btn-sm rounded-pill py-2 fw-semibold" 
+                                    onclick="document.getElementById('imageFileInput').click()">
+                                <i class="bi bi-folder2-open me-1.5"></i> Chọn ảnh mới từ thư viện máy
+                            </button>
+                            <button type="button" class="btn btn-light btn-sm rounded-pill py-1.5 border text-danger d-none" 
+                                    id="btnResetFile" onclick="resetToOriginalImage()">
+                                <i class="bi bi-arrow-counterclockwise me-1"></i> Khôi phục ảnh ban đầu
+                            </button>
+                        </div>
+                        <div class="text-muted mt-1.5 text-center" style="font-size: 0.72rem;" id="fileInfoText">
+                            Hỗ trợ JPG, PNG, WEBP (Tối đa 5MB)
+                        </div>
+                    </div>
+
+                    <!-- Tùy chọn URL mở rộng -->
+                    <div class="pt-2 border-top">
+                        <label asp-for="Image" class="form-label fw-semibold small text-secondary mb-1">
+                            <i class="bi bi-link-45deg me-1"></i> Hoặc đường dẫn ảnh (URL / CDN):
+                        </label>
+                        <input asp-for="Image" id="imageInputUrl" class="form-control form-control-sm rounded-3" 
+                               placeholder="https://... hoặc /images/cartypes/..." />
+                        <span asp-validation-for="Image" class="text-danger small"></span>
+                    </div>
                 </div>
             </div>
+        </div>
+    </form>
 
-            <div class="mb-4">
-                <label asp-for="Image" class="form-label fw-semibold small">Đường dẫn hình ảnh minh họa (URL)</label>
-                <input asp-for="Image" class="form-control" />
-                <span asp-validation-for="Image" class="text-danger small"></span>
-            </div>
-
-            <div class="d-flex justify-content-end gap-2">
-                <a asp-action="Index" class="btn btn-light border px-4">Hủy bỏ</a>
-                <button type="submit" class="btn btn-primary px-4 fw-semibold" style="background-color: var(--recar-primary); border: none;">
-                    <i class="bi bi-check2-circle me-1"></i> Cập nhật thay đổi
-                </button>
-            </div>
-        </form>
-    </div>
+    <!-- Form ẩn xóa kiểu xe -->
+    <form asp-action="Delete" asp-route-id="@Model.TypeId" method="post" id="deleteTypeForm-@Model.TypeId" class="d-none">
+        @Html.AntiForgeryToken()
+    </form>
 </div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        const originalImgSrc = '@Html.Raw(currentImg)';
+        const originalHasImg = @(hasCurrentImg ? "true" : "false");
+
+        // Xem trước ảnh Live Preview khi chọn file từ máy
+        document.getElementById('imageFileInput')?.addEventListener('change', function (e) {
+            const file = e.target.files[0];
+            if (file) {
+                const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+                if (!validTypes.includes(file.type)) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Định dạng không hỗ trợ',
+                        text: 'Vui lòng chọn file hình ảnh có đuôi .JPG, .PNG, .WEBP hoặc .GIF!'
+                    });
+                    this.value = '';
+                    return;
+                }
+
+                if (file.size > 5 * 1024 * 1024) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Dung lượng ảnh quá lớn',
+                        text: 'Dung lượng hình ảnh không được vượt quá 5MB!'
+                    });
+                    this.value = '';
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    const img = document.getElementById('imagePreview');
+                    const noText = document.getElementById('noPreviewText');
+                    const btnReset = document.getElementById('btnResetFile');
+                    const fileInfo = document.getElementById('fileInfoText');
+                    const badgeStatus = document.getElementById('badgeStatus');
+
+                    img.src = e.target.result;
+                    img.classList.remove('d-none');
+                    if (noText) noText.classList.add('d-none');
+                    btnReset.classList.remove('d-none');
+
+                    badgeStatus.className = 'badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2 py-0.5 small';
+                    badgeStatus.innerHTML = '<i class="bi bi-check-circle me-1"></i>Ảnh mới chọn từ máy';
+
+                    const fileSizeKB = (file.size / 1024).toFixed(1);
+                    fileInfo.innerHTML = '<span class="text-success fw-semibold"><i class="bi bi-check2 me-1"></i>Đã chọn:</span> ' + file.name + ' (' + fileSizeKB + ' KB)';
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Xem trước khi gõ link URL
+        document.getElementById('imageInputUrl')?.addEventListener('input', function (e) {
+            const fileInput = document.getElementById('imageFileInput');
+            if (fileInput.files && fileInput.files.length > 0) return;
+
+            const url = e.target.value.trim();
+            const img = document.getElementById('imagePreview');
+            const noText = document.getElementById('noPreviewText');
+            const badgeStatus = document.getElementById('badgeStatus');
+
+            if (url) {
+                img.src = url;
+                img.classList.remove('d-none');
+                if (noText) noText.classList.add('d-none');
+                badgeStatus.className = 'badge bg-info-subtle text-info border border-info-subtle rounded-pill px-2 py-0.5 small';
+                badgeStatus.innerText = 'Xem trước từ URL';
+            } else {
+                resetToOriginalImage();
+            }
+        });
+
+        function resetToOriginalImage() {
+            const fileInput = document.getElementById('imageFileInput');
+            fileInput.value = '';
+
+            const img = document.getElementById('imagePreview');
+            const noText = document.getElementById('noPreviewText');
+            const btnReset = document.getElementById('btnResetFile');
+            const fileInfo = document.getElementById('fileInfoText');
+            const badgeStatus = document.getElementById('badgeStatus');
+
+            if (originalHasImg) {
+                img.src = originalImgSrc;
+                img.classList.remove('d-none');
+                if (noText) noText.classList.add('d-none');
+                badgeStatus.className = 'badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-2 py-0.5 small';
+                badgeStatus.innerText = 'Ảnh hiện tại';
+                fileInfo.innerText = 'Hỗ trợ JPG, PNG, WEBP (Tối đa 5MB)';
+            } else {
+                img.src = '';
+                img.classList.add('d-none');
+                if (noText) noText.classList.remove('d-none');
+                badgeStatus.className = 'badge bg-light text-muted border rounded-pill px-2 py-0.5 small';
+                badgeStatus.innerText = 'Chưa có ảnh';
+                fileInfo.innerText = 'Hỗ trợ JPG, PNG, WEBP (Tối đa 5MB)';
+            }
+
+            btnReset.classList.add('d-none');
+        }
+
+        // Xác nhận xóa bằng SweetAlert2
+        function confirmDeleteCarType(id, name, carCount) {
+            if (carCount > 0) {
+                Swal.fire({
+                    title: 'Không thể xóa kiểu xe!',
+                    html: 'Kiểu xe <strong>"' + name + '"</strong> hiện đang có <strong>' + carCount + ' xe</strong> trên hệ thống.<br><br><span class="text-muted small">Vui lòng chuyển các xe này sang phân khúc khác hoặc xóa xe trước.</span>',
+                    icon: 'warning',
+                    confirmButtonColor: '#0284c7',
+                    confirmButtonText: 'Đã hiểu'
+                });
+                return;
+            }
+
+            Swal.fire({
+                title: 'Xóa kiểu xe này?',
+                html: 'Bạn có chắc chắn muốn xóa kiểu xe <strong>"' + name + '"</strong> khỏi hệ thống?<br><span class="text-danger small">Hành động này không thể hoàn tác.</span>',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: '<i class="bi bi-trash3 me-1"></i> Đồng ý xóa',
+                cancelButtonText: 'Hủy bỏ',
+                customClass: {
+                    confirmButton: 'rounded-pill px-3 py-2 fw-semibold',
+                    cancelButton: 'rounded-pill px-3 py-2'
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    var form = document.getElementById('deleteTypeForm-' + id);
+                    if (form) form.submit();
+                }
+            });
+        }
+    </script>
+}

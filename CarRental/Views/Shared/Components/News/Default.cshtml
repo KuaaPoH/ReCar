@@ -23,8 +23,11 @@
                              onmouseout="this.style.transform='scale(1)'"
                              onerror="this.onerror=null;this.src='/images/cars/hero.jpg';" />
                     </a>
-                    <span class="badge bg-success position-absolute top-0 start-0 m-3 rounded-pill px-3 py-2 shadow-sm">
-                        <i class="bi bi-lightning-charge-fill me-1 text-warning"></i> Tin nổi bật
+                    @{
+                        string featBadge = !string.IsNullOrEmpty(featured.Badge) ? featured.Badge.Trim() : (featured.IsFeatured == true ? "Tiêu điểm" : "Tin mới");
+                    }
+                    <span class="badge bg-danger position-absolute top-0 start-0 m-3 rounded-pill px-3 py-2 shadow-sm fw-bold">
+                        @featBadge
                     </span>
                 </div>
                 <div class="col-lg-5 p-4 p-xl-5 d-flex flex-column justify-content-center">
@@ -33,7 +36,7 @@
                         <span>·</span>
                         <span><i class="bi bi-calendar3 me-1"></i>@featDate</span>
                         <span>·</span>
-                        <span><i class="bi bi-clock me-1"></i>5 phút đọc</span>
+                        <span><i class="bi bi-eye text-primary me-1"></i>@((featured.Views ?? 0).ToString("N0")) lượt xem</span>
                     </div>
                     <h2 class="fs-4 fw-bold mb-3" style="line-height: 1.4;">
                         <a href="@featUrl" class="text-decoration-none" style="color: var(--recar-navy);">@featured.Title</a>
@@ -75,10 +78,21 @@
                          loading="lazy"
                          onerror="this.onerror=null;this.src='/images/cars/hero.jpg';" />
                     <span class="badge bg-dark bg-opacity-75 text-white position-absolute top-0 start-0 m-3 rounded-pill px-3 py-1">@topic</span>
+                    @{
+                        string itemBadge = !string.IsNullOrEmpty(item.Badge) ? item.Badge.Trim() : "";
+                    }
+                    @if (!string.IsNullOrEmpty(itemBadge))
+                    {
+                        <span class="badge bg-danger position-absolute top-0 end-0 m-3 rounded-pill px-2.5 py-1 shadow-sm fw-semibold">
+                            @itemBadge
+                        </span>
+                    }
                 </a>
                 <div class="p-4 d-flex flex-column flex-grow-1">
                     <div class="d-flex align-items-center gap-2 small text-muted mb-2" style="font-size: 13px;">
                         <span><i class="bi bi-calendar3 me-1"></i>@dateStr</span>
+                        <span>·</span>
+                        <span><i class="bi bi-eye text-primary me-1"></i>@((item.Views ?? 0).ToString("N0"))</span>
                         <span>·</span>
                         <span><i class="bi bi-person me-1"></i>@author</span>
                     </div>

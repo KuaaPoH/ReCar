@@ -98,6 +98,9 @@ modelBuilder.Entity<Blog>(entity =>
             entity.Property(e => e.SeoKeywords).HasMaxLength(250);
             entity.Property(e => e.SeoTitle).HasMaxLength(250);
             entity.Property(e => e.Title).HasMaxLength(250);
+            entity.Property(e => e.Views).HasDefaultValue(0);
+            entity.Property(e => e.IsFeatured).HasDefaultValue(false);
+            entity.Property(e => e.Badge).HasMaxLength(50);
 
             entity.Property(e => e.CustomerId).HasColumnName("CustomerId");
             entity.HasOne(d => d.Customer).WithMany(p => p.Blogs)
@@ -356,6 +359,12 @@ modelBuilder.Entity<Blog>(entity =>
             entity.Property(e => e.SeoKeywords).HasMaxLength(250);
             entity.Property(e => e.SeoTitle).HasMaxLength(250);
             entity.Property(e => e.Title).HasMaxLength(250);
+            entity.Property(e => e.Views).HasDefaultValue(0);
+            entity.Property(e => e.IsFeatured).HasDefaultValue(false);
+            entity.Property(e => e.Badge).HasMaxLength(50);
+            entity.Property(e => e.Views).HasDefaultValue(0);
+            entity.Property(e => e.IsFeatured).HasDefaultValue(false);
+            entity.Property(e => e.Badge).HasMaxLength(50);
         });
 
         modelBuilder.Entity<NewsComment>(entity =>

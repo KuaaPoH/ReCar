@@ -1,0 +1,73 @@
+@model CarRental.Models.News
+@{
+    ViewData["Title"] = "Xác nhận xóa bản tin";
+    Layout = "~/Areas/Admin/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container-fluid px-0" style="max-width: 750px;">
+    <!-- Header -->
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <h1 class="h3 fw-bold mb-0 text-dark tracking-tight">Xóa bản tin</h1>
+            <p class="text-muted small mb-0 mt-1">Hành động này sẽ gỡ bỏ bản tin vĩnh viễn khỏi mục Tin tức ReCar.</p>
+        </div>
+        <a asp-action="Index" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+            <i class="bi bi-arrow-left me-1"></i> Quay lại
+        </a>
+    </div>
+
+    <!-- Panel cảnh báo nguy hiểm -->
+    <div class="recar-panel p-4 border border-danger-subtle shadow-sm mb-4">
+        <div class="d-flex align-items-center gap-3 p-3 bg-danger-subtle text-danger rounded-3 mb-4">
+            <div class="fs-2"><i class="bi bi-exclamation-triangle-fill"></i></div>
+            <div>
+                <h6 class="fw-bold mb-1">Cảnh báo: Bạn có chắc chắn muốn xóa bản tin này không?</h6>
+                <div class="small opacity-90">Bản tin sau khi xóa sẽ không thể phục hồi và mọi liên kết chia sẻ đến bản tin này sẽ bị ngắt kết nối (lỗi 404).</div>
+            </div>
+        </div>
+
+        <!-- Tóm tắt bản tin -->
+        <div class="card border rounded-3 p-3 bg-light mb-4">
+            <div class="d-flex flex-column flex-sm-row gap-3">
+                <div style="width: 130px; height: 90px; flex-shrink: 0;" class="rounded-3 overflow-hidden bg-white border">
+                    <img src="@(string.IsNullOrEmpty(Model.Image) ? "/images/cars/hero.jpg" : Model.Image)" 
+                         alt="@Model.Title" class="w-100 h-100 object-fit-cover">
+                </div>
+                <div class="flex-grow-1 overflow-hidden">
+                    <div class="d-flex align-items-center gap-2 mb-1">
+                        <span class="badge bg-light text-muted border font-monospace">#ID-@Model.NewsId</span>
+                        @if (Model.IsActive)
+                        {
+                            <span class="badge bg-success-subtle text-success">Đang xuất bản</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary-subtle text-secondary">Bản nháp</span>
+                        }
+                    </div>
+                    <h6 class="fw-bold text-dark mb-1">@Model.Title</h6>
+                    <p class="text-muted small mb-2 text-truncate">@Model.Description</p>
+                    <div class="text-muted small" style="font-size: 0.75rem;">
+                        <i class="bi bi-person me-1"></i> Người đăng: <strong>@(Model.CreatedBy ?? "ReCar Editorial")</strong> · 
+                        <i class="bi bi-calendar me-1"></i> Ngày đăng: <strong>@(Model.CreatedDate?.ToString("dd/MM/yyyy") ?? "N/A")</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Form xác nhận -->
+        <form asp-action="Delete" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="NewsId" />
+            <div class="d-flex justify-content-end gap-2">
+                <a asp-action="Index" class="btn btn-light rounded-pill px-4 border">
+                    Hủy và giữ lại
+                </a>
+                <button type="submit" class="btn btn-danger rounded-pill px-4 fw-semibold shadow-sm">
+                    <i class="bi bi-trash-fill me-1"></i> Xác nhận xóa vĩnh viễn
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+

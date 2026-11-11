@@ -17,12 +17,14 @@ namespace CarRental.ViewComponents
         {
             var items = _context.News
                 .Where(m => m.IsActive == true)
-                .OrderByDescending(m => m.CreatedDate)
+                .OrderByDescending(m => m.IsFeatured ?? false)
+                .ThenByDescending(m => m.Views ?? 0)
+                .ThenByDescending(m => m.CreatedDate)
                 .ToList();
 
             foreach (var curated in NewsController.GetCuratedNews())
             {
-                if (!items.Any(n => n.NewsId == curated.NewsId || n.Alias == curated.Alias))
+                if (!items.Any(n => n.NewsId == curated.NewsId || n.Alias == curated.Alias || n.Title == curated.Title))
                 {
                     items.Add(curated);
                 }

@@ -1,4 +1,4 @@
-﻿@model CarRental.Models.Blog
+@model CarRental.Models.Blog
 @{
     ViewData["Title"] = (Model.Title ?? "Chi tiết bài viết") + " – Cẩm nang ReCar";
     Layout = "~/Views/Shared/_Layout.cshtml";
@@ -42,7 +42,18 @@
                         <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-3 py-1 fw-semibold">
                             <i class="bi bi-bookmark-star-fill me-1"></i> @categoryName
                         </span>
+                        @{
+                            string blogDetBadge = !string.IsNullOrEmpty(Model.Badge) ? Model.Badge.Trim() : "";
+                        }
+                        @if (!string.IsNullOrEmpty(blogDetBadge))
+                        {
+                            <span class="badge bg-danger text-white rounded-pill px-3 py-1 fw-semibold shadow-sm">
+                                @blogDetBadge
+                            </span>
+                        }
                         <span class="text-muted small"><i class="bi bi-calendar3 me-1"></i>@publishDate</span>
+                        <span class="text-muted small">·</span>
+                        <span class="text-muted small"><i class="bi bi-eye text-primary me-1"></i>@((Model.Views ?? 0).ToString("N0")) lượt xem</span>
                         <span class="text-muted small">·</span>
                         <span class="text-muted small"><i class="bi bi-clock me-1"></i>5 phút đọc</span>
                     </div>

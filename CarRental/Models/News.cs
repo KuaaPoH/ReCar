@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace CarRental.Models;
@@ -34,6 +34,12 @@ public partial class News
     public string? ModifiedBy { get; set; }
 
     public bool IsActive { get; set; }
+
+    public int? Views { get; set; } = 0;
+
+    public bool? IsFeatured { get; set; } = false;
+
+    public string? Badge { get; set; }
 
     public virtual ICollection<NewsComment> NewsComments { get; set; } = new List<NewsComment>();
 }

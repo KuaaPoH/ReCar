@@ -1,0 +1,304 @@
+@model CarRental.Models.News
+@{
+    ViewData["Title"] = "Chỉnh sửa bản tin";
+    Layout = "~/Areas/Admin/Views/Shared/_Layout.cshtml";
+    string currentImg = !string.IsNullOrEmpty(Model.Image) ? Model.Image : "/images/cars/hero.jpg";
+    var aliasSafe = string.IsNullOrEmpty(Model.Alias) ? "tin-tuc" : Model.Alias;
+    var clientUrl = $"/news/{aliasSafe}-{Model.NewsId}.html";
+}
+
+<!-- Summernote Lite CSS -->
+<link rel="stylesheet" href="/admin/assets/vendors/summernote/summernote-lite.min.css" />
+
+<div class="container-fluid px-0" style="max-width: 1140px;">
+    <!-- Header -->
+    <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4">
+        <div>
+            <div class="d-flex align-items-center gap-2">
+                <a asp-action="Index" class="btn btn-light btn-sm rounded-circle p-2 text-muted me-1 shadow-xs border">
+                    <i class="bi bi-arrow-left"></i>
+                </a>
+                <h1 class="h3 fw-bold mb-0 text-dark tracking-tight">Chỉnh sửa bản tin</h1>
+                <span class="badge bg-light text-muted border font-monospace">#ID-@Model.NewsId</span>
+            </div>
+            <p class="text-muted small mb-0 mt-1 ms-5">Cập nhật nội dung trực quan, hình ảnh và trạng thái xuất bản của bản tin trên sàn ReCar.</p>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <!-- Xem trước phía khách -->
+            <a href="@clientUrl" target="_blank" class="btn btn-outline-primary btn-sm rounded-pill px-3 py-1.5 fw-semibold shadow-xs">
+                <i class="bi bi-box-arrow-up-right me-1"></i> Xem trên web
+            </a>
+            <a asp-action="Index" class="btn btn-outline-secondary btn-sm rounded-pill px-3.5 py-1.5 fw-semibold">
+                <i class="bi bi-arrow-left me-1"></i> Quay lại
+            </a>
+        </div>
+    </div>
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show rounded-3 small fw-medium mb-3 shadow-xs" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-1.5"></i> @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <form asp-action="Edit" method="post" enctype="multipart/form-data" id="editNewsForm">
+        @Html.AntiForgeryToken()
+        <input type="hidden" asp-for="NewsId" />
+        <input type="hidden" asp-for="CreatedBy" />
+        <input type="hidden" asp-for="CreatedDate" />
+        <input type="hidden" asp-for="Alias" />
+        <!-- Lưu trữ đường dẫn ảnh bìa hiện tại (ẩn khỏi giao diện theo yêu cầu) -->
+        <input type="hidden" asp-for="Image" id="hiddenCurrentImg" />
+
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger rounded-3 small mb-3"></div>
+
+        <div class="row g-4">
+            <!-- CỘT TRÁI: Nội dung bản tin (Soạn thảo WYSIWYG) -->
+            <div class="col-lg-8">
+                <div class="recar-panel p-4 mb-4 shadow-sm border rounded-4 bg-white">
+                    <h5 class="fw-bold text-dark mb-3 d-flex align-items-center gap-2">
+                        <i class="bi bi-newspaper text-primary"></i> 
+                        <span>Nội dung bản tin</span>
+                    </h5>
+
+                    <!-- Tiêu đề -->
+                    <div class="mb-3">
+                        <label asp-for="Title" class="form-label fw-semibold small text-dark">Tiêu đề bản tin <span class="text-danger">*</span></label>
+                        <input asp-for="Title" class="form-control form-control-lg fs-6 fw-semibold rounded-3" placeholder="Nhập tiêu đề bản tin rõ ràng, thu hút..." required />
+                        <span asp-validation-for="Title" class="text-danger small"></span>
+                        <div class="form-text small text-muted mt-1">
+                            <i class="bi bi-link-45deg me-1"></i>Liên kết tĩnh: <span class="text-primary font-monospace">@clientUrl</span>
+                        </div>
+                    </div>
+
+                    <!-- Tóm tắt ngắn -->
+                    <div class="mb-3">
+                        <label asp-for="Description" class="form-label fw-semibold small text-dark">Tóm tắt ngắn (Lead / Sapo) <span class="text-danger">*</span></label>
+                        <textarea asp-for="Description" rows="3" class="form-control rounded-3" placeholder="Đoạn tóm tắt ngắn gọn 1 - 2 câu hiển thị ở danh sách tin tức..." required></textarea>
+                        <span asp-validation-for="Description" class="text-danger small"></span>
+                    </div>
+
+                    <!-- Nội dung chi tiết: Trình soạn thảo WYSIWYG trực quan -->
+                    <div class="mb-2">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <label asp-for="Detail" class="form-label fw-semibold small text-dark mb-0">
+                                Nội dung chi tiết bản tin <span class="text-danger">*</span>
+                            </label>
+                            <span class="badge bg-light text-muted border small">
+                                <i class="bi bi-magic me-1 text-primary"></i>Soạn thảo trực quan (hỗ trợ chèn ảnh)
+                            </span>
+                        </div>
+                        <textarea asp-for="Detail" id="NewsDetail" class="form-control" style="display: none;"></textarea>
+                        <span asp-validation-for="Detail" class="text-danger small"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CỘT PHẢI: Trạng thái & Ảnh bìa -->
+            <div class="col-lg-4">
+                <!-- Card Xuất bản -->
+                <div class="recar-panel p-4 mb-4 shadow-sm border rounded-4 bg-white">
+                    <h6 class="fw-bold text-dark mb-3 d-flex align-items-center gap-2">
+                        <i class="bi bi-sliders text-success"></i> 
+                        <span>Trạng thái &amp; Thông tin</span>
+                    </h6>
+
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" asp-for="IsActive" id="switchIsActive" style="cursor: pointer;">
+                        <label class="form-check-label fw-semibold small text-dark" for="switchIsActive" style="cursor: pointer;">
+                            Xuất bản công khai trên sàn ReCar
+                        </label>
+                        <div class="form-text small text-muted">Bật để khách có thể đọc hoặc tắt để chuyển về Bản nháp.</div>
+                    </div>
+
+                    <div class="p-3 bg-light-subtle rounded-3 small text-muted mb-3 border">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span>Ngày tạo:</span>
+                            <span class="text-dark">@(Model.CreatedDate?.ToString("dd/MM/yyyy HH:mm") ?? "N/A")</span>
+                        </div>
+                        @if (Model.ModifiedDate.HasValue)
+                        {
+                            <div class="d-flex justify-content-between">
+                                <span>Sửa lần cuối:</span>
+                                <span class="text-dark">@Model.ModifiedDate.Value.ToString("dd/MM/yyyy HH:mm")</span>
+                            </div>
+                        }
+                    </div>
+
+                    <!-- Thẻ phân loại / Chủ đề bản tin -->
+                    <div class="mb-3">
+                        <label asp-for="SeoKeywords" class="form-label fw-semibold small text-dark">
+                            <i class="bi bi-tag text-primary me-1"></i>Chủ đề / Phân loại:
+                        </label>
+                        <select asp-for="SeoKeywords" class="form-select form-select-sm rounded-3">
+                            <option value="Tin tức ReCar">Tin tức ReCar</option>
+                            <option value="Công nghệ & Xe điện">Công nghệ & Xe điện</option>
+                            <option value="Hành trình du lịch">Hành trình du lịch</option>
+                            <option value="Thị trường ô tô">Thị trường ô tô</option>
+                            <option value="Chính sách & Pháp luật">Chính sách & Pháp luật</option>
+                        </select>
+                        <div class="form-text small text-muted">Phân loại bản tin trên bộ lọc trang chủ và tin tức.</div>
+                    </div>
+
+                    <div class="d-flex flex-column gap-2">
+                        <button type="submit" class="btn btn-primary w-100 rounded-pill py-2.5 fw-bold shadow-sm" style="background-color: var(--recar-primary); border: none;">
+                            <i class="bi bi-check2-circle me-1"></i> Lưu thay đổi bản tin
+                        </button>
+                        <a asp-action="Index" class="btn btn-light w-100 rounded-pill py-2 text-muted fw-semibold border">
+                            Hủy bỏ
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Card Nhãn nổi bật -->
+                <div class="recar-panel p-4 mb-4 shadow-sm border rounded-4 bg-white">
+                    <h6 class="fw-bold text-dark mb-3 d-flex align-items-center gap-2">
+                        <i class="bi bi-bookmark-star text-danger"></i> 
+                        <span>Nhãn nổi bật</span>
+                    </h6>
+
+                    <!-- Switch Đánh dấu nổi bật -->
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" name="IsFeatured" value="true" id="switchIsFeatured" style="cursor: pointer;" @(Model?.IsFeatured == true ? "checked" : "")>
+                        <label class="form-check-label fw-semibold small text-dark" for="switchIsFeatured" style="cursor: pointer;">
+                            Đánh dấu là Bản tin nổi bật
+                        </label>
+                        <div class="form-text small text-muted">Ưu tiên hiển thị vị trí đầu bản tin trên sàn.</div>
+                    </div>
+
+                    <!-- Dropdown gắn nhãn (không emoji) -->
+                    <div class="mb-0">
+                        <label asp-for="Badge" class="form-label fw-semibold small text-dark">
+                            <i class="bi bi-tag-fill text-danger me-1"></i>Nhãn nổi bật:
+                        </label>
+                        <select asp-for="Badge" class="form-select form-select-sm rounded-3">
+                            <option value="">-- Không gắn nhãn --</option>
+                            <option value="Nổi bật">Nổi bật</option>
+                            <option value="Xu hướng">Xu hướng</option>
+                            <option value="Mới nhất">Mới nhất</option>
+                            <option value="Ưu đãi">Ưu đãi</option>
+                            <option value="Đặc sắc">Đặc sắc</option>
+                            <option value="Đọc nhiều">Đọc nhiều</option>
+                        </select>
+                        <div class="form-text small text-muted">Huy hiệu hiển thị trên ảnh bài viết.</div>
+                    </div>
+
+                    <input type="hidden" asp-for="Views" />
+                </div>
+
+                <!-- Card Ảnh bìa bản tin (ĐÃ XÓA PHẦN NHẬP URL THÔ THEO YÊU CẦU) -->
+                <div class="recar-panel p-4 mb-4 shadow-sm border rounded-4 bg-white">
+                    <h6 class="fw-bold text-dark mb-2 d-flex align-items-center gap-2">
+                        <i class="bi bi-image text-info"></i> 
+                        <span>Ảnh bìa bản tin</span>
+                    </h6>
+                    <p class="text-muted small mb-3">Tải ảnh bìa mới từ máy tính để cập nhật ảnh đại diện.</p>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small text-dark">Chọn tệp ảnh mới:</label>
+                        <input type="file" id="imageFileInput" name="ImageFile" accept="image/*" class="form-control form-control-sm rounded-3 mb-2" />
+                        <div class="form-text small text-muted">Hỗ trợ JPG, PNG, WEBP (Tỷ lệ khuyến nghị 16:9).</div>
+                    </div>
+
+                    <!-- Khung xem trước ảnh bìa trực tiếp -->
+                    <div class="border rounded-3 p-2 bg-light text-center position-relative overflow-hidden">
+                        <img id="imagePreview" src="@currentImg" 
+                             alt="Xem trước ảnh bìa" class="img-fluid rounded-3 object-fit-cover w-100 shadow-xs" 
+                             style="max-height: 190px;" 
+                             onerror="this.onerror=null; this.src='/images/cars/hero.jpg';" />
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <!-- Summernote Lite JS & Tiếng Việt -->
+    <script src="/admin/assets/vendors/summernote/summernote-lite.min.js"></script>
+    <script src="/admin/assets/vendors/summernote/lang/summernote-vi-VN.min.js"></script>
+
+    <script>
+        $(document).ready(function () {
+            // Khởi tạo trình soạn thảo trực quan Summernote Lite trên textarea NewsDetail
+            $('#NewsDetail').summernote({
+                placeholder: 'Soạn thảo nội dung bản tin tại đây... Bạn có thể bôi đen văn bản để định dạng tiêu đề, in đậm, đổi màu hoặc bấm nút chèn ảnh từ máy tính.',
+                tabsize: 2,
+                height: 420,
+                minHeight: 280,
+                lang: 'vi-VN',
+                toolbar: [
+                    ['style', ['style']],
+                    ['font', ['bold', 'italic', 'underline', 'clear']],
+                    ['fontname', ['fontname']],
+                    ['color', ['color']],
+                    ['para', ['ul', 'ol', 'paragraph']],
+                    ['table', ['table']],
+                    ['insert', ['link', 'picture', 'video', 'hr']],
+                    ['view', ['fullscreen', 'codeview', 'help']]
+                ],
+                styleTags: [
+                    'p',
+                    { title: 'Tiêu đề lớn (H2)', tag: 'h2', className: 'fw-bold text-dark mt-4 mb-2', value: 'h2' },
+                    { title: 'Tiêu đề vừa (H3)', tag: 'h3', className: 'fw-bold text-dark mt-3 mb-2', value: 'h3' },
+                    { title: 'Tiêu đề nhỏ (H4)', tag: 'h4', className: 'fw-semibold text-dark mt-2 mb-1', value: 'h4' },
+                    { title: 'Trích dẫn nổi bật', tag: 'blockquote', className: 'blockquote border-start border-4 border-primary ps-3 text-secondary my-3', value: 'blockquote' },
+                    'pre'
+                ],
+                callbacks: {
+                    // Xử lý kéo thả hoặc chọn chèn ảnh từ máy tính vào nội dung bản tin
+                    onImageUpload: function (files) {
+                        for (let i = 0; i < files.length; i++) {
+                            uploadSummernoteImage(files[i]);
+                        }
+                    }
+                }
+            });
+
+            // Hàm gửi ảnh qua AJAX để lưu vào thư mục /images/news/content/
+            function uploadSummernoteImage(file) {
+                let data = new FormData();
+                data.append("file", file);
+
+                $.ajax({
+                    url: '/Admin/News/UploadEditorImage',
+                    type: 'POST',
+                    data: data,
+                    cache: false,
+                    contentType: false,
+                    processData: false,
+                    success: function (res) {
+                        if (res && res.success && res.url) {
+                            $('#NewsDetail').summernote('insertImage', res.url, function ($image) {
+                                $image.addClass('img-fluid rounded-3 my-3 shadow-xs');
+                                $image.attr('alt', file.name || 'Ảnh bản tin ReCar');
+                            });
+                        } else {
+                            Swal.fire('Lỗi tải ảnh', res.message || 'Không thể tải ảnh lên máy chủ.', 'error');
+                        }
+                    },
+                    error: function () {
+                        Swal.fire('Lỗi', 'Không thể kết nối đến máy chủ khi tải ảnh lên.', 'error');
+                    }
+                });
+            }
+
+            // Xem trước ảnh bìa Live Preview khi chọn tệp mới
+            document.getElementById('imageFileInput')?.addEventListener('change', function (e) {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function (e) {
+                        const img = document.getElementById('imagePreview');
+                        if (img) {
+                            img.src = e.target.result;
+                        }
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+        });
+    </script>
+}
+

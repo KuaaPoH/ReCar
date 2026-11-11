@@ -1,6 +1,6 @@
 @model IEnumerable<CarRental.Models.CarType>
 @{
-    ViewData["Title"] = "Quản lý kiểu xe";
+    ViewData["Title"] = "Quản lý kiểu xe & phân khúc";
     Layout = "~/Areas/Admin/Views/Shared/_Layout.cshtml";
 }
 
@@ -12,7 +12,7 @@
                 <h1 class="h3 fw-bold mb-0 text-dark tracking-tight">Quản lý kiểu xe & phân khúc</h1>
                 <span class="badge bg-light text-dark border rounded-pill fw-semibold px-2.5 py-1">@Model.Count() kiểu xe</span>
             </div>
-            <p class="text-muted small mb-0 mt-1">Quản lý danh mục các dòng xe (Sedan, SUV, Crossover, MPV, Bán tải,...) hiển thị trên hệ thống tìm kiếm xe.</p>
+            <p class="text-muted small mb-0 mt-1">Quản lý danh mục các dòng xe (Sedan, SUV, Crossover, MPV, Bán tải,...) hiển thị trên bộ lọc và sàn ReCar.</p>
         </div>
         <div>
             <a asp-action="Create" class="btn btn-primary btn-sm rounded-pill px-3.5 py-2 fw-semibold shadow-sm" style="background-color: var(--recar-primary); border: none;">
@@ -23,33 +23,33 @@
 
     @if (TempData["Success"] != null)
     {
-        <div class="alert alert-success alert-dismissible fade show rounded-3 small fw-medium mb-3" role="alert">
-            <i class="bi bi-check-circle-fill me-1"></i> @TempData["Success"]
+        <div class="alert alert-success alert-dismissible fade show rounded-3 small fw-medium mb-3 shadow-xs" role="alert">
+            <i class="bi bi-check-circle-fill me-1.5"></i> @TempData["Success"]
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     }
 
     @if (TempData["Error"] != null)
     {
-        <div class="alert alert-danger alert-dismissible fade show rounded-3 small fw-medium mb-3" role="alert">
-            <i class="bi bi-exclamation-triangle-fill me-1"></i> @TempData["Error"]
+        <div class="alert alert-danger alert-dismissible fade show rounded-3 small fw-medium mb-3 shadow-xs" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-1.5"></i> @TempData["Error"]
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     }
 
     <!-- Table -->
-    <div class="recar-panel mb-0">
+    <div class="recar-panel mb-0 shadow-sm border rounded-4 bg-white overflow-hidden">
         <div class="table-responsive">
             <table class="table recar-table align-middle mb-0">
-                <thead>
+                <thead class="bg-light">
                     <tr>
-                        <th style="width: 70px;">Mã loại</th>
-                        <th style="width: 80px;">Hình ảnh</th>
-                        <th>Tên kiểu xe</th>
+                        <th style="width: 80px;" class="ps-3">Mã loại</th>
+                        <th style="width: 100px;">Hình ảnh</th>
+                        <th>Tên kiểu xe / phân khúc</th>
                         <th>Số chỗ ngồi</th>
                         <th>Hãng đại diện</th>
                         <th>Số lượng xe sàn</th>
-                        <th class="text-end">Thao tác</th>
+                        <th class="text-end pe-3" style="min-width: 120px;">Thao tác</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -57,8 +57,13 @@
                     {
                         <tr>
                             <td colspan="7" class="text-center py-5 text-muted">
-                                <i class="bi bi-car-front fs-2 text-secondary d-block mb-2"></i>
-                                Chưa có kiểu xe nào. Bấm nút Thêm kiểu xe mới để khởi tạo.
+                                <i class="bi bi-car-front fs-1 text-secondary opacity-50 d-block mb-2"></i>
+                                <span class="fw-medium">Chưa có kiểu xe nào trong hệ thống.</span>
+                                <div class="mt-2">
+                                    <a asp-action="Create" class="btn btn-sm btn-outline-primary rounded-pill px-3">
+                                        <i class="bi bi-plus me-1"></i> Thêm ngay
+                                    </a>
+                                </div>
                             </td>
                         </tr>
                     }
@@ -66,38 +71,92 @@
                     {
                         foreach (var item in Model)
                         {
+                            var carCount = item.Cars?.Count ?? 0;
+                            var imgSrc = string.IsNullOrEmpty(item.Image) ? "/images/cars/hero.jpg" : item.Image;
+                            var safeTypeName = (item.CarTypeName ?? "").Replace("'", "\\'");
                             <tr>
-                                <td class="fw-bold text-muted">#@item.TypeId</td>
+                                <td class="ps-3 fw-bold text-muted" style="font-size: 0.82rem;">#@item.TypeId</td>
                                 <td>
-                                    <img src="@(string.IsNullOrEmpty(item.Image) ? "/images/cars/hero.jpg" : item.Image)" 
-                                         alt="@item.CarTypeName" class="rounded object-fit-cover border" style="width: 58px; height: 38px;" />
+                                    <div class="position-relative d-inline-block">
+                                        <img src="@imgSrc" 
+                                             alt="@item.CarTypeName" 
+                                             class="rounded-3 object-fit-cover border shadow-xs" 
+                                             style="width: 64px; height: 42px;"
+                                             onerror="this.onerror=null; this.src='/images/cars/hero.jpg';" />
+                                    </div>
                                 </td>
                                 <td>
                                     <div class="fw-bold text-dark">@item.CarTypeName</div>
+                                    <span class="text-muted" style="font-size: 0.75rem;">Phân khúc phổ biến</span>
                                 </td>
                                 <td>
-                                    <span class="badge bg-light text-dark border">
-                                        <i class="bi bi-people me-1"></i> @(item.Seats.HasValue ? item.Seats.Value.ToString() + " chỗ" : "Đa dạng")
+                                    <span class="badge bg-light text-dark border rounded-pill px-2.5 py-1">
+                                        <i class="bi bi-people me-1 text-secondary"></i> @(item.Seats.HasValue ? item.Seats.Value.ToString() + " chỗ" : "Đa dạng")
                                     </span>
                                 </td>
                                 <td>
-                                    <span class="text-muted small">@(string.IsNullOrEmpty(item.Manufacturer) ? "Đa dạng" : item.Manufacturer)</span>
+                                    <span class="text-dark small fw-medium">@(string.IsNullOrEmpty(item.Manufacturer) ? "Đa dạng hãng" : item.Manufacturer)</span>
                                 </td>
                                 <td>
-                                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1">
-                                        @(item.Cars?.Count ?? 0) xe đang mở thuê
-                                    </span>
+                                    @if (carCount > 0)
+                                    {
+                                        <!-- Bấm vào badge số xe sẽ mở Popup danh sách đội xe thuộc phân khúc -->
+                                        <button type="button" 
+                                                class="btn badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-2.5 py-1 fw-semibold text-decoration-none shadow-xs" 
+                                                onclick="openTypeFleetModal(@item.TypeId, '@safeTypeName', @carCount)">
+                                            <i class="bi bi-car-front me-1"></i> @carCount xe đang có
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-light text-secondary border rounded-pill px-2.5 py-1">
+                                            Chưa có xe
+                                        </span>
+                                    }
                                 </td>
-                                <td class="text-end">
-                                    <div class="d-inline-flex gap-1.5">
-                                        <a asp-action="Edit" asp-route-id="@item.TypeId" class="btn btn-sm btn-light border" title="Chỉnh sửa">
-                                            <i class="bi bi-pencil-square text-primary"></i> Sửa
+                                <td class="text-end pe-3">
+                                    <div class="d-inline-flex align-items-center gap-1.5">
+                                        <!-- Nút sửa nhanh -->
+                                        <a asp-action="Edit" asp-route-id="@item.TypeId" 
+                                           class="btn btn-light btn-sm rounded-circle p-1.5 border text-primary shadow-xs" 
+                                           title="Chỉnh sửa kiểu xe" style="width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center;">
+                                            <i class="bi bi-pencil"></i>
                                         </a>
-                                        <form asp-action="Delete" asp-route-id="@item.TypeId" method="post" class="d-inline" id="deleteTypeForm-@item.TypeId">
-                                            @Html.AntiForgeryToken()
-                                            <button type="button" class="btn btn-sm btn-light border text-danger" title="Xóa" onclick="confirmDeleteCarType(@item.TypeId, '@Html.Raw(item.CarTypeName?.Replace("'", "\\'"))')">
-                                                <i class="bi bi-trash"></i> Xóa
+
+                                        <!-- Menu dropdown thao tác chuẩn Admin -->
+                                        <div class="dropdown">
+                                            <button class="btn btn-light btn-sm rounded-circle p-1.5 border" 
+                                                    type="button" 
+                                                    data-bs-toggle="dropdown" 
+                                                    aria-expanded="false" 
+                                                    title="Thao tác khác" 
+                                                    style="width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center;">
+                                                <i class="bi bi-three-dots-vertical"></i>
                                             </button>
+                                            <ul class="dropdown-menu dropdown-menu-end shadow-sm p-1.5 small" style="border-radius: 12px; min-width: 195px;">
+                                                <li>
+                                                    <a class="dropdown-item py-1.5 rounded" asp-action="Edit" asp-route-id="@item.TypeId">
+                                                        <i class="bi bi-pencil-square me-2 text-primary"></i> Chỉnh sửa kiểu xe
+                                                    </a>
+                                                </li>
+                                                <li>
+                                                    <a class="dropdown-item py-1.5 rounded" href="javascript:void(0)" onclick="openTypeFleetModal(@item.TypeId, '@safeTypeName', @carCount)">
+                                                        <i class="bi bi-car-front me-2 text-info"></i> Xem đội xe (@carCount xe)
+                                                    </a>
+                                                </li>
+                                                <li><hr class="dropdown-divider my-1"></li>
+                                                <li>
+                                                    <a class="dropdown-item py-1.5 rounded text-danger fw-medium" href="javascript:void(0)" 
+                                                       onclick="confirmDeleteCarType(@item.TypeId, '@safeTypeName', @carCount)">
+                                                        <i class="bi bi-trash3 me-2"></i> Xóa kiểu xe
+                                                    </a>
+                                                </li>
+                                            </ul>
+                                        </div>
+
+                                        <!-- Form ẩn phục vụ POST Delete -->
+                                        <form asp-action="Delete" asp-route-id="@item.TypeId" method="post" id="deleteTypeForm-@item.TypeId" class="d-none">
+                                            @Html.AntiForgeryToken()
                                         </form>
                                     </div>
                                 </td>
@@ -110,21 +169,537 @@
     </div>
 </div>
 
+<!-- ==================== MODAL 1: POPUP DANH SÁCH ĐỘI XE THUỘC KIỂU XE / PHÂN KHÚC ==================== -->
+<div class="modal fade rc-modal" id="typeFleetModal" tabindex="-1" aria-labelledby="typeFleetModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="rc-modal-head">
+                <div class="rc-head-left">
+                    <span class="rc-head-ico"><i class="bi bi-car-front-fill"></i></span>
+                    <div>
+                        <h5 class="rc-head-title" id="typeFleetModalTitle">Đội xe phân khúc <span id="fleetTypeTitle">Sedan</span></h5>
+                        <div class="rc-head-sub">Danh sách các xe đang lưu hành trên sàn ReCar thuộc phân khúc này</div>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <div class="rc-modal-body" id="typeFleetModalBody">
+                <div class="text-center py-5" id="fleetLoadingSpinner">
+                    <div class="spinner-border text-primary" role="status"><span class="visually-hidden">Đang tải...</span></div>
+                    <div class="text-muted small mt-3">Đang tải danh sách xe...</div>
+                </div>
+                <div id="fleetCarsContainer" class="d-none">
+                    <div class="rc-fleet-grid" id="fleetCarsGrid"></div>
+                </div>
+                <div id="fleetEmptyNotice" class="text-center py-5 d-none">
+                    <i class="bi bi-inbox fs-1 text-secondary opacity-50 d-block mb-3"></i>
+                    <h6 class="fw-bold text-dark">Chưa có xe nào thuộc phân khúc này</h6>
+                    <p class="text-muted small mb-0">Chưa có đối tác chủ xe nào đăng ký xe thuộc dòng này lên sàn ReCar.</p>
+                </div>
+            </div>
+
+            <div class="rc-modal-foot">
+                <span class="rc-foot-note" id="fleetSummaryText">Đang thống kê...</span>
+                <button type="button" class="rc-btn rc-btn-dark" data-bs-dismiss="modal">Đóng</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== MODAL 2: POPUP CHI TIẾT THÔNG TIN CHIẾC XE ==================== -->
+<div class="modal fade rc-modal" id="carDetailModal" tabindex="-1" aria-labelledby="carDetailModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="rc-modal-head">
+                <div class="rc-head-left">
+                    <button type="button" class="rc-btn rc-btn-outline" onclick="backToFleetModal()" title="Quay lại danh sách đội xe">
+                        <i class="bi bi-arrow-left"></i><span>Quay lại</span>
+                    </button>
+                    <div>
+                        <h5 class="rc-head-title" id="carDetailModalTitle">Chi tiết xe: <span id="detailCarName">Tên xe</span></h5>
+                        <div class="rc-head-badges">
+                            <span class="rc-plate" id="detailCarPlate">29A-123.45</span>
+                            <span class="rc-badge rc-badge-ok" id="detailCarStatus">Sẵn sàng</span>
+                            <span class="rc-badge rc-badge-gray" id="detailCarType">Sedan</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="rc-head-right">
+                    <a href="#" target="_blank" class="rc-btn rc-btn-primary-soft" id="btnViewOnStore">
+                        <i class="bi bi-box-arrow-up-right"></i><span>Xem trên sàn</span>
+                    </a>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+            </div>
+
+            <div class="rc-modal-body" id="carDetailModalBody">
+                <div class="text-center py-5" id="carDetailLoadingSpinner">
+                    <div class="spinner-border text-primary" role="status"><span class="visually-hidden">Đang tải...</span></div>
+                    <div class="text-muted small mt-3">Đang tải hồ sơ xe...</div>
+                </div>
+
+                <div id="carDetailContent" class="d-none">
+                    <div class="rc-detail-grid">
+
+                        <!-- ============ CỘT TRÁI: Ảnh, Chủ xe, Tiện nghi ============ -->
+                        <div class="rc-col">
+                            <div class="rc-card">
+                                <div class="rc-main-img"><img src="" id="detailMainImg" alt="Ảnh xe" onerror="this.onerror=null; this.src='/images/cars/hero.jpg';" /></div>
+                                <div class="rc-thumbs" id="detailGalleryRow">
+                                    <button type="button" class="rc-thumb active" onclick="swapMainImage(this)"><img src="" id="detailGallery1" alt="Góc 1" onerror="this.onerror=null; this.src='/images/cars/hero.jpg';" /></button>
+                                    <button type="button" class="rc-thumb" onclick="swapMainImage(this)"><img src="" id="detailGallery2" alt="Góc 2" onerror="this.onerror=null; this.src='/images/cars/hero.jpg';" /></button>
+                                    <button type="button" class="rc-thumb" onclick="swapMainImage(this)"><img src="" id="detailGallery3" alt="Góc 3" onerror="this.onerror=null; this.src='/images/cars/hero.jpg';" /></button>
+                                    <button type="button" class="rc-thumb" onclick="swapMainImage(this)"><img src="" id="detailGallery4" alt="Góc 4" onerror="this.onerror=null; this.src='/images/cars/hero.jpg';" /></button>
+                                </div>
+                            </div>
+
+                            <div class="rc-card">
+                                <div class="rc-card-title"><i class="bi bi-person-badge-fill"></i><span>Đối tác chủ xe</span>
+                                    <span class="rc-badge rc-badge-ok ms-auto"><i class="bi bi-patch-check-fill"></i>Đã xác thực</span>
+                                </div>
+                                <div class="rc-owner">
+                                    <div class="rc-avatar" id="detailOwnerAvatar">CB</div>
+                                    <div class="rc-owner-info">
+                                        <div class="rc-owner-name" id="detailOwnerName">--</div>
+                                        <div class="rc-owner-meta"><i class="bi bi-telephone"></i><span id="detailOwnerPhone">--</span></div>
+                                        <div class="rc-owner-meta"><i class="bi bi-envelope"></i><span id="detailOwnerEmail">--</span></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="rc-card">
+                                <div class="rc-card-title"><i class="bi bi-stars text-warning"></i><span>Tiện nghi trang bị</span></div>
+                                <div class="rc-chips" id="detailAmenitiesWrap"></div>
+                            </div>
+                        </div>
+
+                        <!-- ============ CỘT PHẢI: Thông số, Giá, Mô tả ============ -->
+                        <div class="rc-col">
+                            <div class="rc-card">
+                                <div class="rc-card-title"><i class="bi bi-sliders2"></i><span>Thông số kỹ thuật</span></div>
+                                <div class="rc-spec-grid">
+                                    <div class="rc-spec"><span class="rc-ico rc-ico-blue"><i class="bi bi-building"></i></span><div class="rc-spec-txt"><small>Hãng xe</small><strong id="detailSpecBrand">--</strong></div></div>
+                                    <div class="rc-spec"><span class="rc-ico rc-ico-cyan"><i class="bi bi-tag"></i></span><div class="rc-spec-txt"><small>Phân khúc</small><strong id="detailSpecType">--</strong></div></div>
+                                    <div class="rc-spec"><span class="rc-ico rc-ico-gray"><i class="bi bi-calendar-event"></i></span><div class="rc-spec-txt"><small>Năm sản xuất</small><strong id="detailSpecYear">--</strong></div></div>
+                                    <div class="rc-spec"><span class="rc-ico rc-ico-green"><i class="bi bi-people"></i></span><div class="rc-spec-txt"><small>Số chỗ ngồi</small><strong id="detailSpecSeats">--</strong></div></div>
+                                    <div class="rc-spec"><span class="rc-ico rc-ico-orange"><i class="bi bi-gear"></i></span><div class="rc-spec-txt"><small>Hộp số</small><strong id="detailSpecTrans">--</strong></div></div>
+                                    <div class="rc-spec"><span class="rc-ico rc-ico-red"><i class="bi bi-fuel-pump"></i></span><div class="rc-spec-txt"><small>Nhiên liệu</small><strong id="detailSpecFuel">--</strong></div></div>
+                                    <div class="rc-spec"><span class="rc-ico rc-ico-purple"><i class="bi bi-palette"></i></span><div class="rc-spec-txt"><small>Màu sắc</small><strong id="detailSpecColor">--</strong></div></div>
+                                    <div class="rc-spec"><span class="rc-ico rc-ico-cyan"><i class="bi bi-speedometer2"></i></span><div class="rc-spec-txt"><small>Mức tiêu hao</small><strong id="detailSpecConsumption">--</strong></div></div>
+                                </div>
+                            </div>
+
+                            <div class="rc-card">
+                                <div class="rc-card-title"><i class="bi bi-cash-stack text-success"></i><span>Giá thuê &amp; chi phí phụ trợ</span></div>
+                                <div class="rc-price-hero">
+                                    <div>
+                                        <small>Giá thuê niêm yết</small>
+                                        <div class="rc-price-main" id="detailPrice">--</div>
+                                    </div>
+                                    <div class="rc-price-sale" id="detailSalePrice">Không áp dụng ưu đãi</div>
+                                </div>
+                                <div class="rc-info-list">
+                                    <div class="rc-info"><span class="rc-ico rc-ico-gray"><i class="bi bi-person-vcard"></i></span><div class="rc-info-txt"><small>Phụ phí tài xế</small><strong id="detailDriverFee">--</strong></div></div>
+                                    <div class="rc-info"><span class="rc-ico rc-ico-cyan"><i class="bi bi-geo-alt"></i></span><div class="rc-info-txt"><small>Giao xe tận nơi</small><strong id="detailDelivery">--</strong></div></div>
+                                    <div class="rc-info"><span class="rc-ico rc-ico-orange"><i class="bi bi-signpost-split"></i></span><div class="rc-info-txt"><small>Giới hạn quãng đường</small><strong id="detailMileage">--</strong></div></div>
+                                </div>
+                            </div>
+
+                            <div class="rc-card">
+                                <div class="rc-card-title"><i class="bi bi-card-text"></i><span>Mô tả &amp; nội quy sử dụng</span></div>
+                                <div class="rc-desc" id="detailDescription">--</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="rc-modal-foot">
+                <button type="button" class="rc-btn rc-btn-outline" onclick="backToFleetModal()"><i class="bi bi-arrow-left"></i><span>Quay lại đội xe</span></button>
+                <button type="button" class="rc-btn rc-btn-dark" data-bs-dismiss="modal">Đóng</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* ===== ReCar popup: layout & spacing dùng giá trị px cụ thể ===== */
+    .rc-modal .modal-content { border: 0; border-radius: 20px; overflow: hidden; box-shadow: 0 25px 60px -12px rgba(15,23,42,.35); }
+    .rc-modal-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 18px 28px; background: #fff; border-bottom: 1px solid #e8edf3; }
+    .rc-head-left, .rc-head-right { display: flex; align-items: center; gap: 16px; min-width: 0; }
+    .rc-head-ico { width: 46px; height: 46px; border-radius: 14px; background: #e8f1fd; color: #2563eb; display: inline-flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
+    .rc-head-title { margin: 0; font-size: 19px; font-weight: 700; color: #0f172a; line-height: 1.3; }
+    .rc-head-title span { color: #2563eb; }
+    .rc-head-sub { margin-top: 3px; font-size: 13px; color: #64748b; }
+    .rc-head-badges { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+    .rc-modal-body { padding: 26px 28px; background: #f6f8fb; overflow-y: auto; }
+    .rc-modal-foot { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 28px; background: #fff; border-top: 1px solid #e8edf3; }
+    .rc-foot-note { font-size: 13px; color: #64748b; font-weight: 500; }
+
+    /* Buttons & badges */
+    .rc-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 9px 20px; border-radius: 999px; font-size: 14px; font-weight: 600; line-height: 1.2; border: 1px solid transparent; cursor: pointer; text-decoration: none; transition: all .15s ease; white-space: nowrap; }
+    .rc-btn-outline { background: #fff; color: #475569; border-color: #d5dde8; }
+    .rc-btn-outline:hover { background: #f1f5f9; color: #0f172a; }
+    .rc-btn-dark { background: #64748b; color: #fff; padding: 9px 28px; }
+    .rc-btn-dark:hover { background: #475569; color: #fff; }
+    .rc-btn-primary-soft { background: #fff; color: #2563eb; border-color: #2563eb; }
+    .rc-btn-primary-soft:hover { background: #2563eb; color: #fff; }
+    .rc-plate { display: inline-block; padding: 4px 12px; border-radius: 8px; background: #fff7e0; border: 1px solid #f6dd98; color: #1e293b; font-family: ui-monospace, Consolas, monospace; font-size: 12.5px; font-weight: 700; letter-spacing: .3px; }
+    .rc-badge { display: inline-flex; align-items: center; gap: 6px; padding: 5px 13px; border-radius: 999px; font-size: 12.5px; font-weight: 600; line-height: 1.2; border: 1px solid transparent; white-space: nowrap; }
+    .rc-badge-ok { background: #e7f7ee; color: #15803d; border-color: #bfe8d0; }
+    .rc-badge-info { background: #e5f6fb; color: #0e7490; border-color: #b5e4f0; }
+    .rc-badge-warn { background: #fff4de; color: #b45309; border-color: #f5d9a3; }
+    .rc-badge-danger { background: #fdeaea; color: #b91c1c; border-color: #f6c4c4; }
+    .rc-badge-gray { background: #f1f5f9; color: #475569; border-color: #dde4ee; }
+
+    /* ===== Popup 1: lưới thẻ xe ===== */
+    .rc-fleet-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 24px; }
+    .rc-car-card { display: flex; flex-direction: column; background: #fff; border: 1px solid #e3e9f1; border-radius: 18px; overflow: hidden; cursor: pointer; transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease; }
+    .rc-car-card:hover { transform: translateY(-4px); box-shadow: 0 16px 32px -10px rgba(15,23,42,.18); border-color: #c7d3e3; }
+    .rc-car-media { position: relative; height: 200px; background: linear-gradient(180deg, #f3f6fa 0%, #e9eef5 100%); display: flex; align-items: center; justify-content: center; }
+    .rc-car-media img { width: 100%; height: 100%; object-fit: cover; }
+    .rc-car-media .rc-plate { position: absolute; left: 14px; bottom: 14px; background: rgba(15,23,42,.82); border-color: transparent; color: #fff; }
+    .rc-car-media .rc-badge { position: absolute; right: 14px; top: 14px; background-clip: padding-box; box-shadow: 0 2px 8px rgba(15,23,42,.12); }
+    .rc-car-body { display: flex; flex-direction: column; flex: 1; padding: 20px 22px 22px; }
+    .rc-car-type { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 500; color: #64748b; }
+    .rc-car-name { margin: 8px 0 14px; font-size: 18px; font-weight: 700; color: #0f172a; line-height: 1.35; }
+    .rc-car-specs { display: flex; flex-wrap: wrap; gap: 10px; }
+    .rc-car-specs span { display: inline-flex; align-items: center; gap: 7px; padding: 6px 12px; border-radius: 10px; background: #f3f6fa; color: #475569; font-size: 13px; font-weight: 500; }
+    .rc-car-specs i { color: #2563eb; }
+    .rc-car-foot { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-top: auto; padding-top: 20px; }
+    .rc-car-foot-inner { display: flex; align-items: center; justify-content: space-between; gap: 14px; width: 100%; padding: 14px 16px; background: #f6f9fd; border: 1px solid #e3ebf5; border-radius: 14px; margin-top: 20px; }
+    .rc-old-price { font-size: 12.5px; color: #94a3b8; text-decoration: line-through; margin-bottom: 3px; }
+    .rc-price { font-size: 17px; font-weight: 800; color: #2563eb; line-height: 1.2; }
+    .rc-price.sale { color: #dc2626; }
+    .rc-car-body .rc-btn { padding: 8px 18px; font-size: 13.5px; background: #fff; color: #2563eb; border-color: #2563eb; }
+    .rc-car-body .rc-btn:hover { background: #2563eb; color: #fff; }
+
+    /* ===== Popup 2: chi tiết xe ===== */
+    .rc-detail-grid { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); gap: 24px; align-items: start; }
+    .rc-col { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+    .rc-card { background: #fff; border: 1px solid #e3e9f1; border-radius: 16px; padding: 20px 22px; box-shadow: 0 1px 2px rgba(15,23,42,.04); }
+    .rc-card-title { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; font-size: 15px; font-weight: 700; color: #0f172a; }
+    .rc-card-title > i { font-size: 18px; color: #2563eb; }
+
+    .rc-main-img { aspect-ratio: 16 / 10; border-radius: 14px; overflow: hidden; background: #eef2f7; border: 1px solid #e3e9f1; }
+    .rc-main-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .rc-thumbs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 14px; }
+    .rc-thumb { padding: 0; border: 2px solid transparent; border-radius: 12px; overflow: hidden; aspect-ratio: 16 / 10; background: #eef2f7; cursor: pointer; opacity: .75; transition: all .15s ease; }
+    .rc-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .rc-thumb:hover { opacity: 1; }
+    .rc-thumb.active { border-color: #2563eb; opacity: 1; }
+
+    .rc-owner { display: flex; align-items: center; gap: 16px; }
+    .rc-avatar { width: 56px; height: 56px; border-radius: 50%; background: linear-gradient(135deg, #2563eb, #4f8df7); color: #fff; font-size: 19px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .rc-owner-info { min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+    .rc-owner-name { font-size: 16px; font-weight: 700; color: #0f172a; }
+    .rc-owner-meta { display: flex; align-items: center; gap: 10px; font-size: 14px; color: #475569; min-width: 0; }
+    .rc-owner-meta i { color: #94a3b8; }
+    .rc-owner-meta span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .rc-chips { display: flex; flex-wrap: wrap; gap: 10px; }
+    .rc-chip { display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 999px; background: #f3f6fa; border: 1px solid #e3e9f1; color: #334155; font-size: 13.5px; font-weight: 500; }
+    .rc-chip i { color: #16a34a; }
+
+    .rc-spec-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+    .rc-spec { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border: 1px solid #e8edf3; border-radius: 14px; background: #fafbfd; min-width: 0; }
+    .rc-spec-txt, .rc-info-txt { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+    .rc-spec-txt small, .rc-info-txt small, .rc-price-hero small { font-size: 12.5px; color: #64748b; font-weight: 500; }
+    .rc-spec-txt strong, .rc-info-txt strong { font-size: 15px; font-weight: 700; color: #0f172a; line-height: 1.35; word-break: break-word; }
+
+    .rc-ico { width: 40px; height: 40px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+    .rc-ico-blue { background: #e6efff; color: #2563eb; }
+    .rc-ico-cyan { background: #e0f4fa; color: #0891b2; }
+    .rc-ico-gray { background: #eceff4; color: #64748b; }
+    .rc-ico-green { background: #e3f6ea; color: #16a34a; }
+    .rc-ico-orange { background: #fff0db; color: #d97706; }
+    .rc-ico-red { background: #fde8e8; color: #dc2626; }
+    .rc-ico-purple { background: #efe7fd; color: #7c3aed; }
+
+    .rc-price-hero { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding: 18px 20px; border-radius: 14px; background: linear-gradient(135deg, #eef4ff 0%, #f6f9ff 100%); border: 1px solid #d9e6fb; }
+    .rc-price-main { margin-top: 5px; font-size: 28px; font-weight: 800; color: #2563eb; line-height: 1.15; }
+    .rc-price-sale { padding: 8px 16px; border-radius: 999px; background: #fdeaea; color: #b91c1c; font-size: 14px; font-weight: 700; }
+    .rc-info-list { margin-top: 8px; }
+    .rc-info { display: flex; align-items: center; gap: 14px; padding: 16px 4px; }
+    .rc-info + .rc-info { border-top: 1px solid #edf1f6; }
+    .rc-desc { white-space: pre-line; font-size: 14px; line-height: 1.7; color: #475569; max-height: 150px; overflow-y: auto; }
+
+    @@media (max-width: 991.98px) {
+        .rc-detail-grid { grid-template-columns: minmax(0, 1fr); }
+        .rc-modal-head, .rc-modal-body, .rc-modal-foot { padding-left: 18px; padding-right: 18px; }
+        .rc-spec-grid { grid-template-columns: minmax(0, 1fr); }
+    }
+</style>
+
 @section Scripts {
     <script>
-        function confirmDeleteCarType(id, name) {
+        let currentViewingTypeId = 0;
+        let currentViewingTypeName = '';
+        let fleetModalInstance = null;
+        let carDetailModalInstance = null;
+
+        $(document).ready(function () {
+            fleetModalInstance = new bootstrap.Modal(document.getElementById('typeFleetModal'));
+            carDetailModalInstance = new bootstrap.Modal(document.getElementById('carDetailModal'));
+        });
+
+        // ==================== XỬ LÝ POPUP ĐỘI XE THUỘC PHÂN KHÚC ====================
+        function openTypeFleetModal(typeId, typeName, carCount) {
+            currentViewingTypeId = typeId;
+            currentViewingTypeName = typeName;
+            $('#fleetTypeTitle').text(typeName);
+            $('#fleetSummaryText').text('Đang tải dữ liệu...');
+
+            $('#fleetLoadingSpinner').removeClass('d-none');
+            $('#fleetCarsContainer').addClass('d-none');
+            $('#fleetEmptyNotice').addClass('d-none');
+
+            fleetModalInstance.show();
+
+            $.ajax({
+                url: '/Admin/CarTypes/GetCarsByType',
+                type: 'GET',
+                data: { typeId: typeId },
+                success: function (res) {
+                    $('#fleetLoadingSpinner').addClass('d-none');
+                    if (res && res.success && res.cars && res.cars.length > 0) {
+                        renderFleetCars(res.cars);
+                        $('#fleetCarsContainer').removeClass('d-none');
+                        $('#fleetSummaryText').text(`Tổng cộng ${res.cars.length} xe thuộc phân khúc ${typeName} trên sàn ReCar.`);
+                    } else {
+                        $('#fleetEmptyNotice').removeClass('d-none');
+                        $('#fleetSummaryText').text(`Chưa có xe nào thuộc phân khúc ${typeName}.`);
+                    }
+                },
+                error: function () {
+                    $('#fleetLoadingSpinner').addClass('d-none');
+                    $('#fleetEmptyNotice').removeClass('d-none').html(`
+                        <i class="bi bi-exclamation-triangle fs-1 text-danger d-block mb-2"></i>
+                        <h6 class="fw-bold text-dark">Lỗi tải dữ liệu</h6>
+                        <p class="text-muted small mb-0">Không thể kết nối máy chủ để lấy danh sách xe. Vui lòng thử lại sau.</p>
+                    `);
+                    $('#fleetSummaryText').text('Lỗi tải dữ liệu');
+                }
+            });
+        }
+
+        function getStatusBadge(status) {
+            const map = {
+                'Đang thuê': ['rc-badge-info', 'Đang thuê'],
+                'Đang bận': ['rc-badge-info', 'Đang thuê'],
+                'Bảo trì': ['rc-badge-warn', 'Bảo trì'],
+                'Chờ duyệt': ['rc-badge-warn', 'Chờ duyệt'],
+                'Chờ cập nhật': ['rc-badge-warn', 'Chờ duyệt'],
+                'Tạm ngừng': ['rc-badge-danger', 'Tạm ngừng'],
+                'Tạm ngưng': ['rc-badge-danger', 'Tạm ngừng'],
+                'Ngưng hoạt động': ['rc-badge-danger', 'Ngưng hoạt động'],
+                'Ngừng hoạt động': ['rc-badge-danger', 'Ngưng hoạt động']
+            };
+            const m = map[status] || ['rc-badge-ok', status || 'Sẵn sàng'];
+            return { cls: m[0], text: m[1] };
+        }
+
+        function renderFleetCars(cars) {
+            const grid = $('#fleetCarsGrid');
+            grid.empty();
+            const fmt = n => new Intl.NumberFormat('vi-VN').format(n) + 'đ/ngày';
+
+            cars.forEach(car => {
+                const hasSale = car.salePrice && car.salePrice < car.price;
+                const priceText = car.price ? fmt(car.price) : 'Liên hệ';
+                const st = getStatusBadge(car.status);
+
+                grid.append(`
+                    <div class="rc-car-card" onclick="openCarDetailModal(${car.id})">
+                        <div class="rc-car-media">
+                            <img src="${car.image}" alt="${car.name}" onerror="this.onerror=null; this.src='/images/cars/hero.jpg';">
+                            <span class="rc-plate">${car.plate || ''}</span>
+                            <span class="rc-badge ${st.cls}">${st.text}</span>
+                        </div>
+                        <div class="rc-car-body">
+                            <div class="rc-car-type"><i class="bi bi-tag"></i><span>${car.typeName || 'Đa dụng'}</span></div>
+                            <h6 class="rc-car-name" title="${car.name}">${car.name}</h6>
+                            <div class="rc-car-specs">
+                                <span><i class="bi bi-people"></i>${car.seat} chỗ</span>
+                                <span><i class="bi bi-gear"></i>${car.transmission}</span>
+                                <span><i class="bi bi-calendar3"></i>${car.model || '2024'}</span>
+                            </div>
+                            <div class="rc-car-foot-inner">
+                                <div>
+                                    ${hasSale ? `<div class="rc-old-price">${priceText}</div>` : ''}
+                                    <div class="rc-price ${hasSale ? 'sale' : ''}">${hasSale ? fmt(car.salePrice) : priceText}</div>
+                                </div>
+                                <button type="button" class="rc-btn" onclick="event.stopPropagation(); openCarDetailModal(${car.id})">
+                                    <span>Chi tiết</span><i class="bi bi-chevron-right"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>`);
+            });
+        }
+
+        // ==================== XỬ LÝ POPUP CHI TIẾT THÔNG TIN XE ====================
+        function openCarDetailModal(carId) {
+            fleetModalInstance.hide(); // Tạm ẩn modal đội xe
+
+            $('#carDetailLoadingSpinner').removeClass('d-none');
+            $('#carDetailContent').addClass('d-none');
+
+            carDetailModalInstance.show();
+
+            $.ajax({
+                url: '/Admin/CarTypes/GetCarDetail',
+                type: 'GET',
+                data: { id: carId },
+                success: function (res) {
+                    $('#carDetailLoadingSpinner').addClass('d-none');
+                    if (res && res.success && res.car) {
+                        populateCarDetail(res.car);
+                        $('#carDetailContent').removeClass('d-none');
+                    } else {
+                        Swal.fire('Lỗi', res.message || 'Không thể tải thông tin xe', 'error');
+                        carDetailModalInstance.hide();
+                        fleetModalInstance.show();
+                    }
+                },
+                error: function () {
+                    $('#carDetailLoadingSpinner').addClass('d-none');
+                    Swal.fire('Lỗi', 'Không thể kết nối máy chủ để xem chi tiết xe', 'error');
+                    carDetailModalInstance.hide();
+                    fleetModalInstance.show();
+                }
+            });
+        }
+
+        function populateCarDetail(car) {
+            $('#detailCarName').text(car.name);
+            $('#detailCarPlate').text(car.plate);
+            $('#detailCarStatus').text(getStatusBadge(car.status).text)
+                .attr('class', 'rc-badge ' + getStatusBadge(car.status).cls);
+            $('#detailCarType').text(car.typeName);
+
+            $('#btnViewOnStore').attr('href', '/Product/Details/' + car.id);
+
+            // Hình ảnh
+            $('#detailMainImg').attr('src', car.image);
+            $('#detailGallery1').attr('src', car.image1 || car.image);
+            $('#detailGallery2').attr('src', car.image2 || car.image);
+            $('#detailGallery3').attr('src', car.image3 || car.image);
+            $('#detailGallery4').attr('src', car.image4 || car.image);
+            $('.rc-thumb').removeClass('active').first().addClass('active');
+
+            // Chủ xe & Avatar initials
+            const ownerName = car.ownerName || 'Hệ thống ReCar';
+            $('#detailOwnerName').text(ownerName);
+            const parts = ownerName.trim().split(' ');
+            const initials = parts.length > 1 ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase() : ownerName.substring(0, 2).toUpperCase();
+            $('#detailOwnerAvatar').text(initials);
+
+            $('#detailOwnerPhone').text(car.ownerPhone || 'Chưa cập nhật');
+            $('#detailOwnerEmail').text(car.ownerEmail || 'Chưa cập nhật');
+
+            // Thông số
+            $('#detailSpecBrand').text(car.brand);
+            $('#detailSpecType').text(car.typeName);
+            $('#detailSpecYear').text(car.model || '2024');
+            $('#detailSpecSeats').text(car.seat + ' chỗ');
+            $('#detailSpecTrans').text(car.transmission || 'Tự động');
+            $('#detailSpecFuel').text(car.fuel || 'Xăng');
+            $('#detailSpecColor').text(car.color || 'Chưa rõ');
+            $('#detailSpecConsumption').text(car.fuelConsumption || 'Tiêu chuẩn');
+
+            // Giá & Phụ phí
+            const priceStr = car.price ? new Intl.NumberFormat('vi-VN').format(car.price) + ' đ/ngày' : 'Chưa định giá';
+            $('#detailPrice').text(priceStr);
+
+            if (car.salePrice && car.salePrice < car.price) {
+                const saleStr = new Intl.NumberFormat('vi-VN').format(car.salePrice) + ' đ/ngày (Ưu đãi)';
+                $('#detailSalePrice').text(saleStr).removeClass('d-none');
+            } else {
+                $('#detailSalePrice').text('Không áp dụng ưu đãi');
+            }
+
+            if (car.driverFee && car.driverFee > 0) {
+                $('#detailDriverFee').text('+' + new Intl.NumberFormat('vi-VN').format(car.driverFee) + ' đ/ngày');
+            } else {
+                $('#detailDriverFee').text('Không cung cấp');
+            }
+
+            if (car.deliverySupported) {
+                const delFeeStr = car.deliveryFee && car.deliveryFee > 0 ? new Intl.NumberFormat('vi-VN').format(car.deliveryFee) + ' đ' : 'Miễn phí';
+                $('#detailDelivery').text('Hỗ trợ giao tận nơi (' + delFeeStr + ')');
+            } else {
+                $('#detailDelivery').text('Nhận tại bãi xe chủ xe');
+            }
+
+            if (car.mileageLimit && car.mileageLimit > 0) {
+                const extraKm = car.extraFeePerKm ? new Intl.NumberFormat('vi-VN').format(car.extraFeePerKm) + ' đ/km' : 'Phí tiêu chuẩn';
+                $('#detailMileage').text(car.mileageLimit + ' km/ngày (Vượt: +' + extraKm + ')');
+            } else {
+                $('#detailMileage').text('Không giới hạn quãng đường');
+            }
+
+            // Tiện nghi
+            const amenWrap = $('#detailAmenitiesWrap');
+            amenWrap.empty();
+            if (car.amenities && car.amenities.length > 0) {
+                car.amenities.forEach(am => {
+                    amenWrap.append(`<span class="rc-chip"><i class="bi bi-check-circle-fill"></i><span>${am}</span></span>`);
+                });
+            } else {
+                amenWrap.append(`<span class="text-muted" style="font-size:14px">Tiện nghi tiêu chuẩn theo xe.</span>`);
+            }
+
+            // Mô tả
+            $('#detailDescription').text(car.description || 'Chủ xe chưa thiết lập mô tả và nội quy riêng cho xe.');
+        }
+
+        function swapMainImage(btn) {
+            const src = $(btn).find('img').attr('src');
+            if (src) {
+                $('#detailMainImg').attr('src', src);
+                $('.rc-thumb').removeClass('active');
+                $(btn).addClass('active');
+            }
+        }
+
+        function backToFleetModal() {
+            carDetailModalInstance.hide();
+            fleetModalInstance.show();
+        }
+
+        // Xác nhận xóa kiểu xe bằng SweetAlert2
+        function confirmDeleteCarType(id, name, carCount) {
+            if (carCount > 0) {
+                Swal.fire({
+                    title: 'Không thể xóa kiểu xe!',
+                    html: 'Kiểu xe <strong>"' + name + '"</strong> hiện đang liên kết với <strong>' + carCount + ' xe</strong> trên hệ thống.<br><br><span class="text-muted small">Vui lòng chuyển các xe thuộc kiểu này sang phân khúc khác hoặc xóa các xe liên quan trước khi xóa kiểu xe.</span>',
+                    icon: 'warning',
+                    confirmButtonColor: '#0284c7',
+                    confirmButtonText: 'Đã hiểu'
+                });
+                return;
+            }
+
             Swal.fire({
                 title: 'Xóa kiểu xe này?',
-                html: 'Bạn có chắc chắn muốn xóa kiểu xe <strong>"' + name + '"</strong> khỏi hệ thống?',
+                html: 'Bạn có chắc chắn muốn xóa kiểu xe <strong>"' + name + '"</strong> khỏi hệ thống?<br><span class="text-danger small">Hành động này không thể hoàn tác.</span>',
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonColor: '#ef4444',
                 cancelButtonColor: '#64748b',
-                confirmButtonText: 'Đồng ý xóa',
-                cancelButtonText: 'Hủy bỏ'
+                confirmButtonText: '<i class="bi bi-trash3 me-1"></i> Đồng ý xóa',
+                cancelButtonText: 'Hủy bỏ',
+                customClass: {
+                    confirmButton: 'rounded-pill px-3 py-2 fw-semibold',
+                    cancelButton: 'rounded-pill px-3 py-2'
+                }
             }).then((result) => {
                 if (result.isConfirmed) {
-                    document.getElementById('deleteTypeForm-' + id).submit();
+                    var form = document.getElementById('deleteTypeForm-' + id);
+                    if (form) {
+                        form.submit();
+                    }
                 }
             });
         }

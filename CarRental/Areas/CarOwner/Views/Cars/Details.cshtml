@@ -349,36 +349,151 @@
             </div>
         </div>
 
-        <!-- Đánh giá của khách -->
+        <!-- Đánh giá của khách & Phản hồi -->
         <div class="col-12 col-lg-6">
-            <div class="card-surface p-4 h-100">
-                <h3 class="h5 fw-bold text-dark mb-3">Đánh giá của khách (@reviews.Count)</h3>
+            <div class="card-surface p-4 h-100 d-flex flex-column">
+                <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom">
+                    <div>
+                        <h3 class="h5 fw-bold text-dark mb-0 d-flex align-items-center gap-2">
+                            <i class="bi bi-star-half text-warning"></i>
+                            <span>Đánh giá từ khách hàng</span>
+                        </h3>
+                        <span class="text-muted small" style="font-size: 0.78rem;">Nhận xét thực tế và phản hồi trực tiếp từ chủ xe</span>
+                    </div>
+                    <div class="d-flex align-items-center gap-1.5 px-3 py-1 rounded-pill fw-bold border shadow-xs" 
+                         style="background-color: #fffbeb; border-color: #fde68a !important; color: #b45309; font-size: 0.82rem;">
+                        <i class="bi bi-star-fill text-warning"></i>
+                        <span>@(reviews.Any() ? avgRating.ToString("0.0") : "5.0") ★</span>
+                        <span class="text-muted fw-normal" style="font-size: 0.75rem;">(@reviews.Count)</span>
+                    </div>
+                </div>
+
                 @if (reviews.Any())
                 {
-                    <ul class="list-unstyled mb-0 d-flex flex-column gap-3">
-                        @foreach (var r in reviews.Take(5))
+                    <div class="d-flex flex-column gap-3 pe-1 flex-grow-1" style="max-height: 580px; overflow-y: auto;">
+                        @foreach (var r in reviews)
                         {
-                            <li class="border-bottom pb-3">
-                                <div class="d-flex align-items-center justify-content-between mb-1">
-                                    <span class="fw-semibold text-dark">@(string.IsNullOrEmpty(r.Name) ? "Khách hàng ReCar" : r.Name)</span>
-                                    <span class="text-muted" style="font-size: 0.72rem;">@(r.CreatedDate?.ToString("dd/MM/yyyy") ?? "Gần đây")</span>
+                            <div class="p-3 bg-white rounded-3 border shadow-xs review-box" id="review-box-@r.CarReviewId" style="border-color: #e2e8f0 !important;">
+                                <!-- Review Header -->
+                                <div class="d-flex align-items-start justify-content-between gap-2 mb-2">
+                                    <div class="d-flex align-items-center gap-2.5">
+                                        <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold shadow-xs flex-shrink-0" 
+                                             style="width: 36px; height: 36px; background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); font-size: 0.85rem;">
+                                            @(string.IsNullOrWhiteSpace(r.Name) ? "K" : r.Name.Trim().Substring(0, 1).ToUpper())
+                                        </div>
+                                        <div>
+                                            <div class="fw-bold text-dark small leading-tight">
+                                                @(string.IsNullOrWhiteSpace(r.Name) ? "Khách hàng ReCar" : r.Name)
+                                                @if (r.OrderId.HasValue && r.OrderId.Value > 0)
+                                                {
+                                                    <span class="badge bg-light text-muted border ms-1" style="font-size: 0.68rem; font-weight: 500;">
+                                                        <i class="bi bi-receipt me-0.5"></i>#@r.OrderId
+                                                    </span>
+                                                }
+                                            </div>
+                                            <div class="text-muted" style="font-size: 0.72rem;">
+                                                <i class="bi bi-clock me-1"></i>@(r.CreatedDate.HasValue ? r.CreatedDate.Value.ToString("dd/MM/yyyy HH:mm") : "Gần đây")
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Số sao gọn gàng [Star] ★ -->
+                                    <div class="d-inline-flex align-items-center gap-1 px-2 py-0.5 rounded-pill fw-bold border flex-shrink-0" 
+                                         style="background-color: #fffbeb; border-color: #fde68a !important; color: #b45309; font-size: 0.75rem;">
+                                        <i class="bi bi-star-fill text-warning"></i>
+                                        <span>@(r.Star ?? 5) ★</span>
+                                    </div>
                                 </div>
-                                <div class="d-flex align-items-center gap-1 mb-1">
-                                    @for (int s = 1; s <= 5; s++)
+
+                                <!-- Review Detail -->
+                                <p class="text-secondary small mb-2 ps-1" style="line-height: 1.55;">
+                                    @(string.IsNullOrWhiteSpace(r.Detail) ? "Khách hàng không để lại nhận xét chi tiết bằng lời." : r.Detail)
+                                </p>
+
+                                <!-- Host Reply Container -->
+                                <div id="reply-container-@r.CarReviewId">
+                                    @if (!string.IsNullOrWhiteSpace(r.Reply))
                                     {
-                                        <i data-lucide="star" style="width: 14px; height: 14px; fill: @(s <= (r.Star ?? 5) ? "#f59e0b" : "none"); color: @(s <= (r.Star ?? 5) ? "#f59e0b" : "#cbd5e1");"></i>
+                                        <div class="mt-3 ms-2 ms-md-3 p-3 rounded-4 border position-relative" 
+                                             style="background: linear-gradient(135deg, #f0fdf4 0%, #f8fafc 100%); border-color: #bbf7d0 !important; box-shadow: 0 2px 8px rgba(16, 185, 129, 0.05);">
+                                            <div class="d-flex align-items-center justify-content-between gap-2 mb-2 pb-1.5 border-bottom" style="border-color: rgba(187, 247, 208, 0.7) !important;">
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <div class="rounded-circle text-white d-inline-flex align-items-center justify-content-center shadow-xs flex-shrink-0" 
+                                                         style="width: 28px; height: 28px; background: linear-gradient(135deg, #059669 0%, #047857 100%); font-size: 13px;">
+                                                        <i class="bi bi-person-check-fill"></i>
+                                                    </div>
+                                                    <div class="d-flex align-items-center gap-1.5 flex-wrap">
+                                                        <strong class="text-dark small" style="font-size: 13px;">Phản hồi của bạn</strong>
+                                                        <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2 py-0.5 fw-semibold" style="font-size: 10.5px;">
+                                                            <i class="bi bi-patch-check-fill text-success me-0.5"></i> Chủ xe
+                                                        </span>
+                                                        @if (r.ReplyDate.HasValue)
+                                                        {
+                                                            <span class="text-muted ms-1" style="font-size: 11px;">
+                                                                <i class="bi bi-clock me-0.5"></i>@r.ReplyDate.Value.ToString("dd/MM/yyyy HH:mm")
+                                                            </span>
+                                                        }
+                                                    </div>
+                                                </div>
+                                                <div class="dropdown">
+                                                    <button class="btn btn-light btn-sm rounded-circle p-1 border shadow-xs" 
+                                                            type="button" 
+                                                            data-bs-toggle="dropdown" 
+                                                            aria-expanded="false" 
+                                                            title="Tùy chọn phản hồi"
+                                                            style="width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center;">
+                                                        <i class="bi bi-three-dots-vertical" style="font-size: 0.75rem;"></i>
+                                                    </button>
+                                                    <ul class="dropdown-menu dropdown-menu-end shadow-sm p-1 small" style="border-radius: 12px; min-width: 140px;">
+                                                        <li>
+                                                            <button type="button" 
+                                                                    class="dropdown-item py-1.5 px-3 d-flex align-items-center gap-2 text-primary btn-trigger-edit-reply" 
+                                                                    data-review-id="@r.CarReviewId" 
+                                                                    data-reviewer="@(r.Name ?? "Khách hàng")"
+                                                                    data-reply="@r.Reply">
+                                                                <i class="bi bi-pencil-square"></i> Sửa phản hồi
+                                                            </button>
+                                                        </li>
+                                                        <li>
+                                                            <button type="button" 
+                                                                    class="dropdown-item py-1.5 px-3 d-flex align-items-center gap-2 text-danger btn-trigger-delete-reply" 
+                                                                    data-review-id="@r.CarReviewId">
+                                                                <i class="bi bi-trash"></i> Xóa phản hồi
+                                                            </button>
+                                                        </li>
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                            <div class="text-dark small ps-1" id="reply-text-@r.CarReviewId" style="white-space: pre-line; line-height: 1.65; font-size: 13.5px; color: #1e293b !important;">
+                                                @r.Reply
+                                            </div>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div class="mt-2 text-end">
+                                            <button type="button" 
+                                                    class="btn btn-sm btn-outline-primary rounded-pill px-3 py-1 fw-semibold d-inline-flex align-items-center gap-1.5 btn-trigger-add-reply" 
+                                                    data-review-id="@r.CarReviewId" 
+                                                    data-reviewer="@(r.Name ?? "Khách hàng")" 
+                                                    style="font-size: 0.78rem;">
+                                                <i class="bi bi-reply-fill"></i> Phản hồi đánh giá
+                                            </button>
+                                        </div>
                                     }
                                 </div>
-                                <p class="text-secondary small mb-0">@(string.IsNullOrEmpty(r.Detail) ? "Xe chạy êm, chủ xe nhiệt tình và đúng giờ." : r.Detail)</p>
-                            </li>
+                            </div>
                         }
-                    </ul>
+                    </div>
                 }
                 else
                 {
-                    <div class="text-center py-5 text-muted">
-                        <i data-lucide="message-square" style="width: 32px; height: 32px; margin: 0 auto 8px auto; display: block; opacity: 0.4;"></i>
-                        <p class="small mb-0">Chưa có đánh giá nào cho xe này.</p>
+                    <div class="text-center py-5 text-muted my-auto">
+                        <div class="rounded-circle d-inline-flex align-items-center justify-content-center mb-3 bg-light border" style="width: 54px; height: 54px;">
+                            <i class="bi bi-chat-heart text-secondary fs-4" style="opacity: 0.6;"></i>
+                        </div>
+                        <h6 class="fw-bold text-dark mb-1">Chưa có đánh giá nào</h6>
+                        <p class="small text-muted mb-0">Khi khách hàng hoàn thành chuyến đi và để lại nhận xét, bạn sẽ có thể đọc và gửi phản hồi tại đây.</p>
                     </div>
                 }
             </div>
@@ -456,3 +571,198 @@
         }
     </div>
 </div>
+
+<!-- Modal Phản hồi đánh giá xe từ Chủ xe -->
+<div class="modal fade" id="modalReplyReview" tabindex="-1" aria-labelledby="modalReplyReviewLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 16px; overflow: hidden;">
+            <div class="modal-header border-bottom py-3 px-4" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: #fff;">
+                <h5 class="modal-title fs-6 fw-bold text-white d-flex align-items-center gap-2" id="modalReplyReviewLabel">
+                    <i class="bi bi-reply-fill text-info"></i>
+                    <span id="replyModalTitle">Phản hồi đánh giá của khách hàng</span>
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Đóng"></button>
+            </div>
+            <div class="modal-body p-4">
+                <input type="hidden" id="replyReviewId" value="" />
+                <div class="mb-3">
+                    <label class="form-label fw-semibold text-dark small mb-1">
+                        Nội dung phản hồi từ Chủ xe <span class="text-danger">*</span>
+                    </label>
+                    <textarea id="replyReviewContent" class="form-control shadow-none" rows="4" 
+                              placeholder="Cảm ơn quý khách đã tin tưởng và sử dụng xe! Rất mong được phục vụ quý khách trong những chuyến đi tiếp theo..." 
+                              style="border-radius: 10px; font-size: 0.88rem; line-height: 1.5;"></textarea>
+                    <div class="form-text text-muted small mt-2 d-flex align-items-center gap-1.5">
+                        <i class="bi bi-info-circle text-primary"></i>
+                        <span>Phản hồi của bạn sẽ hiển thị công khai dưới nhận xét của khách trên trang chi tiết xe.</span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-top py-2.5 px-4 bg-light">
+                <button type="button" class="btn btn-light border rounded-pill px-3 py-1.5 text-secondary small fw-semibold" data-bs-dismiss="modal">Hủy bỏ</button>
+                <button type="button" class="btn btn-primary rounded-pill px-4 py-1.5 small fw-semibold d-inline-flex align-items-center gap-1.5" id="btnSubmitReply">
+                    <i class="bi bi-send-fill"></i>
+                    <span>Lưu phản hồi</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    $(document).ready(function() {
+        let replyModalInstance = null;
+        const modalEl = document.getElementById('modalReplyReview');
+        if (modalEl && typeof bootstrap !== 'undefined') {
+            replyModalInstance = new bootstrap.Modal(modalEl);
+        }
+
+        // Bấm nút "Phản hồi đánh giá"
+        $(document).on('click', '.btn-trigger-add-reply', function() {
+            const reviewId = $(this).data('review-id');
+            const reviewer = $(this).data('reviewer') || 'khách hàng';
+            $('#replyReviewId').val(reviewId);
+            $('#replyReviewContent').val('');
+            $('#replyModalTitle').text('Phản hồi đánh giá của ' + reviewer);
+            $('#btnSubmitReply').html('<i class="bi bi-send-fill me-1"></i> Gửi phản hồi');
+            if (replyModalInstance) {
+                replyModalInstance.show();
+            } else {
+                $('#modalReplyReview').modal('show');
+            }
+        });
+
+        // Bấm nút "Sửa phản hồi"
+        $(document).on('click', '.btn-trigger-edit-reply', function() {
+            const reviewId = $(this).data('review-id');
+            const reply = $(this).attr('data-reply') || '';
+            const reviewer = $(this).data('reviewer') || 'khách hàng';
+            $('#replyReviewId').val(reviewId);
+            $('#replyReviewContent').val(reply);
+            $('#replyModalTitle').text('Chỉnh sửa phản hồi cho ' + reviewer);
+            $('#btnSubmitReply').html('<i class="bi bi-check2-circle me-1"></i> Cập nhật phản hồi');
+            if (replyModalInstance) {
+                replyModalInstance.show();
+            } else {
+                $('#modalReplyReview').modal('show');
+            }
+        });
+
+        // Gửi AJAX lưu phản hồi
+        $('#btnSubmitReply').on('click', function() {
+            const reviewId = $('#replyReviewId').val();
+            const replyText = $('#replyReviewContent').val().trim();
+
+            if (!replyText) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Vui lòng nhập nội dung',
+                    text: 'Nội dung phản hồi không được để trống.',
+                    confirmButtonColor: '#0284c7'
+                });
+                return;
+            }
+
+            const $btn = $(this);
+            $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span> Đang lưu...');
+
+            $.ajax({
+                url: '/CarOwner/Cars/ReplyReview',
+                type: 'POST',
+                data: {
+                    reviewId: reviewId,
+                    replyText: replyText
+                },
+                success: function(res) {
+                    $btn.prop('disabled', false).html('<i class="bi bi-send-fill me-1"></i> Lưu phản hồi');
+                    if (res && res.success) {
+                        if (replyModalInstance) {
+                            replyModalInstance.hide();
+                        } else {
+                            $('#modalReplyReview').modal('hide');
+                        }
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Thành công',
+                            text: res.message || 'Gửi phản hồi thành công!',
+                            timer: 1500,
+                            showConfirmButton: false
+                        }).then(() => {
+                            location.reload();
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Thất bại',
+                            text: (res && res.message) || 'Có lỗi xảy ra khi lưu phản hồi.',
+                            confirmButtonColor: '#0284c7'
+                        });
+                    }
+                },
+                error: function(err) {
+                    $btn.prop('disabled', false).html('<i class="bi bi-send-fill me-1"></i> Lưu phản hồi');
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Lỗi kết nối',
+                        text: 'Không thể kết nối đến máy chủ. Vui lòng thử lại sau.',
+                        confirmButtonColor: '#0284c7'
+                    });
+                }
+            });
+        });
+
+        // Bấm nút "Xóa phản hồi"
+        $(document).on('click', '.btn-trigger-delete-reply', function() {
+            const reviewId = $(this).data('review-id');
+            Swal.fire({
+                title: 'Xóa phản hồi này?',
+                text: 'Phản hồi của bạn đối với đánh giá này sẽ bị gỡ bỏ.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: '<i class="bi bi-trash me-1"></i> Xác nhận xóa',
+                cancelButtonText: 'Hủy'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: '/CarOwner/Cars/ReplyReview',
+                        type: 'POST',
+                        data: {
+                            reviewId: reviewId,
+                            replyText: ''
+                        },
+                        success: function(res) {
+                            if (res && res.success) {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Đã xóa',
+                                    text: 'Đã xóa phản hồi thành công.',
+                                    timer: 1200,
+                                    showConfirmButton: false
+                                }).then(() => {
+                                    location.reload();
+                                });
+                            } else {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Thất bại',
+                                    text: (res && res.message) || 'Không thể xóa phản hồi.'
+                                });
+                            }
+                        },
+                        error: function() {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Lỗi',
+                                text: 'Có lỗi xảy ra khi kết nối máy chủ.'
+                            });
+                        }
+                    });
+                }
+            });
+        });
+    });
+</script>
+}

@@ -23,6 +23,7 @@ namespace CarRental.Middleware
                 Function._Email = Function.GetEmail(context.Session);
                 Function._address = Function.GetAddress(context.Session);
                 Function._Phone = Function.GetPhone(context.Session);
+                Function._Avatar = Function.GetAvatar(context.Session);
                 Function._Message = Function.GetMessage(context.Session);
             }
 

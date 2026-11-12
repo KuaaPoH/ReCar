@@ -76,21 +76,53 @@ namespace CarRental.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> AddBlogComment(string name, string email, string detail, int blogId)
+        public async Task<IActionResult> AddBlogComment(string detail, int blogId, string? name = null, string? email = null)
         {
             try
             {
-                if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(detail))
+                if (!Function.IsLogin(HttpContext.Session) && Function.GetAccountId(HttpContext.Session) <= 0)
                 {
-                    return Json(new { status = false, message = "Vui lòng nhập đầy đủ họ tên và nội dung bình luận." });
+                    return Json(new { status = false, requireLogin = true, message = "Vui lòng đăng nhập để gửi bình luận." });
+                }
+
+                if (string.IsNullOrWhiteSpace(detail))
+                {
+                    return Json(new { status = false, message = "Vui lòng nhập nội dung bình luận." });
+                }
+
+                var accountId = Function.GetAccountId(HttpContext.Session);
+                if (accountId <= 0)
+                {
+                    accountId = Function.GetUserAccountId(HttpContext.Session);
+                }
+
+                Customer? customer = null;
+                if (accountId > 0)
+                {
+                    customer = await _context.Customers.FirstOrDefaultAsync(c => c.CustomerId == accountId);
+                }
+
+                string authorName = !string.IsNullOrWhiteSpace(customer?.FullName) 
+                    ? customer.FullName 
+                    : (!string.IsNullOrWhiteSpace(customer?.Name) ? customer.Name : Function.GetUserName(HttpContext.Session));
+                
+                if (string.IsNullOrWhiteSpace(authorName))
+                {
+                    authorName = !string.IsNullOrWhiteSpace(name) ? name : "Độc giả ReCar";
+                }
+
+                string authorEmail = customer?.Email ?? Function.GetEmail(HttpContext.Session);
+                if (string.IsNullOrWhiteSpace(authorEmail))
+                {
+                    authorEmail = email;
                 }
 
                 BlogComment c = new BlogComment
                 {
-                    Name = name.Trim(),
-                    Email = email?.Trim(),
+                    Name = authorName.Trim(),
+                    Email = authorEmail?.Trim(),
                     Detail = detail.Trim(),
-                    CreatedDate = DateTime.Now,
+                    CreatedDate = Function.NowVn,
                     BlogId = blogId > 0 && await _context.Blogs.AnyAsync(b => b.BlogId == blogId) ? blogId : null,
                     IsActive = true
                 };
@@ -98,12 +130,14 @@ namespace CarRental.Controllers
                 _context.BlogComments.Add(c);
                 await _context.SaveChangesAsync();
 
+                var avatar = customer?.Avartar ?? Function.GetAvatar(HttpContext.Session);
                 return Json(new
                 {
                     status = true,
                     name = c.Name,
                     email = c.Email,
                     detail = c.Detail,
+                    avatar = avatar,
                     createdDate = c.CreatedDate?.ToString("dd/MM/yyyy HH:mm") ?? DateTime.Now.ToString("dd/MM/yyyy HH:mm")
                 });
             }

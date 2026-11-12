@@ -78,6 +78,7 @@ namespace CarRental.Controllers
                 Function.SetEmail(HttpContext.Session, check.Email ?? string.Empty);
                 Function.SetAddress(HttpContext.Session, check.Address ?? string.Empty);
                 Function.SetPhone(HttpContext.Session, check.PhoneNumber ?? string.Empty);
+                Function.SetAvatar(HttpContext.Session, check.Avartar ?? string.Empty);
 
                 // Nếu tài khoản có quyền Chủ xe (RoleId = 3), thiết lập luôn CarOwner Session đồng bộ
                 if (check.RoleId == 3)

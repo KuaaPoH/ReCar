@@ -94,7 +94,7 @@ namespace CarRental.Areas.Admin.Controllers
 
             // Lưu vào Session với CustomerId
             Function.SetMessage(HttpContext.Session, string.Empty);
-            Function.SetAdminSession(HttpContext.Session, check.CustomerId, string.IsNullOrEmpty(check.Username) ? "Admin" : check.Username, string.IsNullOrEmpty(check.Email) ? string.Empty : check.Email);
+            Function.SetAdminSession(HttpContext.Session, check.CustomerId, string.IsNullOrEmpty(check.Username) ? "Admin" : check.Username, string.IsNullOrEmpty(check.Email) ? string.Empty : check.Email, check.Avartar ?? string.Empty);
             
             return RedirectToAction("Index", "Home", new { area = "Admin" });
         }

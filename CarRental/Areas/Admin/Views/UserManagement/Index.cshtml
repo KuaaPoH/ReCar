@@ -77,7 +77,7 @@
                         <th>Vai trò</th>
                         <th>Trạng thái</th>
                         <th>Đăng nhập cuối</th>
-                        <th class="text-end">Thao tác</th>
+                        <th class="text-end" style="width: 80px;">Thao tác</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -94,19 +94,21 @@
                     {
                         foreach (var item in Model)
                         {
-                            var name = item.FullName ?? item.Username ?? "User";
+                            var name = item.FullName ?? item.Name ?? item.Username ?? "User";
                             var initials = name.Length >= 2 ? name.Substring(0, 2).ToUpper() : "US";
                             var isLocked = item.IsActive == false;
 
-                            <tr>
+                            <tr id="row-user-@item.CustomerId">
                                 <td>
                                     <div class="d-flex align-items-center gap-2.5">
-                                        <div class="rounded-circle bg-light d-flex align-items-center justify-content-center fw-bold text-dark border" style="width: 36px; height: 36px; font-size: 0.8rem;">
+                                        <div class="rounded-circle bg-light d-flex align-items-center justify-content-center fw-bold text-dark border shadow-xs" style="width: 38px; height: 38px; font-size: 0.8rem; background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);">
                                             @initials
                                         </div>
                                         <div>
-                                            <div class="fw-bold small text-dark">@name</div>
-                                            <div class="text-muted" style="font-size: 0.72rem;">@@@item.Username</div>
+                                            <a asp-action="Details" asp-route-id="@item.CustomerId" class="fw-bold small text-dark text-decoration-none hover-primary">
+                                                @name
+                                            </a>
+                                            <div class="text-muted" style="font-size: 0.72rem;">@@@item.Username · #@item.CustomerId</div>
                                         </div>
                                     </div>
                                 </td>
@@ -114,30 +116,46 @@
                                     <span class="small text-muted">@item.Email</span>
                                 </td>
                                 <td>
-                                    <span class="small text-muted">@(string.IsNullOrEmpty(item.Phone) ? "Chưa cập nhật" : item.Phone)</span>
+                                    <span class="small text-muted">@(string.IsNullOrEmpty(item.Phone) ? (string.IsNullOrEmpty(item.PhoneNumber) ? "Chưa cập nhật" : item.PhoneNumber) : item.Phone)</span>
                                 </td>
                                 <td>
                                     @if (item.RoleId == 1)
                                     {
-                                        <span class="badge" style="background-color: #fee2e2; color: #991b1b; font-size: 0.75rem;">Quản trị viên</span>
+                                        <span class="badge rounded-pill fw-semibold" style="background-color: #fee2e2; color: #991b1b; font-size: 0.75rem;">
+                                            <i class="bi bi-shield-lock-fill me-1"></i> Quản trị viên
+                                        </span>
                                     }
                                     else if (item.RoleId == 3)
                                     {
-                                        <span class="badge" style="background-color: #e0f2fe; color: #0369a1; font-size: 0.75rem;">Chủ xe đối tác</span>
+                                        <span class="badge rounded-pill fw-semibold" style="background-color: #e0f2fe; color: #0369a1; font-size: 0.75rem;">
+                                            <i class="bi bi-person-badge-fill me-1"></i> Chủ xe đối tác
+                                        </span>
                                     }
                                     else
                                     {
-                                        <span class="badge" style="background-color: #f1f5f9; color: #475569; font-size: 0.75rem;">Khách hàng</span>
+                                        <span class="badge rounded-pill fw-semibold" style="background-color: #f1f5f9; color: #475569; font-size: 0.75rem;">
+                                            <i class="bi bi-person-fill me-1"></i> Khách hàng
+                                        </span>
                                     }
                                 </td>
                                 <td>
-                                    @if (isLocked)
+                                    @if (item.RoleId == 1)
                                     {
-                                        <span class="status-badge badge-locked">Đã khóa</span>
+                                        <span class="badge rounded-pill fw-semibold bg-success-subtle text-success border border-success-subtle px-2.5 py-1">
+                                            <i class="bi bi-shield-check me-1"></i> Hoạt động
+                                        </span>
                                     }
                                     else
                                     {
-                                        <span class="status-badge badge-active">Hoạt động</span>
+                                        <button type="button" 
+                                                id="btn-status-user-@item.CustomerId"
+                                                onclick="toggleUserLock(@item.CustomerId, '@Html.Raw(name.Replace("'", "\\'"))', @(isLocked ? "true" : "false"))"
+                                                class="btn btn-sm rounded-pill px-2.5 py-0.5 fw-semibold border shadow-xs d-inline-flex align-items-center gap-1.5 @(isLocked ? "btn-light text-danger border-danger-subtle" : "btn-success-subtle text-success border-success-subtle")"
+                                                style="font-size: 0.75rem;"
+                                                title="Bấm để @(isLocked ? "mở khóa" : "khóa") tài khoản">
+                                            <i class="bi @(isLocked ? "bi-lock-fill text-danger" : "bi-check-circle-fill text-success")"></i>
+                                            <span class="status-text">@(isLocked ? "Đã khóa" : "Hoạt động")</span>
+                                        </button>
                                     }
                                 </td>
                                 <td>
@@ -146,59 +164,38 @@
                                 <td class="text-end">
                                     @if (item.RoleId == 1)
                                     {
-                                        <span class="badge bg-light text-muted border">Super Admin</span>
+                                        <a asp-action="Details" asp-route-id="@item.CustomerId" class="btn btn-sm btn-light border rounded-pill px-2.5 py-1 text-muted" title="Xem thông tin Admin">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
                                     }
                                     else
                                     {
-                                        <div class="d-inline-flex gap-1.5">
-                                            <a asp-action="Details" asp-route-id="@item.AccountId" class="btn btn-light btn-sm rounded-pill px-2.5 py-1 text-primary fw-medium" style="font-size: 0.75rem;">
-                                                Chi tiết
-                                            </a>
-                                            @if (isLocked)
-                                            {
-                                                <form asp-area="Admin" asp-controller="UserManagement" asp-action="ToggleLock" asp-route-id="@item.AccountId" method="post" style="display:inline;">
-                                                    @Html.AntiForgeryToken()
-                                                    <button type="submit" class="btn btn-success btn-sm rounded-pill px-2.5 py-1 text-white fw-medium shadow-sm" style="font-size: 0.75rem;">
-                                                        <i class="bi bi-unlock me-1"></i> Mở khóa
-                                                    </button>
-                                                </form>
-                                            }
-                                            else
-                                            {
-                                                <button type="button" class="btn btn-outline-danger btn-sm rounded-pill px-2.5 py-1 fw-medium" style="font-size: 0.75rem;" data-bs-toggle="modal" data-bs-target="#lockModal@(item.AccountId)">
-                                                    <i class="bi bi-lock me-1"></i> Khóa
-                                                </button>
-                                            }
-                                        </div>
-
-                                        <!-- Modal Xác Nhận Khóa Tài Khoản -->
-                                        <div class="modal fade" id="lockModal@(item.AccountId)" tabindex="-1" aria-hidden="true">
-                                            <div class="modal-dialog modal-dialog-centered">
-                                                <div class="modal-content rounded-4 border-0 shadow">
-                                                    <div class="modal-header border-bottom py-3">
-                                                        <h5 class="modal-title fw-bold text-dark fs-6">
-                                                            <i class="bi bi-lock-fill text-danger me-1"></i> Xác nhận khóa tài khoản
-                                                        </h5>
-                                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                                    </div>
-                                                    <div class="modal-body py-3 text-start">
-                                                        <p class="mb-2">Bạn có chắc chắn muốn khóa quyền truy cập của tài khoản này?</p>
-                                                        <div class="p-2.5 rounded-3 bg-light border small">
-                                                            <strong>@name</strong> (@item.Email)<br>
-                                                            <span class="text-muted">Sau khi khóa, người dùng sẽ không thể đăng nhập hoặc thao tác trên hệ thống ReCar.</span>
-                                                        </div>
-                                                    </div>
-                                                    <div class="modal-footer border-top py-2.5">
-                                                        <button type="button" class="btn btn-light btn-sm rounded-pill px-3" data-bs-dismiss="modal">Hủy bỏ</button>
-                                                        <form asp-area="Admin" asp-controller="UserManagement" asp-action="ToggleLock" asp-route-id="@item.AccountId" method="post" style="display: inline;">
-                                                            @Html.AntiForgeryToken()
-                                                            <button type="submit" class="btn btn-danger btn-sm rounded-pill px-3 fw-semibold">
-                                                                Xác nhận khóa
-                                                            </button>
-                                                        </form>
-                                                    </div>
-                                                </div>
-                                            </div>
+                                        <div class="dropdown d-inline-block">
+                                            <button class="btn btn-sm btn-light border-0 rounded-circle p-1.5 shadow-none text-muted" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Tác vụ">
+                                                <i class="bi bi-three-dots-vertical"></i>
+                                            </button>
+                                            <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 rounded-3 py-1 font-monospace-normal" style="min-width: 180px; font-size: 0.85rem;">
+                                                <li>
+                                                    <a asp-action="Details" asp-route-id="@item.CustomerId" class="dropdown-item py-2 d-flex align-items-center gap-2">
+                                                        <i class="bi bi-person-badge text-primary"></i> Xem hồ sơ chi tiết
+                                                    </a>
+                                                </li>
+                                                <li>
+                                                    <a asp-action="Edit" asp-route-id="@item.CustomerId" class="dropdown-item py-2 d-flex align-items-center gap-2">
+                                                        <i class="bi bi-pencil-square text-secondary"></i> Chỉnh sửa tài khoản
+                                                    </a>
+                                                </li>
+                                                <li><hr class="dropdown-divider my-1"></li>
+                                                <li>
+                                                    <a href="javascript:void(0)" 
+                                                       id="menu-lock-user-@item.CustomerId"
+                                                       onclick="toggleUserLock(@item.CustomerId, '@Html.Raw(name.Replace("'", "\\'"))', @(isLocked ? "true" : "false"))"
+                                                       class="dropdown-item py-2 d-flex align-items-center gap-2 @(isLocked ? "text-success" : "text-danger")">
+                                                        <i class="bi @(isLocked ? "bi-unlock" : "bi-lock")"></i> 
+                                                        <span class="menu-lock-text">@(isLocked ? "Mở khóa tài khoản" : "Khóa tài khoản")</span>
+                                                    </a>
+                                                </li>
+                                            </ul>
                                         </div>
                                     }
                                 </td>
@@ -210,3 +207,98 @@
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        const Toast = Swal.mixin({
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 2000,
+            timerProgressBar: true
+        });
+
+        // AJAX Toggle Lock Account
+        function toggleUserLock(id, name, isCurrentlyLocked) {
+            const actionText = isCurrentlyLocked ? "mở khóa" : "khóa";
+            const confirmBtnText = isCurrentlyLocked ? "Mở khóa ngay" : "Khóa tài khoản";
+            const confirmColor = isCurrentlyLocked ? "#10b981" : "#ef4444";
+
+            Swal.fire({
+                title: `Xác nhận ${actionText}?`,
+                html: `Bạn có chắc chắn muốn <b>${actionText}</b> quyền truy cập của tài khoản <b>${name}</b>?`,
+                icon: isCurrentlyLocked ? 'question' : 'warning',
+                showCancelButton: true,
+                confirmButtonColor: confirmColor,
+                cancelButtonColor: '#64748b',
+                confirmButtonText: confirmBtnText,
+                cancelButtonText: 'Hủy bỏ'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    const $btn = $(`#btn-status-user-${id}`);
+                    const $menuItem = $(`#menu-lock-user-${id}`);
+                    $btn.prop('disabled', true);
+
+                    $.ajax({
+                        url: '/Admin/UserManagement/ToggleLock/' + id,
+                        type: 'POST',
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        success: function (res) {
+                            $btn.prop('disabled', false);
+                            if (res && res.success) {
+                                Toast.fire({
+                                    icon: 'success',
+                                    title: res.message
+                                });
+
+                                const isNowActive = res.isActive;
+                                const isNowLocked = !isNowActive;
+
+                                // Update status pill button
+                                if (isNowLocked) {
+                                    $btn.removeClass('btn-success-subtle text-success border-success-subtle')
+                                        .addClass('btn-light text-danger border-danger-subtle')
+                                        .attr('title', 'Bấm để mở khóa tài khoản');
+                                    $btn.find('i').removeClass('bi-check-circle-fill text-success').addClass('bi-lock-fill text-danger');
+                                    $btn.find('.status-text').text('Đã khóa');
+                                    $btn.attr('onclick', `toggleUserLock(${id}, '${name}', true)`);
+
+                                    // Update dropdown menu
+                                    if ($menuItem.length) {
+                                        $menuItem.removeClass('text-danger').addClass('text-success');
+                                        $menuItem.find('i').removeClass('bi-lock').addClass('bi-unlock');
+                                        $menuItem.find('.menu-lock-text').text('Mở khóa tài khoản');
+                                        $menuItem.attr('onclick', `toggleUserLock(${id}, '${name}', true)`);
+                                    }
+                                } else {
+                                    $btn.removeClass('btn-light text-danger border-danger-subtle')
+                                        .addClass('btn-success-subtle text-success border-success-subtle')
+                                        .attr('title', 'Bấm để khóa tài khoản');
+                                    $btn.find('i').removeClass('bi-lock-fill text-danger').addClass('bi-check-circle-fill text-success');
+                                    $btn.find('.status-text').text('Hoạt động');
+                                    $btn.attr('onclick', `toggleUserLock(${id}, '${name}', false)`);
+
+                                    // Update dropdown menu
+                                    if ($menuItem.length) {
+                                        $menuItem.removeClass('text-success').addClass('text-danger');
+                                        $menuItem.find('i').removeClass('bi-unlock').addClass('bi-lock');
+                                        $menuItem.find('.menu-lock-text').text('Khóa tài khoản');
+                                        $menuItem.attr('onclick', `toggleUserLock(${id}, '${name}', false)`);
+                                    }
+                                }
+                            } else {
+                                Swal.fire('Lỗi', res.message || 'Không thể thực hiện thao tác.', 'error');
+                            }
+                        },
+                        error: function (xhr) {
+                            $btn.prop('disabled', false);
+                            Swal.fire('Lỗi', 'Có lỗi kết nối xảy ra khi cập nhật trạng thái tài khoản.', 'error');
+                        }
+                    });
+                }
+            });
+        }
+    </script>
+}

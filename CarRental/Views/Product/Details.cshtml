@@ -1,6 +1,7 @@
 @model CarRental.Models.Car
 
 @using CarRental.Utilities
+@inject CarRental.Models.DbRenalCarContext _db
 
 @{
 
@@ -810,67 +811,98 @@
                 {
 
                     <div class="d-flex flex-column gap-3 mb-4">
-
                         @foreach (var r in productReviews)
-
                         {
+                            string? reviewerAvatar = null;
+                            if (!string.IsNullOrEmpty(r.Email))
+                            {
+                                reviewerAvatar = _db.Customers.Where(c => c.Email == r.Email).Select(c => c.Avartar).FirstOrDefault();
+                            }
+                            if (string.IsNullOrEmpty(reviewerAvatar) && !string.IsNullOrEmpty(r.Phone))
+                            {
+                                reviewerAvatar = _db.Customers.Where(c => c.PhoneNumber == r.Phone).Select(c => c.Avartar).FirstOrDefault();
+                            }
+                            if (string.IsNullOrEmpty(reviewerAvatar) && !string.IsNullOrEmpty(r.Name))
+                            {
+                                reviewerAvatar = _db.Customers.Where(c => c.Name == r.Name || c.FullName == r.Name).Select(c => c.Avartar).FirstOrDefault();
+                            }
+                            if (!string.IsNullOrEmpty(reviewerAvatar))
+                            {
+                                reviewerAvatar = Function.ResolveAvatarUrl(reviewerAvatar);
+                            }
 
-                            <div class="p-3 bg-light rounded-3 border">
-
-                                <div class="d-flex justify-content-between align-items-center mb-1">
-
-                                    <div class="d-flex align-items-center gap-2">
-
-                                        <span class="fw-bold text-dark small">@r.Name</span>
-
-                                        @if (r.CreatedDate.HasValue)
-
+                            string initial = string.IsNullOrWhiteSpace(r.Name) ? "K" : r.Name.Trim().Substring(0, 1).ToUpper();
+                            <div class="bg-white rounded-4 border shadow-xs" style="border-color: #e2e8f0 !important; padding: 18px 20px;">
+                                <div class="d-flex justify-content-between align-items-start gap-3 mb-2">
+                                    <div class="d-flex align-items-center" style="gap: 14px;">
+                                        @if (!string.IsNullOrEmpty(reviewerAvatar))
                                         {
-
-                                            <span class="text-muted" style="font-size: 11px;">
-
-                                                <i class="bi bi-clock me-1"></i>@r.CreatedDate.Value.ToString("dd/MM/yyyy HH:mm")
-
+                                            <img src="@reviewerAvatar" alt="@r.Name" class="rounded-circle object-fit-cover shadow-xs border border-2 border-white flex-shrink-0" 
+                                                 style="width: 44px; height: 44px;" onerror="this.onerror=null; this.src='/images/default-avatar.png';" />
+                                        }
+                                        else
+                                        {
+                                            <div class="rounded-circle text-white fw-bold d-inline-flex align-items-center justify-content-center shadow-xs flex-shrink-0 border border-2 border-white" 
+                                                 style="width: 44px; height: 44px; background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); font-size: 16px;">
+                                                @initial
+                                            </div>
+                                        }
+                                        <div>
+                                            <strong class="text-dark d-block" style="font-size: 14.5px; font-weight: 600; line-height: 1.3; margin-bottom: 3px;">@(string.IsNullOrWhiteSpace(r.Name) ? "Khách hàng ReCar" : r.Name)</strong>
+                                            <span class="text-muted d-inline-flex align-items-center" style="font-size: 12px; gap: 5px;">
+                                                <i class="bi bi-clock"></i>@(r.CreatedDate.HasValue ? r.CreatedDate.Value.ToString("dd/MM/yyyy HH:mm") : "Gần đây")
                                             </span>
-
-                                        }
-
+                                        </div>
                                     </div>
 
-                                    <div class="text-warning small">
-
-                                        @for (int i = 1; i <= 5; i++)
-
-                                        {
-
-                                            if (i <= (r.Star ?? 5))
-
-                                            {
-
-                                                <i class="bi bi-star-fill"></i>
-
-                                            }
-
-                                            else
-
-                                            {
-
-                                                <i class="bi bi-star"></i>
-
-                                            }
-
-                                        }
-
+                                    <div class="d-inline-flex align-items-center rounded-pill fw-bold border shadow-xs flex-shrink-0" 
+                                         style="background-color: #fffbeb; border-color: #fde68a !important; color: #b45309; font-size: 13px; padding: 4px 12px; gap: 5px;">
+                                        <i class="bi bi-star-fill text-warning"></i>
+                                        <span>@(r.Star ?? 5)</span>
                                     </div>
-
                                 </div>
 
-                                <p class="text-muted small m-0">@r.Detail</p>
+                                <p class="text-secondary mb-0" style="line-height: 1.65; font-size: 14px; padding-left: 58px;">@r.Detail</p>
 
+                                @if (!string.IsNullOrEmpty(r.Reply))
+                                {
+                                    var ownerAvatar = Function.ResolveAvatarUrl(Model.Owner?.Avartar);
+                                    string ownerInitial = Model.Owner?.FullName?.Substring(0, 1).ToUpper() ?? Model.Owner?.Name?.Substring(0, 1).ToUpper() ?? "C";
+                                    <div class="mt-3 rounded-4 border position-relative" 
+                                         style="margin-left: 58px; padding: 14px 16px; background: linear-gradient(135deg, #f0fdf4 0%, #f8fafc 100%); border-color: #bbf7d0 !important; box-shadow: 0 2px 10px rgba(16, 185, 129, 0.05);">
+                                        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2 border-bottom" style="padding-bottom: 10px; border-color: rgba(187, 247, 208, 0.7) !important;">
+                                            <div class="d-flex align-items-center" style="gap: 10px;">
+                                                @if (!string.IsNullOrEmpty(ownerAvatar))
+                                                {
+                                                    <img src="@ownerAvatar" alt="Chủ xe" class="rounded-circle object-fit-cover shadow-xs border border-white flex-shrink-0" 
+                                                         style="width: 32px; height: 32px;" onerror="this.onerror=null; this.src='/images/default-avatar.png';" />
+                                                }
+                                                else
+                                                {
+                                                    <div class="rounded-circle text-white d-inline-flex align-items-center justify-content-center shadow-xs flex-shrink-0" 
+                                                         style="width: 32px; height: 32px; background: linear-gradient(135deg, #059669 0%, #047857 100%); font-size: 13px;">
+                                                        @ownerInitial
+                                                    </div>
+                                                }
+                                                <div class="d-flex align-items-center flex-wrap" style="gap: 8px;">
+                                                    <strong class="text-dark" style="font-size: 13.5px;">@(Model.Owner?.FullName ?? Model.Owner?.Name ?? "Chủ xe ReCar")</strong>
+                                                    <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill fw-semibold d-inline-flex align-items-center" style="font-size: 11px; padding: 4px 9px; gap: 4px;">
+                                                        <i class="bi bi-patch-check-fill text-success"></i> Phản hồi từ Chủ xe
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            @if (r.ReplyDate.HasValue)
+                                            {
+                                                <span class="text-muted d-inline-flex align-items-center" style="font-size: 11.5px; gap: 4px;">
+                                                    <i class="bi bi-clock"></i>@r.ReplyDate.Value.ToString("dd/MM/yyyy HH:mm")
+                                                </span>
+                                            }
+                                        </div>
+                                        <div class="text-dark" style="line-height: 1.65; font-size: 13.5px; color: #1e293b !important; white-space: pre-line;">@r.Reply</div>
+                                    </div>
+                                }
                             </div>
-
                         }
-
                     </div>
 
                 }

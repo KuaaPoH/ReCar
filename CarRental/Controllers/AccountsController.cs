@@ -1,4 +1,4 @@
-﻿using CarRental.Models;
+using CarRental.Models;
 using CarRental.Utilities;
 using CarRental.ViewModels;
 using Microsoft.AspNetCore.Mvc;
@@ -37,6 +37,10 @@ namespace CarRental.Controllers
             // Đồng bộ lại customerId và Session
             customerId = customer.CustomerId;
             Function.SetAccountId(HttpContext.Session, customer.CustomerId);
+            if (!string.IsNullOrEmpty(customer.Avartar))
+            {
+                Function.SetAvatar(HttpContext.Session, customer.Avartar);
+            }
             // Lấy danh sách đơn hàng, đơn mới nhất hiển thị trước
             ViewBag.Order = _context.CarRentalOrders
                 .Include(i => i.Status)
@@ -157,6 +161,148 @@ namespace CarRental.Controllers
 
             return View(c);
         }
+
+        [HttpPost]
+        public IActionResult UpdateProfile(string name, string email, string? phoneNumber, string? address, IFormFile? avatarFile)
+        {
+            if (!Function.IsLogin(HttpContext.Session))
+            {
+                return RedirectToAction("Index", "Login");
+            }
+
+            var customerId = Function.GetAccountId(HttpContext.Session);
+            var customer = _context.Customers.FirstOrDefault(p => p.CustomerId == customerId);
+            if (customer == null)
+            {
+                return RedirectToAction("Index", "Home");
+            }
+
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                TempData["ProfileError"] = "Vui lòng nhập họ và tên.";
+                return Redirect("/Accounts?tab=account-info");
+            }
+
+            if (string.IsNullOrWhiteSpace(email))
+            {
+                TempData["ProfileError"] = "Vui lòng nhập địa chỉ email.";
+                return Redirect("/Accounts?tab=account-info");
+            }
+
+            // Check email trùng với người khác
+            var emailExists = _context.Customers.Any(c => c.Email == email && c.CustomerId != customerId);
+            if (emailExists)
+            {
+                TempData["ProfileError"] = "Email này đã được sử dụng bởi một tài khoản khác.";
+                return Redirect("/Accounts?tab=account-info");
+            }
+
+            customer.Name = name.Trim();
+            customer.Email = email.Trim();
+            customer.PhoneNumber = phoneNumber?.Trim();
+            customer.Address = address?.Trim();
+
+            if (avatarFile != null && avatarFile.Length > 0)
+            {
+                var avatarUrl = Function.UploadAvatar(avatarFile);
+                if (!string.IsNullOrEmpty(avatarUrl))
+                {
+                    customer.Avartar = avatarUrl;
+                    Function.SetAvatar(HttpContext.Session, avatarUrl);
+                }
+            }
+
+            _context.SaveChanges();
+
+            Function.SetUserName(HttpContext.Session, customer.Name);
+            Function.SetEmail(HttpContext.Session, customer.Email);
+            if (!string.IsNullOrEmpty(customer.PhoneNumber)) Function.SetPhone(HttpContext.Session, customer.PhoneNumber);
+            if (!string.IsNullOrEmpty(customer.Address)) Function.SetAddress(HttpContext.Session, customer.Address);
+
+            TempData["ProfileSuccess"] = "Cập nhật thông tin hồ sơ cá nhân thành công!";
+            return Redirect("/Accounts?tab=account-info");
+        }
+
+        [HttpPost]
+        public IActionResult ChangePassword(string oldPassword, string newPassword, string confirmPassword)
+        {
+            if (!Function.IsLogin(HttpContext.Session))
+            {
+                return RedirectToAction("Index", "Login");
+            }
+
+            var customerId = Function.GetAccountId(HttpContext.Session);
+            var customer = _context.Customers.FirstOrDefault(p => p.CustomerId == customerId);
+            if (customer == null)
+            {
+                return RedirectToAction("Index", "Home");
+            }
+
+            if (string.IsNullOrEmpty(oldPassword))
+            {
+                TempData["PasswordError"] = "Vui lòng nhập mật khẩu hiện tại.";
+                return Redirect("/Accounts?tab=account-info");
+            }
+
+            if (!Function.VerifyPassword(oldPassword, customer.Password))
+            {
+                TempData["PasswordError"] = "Mật khẩu hiện tại không chính xác! Vui lòng thử lại.";
+                return Redirect("/Accounts?tab=account-info");
+            }
+
+            if (string.IsNullOrEmpty(newPassword) || newPassword.Length < 6)
+            {
+                TempData["PasswordError"] = "Mật khẩu mới phải có ít nhất 6 ký tự.";
+                return Redirect("/Accounts?tab=account-info");
+            }
+
+            if (newPassword != confirmPassword)
+            {
+                TempData["PasswordError"] = "Xác nhận mật khẩu mới không khớp.";
+                return Redirect("/Accounts?tab=account-info");
+            }
+
+            customer.Password = Function.MD5Password(newPassword);
+            _context.SaveChanges();
+
+            TempData["PasswordSuccess"] = "Đổi mật khẩu thành công! Hãy ghi nhớ mật khẩu mới của bạn.";
+            return Redirect("/Accounts?tab=account-info");
+        }
+
+        [HttpPost]
+        public IActionResult UploadAvatarAjax(IFormFile? avatarFile)
+        {
+            if (!Function.IsLogin(HttpContext.Session))
+            {
+                return Json(new { success = false, message = "Bạn chưa đăng nhập." });
+            }
+
+            if (avatarFile == null || avatarFile.Length == 0)
+            {
+                return Json(new { success = false, message = "Chưa chọn file ảnh." });
+            }
+
+            var customerId = Function.GetAccountId(HttpContext.Session);
+            var customer = _context.Customers.FirstOrDefault(p => p.CustomerId == customerId);
+            if (customer == null)
+            {
+                return Json(new { success = false, message = "Không tìm thấy khách hàng." });
+            }
+
+            var avatarUrl = Function.UploadAvatar(avatarFile);
+            if (string.IsNullOrEmpty(avatarUrl))
+            {
+                return Json(new { success = false, message = "Định dạng file không hợp lệ hoặc lỗi lưu file." });
+            }
+
+            customer.Avartar = avatarUrl;
+            _context.SaveChanges();
+
+            Function.SetAvatar(HttpContext.Session, avatarUrl);
+
+            return Json(new { success = true, avatarUrl = avatarUrl, message = "Cập nhật ảnh đại diện thành công!" });
+        }
+
         [HttpGet]
         public IActionResult licenseDetails(string returnUrl = null)
         {

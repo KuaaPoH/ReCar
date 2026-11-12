@@ -119,6 +119,8 @@ modelBuilder.Entity<Blog>(entity =>
             entity.Property(e => e.Email).HasMaxLength(50);
             entity.Property(e => e.Name).HasMaxLength(50);
             entity.Property(e => e.Phone).HasMaxLength(50);
+            entity.Property(e => e.Reply).HasColumnType("longtext");
+            entity.Property(e => e.ReplyDate).HasColumnType("datetime");
 
             entity.HasOne(d => d.Blog).WithMany(p => p.BlogComments)
                 .HasForeignKey(d => d.BlogId)
@@ -189,6 +191,8 @@ modelBuilder.Entity<Blog>(entity =>
             entity.Property(e => e.Name).HasMaxLength(50);
             entity.Property(e => e.Phone).HasMaxLength(50);
             entity.Property(e => e.OrderId).HasColumnName("OrderId");
+            entity.Property(e => e.Reply).HasColumnType("longtext");
+            entity.Property(e => e.ReplyDate).HasColumnType("datetime");
 
             entity.HasOne(d => d.Car).WithMany(p => p.CarReviews)
                 .HasForeignKey(d => d.CarId)
@@ -379,6 +383,8 @@ modelBuilder.Entity<Blog>(entity =>
             entity.Property(e => e.IsActive).HasColumnName("isActive");
             entity.Property(e => e.Name).HasMaxLength(50);
             entity.Property(e => e.Phone).HasMaxLength(50);
+            entity.Property(e => e.Reply).HasColumnType("longtext");
+            entity.Property(e => e.ReplyDate).HasColumnType("datetime");
 
             entity.HasOne(d => d.News).WithMany(p => p.NewsComments)
                 .HasForeignKey(d => d.NewsId)

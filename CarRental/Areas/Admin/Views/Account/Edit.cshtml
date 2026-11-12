@@ -1,109 +1,322 @@
 @model CarRental.Models.Customer
 @using CarRental.Utilities;
 @{
-    ViewData["Title"] = "Hồ sơ Quản trị viên";
+    ViewData["Title"] = "Hồ sơ cá nhân Quản trị viên";
     Layout = "~/Areas/Admin/Views/Shared/_Layout.cshtml";
+
+    string adminName = Model.FullName ?? Model.Name ?? Model.Username ?? "Administrator";
+    string adminAvatar = Model.Avartar ?? Function.GetAdminAvatar(Context.Session);
+    string initials = adminName.Length >= 2 ? adminName.Substring(0, 2).ToUpper() : "AD";
 }
 
 <div class="container-fluid px-0">
-    <!-- Header -->
+    <!-- Header chuẩn Admin ReCar -->
     <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4">
         <div>
-            <div class="d-flex align-items-center gap-2">
-                <a asp-controller="Home" asp-action="Index" class="btn btn-light btn-sm rounded-circle p-2 text-muted me-1">
-                    <i class="bi bi-arrow-left"></i>
-                </a>
+            <div class="d-flex align-items-center gap-2 flex-wrap">
                 <h1 class="h3 fw-bold mb-0 text-dark tracking-tight">Hồ sơ cá nhân Quản trị viên</h1>
+                <span class="badge bg-light text-muted border font-monospace">#ID-@Model.CustomerId</span>
             </div>
-            <p class="text-muted small mb-0 mt-1 ms-5">Cập nhật thông tin tài khoản, tên hiển thị và mật khẩu bảo mật Admin.</p>
+            <p class="text-muted small mb-0 mt-1">Quản lý thông tin định danh, hình ảnh đại diện và thiết lập mật khẩu bảo mật hệ thống.</p>
         </div>
         <div>
-            <a asp-controller="Home" asp-action="Index" class="btn btn-light btn-sm rounded-pill px-3 border">
-                <i class="bi bi-grid me-1"></i> Về bảng điều khiển
+            <a asp-controller="Home" asp-action="Index" class="btn btn-outline-secondary btn-sm rounded-pill px-3.5 py-1.5 fw-semibold shadow-xs">
+                <i class="bi bi-speedometer2 me-1"></i> Bảng điều khiển
             </a>
         </div>
     </div>
 
-    @if (!string.IsNullOrEmpty(Function._MessageEmail))
+    <!-- Thông báo kết quả thao tác -->
+    @if (TempData["SuccessMessage"] != null)
     {
-        <div class="alert alert-danger rounded-3 alert-dismissible fade show mb-4 small" role="alert">
-            <i class="bi bi-exclamation-triangle-fill me-2"></i> @Function._MessageEmail
+        <div class="alert alert-success rounded-4 alert-dismissible fade show mb-4 shadow-xs border-0 border-start border-4 border-success" role="alert">
+            <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-check-circle-fill text-success fs-5"></i>
+                <div>
+                    <strong>Thành công!</strong> @TempData["SuccessMessage"]
+                </div>
+            </div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger rounded-4 alert-dismissible fade show mb-4 shadow-xs border-0 border-start border-4 border-danger" role="alert">
+            <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-exclamation-triangle-fill text-danger fs-5"></i>
+                <div>
+                    <strong>Lỗi!</strong> @TempData["ErrorMessage"]
+                </div>
+            </div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (TempData["PasswordSuccess"] != null)
+    {
+        <div class="alert alert-success rounded-4 alert-dismissible fade show mb-4 shadow-xs border-0 border-start border-4 border-success" role="alert">
+            <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-key-fill text-success fs-5"></i>
+                <div>
+                    <strong>Bảo mật!</strong> @TempData["PasswordSuccess"]
+                </div>
+            </div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (TempData["PasswordError"] != null)
+    {
+        <div class="alert alert-danger rounded-4 alert-dismissible fade show mb-4 shadow-xs border-0 border-start border-4 border-danger" role="alert">
+            <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-shield-x text-danger fs-5"></i>
+                <div>
+                    <strong>Lỗi bảo mật!</strong> @TempData["PasswordError"]
+                </div>
+            </div>
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     }
 
-    <div class="row justify-content-center">
-        <div class="col-12 col-lg-8">
-            <div class="recar-panel mb-4">
-                <div class="recar-panel-header">
-                    <h2 class="h6 fw-bold mb-0 text-dark">
-                        <i class="bi bi-shield-lock text-primary me-2"></i> Thông tin tài khoản Super Admin
-                    </h2>
-                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill px-2.5 py-1">
-                        <i class="bi bi-shield-check me-1"></i> Quản trị cấp cao
-                    </span>
-                </div>
-                <div class="p-4">
-                    <div class="d-flex align-items-center gap-3 mb-4 pb-3 border-bottom">
-                        <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold fs-3 shadow-sm" style="width: 64px; height: 64px; background: linear-gradient(135deg, #0f172a, #0284c7);">
-                            @((Model.FullName ?? Model.Username ?? "A")[0].ToString().ToUpper())
+    <!-- Bố cục 2 cột chuẩn ReCar Admin Profile -->
+    <div class="row g-4">
+        <!-- CỘT TRÁI (4 cột): THẺ ẢNH ĐẠI DIỆN & TỔNG QUAN TÀI KHOẢN -->
+        <div class="col-12 col-lg-4">
+            <div class="card border-0 shadow-sm rounded-4 bg-white p-4 mb-4 text-center">
+                <form id="avatarUploadForm" asp-controller="Account" asp-action="UpdateInfo" method="post" enctype="multipart/form-data">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="fullName" value="@Model.FullName" />
+                    <input type="hidden" name="username" value="@Model.Username" />
+                    <input type="hidden" name="email" value="@Model.Email" />
+                    <input type="hidden" name="phoneNumber" value="@Model.PhoneNumber" />
+
+                    <!-- Khung ảnh Avatar tương tác -->
+                    <div class="position-relative d-inline-block mb-3">
+                        <div class="avatar-preview-box rounded-circle shadow-sm overflow-hidden border mx-auto position-relative" 
+                             style="width: 110px; height: 110px; background: linear-gradient(135deg, #0f172a 0%, #0284c7 100%);">
+                            @if (!string.IsNullOrEmpty(adminAvatar))
+                            {
+                                <img id="adminAvatarImg" src="@adminAvatar" alt="@adminName" class="w-100 h-100 object-fit-cover" onerror="this.onerror=null; this.src='/images/default-avatar.png';" />
+                            }
+                            else
+                            {
+                                <div id="adminAvatarInitial" class="w-100 h-100 text-white fw-bold d-flex align-items-center justify-content-center" style="font-size: 2.5rem;">
+                                    @initials
+                                </div>
+                            }
                         </div>
-                        <div>
-                            <h5 class="fw-bold text-dark mb-0.5">@(Model.FullName ?? "Super Administrator")</h5>
-                            <div class="text-muted small">
-                                <span>Tên đăng nhập: <code class="font-mono-plate text-dark">@Model.Username</code></span>
-                                <span class="mx-1">·</span>
-                                <span>ID: #@Model.CustomerId</span>
-                            </div>
-                        </div>
+
+                        <!-- Nút camera đổi avatar -->
+                        <label for="adminAvatarInput" class="btn btn-primary btn-sm rounded-circle position-absolute bottom-0 end-0 p-2 shadow-sm d-flex align-items-center justify-content-center" 
+                               style="width: 36px; height: 36px; background-color: var(--recar-primary); border: 2px solid #fff; cursor: pointer;" 
+                               title="Bấm để tải ảnh đại diện mới">
+                            <i class="bi bi-camera-fill text-white" style="font-size: 0.85rem;"></i>
+                        </label>
+                        <input type="file" id="adminAvatarInput" name="avatarFile" accept="image/*" class="d-none" onchange="previewAndSubmitAvatar(this)" />
                     </div>
 
-                    <form asp-controller="Account" asp-action="Edit" method="post">
+                    <h4 class="fw-bold text-dark mb-0.5 fs-5">@adminName</h4>
+                    <div class="text-muted small mb-2">
+                        <span class="font-monospace">@@@(Model.Username ?? "admin")</span>
+                        <span class="mx-1">·</span>
+                        <span>ID: #@Model.CustomerId</span>
+                    </div>
+
+                    <div class="d-flex justify-content-center gap-1.5 mb-3">
+                        <span class="badge rounded-pill px-3 py-1 fw-bold" style="background-color: #fee2e2; color: #991b1b; font-size: 0.76rem;">
+                            <i class="bi bi-shield-check me-1"></i> Quản trị viên ReCar
+                        </span>
+                        <span class="badge rounded-pill px-2.5 py-1 fw-bold bg-success-subtle text-success" style="font-size: 0.76rem;">
+                            Đang hoạt động
+                        </span>
+                    </div>
+
+                    <div class="text-muted small border-top pt-3 text-start" style="font-size: 0.78rem;">
+                        <div class="d-flex justify-content-between mb-1.5">
+                            <span>Đăng nhập gần nhất:</span>
+                            <strong class="text-dark">@(string.IsNullOrEmpty(Model.LastLogin) ? "Chưa ghi nhận" : Model.LastLogin)</strong>
+                        </div>
+                        <div class="d-flex justify-content-between mb-1.5">
+                            <span>Quyền phân quyền:</span>
+                            <strong class="text-primary">Toàn quyền hệ thống</strong>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span>Tình trạng xác thực:</span>
+                            <strong class="text-success"><i class="bi bi-patch-check-fill me-1"></i>Đã kích hoạt</strong>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Thẻ hướng dẫn bảo mật -->
+            <div class="card border-0 shadow-sm rounded-4 bg-white p-4">
+                <h6 class="fw-bold text-dark mb-2 d-flex align-items-center gap-2">
+                    <i class="bi bi-shield-shaded text-primary"></i> Quy chuẩn an toàn Admin
+                </h6>
+                <p class="text-muted small mb-3" style="line-height: 1.6;">
+                    Tài khoản Quản trị viên có quyền truy cập dữ liệu giao dịch và quản lý tài chính trên toàn sàn ReCar. Vui lòng định kỳ thay đổi mật khẩu và không chia sẻ thông tin đăng nhập.
+                </p>
+                <div class="p-2.5 rounded-3 bg-light border small text-muted">
+                    <i class="bi bi-info-circle text-primary me-1"></i>
+                    Sau khi cập nhật ảnh đại diện, ảnh mới sẽ tự động hiển thị ngay trên thanh Header, Bảng điều khiển và Menu thao tác của hệ thống.
+                </div>
+            </div>
+        </div>
+
+        <!-- CỘT PHẢI (8 cột): FORM THÔNG TIN & FORM ĐỔI MẬT KHẨU -->
+        <div class="col-12 col-lg-8">
+            <!-- 1. Form Cập nhật thông tin Quản trị viên -->
+            <div class="card border-0 shadow-sm rounded-4 bg-white mb-4 overflow-hidden">
+                <div class="card-header bg-white border-bottom py-3 px-4 d-flex align-items-center gap-3">
+                    <div class="rounded-3 d-flex align-items-center justify-content-center text-primary shadow-xs" style="width: 40px; height: 40px; background-color: #e0f2fe;">
+                        <i class="bi bi-person-gear fs-5"></i>
+                    </div>
+                    <div>
+                        <h5 class="fw-bold text-dark mb-0 fs-6">Thông tin cá nhân Quản trị viên</h5>
+                        <span class="text-muted small" style="font-size: 0.75rem;">Cập nhật họ tên, username, địa chỉ email và số điện thoại liên hệ</span>
+                    </div>
+                </div>
+
+                <div class="card-body p-4">
+                    <form asp-controller="Account" asp-action="UpdateInfo" method="post" enctype="multipart/form-data">
                         @Html.AntiForgeryToken()
-                        <input type="hidden" asp-for="CustomerId" />
 
                         <div class="row g-3">
                             <div class="col-md-6">
-                                <label class="form-label fw-bold small text-dark">Họ và tên hiển thị</label>
-                                <input type="text" asp-for="FullName" class="form-control rounded-3" placeholder="Administrator" required />
-                                <span asp-validation-for="FullName" class="text-danger small"></span>
+                                <label class="form-label fw-bold small text-dark">Họ và tên hiển thị <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light border-end-0 rounded-start-3 text-muted">
+                                        <i class="bi bi-person-fill"></i>
+                                    </span>
+                                    <input type="text" name="fullName" value="@Model.FullName" class="form-control border-start-0 rounded-end-3" placeholder="Ví dụ: Nguyễn Quản Trị" required />
+                                </div>
                             </div>
 
                             <div class="col-md-6">
-                                <label class="form-label fw-bold small text-dark">Tên đăng nhập (Username)</label>
-                                <input type="text" asp-for="Username" class="form-control rounded-3 font-mono-plate" required />
-                                <span asp-validation-for="Username" class="text-danger small"></span>
+                                <label class="form-label fw-bold small text-dark">Tên đăng nhập (Username) <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light border-end-0 rounded-start-3 text-muted font-monospace">@@</span>
+                                    <input type="text" name="username" value="@Model.Username" class="form-control border-start-0 rounded-end-3 font-monospace" placeholder="admin" required />
+                                </div>
                             </div>
 
                             <div class="col-md-6">
-                                <label class="form-label fw-bold small text-dark">Địa chỉ Email</label>
-                                <input type="email" asp-for="Email" class="form-control rounded-3" required />
-                                <span asp-validation-for="Email" class="text-danger small"></span>
+                                <label class="form-label fw-bold small text-dark">Địa chỉ Email <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light border-end-0 rounded-start-3 text-muted">
+                                        <i class="bi bi-envelope-fill"></i>
+                                    </span>
+                                    <input type="email" name="email" value="@Model.Email" class="form-control border-start-0 rounded-end-3" placeholder="admin@recar.vn" required />
+                                </div>
                             </div>
 
                             <div class="col-md-6">
                                 <label class="form-label fw-bold small text-dark">Số điện thoại liên hệ</label>
-                                <input type="tel" asp-for="PhoneNumber" class="form-control rounded-3" placeholder="09xx.xxx.xxx" />
-                                <span asp-validation-for="PhoneNumber" class="text-danger small"></span>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light border-end-0 rounded-start-3 text-muted">
+                                        <i class="bi bi-telephone-fill"></i>
+                                    </span>
+                                    <input type="tel" name="phoneNumber" value="@(Model.PhoneNumber ?? Model.Phone)" class="form-control border-start-0 rounded-end-3" placeholder="09xx.xxx.xxx" />
+                                </div>
                             </div>
 
                             <div class="col-12">
-                                <div class="p-3 rounded-3 bg-light border mt-2">
-                                    <label class="form-label fw-bold small text-dark mb-1">
-                                        <i class="bi bi-key-fill text-warning me-1"></i> Đổi mật khẩu mới
-                                    </label>
-                                    <input type="password" asp-for="Password" class="form-control rounded-3" placeholder="Để trống nếu không muốn đổi mật khẩu" value="" />
-                                    <div class="text-muted" style="font-size: 0.75rem; margin-top: 4px;">
-                                        Mật khẩu hiện tại được mã hóa MD5 một chiều an toàn. Chỉ nhập mật khẩu mới khi bạn muốn thay đổi.
+                                <label class="form-label fw-bold small text-dark">Chọn tệp ảnh đại diện mới (nếu muốn thay đổi)</label>
+                                <input type="file" name="avatarFile" accept="image/*" class="form-control rounded-3" />
+                                <div class="text-muted" style="font-size: 0.72rem; margin-top: 4px;">
+                                    Định dạng hỗ trợ: JPG, PNG, WEBP. Dung lượng đề xuất dưới 5MB.
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
+                            <button type="submit" class="btn btn-primary rounded-pill px-4 py-2 fw-semibold shadow-sm" style="background-color: var(--recar-primary); border: none;">
+                                <i class="bi bi-check2-circle me-1"></i> Lưu thông tin cá nhân
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- 2. Form Đổi mật khẩu - BẮT BUỘC NHẬP MẬT KHẨU CŨ -->
+            <div class="card border-0 shadow-sm rounded-4 bg-white overflow-hidden">
+                <div class="card-header bg-white border-bottom py-3 px-4 d-flex align-items-center gap-3">
+                    <div class="rounded-3 d-flex align-items-center justify-content-center text-warning shadow-xs" style="width: 40px; height: 40px; background-color: #fef3c7;">
+                        <i class="bi bi-shield-lock-fill fs-5"></i>
+                    </div>
+                    <div>
+                        <h5 class="fw-bold text-dark mb-0 fs-6">Đổi mật khẩu bảo mật</h5>
+                        <span class="text-muted small" style="font-size: 0.75rem;">Yêu cầu xác nhận mật khẩu hiện tại để đảm bảo an toàn tối đa cho tài khoản quản trị</span>
+                    </div>
+                </div>
+
+                <div class="card-body p-4">
+                    <form asp-controller="Account" asp-action="ChangePassword" method="post">
+                        @Html.AntiForgeryToken()
+
+                        <div class="row g-3">
+                            <!-- 1. MẬT KHẨU HIỆN TẠI (BẮT BUỘC) -->
+                            <div class="col-12">
+                                <label class="form-label fw-bold small text-dark">
+                                    Mật khẩu hiện tại (Cũ) <span class="text-danger">*</span>
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light border-end-0 rounded-start-3 text-muted">
+                                        <i class="bi bi-key-fill text-warning"></i>
+                                    </span>
+                                    <input type="password" id="inputOldPassword" name="oldPassword" class="form-control border-start-0 border-end-0" placeholder="Nhập mật khẩu đang sử dụng" required />
+                                    <button type="button" class="btn btn-light border border-start-0 rounded-end-3 text-muted" onclick="togglePasswordVisibility('inputOldPassword', this)">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                </div>
+                                <div class="text-muted" style="font-size: 0.72rem; margin-top: 4px;">
+                                    Bắt buộc nhập chính xác mật khẩu hiện tại để xác thực chủ tài khoản.
+                                </div>
+                            </div>
+
+                            <!-- 2. MẬT KHẨU MỚI -->
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold small text-dark">
+                                    Mật khẩu mới <span class="text-danger">*</span>
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light border-end-0 rounded-start-3 text-muted">
+                                        <i class="bi bi-lock-fill text-primary"></i>
+                                    </span>
+                                    <input type="password" id="inputNewPassword" name="newPassword" class="form-control border-start-0 border-end-0" placeholder="Tối thiểu 6 ký tự" minlength="6" required />
+                                    <button type="button" class="btn btn-light border border-start-0 rounded-end-3 text-muted" onclick="togglePasswordVisibility('inputNewPassword', this)">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- 3. XÁC NHẬN MẬT KHẨU MỚI -->
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold small text-dark">
+                                    Xác nhận mật khẩu mới <span class="text-danger">*</span>
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light border-end-0 rounded-start-3 text-muted">
+                                        <i class="bi bi-shield-check text-success"></i>
+                                    </span>
+                                    <input type="password" id="inputConfirmPassword" name="confirmPassword" class="form-control border-start-0 border-end-0" placeholder="Nhập lại mật khẩu mới" minlength="6" required />
+                                    <button type="button" class="btn btn-light border border-start-0 rounded-end-3 text-muted" onclick="togglePasswordVisibility('inputConfirmPassword', this)">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="col-12">
+                                <div class="p-3 rounded-3 bg-light border small text-muted d-flex align-items-center gap-2">
+                                    <i class="bi bi-shield-lock-fill text-primary fs-5"></i>
+                                    <div>
+                                        Mật khẩu mới sẽ được mã hóa MD5 bảo mật một chiều trước khi lưu vào cơ sở dữ liệu. Sau khi đổi mật khẩu, vui lòng ghi nhớ mật khẩu mới để đăng nhập cho các phiên tiếp theo.
                                     </div>
                                 </div>
                             </div>
                         </div>
 
                         <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
-                            <a asp-controller="Home" asp-action="Index" class="btn btn-light btn-sm rounded-pill px-3">Hủy bỏ</a>
-                            <button type="submit" class="btn btn-primary btn-sm rounded-pill px-4 fw-semibold shadow-sm" style="background-color: var(--recar-primary); border: none;">
-                                <i class="bi bi-check2 me-1"></i> Lưu thông tin
+                            <button type="submit" class="btn btn-warning rounded-pill px-4 py-2 fw-bold shadow-sm text-dark">
+                                <i class="bi bi-shield-lock me-1"></i> Cập nhật mật khẩu mới
                             </button>
                         </div>
                     </form>
@@ -112,3 +325,89 @@
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        // Bật / tắt hiển thị mật khẩu
+        function togglePasswordVisibility(inputId, btn) {
+            var input = document.getElementById(inputId);
+            var icon = btn.querySelector('i');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.remove('bi-eye');
+                icon.classList.add('bi-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.remove('bi-eye-slash');
+                icon.classList.add('bi-eye');
+            }
+        }
+
+        // Xem trước & Xác nhận đổi avatar trước khi gửi
+        function previewAndSubmitAvatar(input) {
+            if (input.files && input.files[0]) {
+                var file = input.files[0];
+                if (file.size > 5 * 1024 * 1024) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Dung lượng quá lớn',
+                        text: 'Kích thước ảnh đại diện không được vượt quá 5MB.',
+                        confirmButtonColor: '#0284c7'
+                    });
+                    input.value = '';
+                    return;
+                }
+
+                var reader = new FileReader();
+                reader.onload = function(e) {
+                    Swal.fire({
+                        title: 'Xác nhận đổi ảnh đại diện?',
+                        html: '<div class="text-muted small mb-3">Bạn có chắc chắn muốn thay đổi hình ảnh này làm ảnh đại diện mới không?</div>' +
+                              '<div class="d-flex justify-content-center">' +
+                              '<img src="' + e.target.result + '" style="width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 3px solid #0284c7; box-shadow: 0 4px 12px rgba(0,0,0,0.15);" />' +
+                              '</div>',
+                        showCancelButton: true,
+                        confirmButtonColor: '#0284c7',
+                        cancelButtonColor: '#64748b',
+                        confirmButtonText: '<i class="bi bi-check2-circle me-1"></i> Đồng ý đổi',
+                        cancelButtonText: '<i class="bi bi-x-circle me-1"></i> Hủy bỏ',
+                        reverseButtons: true,
+                        allowOutsideClick: false
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            var img = document.getElementById('adminAvatarImg');
+                            if (img) {
+                                img.src = e.target.result;
+                            } else {
+                                var initialBox = document.getElementById('adminAvatarInitial');
+                                if (initialBox) {
+                                    initialBox.style.display = 'none';
+                                }
+                                var container = document.querySelector('.avatar-preview-box');
+                                if (container) {
+                                    container.innerHTML = '<img id="adminAvatarImg" src="' + e.target.result + '" alt="Avatar" class="w-100 h-100 object-fit-cover" />';
+                                }
+                            }
+
+                            Swal.fire({
+                                title: 'Đang cập nhật...',
+                                text: 'Đang lưu ảnh đại diện mới vào hệ thống',
+                                allowOutsideClick: false,
+                                didOpen: () => {
+                                    Swal.showLoading();
+                                }
+                            });
+
+                            // Gửi form tải ảnh
+                            document.getElementById('avatarUploadForm').submit();
+                        } else {
+                            // Hủy bỏ thì reset input
+                            input.value = '';
+                        }
+                    });
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+    </script>
+}

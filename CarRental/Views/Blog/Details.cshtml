@@ -1,4 +1,6 @@
 @model CarRental.Models.Blog
+@using CarRental.Utilities
+@inject CarRental.Models.DbRenalCarContext _db
 @{
     ViewData["Title"] = (Model.Title ?? "Chi tiết bài viết") + " – Cẩm nang ReCar";
     Layout = "~/Views/Shared/_Layout.cshtml";
@@ -9,6 +11,13 @@
     string publishDate = Model.CreatedDate.HasValue ? Model.CreatedDate.Value.ToString("dd/MM/yyyy") : "08/10/2026";
     string authorName = !string.IsNullOrEmpty(Model.CreatedBy) ? Model.CreatedBy : "Ban biên tập ReCar";
     string categoryName = !string.IsNullOrEmpty(Model.SeoKeywords) ? Model.SeoKeywords : "Kinh nghiệm thuê xe";
+
+    bool isUserLoggedIn = Function.IsLogin(Context.Session) || Function.GetAccountId(Context.Session) > 0 || Function.GetUserAccountId(Context.Session) > 0;
+    string currentUserName = Function.GetUserName(Context.Session);
+    if (string.IsNullOrWhiteSpace(currentUserName) && isUserLoggedIn)
+    {
+        currentUserName = "Khách hàng ReCar";
+    }
 }
 
 
@@ -63,10 +72,25 @@
                     </h1>
 
                     <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 pt-2 pb-3 border-bottom">
-                        <div class="d-flex align-items-center gap-2">
-                            <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center fw-bold shadow-sm" style="width: 38px; height: 38px; font-size: 14px;">
-                                RC
-                            </div>
+                        <div class="d-flex align-items-center" style="gap: 12px;">
+                            @{
+                                string? authorAvatar = _db.Customers.Where(c => c.Name == authorName || c.FullName == authorName || c.Username == authorName).Select(c => c.Avartar).FirstOrDefault();
+                                if (string.IsNullOrEmpty(authorAvatar))
+                                {
+                                    authorAvatar = _db.Customers.Where(c => c.RoleId == 1).Select(c => c.Avartar).FirstOrDefault();
+                                }
+                                authorAvatar = Function.ResolveAvatarUrl(authorAvatar);
+                            }
+                            @if (!string.IsNullOrEmpty(authorAvatar))
+                            {
+                                <img src="@authorAvatar" alt="@authorName" class="rounded-circle object-fit-cover shadow-xs border flex-shrink-0" style="width: 40px; height: 40px;" onerror="this.onerror=null; this.src='/images/default-avatar.png';" />
+                            }
+                            else
+                            {
+                                <div class="rounded-circle text-white d-flex align-items-center justify-content-center fw-bold shadow-sm flex-shrink-0" style="width: 40px; height: 40px; background: linear-gradient(135deg, #0284c7 0%, #0f172a 100%); font-size: 14px;">
+                                    <i class="bi bi-journal-bookmark-fill"></i>
+                                </div>
+                            }
                             <div>
                                 <div class="fw-bold text-dark small">@authorName</div>
                                 <div class="text-muted" style="font-size: 12px;">Chuyên trang Cẩm nang &amp; Kinh nghiệm thuê xe ReCar</div>
@@ -133,23 +157,81 @@
                 <div class="d-flex flex-column gap-3 mb-4" id="blogCommentsList">
                     @if (blogComments.Any())
                     {
+                        var adminAvatar = Function.ResolveAvatarUrl(_db.Customers.Where(c => c.RoleId == 1).Select(c => c.Avartar).FirstOrDefault());
                         foreach (var item in blogComments)
                         {
+                            string? commenterAvatar = null;
+                            if (!string.IsNullOrEmpty(item.Email))
+                            {
+                                commenterAvatar = _db.Customers.Where(c => c.Email == item.Email).Select(c => c.Avartar).FirstOrDefault();
+                            }
+                            if (string.IsNullOrEmpty(commenterAvatar) && !string.IsNullOrEmpty(item.Name))
+                            {
+                                commenterAvatar = _db.Customers.Where(c => c.Name == item.Name || c.FullName == item.Name).Select(c => c.Avartar).FirstOrDefault();
+                            }
+                            commenterAvatar = Function.ResolveAvatarUrl(commenterAvatar);
+
                             string initial = string.IsNullOrEmpty(item.Name) ? "K" : item.Name.Trim().Substring(0, 1).ToUpper();
                             <div class="p-3 bg-light rounded-3 border">
                                 <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <div class="d-flex align-items-center gap-2">
-                                        <span class="rounded-circle bg-primary-subtle text-primary fw-bold d-inline-flex align-items-center justify-content-center" style="width: 34px; height: 34px; font-size: 14px;">
-                                            @initial
-                                        </span>
-                                        <div>
-                                            <strong class="text-dark small d-block">@item.Name</strong>
-                                            <span class="text-muted" style="font-size: 11.5px;">@(item.CreatedDate.HasValue ? item.CreatedDate.Value.ToString("dd/MM/yyyy HH:mm") : "Vừa xong")</span>
+                                    <div class="d-flex align-items-center gap-3">
+                                        @if (!string.IsNullOrEmpty(commenterAvatar))
+                                        {
+                                            <img src="@commenterAvatar" alt="@item.Name" class="rounded-circle object-fit-cover shadow-xs border border-2 border-white flex-shrink-0" 
+                                                 style="width: 40px; height: 40px;" onerror="this.onerror=null; this.src='/images/default-avatar.png';" />
+                                        }
+                                        else
+                                        {
+                                            <span class="rounded-circle text-white fw-bold d-inline-flex align-items-center justify-content-center shadow-xs flex-shrink-0 border border-2 border-white" 
+                                                  style="width: 40px; height: 40px; background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); font-size: 15px;">
+                                                @initial
+                                            </span>
+                                        }
+                                        <div class="ms-1">
+                                            <strong class="text-dark small d-block" style="font-size: 14px; font-weight: 600; margin-bottom: 2px;">@item.Name</strong>
+                                            <span class="text-muted" style="font-size: 11.5px;">
+                                                <i class="bi bi-clock me-1"></i>@(item.CreatedDate.HasValue ? item.CreatedDate.Value.ToString("dd/MM/yyyy HH:mm") : "Vừa xong")
+                                            </span>
                                         </div>
                                     </div>
                                     <span class="badge bg-white text-secondary border small">Độc giả ReCar</span>
                                 </div>
                                 <p class="text-secondary small m-0 ps-1" style="line-height: 1.6;">@item.Detail</p>
+
+                                @if (!string.IsNullOrEmpty(item.Reply))
+                                {
+                                    <div class="mt-3 ms-2 ms-md-4 p-3 rounded-4 border position-relative" 
+                                         style="background: linear-gradient(135deg, #f0f9ff 0%, #f8fafc 100%); border-color: #bae6fd !important; border-left: 4px solid #0284c7 !important; box-shadow: 0 2px 10px rgba(2, 132, 199, 0.06);">
+                                        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2 pb-1 border-bottom border-light-subtle">
+                                            <div class="d-flex align-items-center gap-2">
+                                                @if (!string.IsNullOrEmpty(adminAvatar))
+                                                {
+                                                    <img src="@adminAvatar" alt="Ban Quản trị" class="rounded-circle object-fit-cover shadow-sm border flex-shrink-0" 
+                                                         style="width: 28px; height: 28px;" onerror="this.onerror=null; this.src='/images/default-avatar.png';" />
+                                                }
+                                                else
+                                                {
+                                                    <div class="rounded-circle text-white d-inline-flex align-items-center justify-content-center shadow-sm flex-shrink-0" 
+                                                         style="width: 28px; height: 28px; background: linear-gradient(135deg, #0284c7, #0f172a); font-size: 13px;">
+                                                        <i class="bi bi-shield-check"></i>
+                                                    </div>
+                                                }
+                                                <div class="d-flex align-items-center gap-1.5">
+                                                    <strong class="text-dark small" style="font-size: 13px;">Ban Quản trị ReCar</strong>
+                                                    <span class="badge bg-primary-subtle text-primary rounded-pill fw-semibold" style="font-size: 10.5px; padding: 4px 9px;">
+                                                        <i class="bi bi-patch-check-fill text-primary me-1"></i> Phản hồi chính thức
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <span class="text-muted" style="font-size: 11.5px;">
+                                                <i class="bi bi-clock me-1"></i>@(item.ReplyDate?.ToString("dd/MM/yyyy HH:mm") ?? "")
+                                            </span>
+                                        </div>
+                                        <div class="text-dark small ps-1" style="line-height: 1.65; font-size: 13.5px; color: #1e293b !important;">
+                                            @item.Reply
+                                        </div>
+                                    </div>
+                                }
                             </div>
                         }
                     }
@@ -162,32 +244,48 @@
                     }
                 </div>
 
-                <!-- Form gửi bình luận -->
-                <div class="pt-4 border-top">
-                    <h5 class="fs-6 fw-bold mb-3" style="color: var(--recar-navy);">Gửi câu hỏi hoặc chia sẻ kinh nghiệm của bạn</h5>
-                    <form id="blogCommentForm" onsubmit="return false;">
-                        <input type="hidden" id="blogId" value="@Model.BlogId" />
-                        <div class="row g-3">
-                            <div class="col-md-6">
-                                <label class="form-label small fw-semibold text-dark">Họ và tên <span class="text-danger">*</span></label>
-                                <input type="text" id="n-name" class="form-control" placeholder="Nhập họ tên của bạn" required />
+                @if (!isUserLoggedIn)
+                {
+                    <!-- Chưa đăng nhập: Hiển thị thông báo yêu cầu đăng nhập để bình luận -->
+                    <div class="pt-4 border-top">
+                        <div class="p-4 bg-light rounded-4 border text-center">
+                            <div class="d-inline-flex align-items-center justify-content-center bg-primary-subtle text-primary rounded-circle mb-3" style="width: 50px; height: 50px;">
+                                <i class="bi bi-chat-square-text-fill fs-5"></i>
                             </div>
-                            <div class="col-md-6">
-                                <label class="form-label small fw-semibold text-dark">Địa chỉ Email</label>
-                                <input type="email" id="n-email" class="form-control" placeholder="example@email.com" />
-                            </div>
-                            <div class="col-12">
-                                <label class="form-label small fw-semibold text-dark">Nội dung bình luận <span class="text-danger">*</span></label>
-                                <textarea id="n-comment" rows="3" class="form-control" placeholder="Chia sẻ ý kiến, kinh nghiệm hoặc thắc mắc của bạn về bài viết..." required></textarea>
-                            </div>
-                            <div class="col-12 text-end">
-                                <button type="button" id="c_submit" class="btn btn-primary rounded-pill px-4 py-2 fw-semibold shadow-sm">
-                                    <i class="bi bi-send-fill me-1"></i> Gửi bình luận
-                                </button>
-                            </div>
+                            <h6 class="fw-bold mb-1" style="color: var(--recar-navy);">Đăng nhập để bình luận</h6>
+                            <p class="text-muted small mb-3">Vui lòng đăng nhập tài khoản ReCar để gửi câu hỏi hoặc chia sẻ ý kiến của bạn về bài viết này.</p>
+                            <a href="/Login?ReturnUrl=@(Context.Request.Path + Context.Request.QueryString)" class="btn btn-primary rounded-pill px-4 py-2 fw-semibold shadow-sm">
+                                <i class="bi bi-box-arrow-in-right me-1"></i> Đăng nhập để bình luận
+                            </a>
                         </div>
-                    </form>
-                </div>
+                    </div>
+                }
+                else
+                {
+                    <!-- Đã đăng nhập: Form gửi bình luận (chỉ hiển thị nội dung) -->
+                    <div class="pt-4 border-top">
+                        <div class="d-flex align-items-center justify-content-between mb-3">
+                            <h5 class="fs-6 fw-bold m-0" style="color: var(--recar-navy);">Gửi câu hỏi hoặc chia sẻ kinh nghiệm của bạn</h5>
+                            <span class="badge bg-light text-dark border small py-1.5 px-2.5">
+                                <i class="bi bi-person-check-fill text-success me-1"></i> @currentUserName
+                            </span>
+                        </div>
+                        <form id="blogCommentForm" onsubmit="return false;">
+                            <input type="hidden" id="blogId" value="@Model.BlogId" />
+                            <div class="row g-3">
+                                <div class="col-12">
+                                    <label class="form-label small fw-semibold text-dark">Nội dung bình luận <span class="text-danger">*</span></label>
+                                    <textarea id="n-comment" rows="3" class="form-control" placeholder="Chia sẻ ý kiến, kinh nghiệm hoặc thắc mắc của bạn về bài viết..." required></textarea>
+                                </div>
+                                <div class="col-12 text-end">
+                                    <button type="button" id="c_submit" class="btn btn-primary rounded-pill px-4 py-2 fw-semibold shadow-sm">
+                                        <i class="bi bi-send-fill me-1"></i> Gửi bình luận
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                }
             </div>
         </div>
 
@@ -250,7 +348,7 @@
                                     </a>
                                     <div class="min-w-0">
                                         <h6 class="fw-bold mb-1 small" style="line-height: 1.4;">
-                                            <a href="@relUrl" class="text-decoration-none text-dark">@rel.Title</a>
+                                             <a href="@relUrl" class="text-decoration-none text-dark">@rel.Title</a>
                                         </h6>
                                         <span class="text-muted" style="font-size: 11.5px;"><i class="bi bi-calendar3 me-1"></i>@relDate</span>
                                     </div>
@@ -282,16 +380,14 @@
     <script>
         $(document).ready(function () {
             $('#c_submit').on('click', function () {
-                var name = ($('#n-name').val() || '').trim();
-                var email = ($('#n-email').val() || '').trim();
                 var detail = ($('#n-comment').val() || '').trim();
                 var blogId = $('#blogId').val();
 
-                if (!name || !detail) {
+                if (!detail) {
                     Swal.fire({
                         icon: 'warning',
-                        title: 'Thiếu thông tin',
-                        text: 'Vui lòng nhập họ tên và nội dung bình luận trước khi gửi.'
+                        title: 'Thiếu nội dung',
+                        text: 'Vui lòng nhập nội dung bình luận trước khi gửi.'
                     });
                     return;
                 }
@@ -303,22 +399,41 @@
                     url: '/Blog/AddBlogComment',
                     type: 'POST',
                     data: {
-                        name: name,
-                        email: email,
                         detail: detail,
                         blogId: blogId
                     },
                     success: function (res) {
                         $btn.prop('disabled', false).html('<i class="bi bi-send-fill me-1"></i> Gửi bình luận');
+                        if (res && res.requireLogin) {
+                            Swal.fire({
+                                icon: 'warning',
+                                title: 'Yêu cầu đăng nhập',
+                                text: res.message || 'Vui lòng đăng nhập để bình luận.',
+                                showCancelButton: true,
+                                confirmButtonText: 'Đăng nhập ngay',
+                                cancelButtonText: 'Đóng'
+                            }).then(function (result) {
+                                if (result.isConfirmed) {
+                                    window.location.href = '/Login?ReturnUrl=' + encodeURIComponent(window.location.pathname + window.location.search);
+                                }
+                            });
+                            return;
+                        }
+
                         if (res && res.status !== false) {
                             $('#emptyBlogCommentNotice').remove();
-                            var initial = name.charAt(0).toUpperCase();
+                            var authorName = res.name || 'Bạn';
+                            var initial = authorName.charAt(0).toUpperCase();
                             var dateText = res.createdDate || 'Vừa xong';
+                            var avatarHtml = res.avatar 
+                                ? '<img src="' + res.avatar + '" class="rounded-circle object-fit-cover shadow-xs border border-2 border-white flex-shrink-0" style="width: 40px; height: 40px;" />'
+                                : '<span class="rounded-circle text-white fw-bold d-inline-flex align-items-center justify-content-center shadow-xs flex-shrink-0 border border-2 border-white" style="width: 40px; height: 40px; background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); font-size: 15px;">' + initial + '</span>';
+
                             var html = '<div class="p-3 bg-light rounded-3 border">' +
                                 '<div class="d-flex justify-content-between align-items-center mb-2">' +
-                                '<div class="d-flex align-items-center gap-2">' +
-                                '<span class="rounded-circle bg-primary-subtle text-primary fw-bold d-inline-flex align-items-center justify-content-center" style="width: 34px; height: 34px; font-size: 14px;">' + initial + '</span>' +
-                                '<div><strong class="text-dark small d-block">' + $('<div>').text(name).html() + '</strong>' +
+                                '<div class="d-flex align-items-center gap-3">' +
+                                avatarHtml +
+                                '<div class="ms-1"><strong class="text-dark small d-block" style="font-size: 14px; font-weight: 600; margin-bottom: 2px;">' + $('<div>').text(authorName).html() + '</strong>' +
                                 '<span class="text-muted" style="font-size: 11.5px;">' + dateText + '</span></div></div>' +
                                 '<span class="badge bg-white text-secondary border small">Độc giả ReCar</span></div>' +
                                 '<p class="text-secondary small m-0 ps-1" style="line-height: 1.6;">' + $('<div>').text(detail).html() + '</p></div>';

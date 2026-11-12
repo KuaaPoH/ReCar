@@ -145,11 +145,45 @@ namespace CarRental.Areas.Admin.Controllers
                 return NotFound();
             }
 
-            // Không cho phép xem chi tiết Admin
-            if (customer.RoleId == 1)
+            // Nạp thông tin đăng ký đối tác (nếu có)
+            var reg = await _context.CarOwnerRegistrations
+                .FirstOrDefaultAsync(r => r.CustomerId == customer.CustomerId || (customer.Email != null && r.Email == customer.Email));
+            ViewBag.Registration = reg;
+
+            // Nạp dữ liệu liên quan tùy theo vai trò
+            if (customer.RoleId == 3) // Chủ xe đối tác
             {
-                TempData["ErrorMessage"] = "Không thể xem chi tiết tài khoản Admin.";
-                return RedirectToAction(nameof(Index));
+                var ownedCars = await _context.Cars
+                    .Include(c => c.Type)
+                    .Where(c => c.OwnerId == customer.CustomerId)
+                    .OrderByDescending(c => c.CarId)
+                    .ToListAsync();
+                ViewBag.OwnedCars = ownedCars;
+
+                var carIds = ownedCars.Select(c => c.CarId).ToList();
+                var hostOrders = await _context.OrderDetails
+                    .Include(od => od.Order)
+                        .ThenInclude(o => o.Status)
+                    .Include(od => od.Order)
+                        .ThenInclude(o => o.Customer)
+                    .Include(od => od.Car)
+                    .Where(od => carIds.Contains(od.CarId))
+                    .OrderByDescending(od => od.OrderDetailId)
+                    .Take(10)
+                    .ToListAsync();
+                ViewBag.HostOrders = hostOrders;
+            }
+            else // Khách hàng (Role 2) hoặc Admin (Role 1)
+            {
+                var customerOrders = await _context.CarRentalOrders
+                    .Include(o => o.Status)
+                    .Include(o => o.OrderDetails)
+                        .ThenInclude(od => od.Car)
+                    .Where(o => o.CustomerId == customer.CustomerId)
+                    .OrderByDescending(o => o.OrderId)
+                    .Take(10)
+                    .ToListAsync();
+                ViewBag.CustomerOrders = customerOrders;
             }
 
             return View(customer);
@@ -177,6 +211,7 @@ namespace CarRental.Areas.Admin.Controllers
             }
 
             ViewBag.Roles = new SelectList(_context.Roles, "RoleId", "RoleName", customer.RoleId);
+            ViewBag.RoleId = ViewBag.Roles;
             return View(customer);
         }
 
@@ -234,6 +269,7 @@ namespace CarRental.Areas.Admin.Controllers
             }
 
             ViewBag.Roles = new SelectList(_context.Roles, "RoleId", "RoleName", customer.RoleId);
+            ViewBag.RoleId = ViewBag.Roles;
             return View(customer);
         }
 
@@ -288,18 +324,22 @@ namespace CarRental.Areas.Admin.Controllers
 
         // POST: Admin/UserManagement/ToggleLock/5
         [HttpPost]
-        [ValidateAntiForgeryToken]
+        [IgnoreAntiforgeryToken]
         public async Task<IActionResult> ToggleLock(int id)
         {
             var customer = await _context.Customers.FindAsync(id);
             if (customer == null)
             {
+                if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                    return Json(new { success = false, message = "Không tìm thấy người dùng." });
                 return NotFound();
             }
 
             // Không cho phép khóa/mở khóa Admin
             if (customer.RoleId == 1)
             {
+                if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                    return Json(new { success = false, message = "Không thể thao tác trên tài khoản Quản trị viên tối cao." });
                 TempData["ErrorMessage"] = "Không thể khóa/mở khóa tài khoản Admin.";
                 return RedirectToAction(nameof(Index));
             }
@@ -309,6 +349,16 @@ namespace CarRental.Areas.Admin.Controllers
             
             _context.Update(customer);
             await _context.SaveChangesAsync();
+
+            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+            {
+                return Json(new
+                {
+                    success = true,
+                    isActive = customer.IsActive,
+                    message = customer.IsActive ? "Đã mở khóa tài khoản thành công." : "Đã khóa tài khoản thành công."
+                });
+            }
 
             TempData["SuccessMessage"] = customer.IsActive 
                 ? "Đã mở khóa tài khoản thành công." 

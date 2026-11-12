@@ -24,5 +24,8 @@ public partial class CarReview
     public bool? IsActive { get; set; }
     public int? OrderId { get; set; }
 
+    public string? Reply { get; set; }
+    public DateTime? ReplyDate { get; set; }
+
     public virtual Car? Car { get; set; }
 }

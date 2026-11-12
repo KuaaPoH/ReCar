@@ -1,69 +1,226 @@
 @model CarRental.Models.Location
 @{
-    ViewData["Title"] = "Chỉnh sửa địa điểm";
+    ViewData["Title"] = $"Chỉnh sửa địa điểm: {Model.CityName}";
+    Layout = "~/Areas/Admin/Views/Shared/_Layout.cshtml";
 }
 
-<div class="container-fluid px-0" style="max-width: 800px;">
-    <div class="d-flex align-items-center justify-content-between mb-4">
+<div class="container-fluid px-0" style="max-width: 1050px;">
+    <!-- Header chuẩn Admin ReCar -->
+    <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4">
         <div>
-            <h1 class="h3 fw-bold mb-0 text-dark">Chỉnh sửa địa điểm nhận xe</h1>
-            <p class="text-muted small mb-0 mt-1">Cập nhật thông tin địa điểm #@Model.LocationId</p>
+            <div class="d-flex align-items-center gap-2">
+                <a asp-action="Index" class="btn btn-light btn-sm rounded-circle p-2 text-muted me-1 shadow-xs" title="Quay lại danh sách">
+                    <i class="bi bi-arrow-left"></i>
+                </a>
+                <h1 class="h3 fw-bold mb-0 text-dark tracking-tight">Chỉnh sửa địa điểm nhận xe</h1>
+                <span class="badge bg-light text-muted border font-monospace">#ID-@Model.LocationId</span>
+            </div>
+            <p class="text-muted small mb-0 mt-1 ms-5">Cập nhật thông tin tỉnh thành, khu vực vùng miền và độ ưu tiên hiển thị trên sàn.</p>
         </div>
-        <a asp-action="Index" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
-            <i class="bi bi-arrow-left me-1"></i> Quay lại
-        </a>
+        <div class="d-flex align-items-center gap-2">
+            <button type="button" class="btn btn-outline-danger btn-sm rounded-pill px-3 py-1.5 fw-semibold" 
+                    onclick="confirmDeleteLocationInEdit(@Model.LocationId, '@Html.Raw(Model.CityName?.Replace("'", "\\'"))')">
+                <i class="bi bi-trash3 me-1"></i> Xóa địa điểm
+            </button>
+            <a asp-action="Index" class="btn btn-outline-secondary btn-sm rounded-pill px-3.5 py-1.5 fw-semibold">
+                <i class="bi bi-arrow-left me-1"></i> Quay lại
+            </a>
+        </div>
     </div>
 
-    <div class="recar-panel p-4">
-        <form asp-action="Edit" method="post">
-            @Html.AntiForgeryToken()
-            <input type="hidden" asp-for="LocationId" />
-            <div asp-validation-summary="ModelOnly" class="text-danger small mb-3"></div>
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show rounded-3 small fw-medium mb-3 shadow-xs" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-1.5"></i> @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
 
-            <div class="mb-3">
-                <label asp-for="CityName" class="form-label fw-semibold small">Tên Tỉnh / Thành phố <span class="text-danger">*</span></label>
-                <input asp-for="CityName" class="form-control" required />
-                <span asp-validation-for="CityName" class="text-danger small"></span>
-            </div>
+    <form asp-action="Edit" method="post" id="editLocationForm">
+        @Html.AntiForgeryToken()
+        <input type="hidden" asp-for="LocationId" />
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger rounded-3 small mb-3"></div>
 
-            <div class="row g-3 mb-3">
-                <div class="col-md-6">
-                    <label asp-for="Region" class="form-label fw-semibold small">Khu vực vùng miền</label>
-                    <select asp-for="Region" class="form-select">
-                        <option value="Miền Bắc">Miền Bắc</option>
-                        <option value="Miền Trung">Miền Trung</option>
-                        <option value="Miền Nam">Miền Nam</option>
-                    </select>
-                    <span asp-validation-for="Region" class="text-danger small"></span>
-                </div>
-                <div class="col-md-6">
-                    <label asp-for="DisplayOrder" class="form-label fw-semibold small">Thứ tự hiển thị (ưu tiên số nhỏ)</label>
-                    <input asp-for="DisplayOrder" type="number" class="form-control" />
-                    <span asp-validation-for="DisplayOrder" class="text-danger small"></span>
-                </div>
-            </div>
+        <div class="row g-4">
+            <!-- Cột trái: Thông tin địa điểm nhận xe -->
+            <div class="col-lg-7">
+                <div class="recar-panel p-4 mb-4 shadow-sm border rounded-4 bg-white">
+                    <div class="d-flex align-items-center justify-content-between pb-3 mb-3 border-bottom">
+                        <h5 class="fw-bold text-dark mb-0">
+                            <i class="bi bi-geo-alt-fill text-primary me-2"></i> Thông tin địa điểm
+                        </h5>
+                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-2.5 py-1 small">
+                            Cập nhật hồ sơ
+                        </span>
+                    </div>
 
-            <div class="row g-3 mb-4">
-                <div class="col-md-6">
-                    <div class="form-check form-switch mt-2">
-                        <input asp-for="IsPopular" class="form-check-input" type="checkbox" id="checkPopular">
-                        <label class="form-check-label fw-semibold small" for="checkPopular">Đánh dấu là điểm nhận xe Phổ biến (Nổi bật)</label>
+                    <div class="mb-3">
+                        <label asp-for="CityName" class="form-label fw-semibold small text-dark">
+                            Tên Tỉnh / Thành phố <span class="text-danger">*</span>
+                        </label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light text-secondary border-end-0 rounded-start-3">
+                                <i class="bi bi-pin-map-fill text-primary"></i>
+                            </span>
+                            <input asp-for="CityName" class="form-control border-start-0 rounded-end-3" placeholder="VD: Hà Nội, TP. Hồ Chí Minh, TP. Vinh (Nghệ An)..." required id="inputCityName" />
+                        </div>
+                        <span asp-validation-for="CityName" class="text-danger small"></span>
+                        <div class="form-text small text-muted">Tên này sẽ hiển thị trực tiếp ở thanh chọn địa điểm nhận - trả xe ngoài trang chủ và bộ lọc tìm kiếm.</div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label asp-for="Region" class="form-label fw-semibold small text-dark">Khu vực vùng miền</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light text-secondary border-end-0 rounded-start-3">
+                                    <i class="bi bi-compass"></i>
+                                </span>
+                                <select asp-for="Region" class="form-select border-start-0 rounded-end-3">
+                                    <option value="Miền Bắc">Miền Bắc</option>
+                                    <option value="Miền Trung">Miền Trung</option>
+                                    <option value="Miền Nam">Miền Nam</option>
+                                    <option value="Toàn quốc">Toàn quốc</option>
+                                </select>
+                            </div>
+                            <span asp-validation-for="Region" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="DisplayOrder" class="form-label fw-semibold small text-dark">Thứ tự hiển thị ưu tiên</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light text-secondary border-end-0 rounded-start-3">
+                                    <i class="bi bi-sort-numeric-down"></i>
+                                </span>
+                                <input asp-for="DisplayOrder" type="number" class="form-control border-start-0 rounded-end-3" />
+                            </div>
+                            <span asp-validation-for="DisplayOrder" class="text-danger small"></span>
+                            <div class="form-text small text-muted">Số càng nhỏ (0, 1, 2...) càng được ưu tiên xếp lên đầu danh sách.</div>
+                        </div>
+                    </div>
+
+                    <!-- Gợi ý nhanh các tỉnh thành phố lớn -->
+                    <div class="pt-2 border-top mt-3">
+                        <label class="form-label fw-semibold small text-muted mb-2">Gợi ý nhanh tên địa điểm:</label>
+                        <div class="d-flex flex-wrap gap-1.5">
+                            <button type="button" class="badge bg-light text-dark border border-dashed rounded-pill text-decoration-none py-1.5 px-2.5" onclick="quickFillCity('Hà Nội', 'Miền Bắc')">Hà Nội</button>
+                            <button type="button" class="badge bg-light text-dark border border-dashed rounded-pill text-decoration-none py-1.5 px-2.5" onclick="quickFillCity('TP. Hồ Chí Minh', 'Miền Nam')">TP. Hồ Chí Minh</button>
+                            <button type="button" class="badge bg-light text-dark border border-dashed rounded-pill text-decoration-none py-1.5 px-2.5" onclick="quickFillCity('Đà Nẵng', 'Miền Trung')">Đà Nẵng</button>
+                            <button type="button" class="badge bg-light text-dark border border-dashed rounded-pill text-decoration-none py-1.5 px-2.5" onclick="quickFillCity('Hải Phòng', 'Miền Bắc')">Hải Phòng</button>
+                            <button type="button" class="badge bg-light text-dark border border-dashed rounded-pill text-decoration-none py-1.5 px-2.5" onclick="quickFillCity('Cần Thơ', 'Miền Nam')">Cần Thơ</button>
+                            <button type="button" class="badge bg-light text-dark border border-dashed rounded-pill text-decoration-none py-1.5 px-2.5" onclick="quickFillCity('Nha Trang (Khánh Hòa)', 'Miền Trung')">Nha Trang</button>
+                            <button type="button" class="badge bg-light text-dark border border-dashed rounded-pill text-decoration-none py-1.5 px-2.5" onclick="quickFillCity('Đà Lạt (Lâm Đồng)', 'Miền Trung')">Đà Lạt</button>
+                            <button type="button" class="badge bg-light text-dark border border-dashed rounded-pill text-decoration-none py-1.5 px-2.5" onclick="quickFillCity('TP. Vinh (Nghệ An)', 'Miền Trung')">TP. Vinh</button>
+                        </div>
                     </div>
                 </div>
-                <div class="col-md-6">
-                    <div class="form-check form-switch mt-2">
-                        <input asp-for="IsActive" class="form-check-input" type="checkbox" id="checkActive">
-                        <label class="form-check-label fw-semibold small" for="checkActive">Kích hoạt hiển thị cho khách hàng chọn</label>
+            </div>
+
+            <!-- Cột phải: Cấu hình trạng thái & Hành động -->
+            <div class="col-lg-5">
+                <!-- Card Trạng thái & Tùy chọn -->
+                <div class="recar-panel p-4 mb-4 shadow-sm border rounded-4 bg-white">
+                    <h5 class="fw-bold text-dark pb-3 mb-3 border-bottom">
+                        <i class="bi bi-sliders text-primary me-2"></i> Trạng thái & Hiển thị
+                    </h5>
+
+                    <div class="mb-3 p-3 bg-light rounded-3 border">
+                        <div class="form-check form-switch mb-1">
+                            <input asp-for="IsActive" class="form-check-input" type="checkbox" id="checkActive" style="cursor: pointer; width: 2.5em; height: 1.3em;">
+                            <label class="form-check-label fw-semibold small text-dark ms-2" for="checkActive" style="cursor: pointer;">
+                                Kích hoạt hiển thị
+                            </label>
+                        </div>
+                        <div class="text-muted small ps-4 ms-2" style="font-size: 0.76rem;">
+                            Khi bật, khách thuê xe có thể tìm kiếm và chọn tỉnh thành này trong danh sách nhận xe.
+                        </div>
+                    </div>
+
+                    <div class="p-3 bg-light rounded-3 border">
+                        <div class="form-check form-switch mb-1">
+                            <input asp-for="IsPopular" class="form-check-input" type="checkbox" id="checkPopular" style="cursor: pointer; width: 2.5em; height: 1.3em;">
+                            <label class="form-check-label fw-semibold small text-dark ms-2" for="checkPopular" style="cursor: pointer;">
+                                Điểm nhận xe Phổ biến (Nổi bật)
+                            </label>
+                        </div>
+                        <div class="text-muted small ps-4 ms-2" style="font-size: 0.76rem;">
+                            Được gắn huy hiệu <span class="badge bg-warning-subtle text-warning border">Phổ biến</span> và ưu tiên gợi ý nhanh trên thanh tìm kiếm.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card Hành động Lưu -->
+                <div class="recar-panel p-4 shadow-sm border rounded-4 bg-white">
+                    <h5 class="fw-bold text-dark pb-3 mb-3 border-bottom">
+                        <i class="bi bi-lightning-charge-fill text-warning me-2"></i> Thao tác
+                    </h5>
+                    <div class="d-flex flex-column gap-2.5">
+                        <button type="submit" class="btn btn-primary rounded-pill w-100 py-2.5 fw-semibold shadow-sm d-flex align-items-center justify-content-center gap-2" style="background-color: var(--recar-primary); border: none;">
+                            <i class="bi bi-check2-circle fs-5"></i>
+                            <span>Lưu thay đổi</span>
+                        </button>
+                        <a asp-action="Index" class="btn btn-light border rounded-pill w-100 py-2 text-secondary small fw-semibold">
+                            Hủy bỏ / Quay lại danh sách
+                        </a>
                     </div>
                 </div>
             </div>
-
-            <div class="d-flex justify-content-end gap-2">
-                <a asp-action="Index" class="btn btn-light border px-4">Hủy bỏ</a>
-                <button type="submit" class="btn btn-primary px-4 fw-semibold" style="background-color: var(--recar-primary); border: none;">
-                    <i class="bi bi-check2-circle me-1"></i> Cập nhật thay đổi
-                </button>
-            </div>
-        </form>
-    </div>
+        </div>
+    </form>
 </div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script>
+        function quickFillCity(name, region) {
+            $('#inputCityName').val(name);
+            if (region) {
+                $('select[name="Region"]').val(region);
+            }
+        }
+
+        function confirmDeleteLocationInEdit(id, name) {
+            Swal.fire({
+                title: 'Xóa địa điểm này?',
+                html: 'Bạn có chắc chắn muốn xóa địa điểm <strong>"' + name + '"</strong> khỏi hệ thống? Hành động này không thể hoàn tác.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: '<i class="bi bi-trash me-1"></i> Đồng ý xóa',
+                cancelButtonText: 'Hủy bỏ'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: '/Admin/Locations/Delete/' + id,
+                        type: 'POST',
+                        success: function (res) {
+                            if (res && res.success) {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Đã xóa thành công',
+                                    text: res.message || 'Đã xóa địa điểm khỏi hệ thống',
+                                    timer: 1500,
+                                    showConfirmButton: false
+                                }).then(() => {
+                                    window.location.href = '/Admin/Locations';
+                                });
+                            } else {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Không thể xóa',
+                                    text: (res && res.message) || 'Có lỗi xảy ra khi xóa địa điểm.'
+                                });
+                            }
+                        },
+                        error: function () {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Lỗi',
+                                text: 'Có lỗi xảy ra khi kết nối máy chủ.'
+                            });
+                        }
+                    });
+                }
+            });
+        }
+    </script>
+}

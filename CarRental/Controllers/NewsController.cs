@@ -1,4 +1,5 @@
 using CarRental.Models;
+using CarRental.Utilities;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -69,20 +70,52 @@ namespace CarRental.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> Comment(string name, string email, string detail, int id)
+        public async Task<IActionResult> Comment(string detail, int id, string? name = null, string? email = null)
         {
             try
             {
-                if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(detail))
+                if (!Function.IsLogin(HttpContext.Session) && Function.GetAccountId(HttpContext.Session) <= 0)
                 {
-                    return Json(new { status = false, message = "Vui lòng nhập đầy đủ họ tên và nội dung bình luận." });
+                    return Json(new { status = false, requireLogin = true, message = "Vui lòng đăng nhập để gửi bình luận." });
+                }
+
+                if (string.IsNullOrWhiteSpace(detail))
+                {
+                    return Json(new { status = false, message = "Vui lòng nhập nội dung bình luận." });
+                }
+
+                var accountId = Function.GetAccountId(HttpContext.Session);
+                if (accountId <= 0)
+                {
+                    accountId = Function.GetUserAccountId(HttpContext.Session);
+                }
+
+                Customer? customer = null;
+                if (accountId > 0)
+                {
+                    customer = await _context.Customers.FirstOrDefaultAsync(c => c.CustomerId == accountId);
+                }
+
+                string authorName = !string.IsNullOrWhiteSpace(customer?.FullName) 
+                    ? customer.FullName 
+                    : (!string.IsNullOrWhiteSpace(customer?.Name) ? customer.Name : Function.GetUserName(HttpContext.Session));
+                
+                if (string.IsNullOrWhiteSpace(authorName))
+                {
+                    authorName = !string.IsNullOrWhiteSpace(name) ? name : "Bạn đọc ReCar";
+                }
+
+                string authorEmail = customer?.Email ?? Function.GetEmail(HttpContext.Session);
+                if (string.IsNullOrWhiteSpace(authorEmail))
+                {
+                    authorEmail = email;
                 }
 
                 NewsComment r = new NewsComment
                 {
-                    Name = name.Trim(),
-                    Email = email?.Trim(),
-                    CreatedDate = DateTime.Now,
+                    Name = authorName.Trim(),
+                    Email = authorEmail?.Trim(),
+                    CreatedDate = Function.NowVn,
                     Detail = detail.Trim(),
                     NewsId = id > 0 && await _context.News.AnyAsync(n => n.NewsId == id) ? id : null,
                     IsActive = true
@@ -91,12 +124,14 @@ namespace CarRental.Controllers
                 _context.NewsComments.Add(r);
                 await _context.SaveChangesAsync();
 
+                var avatar = customer?.Avartar ?? Function.GetAvatar(HttpContext.Session);
                 return Json(new
                 {
                     status = true,
                     name = r.Name,
                     email = r.Email,
                     detail = r.Detail,
+                    avatar = avatar,
                     createdDate = r.CreatedDate?.ToString("dd/MM/yyyy HH:mm") ?? DateTime.Now.ToString("dd/MM/yyyy HH:mm")
                 });
             }

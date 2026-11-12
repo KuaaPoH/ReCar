@@ -232,7 +232,8 @@ namespace CarRental.Controllers
             return degrees * (Math.PI / 180.0);
         }
 
-        [Route("/product/{alias}-{id}.html")]
+        [Route("/Product/Details/{id:int}")]
+        [Route("/product/{alias}-{id:int}.html")]
         public async Task<IActionResult> Details(int? id)
         {
             if (id == null || _context.Cars == null)
@@ -242,12 +243,25 @@ namespace CarRental.Controllers
             var product = await _context.Cars
                 .Include(i => i.Type)
                 .Include(i => i.Owner)
-                .FirstOrDefaultAsync(m => m.CarId == id && m.IsActive && m.CarStatus == "Sẵn sàng");
-            //var product = await _context.Cars.FirstOrDefaultAsync(m => m.CarId == id && m.IsActive && m.CarStatus == "Sẵn sàng");
+                .FirstOrDefaultAsync(m => m.CarId == id);
 
             if (product == null)
             {
                 return NotFound();
+            }
+
+            // Nếu xe không hoạt động hoặc không sẵn sàng: chỉ cho phép Quản trị viên (Admin) hoặc chính Chủ xe xem trước (preview)
+            bool isAdmin = Function.IsAdmin(HttpContext.Session);
+            int currentUserId = Function.GetAccountId(HttpContext.Session);
+            bool isOwner = currentUserId > 0 && product.OwnerId == currentUserId;
+
+            if (!product.IsActive || product.CarStatus != "Sẵn sàng")
+            {
+                if (!isAdmin && !isOwner)
+                {
+                    return NotFound();
+                }
+                ViewBag.IsPreviewMode = true;
             }
 
                         // Lấy album ảnh chi tiết của xe (hỗ trợ cả cấu trúc 1 dòng/nhiều cột và nhiều dòng)
@@ -365,14 +379,18 @@ namespace CarRental.Controllers
 
 
                 // Tráº£ vá» dá»¯ liá»‡u cá»§a review vá»«a Ä‘Æ°á»£c thĂªm
+                var customer = _context.Customers.FirstOrDefault(c => (!string.IsNullOrEmpty(r.Email) && c.Email == r.Email) || (!string.IsNullOrEmpty(r.Name) && (c.Name == r.Name || c.FullName == r.Name)));
+                var avatar = customer?.Avartar ?? Function.GetAvatar(HttpContext.Session);
+
                 return Json(new
                 {
-                    //status = true,
+                    status = true,
                     name = r.Name,
                     email = r.Email,
                     detail = r.Detail,
-                    star = r.Star
-                   
+                    star = r.Star,
+                    avatar = avatar,
+                    createdDate = r.CreatedDate?.ToString("dd/MM/yyyy HH:mm") ?? DateTime.Now.ToString("dd/MM/yyyy HH:mm")
                 });
             }
             catch (Exception ex)

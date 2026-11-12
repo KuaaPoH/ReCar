@@ -1,4 +1,4 @@
-﻿using CarRental.Services;
+using CarRental.Services;
 using CarRental.Models;
 using CarRental.Utilities;
 using CarRental.ViewModels;
@@ -1078,6 +1078,43 @@ namespace CarRental.Areas.CarOwner.Controllers
  _context.SaveChanges();
 
  return Json(new { success = true, isSale = car.IsSale, message = car.IsSale ? "Đã bật giảm giá" : "Đã tắt giảm giá" });
+ }
+
+ // POST: /CarOwner/Cars/ReplyReview (Chủ xe phản hồi hoặc cập nhật phản hồi đánh giá xe của khách)
+ [HttpPost]
+ [IgnoreAntiforgeryToken]
+ public async Task<IActionResult> ReplyReview(int reviewId, string? replyText)
+ {
+ if (!CheckCarOwnerPermission())
+ {
+ return Json(new { success = false, message = "Bạn không có quyền thực hiện thao tác này" });
+ }
+
+ var owner = GetCurrentCarOwner();
+ var ownerId = owner?.CustomerId ?? Function.GetAccountId(HttpContext.Session);
+
+ var review = await _context.CarReviews
+ .Include(r => r.Car)
+ .FirstOrDefaultAsync(r => r.CarReviewId == reviewId);
+
+ if (review == null || review.Car == null || review.Car.OwnerId != ownerId)
+ {
+ return Json(new { success = false, message = "Không tìm thấy đánh giá hoặc bạn không phải chủ xe sở hữu đánh giá này" });
+ }
+
+ var cleanedReply = string.IsNullOrWhiteSpace(replyText) ? null : replyText.Trim();
+ review.Reply = cleanedReply;
+ review.ReplyDate = cleanedReply != null ? Function.NowVn : null;
+
+ await _context.SaveChangesAsync();
+
+ return Json(new
+ {
+ success = true,
+ message = cleanedReply != null ? "Gửi phản hồi thành công" : "Đã xóa phản hồi",
+ reply = review.Reply,
+ replyDate = review.ReplyDate?.ToString("dd/MM/yyyy HH:mm")
+ });
  }
 
         // POST: /CarOwner/Cars/RequestStatusChange (Chủ xe gửi yêu cầu chuyển sang Bảo trì / Tạm ngưng)

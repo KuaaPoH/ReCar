@@ -1941,6 +1941,340 @@ Nhằm giúp đồ án tạo được ấn tượng mạnh mẽ với hội đ�
   - Client Tin tức: **`http://localhost:5163/News`**
   - Client Cẩm nang: **`http://localhost:5163/Blog`**
 
+---
+
+## 49. RÀNG BUỘC ĐĂNG NHẬP KHI BÌNH LUẬN CẨM NANG & TIN TỨC VÀ TINH GỌN FORM BÌNH LUẬN (NGÀY 12/11/2026)
+
+### 49.1. Nghiệp Vụ & Yêu Cầu Người Dùng
+- **Phía người dùng (Client):**
+  - Chỉ những khách hàng đã đăng nhập tài khoản ReCar mới có quyền gửi bình luận tại trang chi tiết bài viết **Cẩm nang (`/Blog/Details/{id}`)** và **Tin tức (`/News/Details/{id}`)**.
+  - Khi người dùng chưa đăng nhập: Ẩn form gửi bình luận, hiển thị khung thông báo trang nhã kèm nút **"Đăng nhập để bình luận"** tự động chuyển hướng đến `/Login?ReturnUrl=...` để sau khi đăng nhập xong sẽ quay lại đúng bài viết đang đọc dở.
+  - Khi người dùng đã đăng nhập: Form bình luận được tinh giản tối đa:
+    - Loại bỏ hoàn toàn 2 ô nhập thủ công *"Họ và tên"* và *"Địa chỉ Email"*.
+    - Chỉ hiển thị duy nhất ô nhập **Nội dung bình luận** (`textarea`) kèm badge nhỏ hiển thị tên tài khoản đang bình luận và nút *"Gửi bình luận"*.
+
+### 49.2. Triển Khai Backend (`BlogController.cs` & `NewsController.cs`)
+1. **Kiểm tra phiên đăng nhập chặt chẽ:**
+   - Cả 2 action `AddBlogComment` trong [`BlogController.cs`](file:///d:/CarRental_TTCN/CarRental/Controllers/BlogController.cs) và `Comment` trong [`NewsController.cs`](file:///d:/CarRental_TTCN/CarRental/Controllers/NewsController.cs) đều kiểm tra trạng thái xác thực `Function.IsLogin(HttpContext.Session)` và `Function.GetAccountId(HttpContext.Session) > 0`.
+   - Nếu chưa đăng nhập: Trả về JSON `{ status = false, requireLogin = true, message = "Vui lòng đăng nhập để gửi bình luận." }`.
+2. **Tự động định danh tác giả bình luận từ CSDL / Session:**
+   - Hệ thống tự động truy vấn thông tin người dùng từ bảng `Customers` theo `AccountId` đã đăng nhập:
+     - Tên tác giả: Ưu tiên `FullName` -> `Name` -> Session `UserName` -> Fallback mặc định (*Độc giả ReCar* / *Bạn đọc ReCar*).
+     - Email tác giả: Lấy từ `customer.Email` hoặc Session `Email`.
+   - Mốc thời gian tạo bình luận: Sử dụng giờ Việt Nam chuẩn xác qua `Function.NowVn`.
+   - Bảo toàn 100% tương thích dữ liệu quản lý đánh giá / bình luận phía Admin ([`ReviewsController.cs`](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Controllers/ReviewsController.cs)).
+
+### 49.3. Triển Khai Giao Diện (`Views/Blog/Details.cshtml` & `Views/News/Details.cshtml`)
+1. **Kiểm tra trạng thái xác thực tại View:**
+   - Nhận diện người dùng bằng `bool isUserLoggedIn = Function.IsLogin(Context.Session) || Function.GetAccountId(Context.Session) > 0 || Function.GetUserAccountId(Context.Session) > 0;`.
+   - Khi chưa đăng nhập: Render Card thông báo với icon bình luận, thông điệp kêu gọi và nút `Đăng nhập để bình luận` kèm `ReturnUrl`.
+   - Khi đã đăng nhập: Render badge người dùng tích xanh `@currentUserName` và ô nhập `textarea` nội dung bình luận tinh gọn.
+2. **Cập nhật JavaScript AJAX:**
+   - Chỉ validate nội dung `detail`, không yêu cầu người dùng nhập họ tên hay email.
+   - Khi nhận phản hồi `res.requireLogin == true`: Hiển thị cảnh báo SweetAlert2 kèm nút *"Đăng nhập ngay"* chuyển tiếp mượt mà đến trang Login.
+   - Khi gửi thành công: Tự động chèn bình luận mới lên đầu danh sách bằng avatar ký tự chữ cái đầu, tên tài khoản thật do server trả về, thời gian *"Vừa xong"* và làm sạch ô nhập.
+
+### 49.4. Kiểm Thử & Biên Dịch
+- Biên dịch toàn bộ dự án ASP.NET Core (.NET 9): **`Build succeeded. 0 Warning(s) 0 Error(s)`**.
+- Ứng dụng đang chạy sẵn sàng trải nghiệm tại:
+  - Chi tiết Cẩm nang: **`http://localhost:5163/Blog`**
+  - Chi tiết Tin tức: **`http://localhost:5163/News`**
+
+---
+
+## 51. THIẾT KẾ PHÂN HỆ PHẢN HỒI ĐÁNH GIÁ XE DÀNH CHO CHỦ XE (HOST CAR REVIEW REPLY SYSTEM) (NGÀY 12/11/2026)
+
+### 51.1. Yêu Cầu & Bối Cảnh
+- **Yêu cầu từ người dùng:** Trong giao diện Đối tác Chủ xe (`/CarOwner`), tại trang Chi tiết quản lý xe (`/CarOwner/Cars/Details/{id}`), thiết kế một phần chuyên biệt hiển thị các đánh giá từ khách hàng và cho phép chủ xe gửi, chỉnh sửa hoặc xóa phản hồi trực tiếp đối với từng đánh giá.
+- **Mục tiêu hệ thống:**
+  1. Cho phép chủ xe tương tác, cảm ơn hoặc giải đáp nhận xét của khách sau chuyến đi thuê xe.
+  2. Phản hồi của chủ xe được hiển thị công khai trên trang chi tiết xe (`/Product/Details/{id}`) để các khách hàng tiềm năng khác có thể xem được.
+  3. Quản trị viên (`/Admin/Reviews`) cũng có thể quan sát thấy câu trả lời của chủ xe trong bảng đánh giá đội xe.
+
+### 51.2. Mở Rộng Cơ Sở Dữ Liệu & Entity Framework
+1. **Bổ sung cột trong CSDL MySQL (`CarReviews`):**
+   - Đã thêm 2 cột:
+     - `Reply LONGTEXT NULL`: Lưu trữ nội dung phản hồi của chủ xe.
+     - `ReplyDate DATETIME NULL`: Mốc thời gian gửi hoặc cập nhật phản hồi gần nhất.
+2. **Cập nhật Model C# & Fluent API:**
+   - [`CarReview.cs`](file:///d:/CarRental_TTCN/CarRental/Models/CarReview.cs): Khai báo 2 thuộc tính `public string? Reply { get; set; }` và `public DateTime? ReplyDate { get; set; }`.
+   - [`DbRenalCarContext.cs`](file:///d:/CarRental_TTCN/CarRental/Models/DbRenalCarContext.cs): Cấu hình mapping cột `Reply` (`longtext`) và `ReplyDate` (`datetime`) trong `modelBuilder.Entity<CarReview>`.
+
+### 51.3. Backend Controller (`Areas/CarOwner/Controllers/CarsController.cs`)
+1. **Tối ưu Action `Details(int? id)`:**
+   - Kiểm tra quyền chủ xe qua `CheckCarOwnerPermission()`.
+   - Nạp thông tin xe kèm `CarReviews`, bóc tách tiện nghi và đơn thuê xe.
+2. **Viết Action mới `ReplyReview` (`POST: /CarOwner/Cars/ReplyReview`):**
+   - Xác thực quyền Chủ xe thông qua Session.
+   - Kiểm tra quyền sở hữu xe: Đảm bảo đánh giá thuộc đúng chiếc xe do chủ xe hiện tại sở hữu (`review.Car.OwnerId == currentOwnerId`).
+   - Xử lý chuỗi văn bản: Nếu nội dung để trống hoặc khoảng trắng, xóa phản hồi (`review.Reply = null`, `review.ReplyDate = null`). Nếu có nội dung, cập nhật `review.Reply` và gán thời gian theo múi giờ chuẩn Việt Nam `Function.NowVn`.
+   - Lưu vào CSDL và trả về kết quả JSON kèm thời gian định dạng chuẩn `dd/MM/yyyy HH:mm`.
+
+### 51.4. Thiết Kế Giao Diện Chi Tiết Xe Phía Chủ Xe (`Areas/CarOwner/Views/Cars/Details.cshtml`)
+1. **Thiết kế Card "Đánh giá & Phản hồi từ Khách hàng" chuẩn ReCar Design System:**
+   - Header hiển thị tổng số lượng đánh giá và huy hiệu điểm trung bình tinh gọn: **`<i class="bi bi-star-fill text-warning"></i> [Điểm] ★`**.
+   - Danh sách đánh giá cuộn mượt mà (`max-height: 580px; overflow-y: auto`), mỗi nhận xét là một thẻ độc lập:
+     - Avatar tròn chữ cái đầu có dải màu gradient sắc nét.
+     - Tên khách hàng, mã đơn thuê xe `#OrderId` kèm mốc thời gian nhận xét.
+     - Huy hiệu số sao gọn gàng `[Số sao] ★`.
+     - Nội dung nhận xét chi tiết của khách.
+2. **Khối hiển thị Phản hồi từ Chủ xe:**
+   - Nếu chủ xe **đã phản hồi**: Render khung card lồng thụt lề cao cấp với viền nhấn màu ReCar Blue `#0284c7`, nhãn tích xanh bảo chứng *"Phản hồi của bạn (Chủ xe)"*, mốc thời gian và menu 3 chấm thao tác gọn gàng (*Chỉnh sửa* / *Xóa phản hồi*).
+   - Nếu chủ xe **chưa phản hồi**: Hiển thị nút bấm viền bo tròn trang nhã **"Phản hồi đánh giá"** kèm icon `bi-reply-fill`.
+3. **Modal Phản hồi tương tác cao & AJAX:**
+   - Modal Bootstrap `#modalReplyReview` giao diện Deep Navy tiêu chuẩn ReCar.
+   - Soạn thảo nội dung phản hồi, hiển thị chú thích minh bạch, nút lưu trạng thái loading.
+   - Tích hợp SweetAlert2 thông báo thành công hoặc xác nhận xóa an toàn.
+
+### 51.5. Đồng Bộ Hiển Thị Phía Khách Hàng & Quản Trị Viên
+1. **Trang Chi tiết xe phía Khách hàng ([`Views/Product/Details.cshtml`](file:///d:/CarRental_TTCN/CarRental/Views/Product/Details.cshtml)):**
+   - Dưới mỗi nhận xét của khách, nếu xe có phản hồi từ chủ xe, hệ thống sẽ tự động hiển thị khối thông điệp:
+     - Huy hiệu tích xanh `Phản hồi từ Chủ xe`.
+     - Mốc thời gian gửi phản hồi.
+     - Nội dung phản hồi rõ ràng, giúp tăng tính minh bạch và uy tín cho xe trên sàn.
+2. **Trang Quản trị Đánh giá Admin ([`Areas/Admin/Views/Reviews/Index.cshtml`](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Views/Reviews/Index.cshtml)):**
+   - Trong Tab *Đánh giá Đội xe*, cột nội dung đánh giá tự động hiển thị thêm ghi chú phản hồi của chủ xe nếu có, giúp Admin nắm bắt được quá trình hỗ trợ và tương tác giữa chủ xe và người thuê.
+
+### 51.6. Kiểm Thử & Trạng Thái Hoàn Thành
+- Toàn bộ dự án ASP.NET Core 9 biên dịch không lỗi: **`Build succeeded. 0 Warning(s) 0 Error(s)`**.
+---
+
+## 53. NÂNG CẤP GIAO DIỆN PHẢN HỒI ĐÁNH GIÁ XE CHUẨN HIỆN ĐẠI (HOST REPLY UI REFINEMENT) (NGÀY 12/11/2026)
+
+### 53.1. Vấn Đề Giao Diện Trước Đó
+- Dựa trên hình ảnh thực tế từ người dùng (`media_1794500084915_e65a1519.png` và `media_1794500126153_73ee8ad5.png`):
+  1. Hộp phản hồi có thanh viền xanh bên trái `border-left` đậm gây thô ráp và đứt gãy thị giác.
+  2. Huy hiệu phản hồi màu xanh đậm bị dính sát ngày tháng, thiếu khoảng thụt lề (indent) phân tầng câu trả lời.
+  3. Thiếu avatar đại diện cho chủ xe và nội dung văn bản phản hồi bị ép sát vào viền lề.
+
+### 53.2. Cải Tiến & Tái Thiết Kế Chuẩn ReCar Design System
+1. **Tại Trang Chi tiết xe Khách hàng ([`Views/Product/Details.cshtml`](file:///d:/CarRental_TTCN/CarRental/Views/Product/Details.cshtml)):**
+   - Nâng cấp thẻ đánh giá của khách: Bổ sung avatar tròn chứa chữ cái đầu tài khoản khách hàng, gắn huy hiệu số sao gọn gàng `[Số sao] ★` thay vì dàn trải 5 ngôi sao to.
+   - Thẻ phản hồi từ Chủ xe được thụt lề rõ ràng (`ms-2 ms-md-4`) tạo cảm giác lồng phân cấp phản hồi chuẩn Booking/Airbnb.
+   - Tông màu nền xanh ngọc dịu mát (`#f0fdf4` đến `#f8fafc`), viền xanh pastel `#bbf7d0` và đổ bóng nhẹ mềm mại (`shadow: 0 2px 10px rgba(16, 185, 129, 0.05)`).
+   - Avatar chủ xe tròn xanh ngọc (`bi-person-check-fill`), tên đầy đủ của chủ xe kèm nhãn tích xanh bảo chứng `Chủ xe`.
+   - Có đường kẻ phân cách tinh tế giữa phần tiêu đề phản hồi và nội dung chi tiết.
+2. **Tại Trang Chi tiết xe Chủ xe ([`Areas/CarOwner/Views/Cars/Details.cshtml`](file:///d:/CarRental_TTCN/CarRental/Areas/CarOwner/Views/Cars/Details.cshtml)):**
+   - Đồng bộ hoàn toàn phong cách thẻ phản hồi cao cấp lồng thụt lề.
+   - Tích hợp menu 3 chấm tròn gọn gàng bên góc phải để chủ xe dễ dàng chọn *Sửa phản hồi* hoặc *Xóa phản hồi*.
+   - Khoảng cách dòng thoáng đạt (`line-height: 1.65`, font 13.5px), màu chữ xám than đậm `#1e293b` rõ ràng, thanh lịch.
+
+### 53.3. Kiểm Thử
+- Cả hai giao diện đều đã tải lại thành công và hiển thị đồng bộ:
+  - Chi tiết xe Sàn ReCar: **`http://localhost:5163/product/vinfast-vf-5-plus-1.html`**
+  ---
+
+## 54. ĐỒNG BỘ GIAO DIỆN THAO TÁC & FORM CHỈNH SỬA ĐỊA ĐIỂM NHẬN XE CHUẨN ADMIN RECAR (NGÀY 12/11/2026)
+
+### 54.1. Bối Cảnh & Yêu Cầu
+- Yêu cầu người dùng: *"sửa lại phần thao tác ở địa điểm nhận xe cho đồng bộ với admin, ở trong edit nữa"*.
+- Module Quản lý địa điểm nhận xe (`/Admin/Locations`) trước đó còn dùng các nút bấm đơn lẻ kiểu cũ (`Sửa`, `Xóa` thô sơ), nút trạng thái dạng form submit toàn trang gây giật màn hình, và trang Chỉnh sửa (`Edit.cshtml`) chưa đồng bộ theo phong cách ReCar Admin SaaS 2 cột hiện đại.
+
+### 54.2. Các Cải Tiến Thực Hiện
+1. **Trang Danh sách Địa điểm nhận xe ([`Areas/Admin/Views/Locations/Index.cshtml`](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Views/Locations/Index.cshtml)):**
+   - **Menu 3 chấm thao tác chuẩn Admin:** Thay thế cặp nút inline cũ bằng nút tròn 32px `bi-three-dots-vertical` với menu thả bóng mờ, bo góc 12px:
+     - *Chỉnh sửa* (icon `bi-pencil-square text-primary`).
+     - *Đổi trạng thái hiển thị* (icon `bi-arrow-repeat text-secondary`).
+     - Đường kẻ phân cách tinh tế.
+     - *Xóa địa điểm* (icon `bi-trash text-danger`, kích hoạt xác nhận an toàn qua SweetAlert2).
+   - **Nút trạng thái Pill chuẩn ReCar:** Dạng viên thuốc bo tròn mềm mại (`btn-success-subtle` / `btn-light text-muted`), hỗ trợ chuyển đổi bật/tắt hiển thị tức thì qua AJAX và SweetAlert2 Toast không cần tải lại trang.
+   - Hiệu ứng xóa mượt mà: Dòng dữ liệu tự động fade-out biến mất khỏi bảng khi xác nhận xóa.
+2. **Trang Chỉnh sửa Địa điểm nhận xe ([`Areas/Admin/Views/Locations/Edit.cshtml`](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Views/Locations/Edit.cshtml)):**
+   - **Header chuẩn Admin ReCar:** Nút tròn quay lại (`rounded-circle`), Tiêu đề trang, Huy hiệu ID `#ID-@Model.LocationId`, nút Xóa nguy hiểm màu đỏ phía trên góc phải và nút Quay lại danh sách.
+   - **Bố cục 2 cột chuyên nghiệp:**
+     - *Cột chính (7 cột):* Thông tin địa điểm nhận xe: Tên Tỉnh / Thành phố (input group kèm icon `bi-pin-map-fill`), Khu vực vùng miền (Select box kèm icon `bi-compass`), Thứ tự ưu tiên hiển thị (kèm icon `bi-sort-numeric-down`), và khay nút bấm gợi ý nhanh các tỉnh thành lớn (Hà Nội, TP.HCM, Đà Nẵng, Hải Phòng, Cần Thơ, Nha Trang, Đà Lạt, TP. Vinh...).
+     - *Cột phụ (5 cột):* Thẻ Trạng thái & Hiển thị (Switch Kích hoạt hiển thị và Switch Đánh dấu điểm nhận xe Phổ biến / Nổi bật) + Thẻ Thao tác lưu với nút bấm bo tròn ReCar Blue `#0284c7` nổi bật.
+   - Tích hợp SweetAlert2 xác nhận xóa trực tiếp ngay trong trang Edit và tự động quay về danh sách.
+3. **Trang Thêm mới Địa điểm nhận xe ([`Areas/Admin/Views/Locations/Create.cshtml`](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Views/Locations/Create.cshtml)):**
+   - Đồng bộ hoàn toàn theo phong cách giao diện 2 cột hiện đại, thân thiện và thống nhất 100% với `Edit.cshtml`.
+4. **Backend Controller ([`Areas/Admin/Controllers/LocationsController.cs`](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Controllers/LocationsController.cs)):**
+   - Hỗ trợ cả 2 phương thức gọi AJAX và Form POST truyền thống cho 2 action `ToggleStatus` và `Delete`.
+
+### 54.3. Kiểm Thử Hoàn Tất
+- Cả 3 trang trong module Địa điểm nhận xe đều đã được kiểm tra trực tiếp và phản hồi **HTTP 200 OK**:
+  - Danh sách địa điểm: **`http://localhost:5163/Admin/Locations`** -> **200 OK**
+  - Chỉnh sửa địa điểm: **`http://localhost:5163/Admin/Locations/Edit/1`** -> **200 OK**
+  - Thêm mới địa điểm: **`http://localhost:5163/Admin/Locations/Create`** -> **200 OK**
+- Toàn bộ dự án biên dịch sạch: **`0 Warning(s), 0 Error(s)`**.
+
+---
+
+## 55. NÂNG CẤP TOÀN DIỆN PHÂN HỆ QUẢN LÝ NGƯỜI DÙNG & ĐỐI TÁC (USER MANAGEMENT) CHUẨN ADMIN RECAR (NGÀY 12-13/11/2026)
+
+### 55.1. Bối Cảnh & Yêu Cầu
+- Yêu cầu người dùng: *"tiếp theo là phần người dùng và đối tác, sửa lại giao diện cho phù hợp với hệ thống nhất là khi bấm vào chi tiết"*.
+- Phân hệ Quản lý Người dùng & Đối tác (`/Admin/UserManagement`) trước đó còn mang dáng dấp giao diện bảng cũ, các nút thao tác đơn lẻ, danh sách tài khoản sinh nhiều modal lặp trong vòng lặp `foreach`, và trang Chi tiết người dùng (`Details.cshtml`) chỉ là bảng text thô sơ dạng `dl-horizontal` của scaffolding mặc định.
+
+### 55.2. Các Cải Tiến Thực Hiện
+1. **Trang Chi tiết Hồ sơ Người dùng & Đối tác ([`Areas/Admin/Views/UserManagement/Details.cshtml`](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Views/UserManagement/Details.cshtml)):**
+   - **Tái thiết kế toàn diện theo mô hình Hồ sơ SaaS 2 cột chuyên nghiệp:**
+     - **Header chuẩn ReCar:** Nút tròn quay lại (`rounded-circle`), Tiêu đề hồ sơ, Huy hiệu ID `#ID-@Model.CustomerId`, huy hiệu phân vai trò (*Quản trị viên*, *Chủ xe đối tác*, *Khách hàng*), huy hiệu trạng thái (*Hoạt động* / *Đã khóa*), nút Chỉnh sửa và nút Khóa/Mở khóa nhanh.
+     - **Cột trái (4 cột) - Hồ sơ định danh & Pháp lý:**
+       - Thẻ đại diện cá nhân với Avatar tròn gradient/ảnh đại diện thực tế, chấm trạng thái hoạt động online/khóa.
+       - Thẻ thông tin liên hệ: Email, Số điện thoại, Địa chỉ thường trú.
+       - Thẻ thông tin tài khoản ngân hàng liên kết: Ngân hàng thụ hưởng, Số tài khoản, Tên chủ thẻ (phục vụ đối soát doanh thu chủ xe và hoàn tiền cọc cho khách).
+       - Thẻ giấy phép lái xe & định danh GPLX: Số GPLX/CCCD, kèm khung ảnh GPLX có nút xem ảnh phóng to toàn màn hình.
+     - **Cột phải (8 cột) - Hoạt động nghiệp vụ theo vai trò:**
+       - **Nếu là Chủ xe đối tác (Role 3):**
+         - 3 Thẻ thống kê KPI: Tổng số xe đang quản lý trên sàn, Doanh thu ước tính từ các lượt thuê, Tổng đơn thuê xe đã tiếp nhận.
+         - Bảng Đội xe sở hữu: Hiển thị danh sách toàn bộ các xe thuộc chủ sở hữu (ảnh xe, tên xe, biển số, phân khúc, giá thuê/ngày, trạng thái xe, số chuyến đã đi, nút xem chi tiết xe).
+         - Bảng Các đơn thuê gần nhất: Hiển thị các chuyến thuê liên quan đến đội xe của đối tác.
+         - Thông tin đơn đăng ký làm chủ xe ban đầu (nếu có).
+       - **Nếu là Khách hàng (Role 2):**
+         - Thẻ thống kê: Tổng đơn đặt xe đã tạo, Số chuyến hoàn tất, Tổng chi tiêu trên sàn.
+         - Bảng Lịch sử các đơn đặt thuê xe: Mã đơn, Tên xe thuê kèm biển số và ảnh, Thời gian nhận - trả xe, Tổng tiền thanh toán, Huy hiệu trạng thái đơn hàng.
+2. **Trang Danh sách Người dùng & Đối tác ([`Areas/Admin/Views/UserManagement/Index.cshtml`](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Views/UserManagement/Index.cshtml)):**
+   - Thay thế hoàn toàn cụm nút inline thô sơ và loại bỏ vòng lặp Modal Bootstrap thừa thãi.
+   - Bổ sung **Menu 3 chấm thao tác (`bi-three-dots-vertical`)** chuẩn thiết kế ReCar:
+     - *Xem hồ sơ chi tiết* (`bi-person-badge text-primary`).
+     - *Chỉnh sửa tài khoản* (`bi-pencil-square text-secondary`).
+     - Đường kẻ phân cách.
+     - *Khóa / Mở khóa tài khoản* (`bi-lock` / `bi-unlock` kích hoạt xác nhận an toàn qua SweetAlert2).
+   - **Nút trạng thái Pill chuẩn ReCar:** Cho phép chuyển đổi trạng thái Khóa / Mở khóa tài khoản ngay lập tức qua AJAX không cần tải lại toàn bộ trang.
+3. **Backend Controller ([`Areas/Admin/Controllers/UserManagementController.cs`](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Controllers/UserManagementController.cs)):**
+   - Nạp dữ liệu đa tầng tùy theo vai trò trong action `Details(id)`: Load `OwnedCars`, `HostOrders`, và `CarOwnerRegistration` cho Chủ xe; Load `CustomerOrders` kèm chi tiết xe cho Khách hàng.
+   - Bổ sung cơ chế phản hồi JSON cho action `ToggleLock(id)` khi nhận yêu cầu AJAX từ giao diện.
+   - Đồng bộ danh sách vai trò `ViewBag.RoleId` và `ViewBag.Roles` cho trang `Edit.cshtml`.
+
+### 55.3. Kiểm Thử Hoàn Tất
+- Hệ thống biên dịch thành công: **`0 Error(s)`**.
+- Tất cả các endpoint đều đã kiểm thử trực tiếp và phản hồi **HTTP 200 OK**:
+  - Danh sách người dùng & đối tác: **`http://localhost:5163/Admin/UserManagement/Index`** -> **200 OK**
+  - Chi tiết hồ sơ Chủ xe (ID: 1022 - Trần Quốc Bảo): **`http://localhost:5163/Admin/UserManagement/Details/1022`** -> **200 OK**
+  - Chi tiết hồ sơ Khách hàng (ID: 1027 - Trần Kenn): **`http://localhost:5163/Admin/UserManagement/Details/1027`** -> **200 OK**
+  - Chỉnh sửa tài khoản: **`http://localhost:5163/Admin/UserManagement/Edit/1022`** -> **200 OK**
+
+---
+
+## 56. TINH CHỈNH GIAO DIỆN CHI TIẾT HỒ SƠ & KHẮC PHỤC HIỂN THỊ HÌNH ẢNH GPLX / GIẤY TỜ (NGÀY 13/11/2026)
+
+### 56.1. Bối Cảnh & Phản Hồi Từ Người Dùng
+- **Ảnh 1:** Nút quay lại tròn (`<a class="btn rounded-circle"><i class="bi bi-arrow-left"></i></a>`) đứng ngay trước tiêu đề "Hồ sơ người dùng & đối tác" bị trùng lặp vì bên phải header đã có nút "Quay lại" rõ ràng.
+- **Ảnh 2 & Ảnh 3:** Khối tiêu đề của 2 thẻ "Đội xe do chủ xe này sở hữu" và "Đơn thuê xe gần đây" bị lỗi dính viền, icon chạm sát góc bo cong do thiếu padding.
+- **Lỗi xem hình ảnh GPLX / Giấy tờ:** Hình ảnh GPLX / CCCD không mở được hoặc bị lỗi đường dẫn khi xem chi tiết.
+
+### 56.2. Các Giải Pháp & Xử Lý Hoàn Tất
+1. **Khắc phục triệt để hiển thị Hình ảnh GPLX / Giấy tờ:**
+   - **Xử lý đường dẫn động thông minh (`ResolveDocUrl`):** Các file upload trước đây lưu tên tệp tương đối (ví dụ `giay-phep-lai-xe-hang-a1.jpg` hoặc `vangla_...jpg`) khiến trình duyệt tải sai đường dẫn tương đối `/Admin/UserManagement/Details/...` dẫn đến 404. Hệ thống đã bổ sung hàm tự động phân giải đường dẫn thực tế sang `/files/license/...` hoặc `/files/KYC/...` và hỗ trợ cả ảnh trực tuyến.
+   - **Bổ sung xem toàn diện giấy tờ pháp lý:** Cho phép xem cả **Giấy phép lái xe (GPLX)**, **Mặt trước CCCD**, và **Mặt sau CCCD** (từ hồ sơ đăng ký KYC `CarOwnerRegistration`).
+   - **Nâng cấp Modal phóng to ảnh (`imageModal`):** Tích hợp thuộc tính HTML khai báo chuẩn `data-bs-toggle="modal" data-bs-target="#imageModal"` trực tiếp trên nút "Phóng to" và khung hình ảnh, kèm hàm gán dữ liệu `prepareImageModal()` và cơ chế khởi tạo an toàn tương thích mọi phiên bản Bootstrap 5 / jQuery (`new bootstrap.Modal()`), bổ sung nút "Mở tab mới" để xem ảnh gốc độ phân giải cao và cơ chế `onerror` tự động fallback.
+   - Cập nhật bổ sung mẫu GPLX/CCCD và tài khoản ngân hàng chuẩn cho các tài khoản chủ xe mẫu (ID 1022, 1023, 1024...).
+2. **Loại bỏ nút Back trùng lặp (Theo Ảnh 1):**
+   - Đã gỡ bỏ nút tròn `bi-arrow-left` phía trước tiêu đề, canh chỉnh dòng phụ đề thẳng hàng, gọn gàng và tinh tế với nút "Quay lại" bên phải màn hình.
+3. **Thiết kế lại Card Header chuẩn ReCar (Theo Ảnh 2 & Ảnh 3):**
+   - Chuyển đổi từ `recar-panel` cũ sang `card border-0 shadow-sm rounded-4 overflow-hidden`.
+   - Card Header sử dụng `py-3 px-4` với khay Icon bo góc 40x40px (`rounded-3`) màu xanh pastel (`#e0f2fe` cho xe, `#dcfce7` cho đơn hàng) tạo điểm nhấn nhận diện thương hiệu, khoảng cách đệm an toàn tuyệt đối, không còn tình trạng dính viền.
+   - Thêm padding `ps-4 py-3` và `pe-4 py-3` cho bảng dữ liệu để nội dung căn lề chuẩn chỉ từ trên xuống dưới.
+
+### 56.3. Kiểm Thử
+- Chi tiết hồ sơ Chủ xe: **`http://localhost:5163/Admin/UserManagement/Details/1022`** -> **200 OK**
+- Ảnh GPLX tĩnh: **`http://localhost:5163/files/license/giay-phep-lai-xe-hang-a1.jpg`** -> **200 OK**
+
+---
+
+## 57. NÂNG CẤP HỒ SƠ CÁ NHÂN, ĐỔI MẬT KHẨU BẮT BUỘC MẬT KHẨU CŨ & ĐỒNG BỘ AVATAR TOÀN DIỆN (NGÀY 13/11/2026)
+
+### 57.1. Bối Cảnh & Yêu Cầu Người Dùng
+- **Yêu cầu:** "bây giờ tôi muốn làm phần hồ sơ cá nhân cho phân hệ admin và khách hàng. có phần đổi mật khẩu thì phải bắt nhập mật khẩu cũ nhé, avatar sau khi đổi thì sẽ hiện thị ở tất cả mọi nơi nữa".
+- **Mục tiêu:**
+  1. Xây dựng và nâng cấp giao diện Hồ sơ cá nhân cho cả **Admin** (`/Admin/Account/Edit`) và **Khách hàng** (`/Accounts` tab `#account-info`).
+  2. Bắt buộc nhập **Mật khẩu cũ (hiện tại)** khi đổi mật khẩu ở cả Admin và Khách hàng; xác minh chính xác mật khẩu cũ qua hash MD5 trước khi cho phép tạo mật khẩu mới.
+  3. Xây dựng hệ thống tải và đồng bộ **Ảnh đại diện (Avatar)**: lưu ảnh vào `/files/avatars/`, cập nhật cơ sở dữ liệu `Customer.Avartar` và tức thì đồng bộ Session (`Function.SetAvatar`, `Function.SetAdminAvatar`), giúp ảnh đại diện hiển thị đồng nhất ở tất cả mọi nơi (Header Client, Header Admin, Header Chủ xe, Dropdown người dùng, Sidebar tài khoản, trang Hồ sơ).
+
+### 57.2. Các Giải Pháp Kỹ Thuật Đã Triển Khai
+1. **Hệ thống Session & Utility Avatar & Password (`CarRental/Utilities/Function.cs`):**
+   - Bổ sung session key `SESSION_AVATAR`, `SESSION_ADMIN_AVATAR`, cùng các hàm: `SetAvatar`, `GetAvatar`, `SetAdminAvatar`, `GetAdminAvatar`.
+   - Bổ sung hàm tiện ích `UploadAvatar(IFormFile? file)`: kiểm tra định dạng an toàn (`.jpg`, `.jpeg`, `.png`, `.gif`, `.webp`), đặt tên unique kèm timestamp và lưu vào thư mục `wwwroot/files/avatars/`.
+   - Bổ sung hàm xác thực bảo mật `VerifyPassword(string inputPassword, string? storedPassword)`: kiểm tra đối chiếu mã hash MD5 (`MD5Password`) và hỗ trợ đối sánh an toàn.
+   - Bổ sung hàm `ResolveAvatarUrl(string? rawAvatar)` xử lý đường dẫn tương đối, tránh lỗi 404 hình ảnh.
+   - Cập nhật `SessionSyncMiddleware` và các Controller Đăng nhập (`LoginController` ở Client & Admin): tự động nạp `Customer.Avartar` vào Session ngay khi đăng nhập.
+
+2. **Nâng cấp Hồ sơ Quản trị viên (`/Admin/Account/Edit`):**
+   - **Backend (`CarRental/Areas/Admin/Controllers/AccountController.cs`):**
+     - `[HttpGet] Edit()`: Tự động tải thông tin Admin đang đăng nhập (hoặc tài khoản Super Admin `RoleId == 1`).
+     - `[HttpPost] UpdateInfo(...)`: Cập nhật Họ tên, Email (kiểm tra chống trùng lặp), Số điện thoại, Địa chỉ và upload Avatar mới; ngay lập tức cập nhật Session Admin.
+     - `[HttpPost] ChangePassword(...)`: Bắt buộc nhập `oldPassword`, xác minh qua `Function.VerifyPassword`. Nếu không đúng mật khẩu cũ lập tức báo lỗi. Kiểm tra mật khẩu mới tối thiểu 6 ký tự và xác nhận khớp nhau trước khi hash MD5 lưu vào DB.
+   - **Giao diện (`CarRental/Areas/Admin/Views/Account/Edit.cshtml`):**
+     - Bố cục 2 cột chuẩn phong cách Admin SaaS hiện đại: Cột trái gồm Avatar 110px bo tròn với viền xanh, nút máy ảnh chọn ảnh tức thì và live preview; Cột phải gồm 2 card phân tách rõ ràng: Card thông tin cá nhân và Card Đổi mật khẩu có nút con mắt (eye) bật/tắt xem mật khẩu.
+     - Gỡ bỏ hoàn toàn badge text thừa `Quản trị cấp cao (Super Admin)` theo đúng phản hồi của người dùng.
+     - Tích hợp SweetAlert2 bắt buộc xác nhận trước khi đổi ảnh đại diện mới.
+
+3. **Nâng cấp Hồ sơ Khách hàng (`/Accounts` tab `#account-info`):**
+   - **Backend (`CarRental/Controllers/AccountsController.cs`):**
+     - Đồng bộ avatar khách hàng từ DB vào Session trong `Index()`.
+     - Thêm action `[HttpPost] UpdateProfile(...)` cập nhật thông tin cá nhân và xử lý upload Avatar.
+     - Thêm action `[HttpPost] ChangePassword(...)` bắt buộc mật khẩu cũ, xác thực với `Function.VerifyPassword`, kiểm tra độ dài và cập nhật mật khẩu mới.
+     - Thêm action `[HttpPost] UploadAvatarAjax(...)` cho phép đổi ảnh đại diện nhanh qua AJAX với thông báo SweetAlert2 có popup xác nhận.
+   - **Giao diện (`CarRental/Views/Accounts/Index.cshtml`):**
+     - Nâng cấp Sidebar tài khoản: Hiển thị avatar thực tế của khách hàng (kèm huy hiệu vai trò "Khách hàng ReCar" / "Chủ xe đối tác") và nút máy ảnh mini cho phép đổi nhanh ảnh đại diện.
+     - Tái thiết kế Tab `#account-info` thành 2 card sang trọng: Card 1 "Hồ sơ cá nhân & Ảnh đại diện" và Card 2 "Đổi mật khẩu đăng nhập (Bắt buộc mật khẩu cũ)" có eye toggle và ghi chú bảo mật.
+     - Bổ sung menu "Hồ sơ & Đổi mật khẩu" trực tiếp trên dropdown topbar của Client và Chủ xe để truy cập 1 chạm.
+
+4. **Đồng bộ Avatar trên toàn hệ thống giao diện:**
+   - **Header Client (`CarRental/Views/Shared/_Layout.cshtml`):** Hiển thị avatar tròn trên nút pill đăng nhập và trong dropdown menu khách hàng; tự động fallback lấy từ DB và đồng bộ vào Session nếu session chưa có.
+   - **Header Admin (`CarRental/Areas/Admin/Views/Shared/_Layout.cshtml`):** Hiển thị avatar tròn của Admin trên thanh Topbar và dropdown Quản trị viên.
+   - **Header Chủ xe (`CarRental/Areas/CarOwner/Views/Shared/_Layout.cshtml`):** Hiển thị avatar tròn của chủ xe trên thanh Topbar và dropdown.
+
+---
+
+## 58. THỐNG NHẤT HỆ THỐNG AVATAR & ĐIỀU CHỈNH TỈ LỆ / KHOẢNG CÁCH ĐÁNH GIÁ XE, CẨM NANG, TIN TỨC (NGÀY 13/11/2026)
+
+### 58.1. Yêu Cầu & Phản Hồi Từ Người Dùng
+- **Yêu cầu:** "các nơi như cẩm nang, tin tức, đánh giá xe, vẫn không thông nhất avatar này, ở chỗ đánh giá xe sửa lại tỉ lệ chỗ bình luận đi avatar và tên đang dính với nhau kia phải cách ra 1 chút".
+- **Các vấn đề thực tế xác minh từ 3 ảnh người dùng đính kèm:**
+  1. **Ảnh 1 (Chi tiết Tin tức/Cẩm nang):** Tác giả bài viết hiển thị icon "RC" đơn điệu, chưa đồng bộ với ảnh đại diện của Ban biên tập/Admin.
+  2. **Ảnh 2 (Ý kiến bạn đọc Tin tức/Cẩm nang):** Người bình luận (`Trần Quốc Bảo`) chỉ hiện chữ "T" mờ trơ trọi không có avatar tròn chuẩn, chưa lấy avatar thật của tài khoản trong hệ thống ReCar.
+  3. **Ảnh 3 (Đánh giá xe từ khách hàng):** Khách hàng (`Trần Kenn`) chưa lấy avatar thật; Avatar và Tên bị dính sát vào nhau do tỉ lệ nhỏ (36px) và khoảng cách hẹp; Phản hồi từ chủ xe chưa hiện avatar thật của Chủ xe.
+
+### 58.2. Giải Pháp Triển Khai Hoàn Tất
+1. **Khắc phục lỗi class Bootstrap 5 không hợp lệ:**
+   - Thay thế toàn bộ các class không được hỗ trợ trong Bootstrap 5 (`p-3.5`, `gap-2.5`, `px-2.5`, `pb-1.5`, `py-0.5`, `me-0.5`) bằng thuộc tính CSS inline chuẩn (`padding: 18px 20px`, `gap: 14px`, `gap: 10px`, `padding: 4px 12px`...).
+2. **Đồng bộ Avatar và sửa tỉ lệ tại trang Chi tiết Đánh giá xe (`Product/Details.cshtml`):**
+   - **Kích thước & khoảng cách chuẩn:** Avatar khách hàng nâng lên `44px × 44px`, khoảng cách `gap: 14px` với Họ tên (`14.5px`, `font-weight: 600`), dòng thời gian cách dưới `3px`.
+   - **Nội dung bình luận căn lề thông thoáng:** Sử dụng `padding-left: 58px` thẳng hàng ngay dưới tên khách hàng.
+   - **Lấy Avatar thật từ database:** Truy vấn `_db.Customers` theo Email, SĐT hoặc Tên người đánh giá để hiển thị ảnh đại diện thật của họ (nếu chưa có mới dùng avatar chữ cái gradient màu ReCar sắc nét).
+   - **Phản hồi từ Chủ xe:** Căn lề `margin-left: 58px`, `padding: 14px 16px`, avatar thật của Chủ xe `32px × 32px` với khoảng cách `gap: 10px` không còn dính chữ.
+   - **Badge số sao:** Rút gọn còn 1 ngôi sao vàng `★` + số sao, nền vàng nhạt `padding: 4px 12px`.
+3. **Đồng bộ Avatar tại trang Chi tiết Tin tức (`News/Details.cshtml`):**
+   - **Tác giả bài viết:** Thay thế chữ "RC" cứng bằng avatar thật của Tác giả/Ban biên tập/Admin hoặc icon bản tin trang nhã.
+   - **Ý kiến bạn đọc:** Khắc phục lỗi chữ cái đơn độc bằng việc tìm kiếm avatar thật của tài khoản trong hệ thống; nếu chưa có thì hiển thị khung tròn gradient 40px viền trắng 2px sắc nét. Khoảng cách avatar và tên được nới rộng `gap: 12px`.
+   - **Phản hồi Ban Quản trị:** Tự động lấy avatar của Admin Super Admin (`RoleId == 1`) hiển thị đồng bộ.
+4. **Đồng bộ Avatar tại trang Chi tiết Cẩm nang (`Blog/Details.cshtml`):**
+   - Đồng bộ hoàn toàn tương tự Tin tức: Tác giả bài viết, Danh sách bình luận độc giả (avatar thật 40px, `gap: 12px`), Phản hồi Ban Quản trị.
+5. **Đồng bộ bảng Quản trị Đánh giá & Bình luận Admin (`Reviews/Index.cshtml`):**
+   - Bổ sung avatar tròn 34px nhỏ gọn ở cả 3 tab (Đánh giá Đội xe, Bình luận Cẩm nang, Bình luận Tin tức) giúp Quản trị viên dễ dàng nhận diện khách hàng và độc giả.
+
+---
+
+## 59. TỔNG KẾT CA LÀM VIỆC NGÀY 13/11/2026 & BÀN GIAO MÃ NGUỒN LÊN GITHUB
+
+### 59.1. Danh Sách Các Hạng Mục Đã Hoàn Thành Trọn Vẹn
+1. **Nâng cấp toàn diện Hồ sơ cá nhân Quản trị viên (`/Admin/Account/Edit`):**
+   - Bố cục 2 cột SaaS, cập nhật định danh, đổi mật khẩu bắt buộc mật khẩu cũ, xem trước avatar và hộp thoại xác nhận khi đổi ảnh.
+   - Gỡ bỏ chữ "Quản trị cấp cao (Super Admin)" thừa.
+2. **Nâng cấp Hồ sơ Khách hàng (`/Accounts` tab `#account-info`):**
+   - Cập nhật thông tin cá nhân, đổi mật khẩu bắt buộc mật khẩu cũ, đổi ảnh đại diện nhanh qua AJAX trên Sidebar có popup xác nhận.
+3. **Đồng bộ Avatar toàn hệ thống:**
+   - Header Admin, Header Client, Header CarOwner, Dropdown Menu, Sidebar.
+   - Trang Đánh giá xe (`Product/Details`), Tin tức (`News/Details`), Cẩm nang (`Blog/Details`), Quản lý đánh giá (`Admin/Reviews/Index`).
+4. **Sửa lỗi tỉ lệ & khoảng cách dính viền ở Đánh giá xe:**
+   - Thay thế toàn bộ class không hợp lệ trong Bootstrap 5 bằng spacing cố định (`padding: 18px 20px`, `gap: 14px`, `margin-left: 58px`).
+   - Tách rời avatar và tên, căn lề thẳng hàng, bố cục cân đối và chuyên nghiệp.
+
+### 59.2. Kiểm Thử Hệ Thống
+- Dự án biên dịch thành công: **`0 Error(s)`**.
+- Ứng dụng chạy mượt mà trên nền tảng .NET 8 / Kestrel tại **`http://localhost:5163`**.
+- Tất cả các endpoint đều trả về **HTTP 200 OK**.
+
+
+
+
+
+
+
+
+
+
 
 
 

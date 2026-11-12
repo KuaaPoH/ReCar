@@ -114,40 +114,71 @@ namespace CarRental.Areas.Admin.Controllers
 
         // POST: Admin/Locations/Delete/5
         [HttpPost]
-        [ValidateAntiForgeryToken]
+        [IgnoreAntiforgeryToken]
         public async Task<IActionResult> Delete(int id)
         {
             if (!Function.IsLogin())
             {
+                if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                    return Json(new { success = false, message = "Vui lòng đăng nhập" });
                 return RedirectToAction("Index", "Login");
             }
 
             var location = await _context.Locations.FindAsync(id);
-            if (location == null) return NotFound();
+            if (location == null)
+            {
+                if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                    return Json(new { success = false, message = "Không tìm thấy địa điểm" });
+                return NotFound();
+            }
 
+            string cityName = location.CityName ?? "";
             _context.Locations.Remove(location);
             await _context.SaveChangesAsync();
-            TempData["Success"] = $"Đã xóa địa điểm '{location.CityName}' khỏi hệ thống!";
+
+            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+            {
+                return Json(new { success = true, message = $"Đã xóa địa điểm '{cityName}' khỏi hệ thống!" });
+            }
+
+            TempData["Success"] = $"Đã xóa địa điểm '{cityName}' khỏi hệ thống!";
             return RedirectToAction(nameof(Index));
         }
 
         // POST: Admin/Locations/ToggleStatus/5
         [HttpPost]
-        [ValidateAntiForgeryToken]
+        [IgnoreAntiforgeryToken]
         public async Task<IActionResult> ToggleStatus(int id)
         {
             if (!Function.IsLogin())
             {
+                if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                    return Json(new { success = false, message = "Vui lòng đăng nhập" });
                 return RedirectToAction("Index", "Login");
             }
 
             var location = await _context.Locations.FindAsync(id);
-            if (location != null)
+            if (location == null)
             {
-                location.IsActive = !location.IsActive;
-                await _context.SaveChangesAsync();
-                TempData["Success"] = $"Đã {(location.IsActive ? "kích hoạt" : "tạm ẩn")} địa điểm '{location.CityName}'!";
+                if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                    return Json(new { success = false, message = "Không tìm thấy địa điểm" });
+                return NotFound();
             }
+
+            location.IsActive = !location.IsActive;
+            await _context.SaveChangesAsync();
+
+            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+            {
+                return Json(new
+                {
+                    success = true,
+                    isActive = location.IsActive,
+                    message = $"Đã {(location.IsActive ? "kích hoạt" : "tạm ẩn")} địa điểm '{location.CityName}'!"
+                });
+            }
+
+            TempData["Success"] = $"Đã {(location.IsActive ? "kích hoạt" : "tạm ẩn")} địa điểm '{location.CityName}'!";
             return RedirectToAction(nameof(Index));
         }
     }

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace CarRental.Models;
@@ -20,6 +20,10 @@ public partial class BlogComment
     public int? BlogId { get; set; }
 
     public bool IsActive { get; set; }
+
+    public string? Reply { get; set; }
+
+    public DateTime? ReplyDate { get; set; }
 
     public virtual Blog? Blog { get; set; }
 }

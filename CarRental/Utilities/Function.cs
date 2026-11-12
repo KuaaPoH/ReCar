@@ -49,6 +49,10 @@ namespace CarRental.Utilities
 
         private const string SESSION_ADMIN_EMAIL = "Admin_Email";
 
+        private const string SESSION_ADMIN_AVATAR = "Admin_Avatar";
+
+        private const string SESSION_AVATAR = "Avatar";
+
 
 
         // CarOwner Scoped Keys
@@ -84,6 +88,8 @@ namespace CarRental.Utilities
         public static string _pickupDate = String.Empty;
 
         public static string _returnDate = String.Empty;
+
+        public static string _Avatar = String.Empty;
 
 
 
@@ -227,9 +233,31 @@ namespace CarRental.Utilities
 
 
 
+        public static void SetAvatar(ISession session, string avatar)
+
+        {
+
+            session.SetString(SESSION_AVATAR, avatar ?? string.Empty);
+
+            _Avatar = avatar ?? string.Empty;
+
+        }
+
+
+
+        public static string GetAvatar(ISession session)
+
+        {
+
+            return session.GetString(SESSION_AVATAR) ?? _Avatar ?? string.Empty;
+
+        }
+
+
+
         // --- ADMIN SCOPED METHODS ---
 
-        public static void SetAdminSession(ISession session, int accountId, string userName, string email)
+        public static void SetAdminSession(ISession session, int accountId, string userName, string email, string avatar = "")
 
         {
 
@@ -239,6 +267,10 @@ namespace CarRental.Utilities
 
             session.SetString(SESSION_ADMIN_EMAIL, email ?? string.Empty);
 
+            SetAdminAvatar(session, avatar);
+
+
+
             // Đồng thời set fallback cho code cũ
 
             SetAccountId(session, accountId);
@@ -246,6 +278,40 @@ namespace CarRental.Utilities
             SetUserName(session, userName ?? string.Empty);
 
             SetEmail(session, email ?? string.Empty);
+
+            SetAvatar(session, avatar);
+
+        }
+
+
+
+        public static void SetAdminSession(ISession session, int accountId, string userName, string email)
+
+        {
+
+            SetAdminSession(session, accountId, userName, email, "");
+
+        }
+
+
+
+        public static void SetAdminAvatar(ISession session, string avatar)
+
+        {
+
+            session.SetString(SESSION_ADMIN_AVATAR, avatar ?? string.Empty);
+
+            SetAvatar(session, avatar);
+
+        }
+
+
+
+        public static string GetAdminAvatar(ISession session)
+
+        {
+
+            return session.GetString(SESSION_ADMIN_AVATAR) ?? GetAvatar(session);
 
         }
 
@@ -675,6 +741,66 @@ namespace CarRental.Utilities
 
             }
 
+        }
+
+        public static string UploadAvatar(IFormFile? file)
+        {
+            if (file == null || file.Length == 0) return string.Empty;
+            try
+            {
+                var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
+                var allowedExts = new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp" };
+                if (!allowedExts.Contains(ext)) return string.Empty;
+
+                var fileName = $"avatar_{DateTime.Now:yyyyMMddHHmmssfff}_{Guid.NewGuid().ToString("N").Substring(0, 6)}{ext}";
+                var root = Directory.GetCurrentDirectory();
+                var avatarsDir = Path.Combine(root, "CarRental", "wwwroot", "files", "avatars");
+
+                if (!Directory.Exists(avatarsDir))
+                {
+                    avatarsDir = Path.Combine(root, "wwwroot", "files", "avatars");
+                    if (!Directory.Exists(avatarsDir))
+                    {
+                        Directory.CreateDirectory(avatarsDir);
+                    }
+                }
+
+                var fullPath = Path.Combine(avatarsDir, fileName);
+                using (var stream = new FileStream(fullPath, FileMode.Create))
+                {
+                    file.CopyTo(stream);
+                }
+
+                return $"/files/avatars/{fileName}";
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error uploading avatar: {ex.Message}");
+                return string.Empty;
+            }
+        }
+
+        public static string ResolveAvatarUrl(string? rawAvatar)
+        {
+            if (string.IsNullOrWhiteSpace(rawAvatar)) return string.Empty;
+            var trimmed = rawAvatar.Trim();
+            if (trimmed.StartsWith("http://", StringComparison.OrdinalIgnoreCase) || 
+                trimmed.StartsWith("https://", StringComparison.OrdinalIgnoreCase) || 
+                trimmed.StartsWith("/"))
+            {
+                return trimmed;
+            }
+            return $"/files/avatars/{trimmed}";
+        }
+
+        public static bool VerifyPassword(string inputPassword, string? storedPassword)
+        {
+            if (string.IsNullOrEmpty(storedPassword)) return true;
+            if (string.IsNullOrEmpty(inputPassword)) return false;
+
+            var hashed = MD5Password(inputPassword);
+            return string.Equals(hashed, storedPassword, StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(inputPassword, storedPassword);
         }
 
 

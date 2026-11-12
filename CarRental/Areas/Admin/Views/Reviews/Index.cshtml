@@ -1,62 +1,130 @@
+@using CarRental.Utilities
+@inject CarRental.Models.DbRenalCarContext _db
 @{
     ViewData["Title"] = "Quản lý đánh giá & bình luận";
     Layout = "~/Areas/Admin/Views/Shared/_Layout.cshtml";
     var activeTab = ViewBag.ActiveTab as string ?? "cars";
     var carReviews = ViewBag.CarReviews as List<CarRental.Models.CarReview> ?? new List<CarRental.Models.CarReview>();
     var blogComments = ViewBag.BlogComments as List<CarRental.Models.BlogComment> ?? new List<CarRental.Models.BlogComment>();
+    var newsComments = ViewBag.NewsComments as List<CarRental.Models.NewsComment> ?? new List<CarRental.Models.NewsComment>();
+    int totalCount = carReviews.Count + blogComments.Count + newsComments.Count;
 }
 
 <div class="container-fluid px-0">
+    <!-- Scoped Styling cho Pills & Thao tác đồng nhất chuẩn Admin ReCar -->
+    <style>
+        #reviewSubsystemTabs .nav-link {
+            background-color: #ffffff;
+            color: #475569;
+            border: 1px solid #e2e8f0;
+            transition: all 0.2s ease-in-out;
+            cursor: pointer;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+        }
+        #reviewSubsystemTabs .nav-link .pill-counter-badge {
+            background-color: #f1f5f9;
+            color: #475569;
+            border: 1px solid #e2e8f0;
+            transition: all 0.2s ease-in-out;
+        }
+        #reviewSubsystemTabs .nav-link:hover:not(.active) {
+            background-color: #f8fafc;
+            color: #0f172a;
+            border-color: #cbd5e1;
+        }
+        #reviewSubsystemTabs .nav-link.active {
+            background-color: #0284c7 !important;
+            color: #ffffff !important;
+            border-color: #0284c7 !important;
+            box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3) !important;
+        }
+        #reviewSubsystemTabs .nav-link.active .pill-counter-badge {
+            background-color: #ffffff !important;
+            color: #0284c7 !important;
+            border-color: transparent !important;
+            font-weight: 700 !important;
+        }
+        .recar-reply-box {
+            background: linear-gradient(135deg, #f0f9ff 0%, #f8fafc 100%);
+            border-left: 3.5px solid #0284c7;
+            border-top: 1px solid #e0f2fe;
+            border-right: 1px solid #e0f2fe;
+            border-bottom: 1px solid #e0f2fe;
+            border-radius: 10px;
+            padding: 9px 12px;
+            margin-top: 8px;
+            font-size: 0.8rem;
+            box-shadow: 0 1px 4px rgba(2, 132, 199, 0.05);
+        }
+    </style>
+
     <!-- Header -->
     <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4">
         <div>
             <div class="d-flex align-items-center gap-2">
-                <h1 class="h3 fw-bold mb-0 text-dark tracking-tight">Quản lý đánh giá & bình luận</h1>
-                <span class="badge bg-light text-dark border rounded-pill fw-semibold px-2.5 py-1">@(carReviews.Count + blogComments.Count) phản hồi</span>
+                <h1 class="h3 fw-bold mb-0 text-dark tracking-tight">Đánh giá & Bình luận</h1>
+                <span class="badge bg-light text-dark border rounded-pill fw-semibold px-2.5 py-1">@totalCount phản hồi</span>
             </div>
-            <p class="text-muted small mb-0 mt-1">Duyệt, ẩn hoặc xóa các bình luận, đánh giá sao của khách hàng trên sàn ReCar.</p>
+            <p class="text-muted small mb-0 mt-1">Kiểm duyệt, phản hồi và quản lý đánh giá sao của khách thuê xe và bình luận độc giả trên sàn ReCar.</p>
         </div>
     </div>
 
     @if (TempData["Success"] != null)
     {
-        <div class="alert alert-success alert-dismissible fade show rounded-3 small fw-medium mb-3" role="alert">
-            <i class="bi bi-check-circle-fill me-1"></i> @TempData["Success"]
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        <div class="alert alert-success border-0 shadow-sm rounded-3 py-2.5 px-3 mb-4 d-flex align-items-center gap-2 small">
+            <i class="bi bi-check-circle-fill text-success fs-5"></i>
+            <div>@TempData["Success"]</div>
         </div>
     }
 
-    <!-- Tabs chuyển đổi giữa Đánh giá xe và Bình luận tin tức -->
-    <ul class="nav nav-pills mb-3 gap-2" id="reviewTabs" role="tablist">
+    <!-- 3 Tabs Phân hệ chuẩn Quản lý Menu -->
+    <ul class="nav nav-pills mb-4 gap-2 border-bottom pb-3" id="reviewSubsystemTabs" role="tablist">
         <li class="nav-item" role="presentation">
-            <button class="nav-link rounded-pill px-3 py-1.5 fw-semibold small @(activeTab == "cars" ? "active" : "bg-white border text-dark")" 
-                    id="cars-tab" data-bs-toggle="pill" data-bs-target="#cars-reviews" type="button" role="tab">
-                <i class="bi bi-star-fill text-warning me-1"></i> Đánh giá xe (@carReviews.Count)
+            <button class="nav-link rounded-pill fw-semibold small px-3.5 py-2 d-inline-flex align-items-center gap-2 @(activeTab == "cars" ? "active" : "")" 
+                    id="tab-btn-cars" data-bs-toggle="pill" data-bs-target="#tab-cars" type="button" role="tab">
+                <i class="bi bi-car-front-fill"></i> Đánh giá Đội xe
+                <span class="badge rounded-pill pill-counter-badge">@carReviews.Count</span>
             </button>
         </li>
         <li class="nav-item" role="presentation">
-            <button class="nav-link rounded-pill px-3 py-1.5 fw-semibold small @(activeTab == "blogs" ? "active" : "bg-white border text-dark")" 
-                    id="blogs-tab" data-bs-toggle="pill" data-bs-target="#blogs-comments" type="button" role="tab">
-                <i class="bi bi-chat-left-text-fill text-primary me-1"></i> Bình luận bài viết (@blogComments.Count)
+            <button class="nav-link rounded-pill fw-semibold small px-3.5 py-2 d-inline-flex align-items-center gap-2 @(activeTab == "blogs" ? "active" : "")" 
+                    id="tab-btn-blogs" data-bs-toggle="pill" data-bs-target="#tab-blogs" type="button" role="tab">
+                <i class="bi bi-journal-bookmark-fill"></i> Bình luận Cẩm nang
+                <span class="badge rounded-pill pill-counter-badge">@blogComments.Count</span>
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link rounded-pill fw-semibold small px-3.5 py-2 d-inline-flex align-items-center gap-2 @(activeTab == "news" ? "active" : "")" 
+                    id="tab-btn-news" data-bs-toggle="pill" data-bs-target="#tab-news" type="button" role="tab">
+                <i class="bi bi-newspaper"></i> Bình luận Tin tức
+                <span class="badge rounded-pill pill-counter-badge">@newsComments.Count</span>
             </button>
         </li>
     </ul>
 
-    <div class="tab-content" id="reviewTabsContent">
-        <!-- 1. Đánh giá xe -->
-        <div class="tab-pane fade @(activeTab == "cars" ? "show active" : "")" id="cars-reviews" role="tabpanel">
+    <!-- Tab Contents -->
+    <div class="tab-content" id="reviewSubsystemContent">
+
+        <!-- ======================= 1. TAB ĐÁNH GIÁ ĐỘI XE ======================= -->
+        <div class="tab-pane fade @(activeTab == "cars" ? "show active" : "")" id="tab-cars" role="tabpanel">
             <div class="recar-panel mb-0">
+                <div class="recar-panel-header d-flex align-items-center justify-content-between py-3 px-4 bg-light border-bottom">
+                    <div>
+                        <h6 class="fw-bold text-dark mb-0">Đánh giá Chuyến đi & Đội xe</h6>
+                        <span class="text-muted small" style="font-size: 0.78rem;">Đánh giá sao và cảm nhận thực tế từ khách hàng đã hoàn thành chuyến thuê xe</span>
+                    </div>
+                </div>
                 <div class="table-responsive">
                     <table class="table recar-table align-middle mb-0">
                         <thead>
                             <tr>
                                 <th>Khách hàng</th>
                                 <th>Xe được đánh giá</th>
-                                <th>Số sao</th>
+                                <th class="text-center">Số sao</th>
                                 <th>Nội dung đánh giá</th>
                                 <th>Thời gian</th>
-                                <th>Trạng thái</th>
-                                <th class="text-end">Thao tác</th>
+                                <th class="text-center">Trạng thái</th>
+                                <th class="text-end pe-3">Thao tác</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -64,7 +132,7 @@
                             {
                                 <tr>
                                     <td colspan="7" class="text-center py-5 text-muted">
-                                        <i class="bi bi-chat-square-dots fs-2 text-secondary d-block mb-2"></i>
+                                        <i class="bi bi-star fs-2 text-secondary d-block mb-2"></i>
                                         Chưa có đánh giá xe nào.
                                     </td>
                                 </tr>
@@ -73,68 +141,120 @@
                             {
                                 foreach (var r in carReviews)
                                 {
-                                    <tr>
+                                    bool isActive = r.IsActive ?? false;
+                                    string carUrl = r.Car != null ? $"/Product/Details/{r.Car.CarId}" : "#";
+                                    <tr id="row-carreview-@r.CarReviewId">
                                         <td>
-                                            <div class="fw-bold text-dark small">@r.Name</div>
-                                            <div class="text-muted" style="font-size: 0.75rem;">@r.Phone · @r.Email</div>
+                                            @{
+                                                string? reviewerAvatar = null;
+                                                if (!string.IsNullOrEmpty(r.Email)) reviewerAvatar = _db.Customers.Where(u => u.Email == r.Email).Select(u => u.Avartar).FirstOrDefault();
+                                                if (string.IsNullOrEmpty(reviewerAvatar) && !string.IsNullOrEmpty(r.Phone)) reviewerAvatar = _db.Customers.Where(u => u.PhoneNumber == r.Phone).Select(u => u.Avartar).FirstOrDefault();
+                                                if (string.IsNullOrEmpty(reviewerAvatar) && !string.IsNullOrEmpty(r.Name)) reviewerAvatar = _db.Customers.Where(u => u.Name == r.Name || u.FullName == r.Name).Select(u => u.Avartar).FirstOrDefault();
+                                                reviewerAvatar = Function.ResolveAvatarUrl(reviewerAvatar);
+                                                string rInit = string.IsNullOrWhiteSpace(r.Name) ? "K" : r.Name.Trim().Substring(0, 1).ToUpper();
+                                            }
+                                            <div class="d-flex align-items-center gap-2.5">
+                                                @if (!string.IsNullOrEmpty(reviewerAvatar))
+                                                {
+                                                    <img src="@reviewerAvatar" alt="@r.Name" class="rounded-circle object-fit-cover shadow-xs border flex-shrink-0" style="width: 34px; height: 34px;" onerror="this.onerror=null; this.src='/images/default-avatar.png';" />
+                                                }
+                                                else
+                                                {
+                                                    <div class="rounded-circle text-white fw-bold d-inline-flex align-items-center justify-content-center shadow-xs flex-shrink-0" style="width: 34px; height: 34px; background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); font-size: 13px;">
+                                                        @rInit
+                                                    </div>
+                                                }
+                                                <div>
+                                                    <div class="fw-bold text-dark small">@r.Name</div>
+                                                    <div class="text-muted" style="font-size: 0.73rem;">@r.Phone · @r.Email</div>
+                                                </div>
+                                            </div>
                                         </td>
                                         <td>
                                             @if (r.Car != null)
                                             {
-                                                <div class="fw-semibold text-primary small">@r.Car.CarName</div>
-                                                <div class="text-muted" style="font-size: 0.72rem;">Biển số: @r.Car.LicensePlate</div>
+                                                <div class="fw-semibold text-primary small">
+                                                    <a href="@carUrl" target="_blank" class="text-decoration-none text-primary">@r.Car.CarName</a>
+                                                </div>
+                                                <div class="text-muted" style="font-size: 0.72rem;">Biển số: <span class="font-monospace">@r.Car.LicensePlate</span></div>
                                             }
                                             else
                                             {
                                                 <span class="text-muted small">Xe #@r.CarId</span>
                                             }
                                         </td>
-                                        <td>
-                                            <div class="d-flex align-items-center text-warning" style="font-size: 0.85rem;">
-                                                @for (int i = 1; i <= 5; i++)
-                                                {
-                                                    if (i <= (r.Star ?? 5))
-                                                    {
-                                                        <i class="bi bi-star-fill"></i>
-                                                    }
-                                                    else
-                                                    {
-                                                        <i class="bi bi-star text-muted opacity-50"></i>
-                                                    }
-                                                }
-                                                <span class="ms-1.5 fw-bold text-dark small">@r.Star ★</span>
+                                        <td class="text-center">
+                                            <!-- Hiển thị gọn gàng số sao duy nhất không vẽ 5 sao cồng kềnh -->
+                                            <div class="d-inline-flex align-items-center gap-1.5 px-2.5 py-1 rounded-pill fw-bold border shadow-xs" 
+                                                 style="background-color: #fffbeb; border-color: #fde68a !important; font-size: 0.82rem; color: #b45309;">
+                                                <i class="bi bi-star-fill text-warning"></i>
+                                                <span>@(r.Star ?? 5)</span>
                                             </div>
                                         </td>
                                         <td>
-                                            <div class="small text-dark" style="max-width: 320px;">@r.Detail</div>
+                                            <div class="small text-dark" style="max-width: 340px; line-height: 1.5;">@r.Detail</div>
+                                            @if (!string.IsNullOrEmpty(r.Reply))
+                                            {
+                                                <div class="mt-2 p-2 rounded-2 border small" style="background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%); border-color: #bbf7d0 !important; font-size: 0.74rem;">
+                                                    <div class="d-flex align-items-center gap-1.5 text-success fw-bold mb-0.5">
+                                                        <i class="bi bi-patch-check-fill"></i>
+                                                        <span>Chủ xe phản hồi:</span>
+                                                        @if (r.ReplyDate.HasValue)
+                                                        {
+                                                            <span class="text-muted fw-normal ms-auto" style="font-size: 0.7rem;">@r.ReplyDate.Value.ToString("dd/MM/yyyy HH:mm")</span>
+                                                        }
+                                                    </div>
+                                                    <div class="text-secondary ps-1" style="white-space: pre-line;">@r.Reply</div>
+                                                </div>
+                                            }
                                         </td>
                                         <td>
                                             <span class="text-muted small">@(r.CreatedDate.HasValue ? r.CreatedDate.Value.ToString("dd/MM/yyyy HH:mm") : "N/A")</span>
                                         </td>
-                                        <td>
-                                            <form asp-action="ToggleCarReview" asp-route-id="@r.CarReviewId" method="post" class="d-inline">
-                                                @Html.AntiForgeryToken()
-                                                @if (r.IsActive.HasValue && r.IsActive.Value)
-                                                {
-                                                    <button type="submit" class="status-badge badge-active border-0" title="Nhấp để tạm ẩn" style="cursor: pointer;">
-                                                        Hiển thị
-                                                    </button>
-                                                }
-                                                else
-                                                {
-                                                    <button type="submit" class="status-badge badge-neutral border-0" title="Nhấp để duyệt hiển thị" style="cursor: pointer;">
-                                                        Tạm ẩn
-                                                    </button>
-                                                }
-                                            </form>
+                                        <td class="text-center">
+                                            <button type="button" 
+                                                    class="btn btn-sm rounded-pill px-2.5 py-0.5 border fw-semibold @(isActive ? "btn-success-subtle text-success border-success-subtle" : "btn-light text-muted border")" 
+                                                    style="font-size: 0.75rem;" 
+                                                    id="btn-status-carreview-@r.CarReviewId" 
+                                                    onclick="toggleCarReview(@r.CarReviewId, this)" 
+                                                    title="Bấm để chuyển đổi hiển thị">
+                                                <i class="bi @(isActive ? "bi-check-circle-fill" : "bi-pause-circle") me-1"></i>
+                                                <span>@(isActive ? "Hiển thị" : "Tạm ẩn")</span>
+                                            </button>
                                         </td>
-                                        <td class="text-end">
-                                            <form asp-action="DeleteCarReview" asp-route-id="@r.CarReviewId" method="post" class="d-inline" id="deleteReviewForm-@r.CarReviewId">
-                                                @Html.AntiForgeryToken()
-                                                <button type="button" class="btn btn-sm btn-light border text-danger" title="Xóa" onclick="confirmDeleteReview(@r.CarReviewId, '@Html.Raw(r.Name?.Replace("'", "\\'"))')">
-                                                    <i class="bi bi-trash"></i> Xóa
+                                        <td class="text-end pe-3">
+                                            <!-- Menu 3 chấm chuẩn Admin ReCar -->
+                                            <div class="dropdown d-inline-block">
+                                                <button class="btn btn-light btn-sm rounded-circle p-1.5 border" 
+                                                        type="button" 
+                                                        data-bs-toggle="dropdown" 
+                                                        aria-expanded="false" 
+                                                        title="Thao tác" 
+                                                        style="width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center;">
+                                                    <i class="bi bi-three-dots-vertical"></i>
                                                 </button>
-                                            </form>
+                                                <ul class="dropdown-menu dropdown-menu-end shadow-sm p-1.5 small" style="border-radius: 12px; min-width: 195px;">
+                                                    @if (r.Car != null)
+                                                    {
+                                                        <li>
+                                                            <a href="@carUrl" target="_blank" class="dropdown-item py-2 d-flex align-items-center gap-2">
+                                                                <i class="bi bi-box-arrow-up-right text-primary"></i> Xem xe trên sàn
+                                                            </a>
+                                                        </li>
+                                                    }
+                                                    <li>
+                                                        <a href="javascript:void(0)" onclick="toggleCarReview(@r.CarReviewId, document.getElementById('btn-status-carreview-@r.CarReviewId'))" class="dropdown-item py-2 d-flex align-items-center gap-2">
+                                                            <i class="bi bi-arrow-repeat text-secondary"></i> Đổi trạng thái
+                                                        </a>
+                                                    </li>
+                                                    <li><hr class="dropdown-divider my-1"></li>
+                                                    <li>
+                                                        <a href="javascript:void(0)" onclick="confirmDeleteCarReview(@r.CarReviewId, '@Html.Raw(r.Name?.Replace("'", "\\'"))')" class="dropdown-item py-2 d-flex align-items-center gap-2 text-danger">
+                                                            <i class="bi bi-trash3 text-danger"></i> Xóa đánh giá
+                                                        </a>
+                                                    </li>
+                                                </ul>
+                                            </div>
                                         </td>
                                     </tr>
                                 }
@@ -145,19 +265,25 @@
             </div>
         </div>
 
-        <!-- 2. Bình luận bài viết -->
-        <div class="tab-pane fade @(activeTab == "blogs" ? "show active" : "")" id="blogs-comments" role="tabpanel">
+        <!-- ======================= 2. TAB BÌNH LUẬN CẨM NANG ======================= -->
+        <div class="tab-pane fade @(activeTab == "blogs" ? "show active" : "")" id="tab-blogs" role="tabpanel">
             <div class="recar-panel mb-0">
+                <div class="recar-panel-header d-flex align-items-center justify-content-between py-3 px-4 bg-light border-bottom">
+                    <div>
+                        <h6 class="fw-bold text-dark mb-0">Bình luận Bài viết Cẩm nang</h6>
+                        <span class="text-muted small" style="font-size: 0.78rem;">Phản hồi, hỏi đáp và trao đổi kinh nghiệm của độc giả dưới các bài viết cẩm nang</span>
+                    </div>
+                </div>
                 <div class="table-responsive">
                     <table class="table recar-table align-middle mb-0">
                         <thead>
                             <tr>
-                                <th>Người bình luận</th>
-                                <th>Bài viết liên quan</th>
-                                <th>Nội dung bình luận</th>
+                                <th>Độc giả</th>
+                                <th>Bài viết cẩm nang</th>
+                                <th>Nội dung bình luận &amp; Phản hồi</th>
                                 <th>Thời gian</th>
-                                <th>Trạng thái</th>
-                                <th class="text-end">Thao tác</th>
+                                <th class="text-center">Trạng thái</th>
+                                <th class="text-end pe-3">Thao tác</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -165,8 +291,8 @@
                             {
                                 <tr>
                                     <td colspan="6" class="text-center py-5 text-muted">
-                                        <i class="bi bi-chat-left-dots fs-2 text-secondary d-block mb-2"></i>
-                                        Chưa có bình luận bài viết nào.
+                                        <i class="bi bi-journal-x fs-2 text-secondary d-block mb-2"></i>
+                                        Chưa có bình luận cẩm nang nào.
                                     </td>
                                 </tr>
                             }
@@ -174,57 +300,361 @@
                             {
                                 foreach (var c in blogComments)
                                 {
-                                    <tr>
+                                    bool isActive = c.IsActive;
+                                    string blogUrl = c.Blog != null ? $"/blog/{c.Blog.Alias}-{c.Blog.BlogId}.html" : "#";
+                                    bool hasReply = !string.IsNullOrWhiteSpace(c.Reply);
+                                    <tr id="row-blogcomment-@c.CommentId">
                                         <td>
-                                            <div class="fw-bold text-dark small">@c.Name</div>
-                                            <div class="text-muted" style="font-size: 0.75rem;">@c.Phone · @c.Email</div>
+                                            @{
+                                                string? bAvatar = null;
+                                                if (!string.IsNullOrEmpty(c.Email)) bAvatar = _db.Customers.Where(u => u.Email == c.Email).Select(u => u.Avartar).FirstOrDefault();
+                                                if (string.IsNullOrEmpty(bAvatar) && !string.IsNullOrEmpty(c.Name)) bAvatar = _db.Customers.Where(u => u.Name == c.Name || u.FullName == c.Name).Select(u => u.Avartar).FirstOrDefault();
+                                                bAvatar = Function.ResolveAvatarUrl(bAvatar);
+                                                string bInit = string.IsNullOrWhiteSpace(c.Name) ? "D" : c.Name.Trim().Substring(0, 1).ToUpper();
+                                            }
+                                            <div class="d-flex align-items-center gap-2.5">
+                                                @if (!string.IsNullOrEmpty(bAvatar))
+                                                {
+                                                    <img src="@bAvatar" alt="@c.Name" class="rounded-circle object-fit-cover shadow-xs border flex-shrink-0" style="width: 34px; height: 34px;" onerror="this.onerror=null; this.src='/images/default-avatar.png';" />
+                                                }
+                                                else
+                                                {
+                                                    <div class="rounded-circle text-white fw-bold d-inline-flex align-items-center justify-content-center shadow-xs flex-shrink-0" style="width: 34px; height: 34px; background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); font-size: 13px;">
+                                                        @bInit
+                                                    </div>
+                                                }
+                                                <div>
+                                                    <div class="fw-bold text-dark small">@c.Name</div>
+                                                    <div class="text-muted" style="font-size: 0.73rem;">@c.Email</div>
+                                                </div>
+                                            </div>
                                         </td>
                                         <td>
                                             @if (c.Blog != null)
                                             {
-                                                <div class="fw-semibold text-primary small" style="max-width: 260px;">@c.Blog.Title</div>
+                                                <div class="fw-semibold text-primary small" style="max-width: 260px;">
+                                                    <a href="@blogUrl" target="_blank" class="text-decoration-none text-primary">@c.Blog.Title</a>
+                                                </div>
                                             }
                                             else
                                             {
-                                                <span class="text-muted small">Bài viết #@c.BlogId</span>
+                                                <span class="text-muted small">Cẩm nang #@c.BlogId</span>
                                             }
                                         </td>
                                         <td>
-                                            <div class="small text-dark" style="max-width: 320px;">@c.Detail</div>
+                                            <div class="small text-dark" style="max-width: 360px; line-height: 1.5;">@c.Detail</div>
+                                            
+                                            <!-- Khối hiển thị phản hồi của BQT (nếu có) -->
+                                            <div id="reply-box-blog-@c.CommentId" class="recar-reply-box" style="@(hasReply ? "" : "display:none;")">
+                                                <div class="d-flex align-items-center justify-content-between mb-1 pb-1 border-bottom border-light-subtle">
+                                                    <div class="d-flex align-items-center gap-1.5">
+                                                        <span class="badge bg-primary text-white rounded-pill px-2 py-0.5" style="font-size: 0.68rem;">
+                                                            <i class="bi bi-shield-check me-0.5"></i> BQT ReCar
+                                                        </span>
+                                                        <span class="fw-semibold text-primary" style="font-size: 0.72rem;">Phản hồi chính thức:</span>
+                                                    </div>
+                                                    <span class="text-muted reply-date-text" style="font-size: 0.7rem;">
+                                                        @(c.ReplyDate?.ToString("dd/MM/yyyy HH:mm") ?? "")
+                                                    </span>
+                                                </div>
+                                                <div class="text-dark reply-content-text ps-1 small" style="line-height: 1.5; color: #1e293b !important;">@c.Reply</div>
+                                            </div>
+
+                                            @if (!hasReply)
+                                            {
+                                                <button type="button" 
+                                                        class="btn btn-sm btn-link p-0 text-decoration-none text-primary mt-1 btn-quick-reply" 
+                                                        style="font-size: 0.75rem;" 
+                                                        onclick="openReplyModal('blog', @c.CommentId, '@Html.Raw(c.Name?.Replace("'", "\\'"))', '@Html.Raw(c.Detail?.Replace("'", "\\'").Replace("\n", " ").Replace("\r", ""))', '')">
+                                                    <i class="bi bi-reply-fill me-1"></i> Viết phản hồi BQT
+                                                </button>
+                                            }
                                         </td>
                                         <td>
                                             <span class="text-muted small">@(c.CreatedDate.HasValue ? c.CreatedDate.Value.ToString("dd/MM/yyyy HH:mm") : "N/A")</span>
                                         </td>
-                                        <td>
-                                            <form asp-action="ToggleBlogComment" asp-route-id="@c.CommentId" method="post" class="d-inline">
-                                                @Html.AntiForgeryToken()
-                                                @if (c.IsActive)
-                                                {
-                                                    <button type="submit" class="status-badge badge-active border-0" title="Nhấp để tạm ẩn" style="cursor: pointer;">
-                                                        Hiển thị
-                                                    </button>
-                                                }
-                                                else
-                                                {
-                                                    <button type="submit" class="status-badge badge-neutral border-0" title="Nhấp để duyệt hiển thị" style="cursor: pointer;">
-                                                        Tạm ẩn
-                                                    </button>
-                                                }
-                                            </form>
+                                        <td class="text-center">
+                                            <button type="button" 
+                                                    class="btn btn-sm rounded-pill px-2.5 py-0.5 border fw-semibold @(isActive ? "btn-success-subtle text-success border-success-subtle" : "btn-light text-muted border")" 
+                                                    style="font-size: 0.75rem;" 
+                                                    id="btn-status-blog-@c.CommentId" 
+                                                    onclick="toggleBlogComment(@c.CommentId, this)" 
+                                                    title="Bấm để chuyển đổi hiển thị">
+                                                <i class="bi @(isActive ? "bi-check-circle-fill" : "bi-pause-circle") me-1"></i>
+                                                <span>@(isActive ? "Hiển thị" : "Tạm ẩn")</span>
+                                            </button>
                                         </td>
-                                        <td class="text-end">
-                                            <form asp-action="DeleteBlogComment" asp-route-id="@c.CommentId" method="post" class="d-inline" id="deleteCommentForm-@c.CommentId">
-                                                @Html.AntiForgeryToken()
-                                                <button type="button" class="btn btn-sm btn-light border text-danger" title="Xóa" onclick="confirmDeleteComment(@c.CommentId, '@Html.Raw(c.Name?.Replace("'", "\\'"))')">
-                                                    <i class="bi bi-trash"></i> Xóa
+                                        <td class="text-end pe-3">
+                                            <!-- Menu 3 chấm chuẩn Admin ReCar -->
+                                            <div class="dropdown d-inline-block">
+                                                <button class="btn btn-light btn-sm rounded-circle p-1.5 border" 
+                                                        type="button" 
+                                                        data-bs-toggle="dropdown" 
+                                                        aria-expanded="false" 
+                                                        title="Thao tác" 
+                                                        style="width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center;">
+                                                    <i class="bi bi-three-dots-vertical"></i>
                                                 </button>
-                                            </form>
+                                                <ul class="dropdown-menu dropdown-menu-end shadow-sm p-1.5 small" style="border-radius: 12px; min-width: 205px;">
+                                                    <li>
+                                                        <a href="javascript:void(0)" 
+                                                           onclick="openReplyModal('blog', @c.CommentId, '@Html.Raw(c.Name?.Replace("'", "\\'"))', '@Html.Raw(c.Detail?.Replace("'", "\\'").Replace("\n", " ").Replace("\r", ""))', '@Html.Raw((c.Reply ?? "").Replace("'", "\\'").Replace("\n", " ").Replace("\r", ""))')" 
+                                                           class="dropdown-item py-2 d-flex align-items-center gap-2 text-primary fw-semibold">
+                                                            <i class="bi bi-reply-all-fill"></i> @(hasReply ? "Chỉnh sửa phản hồi" : "Phản hồi bình luận")
+                                                        </a>
+                                                    </li>
+                                                    @if (c.Blog != null)
+                                                    {
+                                                        <li>
+                                                            <a href="@blogUrl" target="_blank" class="dropdown-item py-2 d-flex align-items-center gap-2">
+                                                                <i class="bi bi-box-arrow-up-right text-secondary"></i> Xem trên web
+                                                            </a>
+                                                        </li>
+                                                    }
+                                                    <li>
+                                                        <a href="javascript:void(0)" onclick="toggleBlogComment(@c.CommentId, document.getElementById('btn-status-blog-@c.CommentId'))" class="dropdown-item py-2 d-flex align-items-center gap-2">
+                                                            <i class="bi bi-arrow-repeat text-secondary"></i> Đổi trạng thái
+                                                        </a>
+                                                    </li>
+                                                    <li><hr class="dropdown-divider my-1"></li>
+                                                    <li>
+                                                        <a href="javascript:void(0)" onclick="confirmDeleteBlogComment(@c.CommentId, '@Html.Raw(c.Name?.Replace("'", "\\'"))')" class="dropdown-item py-2 d-flex align-items-center gap-2 text-danger">
+                                                            <i class="bi bi-trash3 text-danger"></i> Xóa bình luận
+                                                        </a>
+                                                    </li>
+                                                </ul>
+                                            </div>
                                         </td>
                                     </tr>
                                 }
                             }
                         </tbody>
                     </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ======================= 3. TAB BÌNH LUẬN TIN TỨC ======================= -->
+        <div class="tab-pane fade @(activeTab == "news" ? "show active" : "")" id="tab-news" role="tabpanel">
+            <div class="recar-panel mb-0">
+                <div class="recar-panel-header d-flex align-items-center justify-content-between py-3 px-4 bg-light border-bottom">
+                    <div>
+                        <h6 class="fw-bold text-dark mb-0">Bình luận Tin tức Thị trường xe</h6>
+                        <span class="text-muted small" style="font-size: 0.78rem;">Phản hồi và chia sẻ góc nhìn của bạn đọc dưới các bản tin ô tô và công nghệ</span>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="table recar-table align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>Bạn đọc</th>
+                                <th>Bản tin liên quan</th>
+                                <th>Nội dung bình luận &amp; Phản hồi</th>
+                                <th>Thời gian</th>
+                                <th class="text-center">Trạng thái</th>
+                                <th class="text-end pe-3">Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (!newsComments.Any())
+                            {
+                                <tr>
+                                    <td colspan="6" class="text-center py-5 text-muted">
+                                        <i class="bi bi-newspaper fs-2 text-secondary d-block mb-2"></i>
+                                        Chưa có bình luận tin tức nào.
+                                    </td>
+                                </tr>
+                            }
+                            else
+                            {
+                                foreach (var n in newsComments)
+                                {
+                                    bool isActive = n.IsActive ?? false;
+                                    string newsUrl = n.News != null ? $"/news/{n.News.Alias}-{n.News.NewsId}.html" : "#";
+                                    bool hasReply = !string.IsNullOrWhiteSpace(n.Reply);
+                                    <tr id="row-newscomment-@n.CommentId">
+                                        <td>
+                                            @{
+                                                string? nAvatar = null;
+                                                if (!string.IsNullOrEmpty(n.Email)) nAvatar = _db.Customers.Where(u => u.Email == n.Email).Select(u => u.Avartar).FirstOrDefault();
+                                                if (string.IsNullOrEmpty(nAvatar) && !string.IsNullOrEmpty(n.Name)) nAvatar = _db.Customers.Where(u => u.Name == n.Name || u.FullName == n.Name).Select(u => u.Avartar).FirstOrDefault();
+                                                nAvatar = Function.ResolveAvatarUrl(nAvatar);
+                                                string nInit = string.IsNullOrWhiteSpace(n.Name) ? "D" : n.Name.Trim().Substring(0, 1).ToUpper();
+                                            }
+                                            <div class="d-flex align-items-center gap-2.5">
+                                                @if (!string.IsNullOrEmpty(nAvatar))
+                                                {
+                                                    <img src="@nAvatar" alt="@n.Name" class="rounded-circle object-fit-cover shadow-xs border flex-shrink-0" style="width: 34px; height: 34px;" onerror="this.onerror=null; this.src='/images/default-avatar.png';" />
+                                                }
+                                                else
+                                                {
+                                                    <div class="rounded-circle text-white fw-bold d-inline-flex align-items-center justify-content-center shadow-xs flex-shrink-0" style="width: 34px; height: 34px; background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); font-size: 13px;">
+                                                        @nInit
+                                                    </div>
+                                                }
+                                                <div>
+                                                    <div class="fw-bold text-dark small">@n.Name</div>
+                                                    <div class="text-muted" style="font-size: 0.73rem;">@n.Email</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            @if (n.News != null)
+                                            {
+                                                <div class="fw-semibold text-primary small" style="max-width: 260px;">
+                                                    <a href="@newsUrl" target="_blank" class="text-decoration-none text-primary">@n.News.Title</a>
+                                                </div>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted small">Bản tin #@n.NewsId</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            <div class="small text-dark" style="max-width: 360px; line-height: 1.5;">@n.Detail</div>
+
+                                            <!-- Khối hiển thị phản hồi của BQT (nếu có) -->
+                                            <div id="reply-box-news-@n.CommentId" class="recar-reply-box" style="@(hasReply ? "" : "display:none;")">
+                                                <div class="d-flex align-items-center justify-content-between mb-1 pb-1 border-bottom border-light-subtle">
+                                                    <div class="d-flex align-items-center gap-1.5">
+                                                        <span class="badge bg-primary text-white rounded-pill px-2 py-0.5" style="font-size: 0.68rem;">
+                                                            <i class="bi bi-shield-check me-0.5"></i> BQT ReCar
+                                                        </span>
+                                                        <span class="fw-semibold text-primary" style="font-size: 0.72rem;">Phản hồi chính thức:</span>
+                                                    </div>
+                                                    <span class="text-muted reply-date-text" style="font-size: 0.7rem;">
+                                                        @(n.ReplyDate?.ToString("dd/MM/yyyy HH:mm") ?? "")
+                                                    </span>
+                                                </div>
+                                                <div class="text-dark reply-content-text ps-1 small" style="line-height: 1.5; color: #1e293b !important;">@n.Reply</div>
+                                            </div>
+
+                                            @if (!hasReply)
+                                            {
+                                                <button type="button" 
+                                                        class="btn btn-sm btn-link p-0 text-decoration-none text-primary mt-1 btn-quick-reply" 
+                                                        style="font-size: 0.75rem;" 
+                                                        onclick="openReplyModal('news', @n.CommentId, '@Html.Raw(n.Name?.Replace("'", "\\'"))', '@Html.Raw(n.Detail?.Replace("'", "\\'").Replace("\n", " ").Replace("\r", ""))', '')">
+                                                    <i class="bi bi-reply-fill me-1"></i> Viết phản hồi BQT
+                                                </button>
+                                            }
+                                        </td>
+                                        <td>
+                                            <span class="text-muted small">@(n.CreatedDate.HasValue ? n.CreatedDate.Value.ToString("dd/MM/yyyy HH:mm") : "N/A")</span>
+                                        </td>
+                                        <td class="text-center">
+                                            <button type="button" 
+                                                    class="btn btn-sm rounded-pill px-2.5 py-0.5 border fw-semibold @(isActive ? "btn-success-subtle text-success border-success-subtle" : "btn-light text-muted border")" 
+                                                    style="font-size: 0.75rem;" 
+                                                    id="btn-status-news-@n.CommentId" 
+                                                    onclick="toggleNewsComment(@n.CommentId, this)" 
+                                                    title="Bấm để chuyển đổi hiển thị">
+                                                <i class="bi @(isActive ? "bi-check-circle-fill" : "bi-pause-circle") me-1"></i>
+                                                <span>@(isActive ? "Hiển thị" : "Tạm ẩn")</span>
+                                            </button>
+                                        </td>
+                                        <td class="text-end pe-3">
+                                            <!-- Menu 3 chấm chuẩn Admin ReCar -->
+                                            <div class="dropdown d-inline-block">
+                                                <button class="btn btn-light btn-sm rounded-circle p-1.5 border" 
+                                                        type="button" 
+                                                        data-bs-toggle="dropdown" 
+                                                        aria-expanded="false" 
+                                                        title="Thao tác" 
+                                                        style="width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center;">
+                                                    <i class="bi bi-three-dots-vertical"></i>
+                                                </button>
+                                                <ul class="dropdown-menu dropdown-menu-end shadow-sm p-1.5 small" style="border-radius: 12px; min-width: 205px;">
+                                                    <li>
+                                                        <a href="javascript:void(0)" 
+                                                           onclick="openReplyModal('news', @n.CommentId, '@Html.Raw(n.Name?.Replace("'", "\\'"))', '@Html.Raw(n.Detail?.Replace("'", "\\'").Replace("\n", " ").Replace("\r", ""))', '@Html.Raw((n.Reply ?? "").Replace("'", "\\'").Replace("\n", " ").Replace("\r", ""))')" 
+                                                           class="dropdown-item py-2 d-flex align-items-center gap-2 text-primary fw-semibold">
+                                                            <i class="bi bi-reply-all-fill"></i> @(hasReply ? "Chỉnh sửa phản hồi" : "Phản hồi bình luận")
+                                                        </a>
+                                                    </li>
+                                                    @if (n.News != null)
+                                                    {
+                                                        <li>
+                                                            <a href="@newsUrl" target="_blank" class="dropdown-item py-2 d-flex align-items-center gap-2">
+                                                                <i class="bi bi-box-arrow-up-right text-secondary"></i> Xem trên web
+                                                            </a>
+                                                        </li>
+                                                    }
+                                                    <li>
+                                                        <a href="javascript:void(0)" onclick="toggleNewsComment(@n.CommentId, document.getElementById('btn-status-news-@n.CommentId'))" class="dropdown-item py-2 d-flex align-items-center gap-2">
+                                                            <i class="bi bi-arrow-repeat text-secondary"></i> Đổi trạng thái
+                                                        </a>
+                                                    </li>
+                                                    <li><hr class="dropdown-divider my-1"></li>
+                                                    <li>
+                                                        <a href="javascript:void(0)" onclick="confirmDeleteNewsComment(@n.CommentId, '@Html.Raw(n.Name?.Replace("'", "\\'"))')" class="dropdown-item py-2 d-flex align-items-center gap-2 text-danger">
+                                                            <i class="bi bi-trash3 text-danger"></i> Xóa bình luận
+                                                        </a>
+                                                    </li>
+                                                </ul>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- ======================= MODAL PHẢN HỒI BÌNH LUẬN ======================= -->
+<div class="modal fade" id="modalReplyComment" tabindex="-1" aria-labelledby="modalReplyCommentLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow-lg">
+            <div class="modal-header border-bottom py-3 px-4 bg-light rounded-top-4">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="rounded-circle bg-primary-subtle text-primary p-2 d-inline-flex" style="width: 36px; height: 36px; align-items: center; justify-content: center;">
+                        <i class="bi bi-reply-all-fill"></i>
+                    </span>
+                    <div>
+                        <h5 class="modal-title fs-6 fw-bold mb-0 text-dark" id="modalReplyCommentLabel">Phản hồi bình luận độc giả</h5>
+                        <span class="text-muted small" style="font-size: 0.75rem;">Phản hồi chính thức từ Ban Quản trị ReCar</span>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <input type="hidden" id="replyCommentType" value="" />
+                <input type="hidden" id="replyCommentId" value="" />
+
+                <!-- Trích dẫn bình luận gốc -->
+                <div class="p-3 bg-light rounded-3 border mb-3">
+                    <div class="d-flex align-items-center justify-content-between mb-1">
+                        <strong class="text-dark small" id="replyAuthorName">Người bình luận</strong>
+                        <span class="badge bg-secondary-subtle text-secondary small">Độc giả</span>
+                    </div>
+                    <p class="text-muted small m-0 fst-italic" id="replyOriginalDetail" style="line-height: 1.5;"></p>
+                </div>
+
+                <!-- Ô nhập phản hồi của BQT -->
+                <div class="mb-3">
+                    <label class="form-label small fw-bold text-dark">
+                        <i class="bi bi-shield-check text-primary me-1"></i> Nội dung phản hồi của BQT ReCar
+                    </label>
+                    <textarea class="form-control" id="replyTextarea" rows="4" placeholder="Nhập nội dung phản hồi, giải đáp thắc mắc hoặc cảm ơn độc giả..."></textarea>
+                    <div class="form-text" style="font-size: 0.75rem;">Phản hồi này sẽ được hiển thị ngay bên dưới bình luận của độc giả ngoài website. Để trống nếu muốn gỡ phản hồi.</div>
+                </div>
+            </div>
+            <div class="modal-footer border-top py-2.5 px-4 bg-light rounded-bottom-4 d-flex justify-content-between">
+                <div>
+                    <button type="button" class="btn btn-outline-danger btn-sm rounded-pill px-3" id="btnRemoveReply" style="display:none;" onclick="removeReply()">
+                        <i class="bi bi-eraser me-1"></i> Gỡ phản hồi
+                    </button>
+                </div>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill px-3.5" data-bs-dismiss="modal">Đóng</button>
+                    <button type="button" class="btn btn-primary btn-sm rounded-pill px-4 fw-semibold" id="btnSaveReply" onclick="saveReply()">
+                        <i class="bi bi-send-fill me-1"></i> Lưu phản hồi
+                    </button>
                 </div>
             </div>
         </div>
@@ -233,7 +663,185 @@
 
 @section Scripts {
     <script>
-        function confirmDeleteReview(id, author) {
+        // Modal Reply Instance
+        var replyModalInstance = null;
+
+        function openReplyModal(type, id, authorName, originalDetail, currentReply) {
+            $('#replyCommentType').val(type);
+            $('#replyCommentId').val(id);
+            $('#replyAuthorName').text(authorName || 'Độc giả');
+            $('#replyOriginalDetail').text(originalDetail || '');
+            $('#replyTextarea').val(currentReply || '');
+
+            if (currentReply && currentReply.trim() !== '') {
+                $('#btnRemoveReply').show();
+            } else {
+                $('#btnRemoveReply').hide();
+            }
+
+            if (!replyModalInstance) {
+                var el = document.getElementById('modalReplyComment');
+                replyModalInstance = new bootstrap.Modal(el);
+            }
+            replyModalInstance.show();
+        }
+
+        function saveReply() {
+            var type = $('#replyCommentType').val();
+            var id = $('#replyCommentId').val();
+            var replyText = ($('#replyTextarea').val() || '').trim();
+
+            var endpoint = type === 'blog' ? '/Admin/Reviews/ReplyBlogComment' : '/Admin/Reviews/ReplyNewsComment';
+            var $btn = $('#btnSaveReply');
+            $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span> Đang lưu...');
+
+            $.ajax({
+                url: endpoint,
+                type: 'POST',
+                data: { id: id, replyText: replyText },
+                success: function (res) {
+                    $btn.prop('disabled', false).html('<i class="bi bi-send-fill me-1"></i> Lưu phản hồi');
+                    if (res && res.success) {
+                        replyModalInstance.hide();
+                        var targetBox = $('#reply-box-' + type + '-' + id);
+                        var row = $('#row-' + (type === 'blog' ? 'blogcomment' : 'newscomment') + '-' + id);
+
+                        if (res.reply && res.reply.trim() !== '') {
+                            targetBox.find('.reply-content-text').text(res.reply);
+                            targetBox.find('.reply-date-text').text(res.replyDate || 'Vừa xong');
+                            targetBox.show();
+                            row.find('.btn-quick-reply').hide();
+                        } else {
+                            targetBox.hide();
+                            row.find('.btn-quick-reply').show();
+                        }
+
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Thành công',
+                            text: res.message || 'Đã lưu phản hồi thành công.',
+                            timer: 1600,
+                            showConfirmButton: false
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Thất bại',
+                            text: (res && res.message) ? res.message : 'Đã có lỗi xảy ra.'
+                        });
+                    }
+                },
+                error: function () {
+                    $btn.prop('disabled', false).html('<i class="bi bi-send-fill me-1"></i> Lưu phản hồi');
+                    Swal.fire({ icon: 'error', title: 'Lỗi kết nối', text: 'Không thể kết nối máy chủ.' });
+                }
+            });
+        }
+
+        function removeReply() {
+            Swal.fire({
+                title: 'Gỡ phản hồi này?',
+                text: 'Phản hồi của Ban Quản trị sẽ được gỡ khỏi bình luận này.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                confirmButtonText: 'Đồng ý gỡ',
+                cancelButtonText: 'Hủy'
+            }).then(function (result) {
+                if (result.isConfirmed) {
+                    $('#replyTextarea').val('');
+                    saveReply();
+                }
+            });
+        }
+
+        // Toggle Status AJAX
+        function toggleCarReview(id, btnEl) {
+            $.ajax({
+                url: '/Admin/Reviews/ToggleCarReviewAjax',
+                type: 'POST',
+                data: { id: id },
+                success: function (res) {
+                    if (res && res.success) {
+                        var $b = $(btnEl);
+                        if (res.isActive) {
+                            $b.removeClass('btn-light text-muted').addClass('btn-success-subtle text-success border-success-subtle');
+                            $b.html('<i class="bi bi-check-circle-fill me-1"></i><span>Hiển thị</span>');
+                        } else {
+                            $b.removeClass('btn-success-subtle text-success border-success-subtle').addClass('btn-light text-muted');
+                            $b.html('<i class="bi bi-pause-circle me-1"></i><span>Tạm ẩn</span>');
+                        }
+                        const Toast = Swal.mixin({
+                            toast: true,
+                            position: 'top-end',
+                            showConfirmButton: false,
+                            timer: 2000,
+                            timerProgressBar: true
+                        });
+                        Toast.fire({ icon: 'success', title: res.message });
+                    }
+                }
+            });
+        }
+
+        function toggleBlogComment(id, btnEl) {
+            $.ajax({
+                url: '/Admin/Reviews/ToggleBlogCommentAjax',
+                type: 'POST',
+                data: { id: id },
+                success: function (res) {
+                    if (res && res.success) {
+                        var $b = $(btnEl);
+                        if (res.isActive) {
+                            $b.removeClass('btn-light text-muted').addClass('btn-success-subtle text-success border-success-subtle');
+                            $b.html('<i class="bi bi-check-circle-fill me-1"></i><span>Hiển thị</span>');
+                        } else {
+                            $b.removeClass('btn-success-subtle text-success border-success-subtle').addClass('btn-light text-muted');
+                            $b.html('<i class="bi bi-pause-circle me-1"></i><span>Tạm ẩn</span>');
+                        }
+                        const Toast = Swal.mixin({
+                            toast: true,
+                            position: 'top-end',
+                            showConfirmButton: false,
+                            timer: 2000,
+                            timerProgressBar: true
+                        });
+                        Toast.fire({ icon: 'success', title: res.message });
+                    }
+                }
+            });
+        }
+
+        function toggleNewsComment(id, btnEl) {
+            $.ajax({
+                url: '/Admin/Reviews/ToggleNewsCommentAjax',
+                type: 'POST',
+                data: { id: id },
+                success: function (res) {
+                    if (res && res.success) {
+                        var $b = $(btnEl);
+                        if (res.isActive) {
+                            $b.removeClass('btn-light text-muted').addClass('btn-success-subtle text-success border-success-subtle');
+                            $b.html('<i class="bi bi-check-circle-fill me-1"></i><span>Hiển thị</span>');
+                        } else {
+                            $b.removeClass('btn-success-subtle text-success border-success-subtle').addClass('btn-light text-muted');
+                            $b.html('<i class="bi bi-pause-circle me-1"></i><span>Tạm ẩn</span>');
+                        }
+                        const Toast = Swal.mixin({
+                            toast: true,
+                            position: 'top-end',
+                            showConfirmButton: false,
+                            timer: 2000,
+                            timerProgressBar: true
+                        });
+                        Toast.fire({ icon: 'success', title: res.message });
+                    }
+                }
+            });
+        }
+
+        // Delete Confirmations
+        function confirmDeleteCarReview(id, author) {
             Swal.fire({
                 title: 'Xóa đánh giá này?',
                 html: 'Bạn có chắc muốn xóa đánh giá của <strong>"' + author + '"</strong>?<br><small class="text-muted">Hành động này không thể hoàn tác.</small>',
@@ -245,12 +853,22 @@
                 cancelButtonText: 'Hủy bỏ'
             }).then((result) => {
                 if (result.isConfirmed) {
-                    document.getElementById('deleteReviewForm-' + id).submit();
+                    $.ajax({
+                        url: '/Admin/Reviews/DeleteCarReviewAjax',
+                        type: 'POST',
+                        data: { id: id },
+                        success: function (res) {
+                            if (res && res.success) {
+                                $('#row-carreview-' + id).fadeOut(300, function () { $(this).remove(); });
+                                Swal.fire({ icon: 'success', title: 'Đã xóa!', text: 'Đánh giá đã được xóa thành công.', timer: 1500, showConfirmButton: false });
+                            }
+                        }
+                    });
                 }
             });
         }
 
-        function confirmDeleteComment(id, author) {
+        function confirmDeleteBlogComment(id, author) {
             Swal.fire({
                 title: 'Xóa bình luận này?',
                 html: 'Bạn có chắc muốn xóa bình luận của <strong>"' + author + '"</strong>?<br><small class="text-muted">Hành động này không thể hoàn tác.</small>',
@@ -262,7 +880,44 @@
                 cancelButtonText: 'Hủy bỏ'
             }).then((result) => {
                 if (result.isConfirmed) {
-                    document.getElementById('deleteCommentForm-' + id).submit();
+                    $.ajax({
+                        url: '/Admin/Reviews/DeleteBlogCommentAjax',
+                        type: 'POST',
+                        data: { id: id },
+                        success: function (res) {
+                            if (res && res.success) {
+                                $('#row-blogcomment-' + id).fadeOut(300, function () { $(this).remove(); });
+                                Swal.fire({ icon: 'success', title: 'Đã xóa!', text: 'Bình luận cẩm nang đã được xóa.', timer: 1500, showConfirmButton: false });
+                            }
+                        }
+                    });
+                }
+            });
+        }
+
+        function confirmDeleteNewsComment(id, author) {
+            Swal.fire({
+                title: 'Xóa bình luận bản tin?',
+                html: 'Bạn có chắc muốn xóa bình luận của <strong>"' + author + '"</strong>?<br><small class="text-muted">Hành động này không thể hoàn tác.</small>',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: 'Đồng ý xóa',
+                cancelButtonText: 'Hủy bỏ'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: '/Admin/Reviews/DeleteNewsCommentAjax',
+                        type: 'POST',
+                        data: { id: id },
+                        success: function (res) {
+                            if (res && res.success) {
+                                $('#row-newscomment-' + id).fadeOut(300, function () { $(this).remove(); });
+                                Swal.fire({ icon: 'success', title: 'Đã xóa!', text: 'Bình luận tin tức đã được xóa.', timer: 1500, showConfirmButton: false });
+                            }
+                        }
+                    });
                 }
             });
         }

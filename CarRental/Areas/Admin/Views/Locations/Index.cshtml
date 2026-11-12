@@ -57,11 +57,12 @@
                     {
                         foreach (var item in Model)
                         {
-                            <tr>
+                            bool isActive = item.IsActive;
+                            <tr id="row-location-@item.LocationId">
                                 <td class="fw-bold text-muted">@item.DisplayOrder</td>
                                 <td>
                                     <div class="fw-bold text-dark">
-                                        <i class="bi bi-geo-alt text-primary me-1"></i> @item.CityName
+                                        <i class="bi bi-geo-alt-fill text-primary me-1"></i> @item.CityName
                                     </div>
                                     <div class="text-muted" style="font-size: 0.72rem;">Khu vực: @(string.IsNullOrEmpty(item.Region) ? "Toàn quốc" : item.Region)</div>
                                 </td>
@@ -83,33 +84,45 @@
                                     }
                                 </td>
                                 <td>
-                                    <form asp-action="ToggleStatus" asp-route-id="@item.LocationId" method="post" class="d-inline">
-                                        @Html.AntiForgeryToken()
-                                        @if (item.IsActive)
-                                        {
-                                            <button type="submit" class="status-badge badge-active border-0" title="Nhấp để tạm ẩn" style="cursor: pointer;">
-                                                Đang hiển thị
-                                            </button>
-                                        }
-                                        else
-                                        {
-                                            <button type="submit" class="status-badge badge-neutral border-0" title="Nhấp để hiển thị" style="cursor: pointer;">
-                                                Tạm ẩn
-                                            </button>
-                                        }
-                                    </form>
+                                    <button type="button" 
+                                            class="btn btn-sm rounded-pill px-2.5 py-0.5 border fw-semibold @(isActive ? "btn-success-subtle text-success border-success-subtle" : "btn-light text-muted border")" 
+                                            style="font-size: 0.75rem;" 
+                                            id="btn-status-location-@item.LocationId" 
+                                            onclick="toggleLocationStatus(@item.LocationId, this)" 
+                                            title="Bấm để chuyển đổi hiển thị">
+                                        <i class="bi @(isActive ? "bi-check-circle-fill" : "bi-pause-circle") me-1"></i>
+                                        <span>@(isActive ? "Hiển thị" : "Tạm ẩn")</span>
+                                    </button>
                                 </td>
-                                <td class="text-end">
-                                    <div class="d-inline-flex gap-1.5">
-                                        <a asp-action="Edit" asp-route-id="@item.LocationId" class="btn btn-sm btn-light border" title="Chỉnh sửa">
-                                            <i class="bi bi-pencil-square text-primary"></i> Sửa
-                                        </a>
-                                        <form asp-action="Delete" asp-route-id="@item.LocationId" method="post" class="d-inline" id="deleteLocForm-@item.LocationId">
-                                            @Html.AntiForgeryToken()
-                                            <button type="button" class="btn btn-sm btn-light border text-danger" title="Xóa" onclick="confirmDeleteLocation(@item.LocationId, '@Html.Raw(item.CityName?.Replace("'", "\\'"))')">
-                                                <i class="bi bi-trash"></i> Xóa
-                                            </button>
-                                        </form>
+                                <td class="text-end pe-3">
+                                    <!-- Menu 3 chấm chuẩn Admin ReCar -->
+                                    <div class="dropdown d-inline-block">
+                                        <button class="btn btn-light btn-sm rounded-circle p-1.5 border" 
+                                                type="button" 
+                                                data-bs-toggle="dropdown" 
+                                                aria-expanded="false" 
+                                                title="Thao tác" 
+                                                style="width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center;">
+                                            <i class="bi bi-three-dots-vertical"></i>
+                                        </button>
+                                        <ul class="dropdown-menu dropdown-menu-end shadow-sm p-1.5 small" style="border-radius: 12px; min-width: 175px;">
+                                            <li>
+                                                <a asp-action="Edit" asp-route-id="@item.LocationId" class="dropdown-item py-2 d-flex align-items-center gap-2">
+                                                    <i class="bi bi-pencil-square text-primary"></i> Chỉnh sửa
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a href="javascript:void(0)" onclick="toggleLocationStatus(@item.LocationId, document.getElementById('btn-status-location-@item.LocationId'))" class="dropdown-item py-2 d-flex align-items-center gap-2">
+                                                    <i class="bi bi-arrow-repeat text-secondary"></i> Đổi trạng thái
+                                                </a>
+                                            </li>
+                                            <li><hr class="dropdown-divider my-1"></li>
+                                            <li>
+                                                <a href="javascript:void(0)" onclick="confirmDeleteLocation(@item.LocationId, '@Html.Raw(item.CityName?.Replace("'", "\\'"))')" class="dropdown-item py-2 d-flex align-items-center gap-2 text-danger">
+                                                    <i class="bi bi-trash"></i> Xóa địa điểm
+                                                </a>
+                                            </li>
+                                        </ul>
                                     </div>
                                 </td>
                             </tr>
@@ -123,6 +136,56 @@
 
 @section Scripts {
     <script>
+        const Toast = Swal.mixin({
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 2000,
+            timerProgressBar: true
+        });
+
+        // Bật / Tắt trạng thái hiển thị địa điểm qua AJAX
+        function toggleLocationStatus(id, btn) {
+            const $btn = $(btn);
+            $btn.prop('disabled', true);
+
+            $.ajax({
+                url: '/Admin/Locations/ToggleStatus/' + id,
+                type: 'POST',
+                success: function (res) {
+                    $btn.prop('disabled', false);
+                    if (res && res.success) {
+                        if (res.isActive) {
+                            $btn.removeClass('btn-light text-muted')
+                                .addClass('btn-success-subtle text-success border-success-subtle')
+                                .html('<i class="bi bi-check-circle-fill me-1"></i><span>Hiển thị</span>');
+                        } else {
+                            $btn.removeClass('btn-success-subtle text-success border-success-subtle')
+                                .addClass('btn-light text-muted')
+                                .html('<i class="bi bi-pause-circle me-1"></i><span>Tạm ẩn</span>');
+                        }
+                        Toast.fire({
+                            icon: 'success',
+                            title: res.message || 'Cập nhật trạng thái thành công'
+                        });
+                    } else {
+                        Toast.fire({
+                            icon: 'error',
+                            title: (res && res.message) || 'Có lỗi xảy ra khi đổi trạng thái'
+                        });
+                    }
+                },
+                error: function () {
+                    $btn.prop('disabled', false);
+                    Toast.fire({
+                        icon: 'error',
+                        title: 'Lỗi kết nối máy chủ'
+                    });
+                }
+            });
+        }
+
+        // Xác nhận xóa địa điểm bằng SweetAlert2 qua AJAX
         function confirmDeleteLocation(id, name) {
             Swal.fire({
                 title: 'Xóa địa điểm này?',
@@ -131,11 +194,38 @@
                 showCancelButton: true,
                 confirmButtonColor: '#ef4444',
                 cancelButtonColor: '#64748b',
-                confirmButtonText: 'Đồng ý xóa',
+                confirmButtonText: '<i class="bi bi-trash me-1"></i> Đồng ý xóa',
                 cancelButtonText: 'Hủy bỏ'
             }).then((result) => {
                 if (result.isConfirmed) {
-                    document.getElementById('deleteLocForm-' + id).submit();
+                    $.ajax({
+                        url: '/Admin/Locations/Delete/' + id,
+                        type: 'POST',
+                        success: function (res) {
+                            if (res && res.success) {
+                                $('#row-location-' + id).fadeOut(300, function () {
+                                    $(this).remove();
+                                });
+                                Toast.fire({
+                                    icon: 'success',
+                                    title: res.message || 'Đã xóa địa điểm thành công'
+                                });
+                            } else {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Không thể xóa',
+                                    text: (res && res.message) || 'Có lỗi xảy ra khi xóa địa điểm.'
+                                });
+                            }
+                        },
+                        error: function () {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Lỗi kết nối',
+                                text: 'Không thể kết nối đến máy chủ.'
+                            });
+                        }
+                    });
                 }
             });
         }

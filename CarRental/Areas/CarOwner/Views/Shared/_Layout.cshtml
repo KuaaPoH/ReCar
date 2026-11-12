@@ -18,6 +18,7 @@
     }
 
     var ownerInitials = ownerName.Length >= 2 ? ownerName.Substring(0, 2).ToUpper() : "CX";
+    var ownerAvatar = Function.GetAvatar(Context.Session);
 
     var ownerAccountId = Function.GetCarOwnerAccountId(Context.Session);
     if (ownerAccountId <= 0)
@@ -340,13 +341,16 @@
                 <div class="dropdown">
 
                     <div class="owner-profile-pill" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-
-                        <div style="width: 30px; height: 30px; font-size: 11px; font-weight: 700; background: #00a8e8; color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
-
-                            @ownerInitials
-
-                        </div>
-
+                        @if (!string.IsNullOrEmpty(ownerAvatar))
+                        {
+                            <img src="@ownerAvatar" alt="@ownerName" style="width: 30px; height: 30px; border-radius: 50%; object-fit: cover;" onerror="this.onerror=null; this.src='/images/default-avatar.png';" />
+                        }
+                        else
+                        {
+                            <div style="width: 30px; height: 30px; font-size: 11px; font-weight: 700; background: #00a8e8; color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                                @ownerInitials
+                            </div>
+                        }
                         <span class="fw-semibold text-dark small d-none d-md-inline" style="font-size: 0.82rem;">@ownerName</span>
 
                         <i data-lucide="chevron-down" style="width: 14px; height: 14px; color: #94a3b8;"></i>
@@ -364,6 +368,7 @@
                         </li>
 
                         <li><a class="dropdown-item rounded-3 py-2 small" href="/Accounts/Index"><i class="bi bi-person me-2"></i>Tài khoản cá nhân</a></li>
+                        <li><a class="dropdown-item rounded-3 py-2 small" href="/Accounts/Index?tab=account-info"><i class="bi bi-shield-lock me-2"></i>Hồ sơ & Đổi mật khẩu</a></li>
 
                         <li><a class="dropdown-item rounded-3 py-2 small" href="/CarOwner/Wallet/Index"><i class="bi bi-wallet2 me-2"></i>Ví đối tác & Đối soát</a></li>
                         <li><a class="dropdown-item rounded-3 py-2 small" href="/CarOwner/Register/Pending"><i class="bi bi-bank2 me-2"></i>Tài khoản thụ hưởng</a></li>

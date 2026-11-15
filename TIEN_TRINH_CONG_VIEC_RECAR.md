@@ -2286,3 +2286,30 @@ Nhằm giúp đồ án tạo được ấn tượng mạnh mẽ với hội đ�
 
 
 
+
+---
+
+## 60. TỔNG KẾT CA LÀM VIỆC NGÀY 15/11/2026 & BÀN GIAO MÃ NGUỒN LÊN GITHUB
+
+### 60.1. Danh Sách Các Hạng Mục Đã Hoàn Thành
+1. **Chuyển đổi cổng thanh toán sang ZaloPay & Gỡ bỏ VNPay:**
+   - Tích hợp cổng thanh toán **ZaloPay** (`IZaloPayService`, `ZaloPayService`, cấu hình trong `appsettings.json`, xử lý tạo đơn và callback trong `CartController.cs`, cập nhật giao diện tại `Checkout.cshtml`, `Success.cshtml`, `PaymentFail.cshtml`).
+   - Chuẩn hóa toàn bộ nhãn hiển thị cho khách hàng và thông báo từ `ZaloPay Sandbox` sang **ZaloPay**.
+   - Xóa bỏ hoàn toàn mã nguồn và cấu hình VNPay cũ (`IVnpayServices.cs`, `VnPayService.cs`, `VnPayLibrary.cs`, `VnPaymentResponseModel.cs`).
+   - Rà soát và đồng bộ luồng tiền, ví Chủ xe và đối soát tài chính Admin (`PartnerPayout.cs`, `WalletTransaction.cs`, `FinanceController.cs`, `WalletController.cs`, `OrdersController.cs`).
+
+2. **Nâng cấp Liên hệ Khách hàng & Trang Quản trị Liên hệ (Admin):**
+   - Cập nhật trang liên hệ phía khách hàng (`ContactController.cs`, `Views/Contact/Index.cshtml`): yêu cầu đăng nhập mới được gửi liên hệ và tự động đồng bộ thông tin tài khoản đã đăng nhập.
+   - Xây dựng và đồng bộ giao diện Quản lý Liên hệ phía Admin (`Areas/Admin/Controllers/ContactsController.cs`, `Areas/Admin/Views/Contacts/Index.cshtml`), bổ sung nút **Phản hồi Email** mở sẵn ứng dụng email (`mailto:`) điền sẵn địa chỉ người nhận, tiêu đề và nội dung trích dẫn.
+
+3. **Tinh chỉnh Giao diện Trang chủ (`Home/Index.cshtml` & `recar.css`):**
+   - **Danh mục dòng xe:** Thay thế chia cột cố định `row-cols-xl-6` bằng CSS Grid `.recar-cat-grid` (`repeat(auto-fit, minmax(175px, 1fr))`) giúp các thẻ danh mục tự động giãn đều 100% chiều ngang theo đúng số lượng dòng xe hiện có.
+   - **Xe nổi bật và ưu đãi:** Lọc đúng các xe đang hoạt động có tag **Nổi bật** hoặc đang **Ưu đãi** (`HomeController.cs`), hiển thị **4 xe mỗi trang** và tự động hiển thị thanh phân trang JavaScript mượt mà khi có từ 5 xe trở lên.
+
+4. **Dọn dẹp toàn bộ Mã nguồn & Tài nguyên dư thừa:**
+   - Xóa các thư mục giao diện mẫu rời (`giao dien admin/`, `giao dien chu xe/`), `PROMPT_DESIGN_CAR_OWNER.md` và 6 file `.sql` dư thừa ở thư mục gốc (`create_banks.sql`, `create_brands.sql`, `create_locations.sql`, `dbrenalcar.sql`, `import_real_menus.sql`, `seed_hierarchical_menus.sql`).
+   - Xóa 6 file Model không còn sử dụng (`Product.cs`, `Message.cs`, `Contract.cs`, `ContractDetail.cs`, `ContractSettlement.cs`, `ContractSettlementDetail.cs`) và gỡ bỏ `DbSet`, cấu hình `OnModelCreating` trong `DbRenalCarContext.cs` cùng các navigation property tương ứng trong `User.cs`, `CarType.cs`, `Customer.cs`.
+
+### 60.2. Kiểm Thử Hệ Thống
+- Dự án biên dịch thành công: **`0 Error(s)`** (`dotnet build CarRental\CarRental.csproj --no-restore`).
+- Ứng dụng chạy ổn định tại **`http://localhost:5163`**, các endpoint chính (`/` , `/Cart/Success`, `/Cart/PaymentFail`, `/Cart/ZaloPayCallBack`) đều trả về **HTTP 200 OK**.

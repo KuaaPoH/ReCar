@@ -1,0 +1,358 @@
+@model List<CarRental.Models.Contact>
+@{
+    ViewData["Title"] = "Liên hệ khách hàng";
+    Layout = "~/Areas/Admin/Views/Shared/_Layout.cshtml";
+    int totalCount = ViewBag.TotalCount ?? 0;
+    int unreadCount = ViewBag.UnreadCount ?? 0;
+    int repliedCount = ViewBag.RepliedCount ?? 0;
+    string filter = ViewBag.Filter as string ?? "all";
+}
+
+<div class="container-fluid px-0">
+    <style>
+        #contactFilterTabs .nav-link {
+            background-color: #ffffff;
+            color: #475569;
+            border: 1px solid #e2e8f0;
+            transition: all 0.2s ease-in-out;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+        }
+        #contactFilterTabs .nav-link .pill-counter-badge {
+            background-color: #f1f5f9;
+            color: #475569;
+            border: 1px solid #e2e8f0;
+        }
+        #contactFilterTabs .nav-link:hover:not(.active) {
+            background-color: #f8fafc;
+            color: #0f172a;
+            border-color: #cbd5e1;
+        }
+        #contactFilterTabs .nav-link.active {
+            background-color: #0284c7 !important;
+            color: #ffffff !important;
+            border-color: #0284c7 !important;
+            box-shadow: 0 4px 12px rgba(2, 132, 199, 0.25) !important;
+        }
+        #contactFilterTabs .nav-link.active .pill-counter-badge {
+            background-color: #ffffff !important;
+            color: #0284c7 !important;
+            border-color: transparent !important;
+            font-weight: 700 !important;
+        }
+        .recar-reply-box {
+            background: linear-gradient(135deg, #f0f9ff 0%, #f8fafc 100%);
+            border-left: 3.5px solid #0284c7;
+            border-top: 1px solid #e0f2fe;
+            border-right: 1px solid #e0f2fe;
+            border-bottom: 1px solid #e0f2fe;
+            border-radius: 10px;
+            padding: 8px 12px;
+            margin-top: 8px;
+            font-size: 0.8rem;
+        }
+    </style>
+
+    <!-- Header -->
+    <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4">
+        <div>
+            <div class="d-flex align-items-center gap-2">
+                <h1 class="h3 fw-bold mb-0 text-dark tracking-tight">Liên hệ &amp; Hỗ trợ khách hàng</h1>
+                <span class="badge bg-light text-dark border rounded-pill fw-semibold px-2.5 py-1">@totalCount yêu cầu</span>
+            </div>
+            <p class="text-muted small mb-0 mt-1">Xem danh sách yêu cầu liên hệ từ khách hàng đã đăng nhập và phản hồi trực tiếp qua Email.</p>
+        </div>
+    </div>
+
+    <!-- KPI Summary Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="recar-panel p-3 h-100 mb-0">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-muted small fw-semibold">Tổng liên hệ</div>
+                        <div class="fs-3 fw-bold mt-1 text-dark">@totalCount</div>
+                    </div>
+                    <div class="rounded-3 d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; background-color: #e0f2fe; color: #0284c7;">
+                        <i class="bi bi-envelope-paper fs-4"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="recar-panel p-3 h-100 mb-0">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-muted small fw-semibold">Chờ phản hồi</div>
+                        <div class="fs-3 fw-bold mt-1" style="color: #d97706;">@unreadCount</div>
+                    </div>
+                    <div class="rounded-3 d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; background-color: #fef3c7; color: #d97706;">
+                        <i class="bi bi-hourglass-split fs-4"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="recar-panel p-3 h-100 mb-0">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-muted small fw-semibold">Đã đọc / Phản hồi</div>
+                        <div class="fs-3 fw-bold mt-1" style="color: #16a34a;">@repliedCount</div>
+                    </div>
+                    <div class="rounded-3 d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; background-color: #dcfce7; color: #16a34a;">
+                        <i class="bi bi-check2-circle fs-4"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Pills chuẩn Admin ReCar -->
+    <ul class="nav nav-pills mb-4 gap-2 border-bottom pb-3" id="contactFilterTabs">
+        <li class="nav-item">
+            <a href="@Url.Action("Index", new { filter = "all" })"
+               class="nav-link rounded-pill fw-semibold small px-3.5 py-2 d-inline-flex align-items-center gap-2 @(filter == "all" ? "active" : "")">
+                <i class="bi bi-inbox-fill"></i> Tất cả
+                <span class="badge rounded-pill pill-counter-badge">@totalCount</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a href="@Url.Action("Index", new { filter = "unread" })"
+               class="nav-link rounded-pill fw-semibold small px-3.5 py-2 d-inline-flex align-items-center gap-2 @(filter == "unread" ? "active" : "")">
+                <i class="bi bi-clock-fill"></i> Chờ phản hồi
+                <span class="badge rounded-pill pill-counter-badge">@unreadCount</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a href="@Url.Action("Index", new { filter = "replied" })"
+               class="nav-link rounded-pill fw-semibold small px-3.5 py-2 d-inline-flex align-items-center gap-2 @(filter == "replied" ? "active" : "")">
+                <i class="bi bi-check-circle-fill"></i> Đã xử lý
+                <span class="badge rounded-pill pill-counter-badge">@repliedCount</span>
+            </a>
+        </li>
+    </ul>
+
+    <!-- Bảng dữ liệu chuẩn recar-panel / recar-table -->
+    <div class="recar-panel mb-0">
+        <div class="recar-panel-header d-flex align-items-center justify-content-between py-3 px-4 bg-light border-bottom">
+            <div>
+                <h6 class="fw-bold text-dark mb-0">Danh sách liên hệ từ khách hàng</h6>
+                <span class="text-muted small" style="font-size: 0.78rem;">Các yêu cầu gửi từ trang Liên hệ sẽ hiển thị tại đây để Admin phản hồi qua Email</span>
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table recar-table align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th class="ps-4" style="width: 75px;">ID</th>
+                        <th style="min-width: 220px;">Người gửi</th>
+                        <th style="min-width: 280px;">Nội dung liên hệ</th>
+                        <th style="width: 150px;">Ngày gửi</th>
+                        <th style="width: 150px;">Trạng thái</th>
+                        <th class="text-end pe-4" style="width: 230px;">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!Model.Any())
+                    {
+                        <tr>
+                            <td colspan="6" class="text-center py-5 text-muted">
+                                <i class="bi bi-inbox fs-2 d-block mb-2"></i>
+                                Chưa có liên hệ nào trong mục này.
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        foreach (var item in Model)
+                        {
+                            bool isReplied = (item.IsRead ?? 0) == 1;
+                            <tr>
+                                <td class="ps-4 fw-semibold text-muted">#@item.ContactId</td>
+                                <td>
+                                    <div class="fw-bold text-dark">@(string.IsNullOrWhiteSpace(item.Name) ? "Khách hàng" : item.Name)</div>
+                                    <div class="small text-muted text-break">
+                                        <i class="bi bi-envelope me-1"></i>@(string.IsNullOrWhiteSpace(item.Email) ? "Không có email" : item.Email)
+                                    </div>
+                                    @if (!string.IsNullOrWhiteSpace(item.Phone))
+                                    {
+                                        <div class="small text-muted">
+                                            <i class="bi bi-telephone me-1"></i>@item.Phone
+                                        </div>
+                                    }
+                                </td>
+                                <td>
+                                    <div class="text-dark" style="white-space: pre-wrap; max-width: 440px;">@item.Message</div>
+                                    @if (!string.IsNullOrWhiteSpace(item.ModifiedBy))
+                                    {
+                                        <div class="recar-reply-box">
+                                            <i class="bi bi-reply-fill text-primary me-1"></i>
+                                            <span class="fw-semibold text-dark">@item.ModifiedBy</span>
+                                            @if (item.ModifiedDate.HasValue)
+                                            {
+                                                <span class="text-muted ms-1">(@item.ModifiedDate.Value.ToString("dd/MM/yyyy HH:mm"))</span>
+                                            }
+                                        </div>
+                                    }
+                                </td>
+                                <td class="small text-muted text-nowrap">
+                                    @(item.CreatedDate?.ToString("dd/MM/yyyy HH:mm") ?? "—")
+                                </td>
+                                <td class="text-nowrap">
+                                    @if (isReplied)
+                                    {
+                                        <span class="badge rounded-pill px-3 py-1.5 fw-semibold" style="background-color: #dcfce7; color: #15803d; border: 1px solid #bbf7d0;">
+                                            <i class="bi bi-check-circle-fill me-1"></i> Đã phản hồi
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge rounded-pill px-3 py-1.5 fw-semibold" style="background-color: #fef3c7; color: #b45309; border: 1px solid #fde68a;">
+                                            <i class="bi bi-clock-fill me-1"></i> Chờ phản hồi
+                                        </span>
+                                    }
+                                </td>
+                                <td class="text-end pe-4">
+                                    <div class="d-inline-flex align-items-center gap-1 flex-nowrap">
+                                        @if (!string.IsNullOrWhiteSpace(item.Email))
+                                        {
+                                            <button type="button"
+                                                    class="btn btn-sm btn-primary text-nowrap rounded-3 px-2.5 btn-reply-email"
+                                                    data-id="@item.ContactId"
+                                                    data-name="@(item.Name ?? "Khách hàng")"
+                                                    data-email="@item.Email"
+                                                    data-message="@item.Message">
+                                                <i class="bi bi-envelope-fill me-1"></i> Phản hồi Email
+                                            </button>
+                                        }
+                                        @if (!isReplied)
+                                        {
+                                            <button type="button" class="btn btn-sm btn-outline-success rounded-3 btn-mark-read" data-id="@item.ContactId" title="Đánh dấu đã đọc">
+                                                <i class="bi bi-check2"></i>
+                                            </button>
+                                        }
+                                        <button type="button" class="btn btn-sm btn-outline-danger rounded-3 btn-delete-contact" data-id="@item.ContactId" title="Xóa">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Phản hồi Email -->
+<div class="modal fade" id="replyEmailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content rounded-4 border-0 shadow">
+            <div class="modal-header border-bottom px-4 py-3">
+                <h5 class="modal-title fw-bold">
+                    <i class="bi bi-envelope-check text-primary me-2"></i>Phản hồi liên hệ qua Email
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <input type="hidden" id="replyContactId" />
+                <div class="p-3 rounded-3 bg-light border mb-3">
+                    <div class="small text-muted mb-1">Nội dung khách hàng đã gửi (<strong id="replyCustomerName"></strong>):</div>
+                    <div class="small text-dark fst-italic" id="replyOriginalMsg" style="white-space: pre-wrap;"></div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold text-muted">Gửi tới Email</label>
+                    <input type="text" class="form-control bg-light" id="replyToEmail" readonly />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold text-muted">Tiêu đề Email *</label>
+                    <input type="text" class="form-control" id="replySubject" placeholder="Re: Hỗ trợ liên hệ từ ReCar" />
+                </div>
+                <div class="mb-0">
+                    <label class="form-label small fw-semibold text-muted">Nội dung phản hồi *</label>
+                    <textarea class="form-control" id="replyBody" rows="5" placeholder="Nhập nội dung phản hồi gửi tới khách hàng..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer border-top px-4 py-3">
+                <button type="button" class="btn btn-outline-secondary rounded-3" data-bs-dismiss="modal">Đóng</button>
+                <button type="button" class="btn btn-primary rounded-3 px-4 fw-semibold" id="btnSendReplyEmail">
+                    <i class="bi bi-send me-1"></i> Gửi phản hồi Email
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        $(function () {
+            $('.btn-reply-email').on('click', function () {
+                const id = $(this).data('id');
+                const name = $(this).data('name') || 'Quý khách';
+                const email = $(this).data('email');
+                const msg = $(this).data('message') || '';
+
+                const subject = 'ReCar Hỗ trợ - Phản hồi liên hệ #' + id;
+                const body = 'Chào ' + name + ',\n\nCảm ơn bạn đã liên hệ với ReCar về nội dung:\n"' + msg + '"\n\nPhản hồi từ ReCar:\n\n\nTrân trọng,\nĐội ngũ CSKH ReCar';
+
+                const mailtoUrl = 'mailto:' + encodeURIComponent(email)
+                    + '?subject=' + encodeURIComponent(subject)
+                    + '&body=' + encodeURIComponent(body);
+
+                const gmailUrl = 'https://mail.google.com/mail/?view=cm&fs=1'
+                    + '&to=' + encodeURIComponent(email)
+                    + '&su=' + encodeURIComponent(subject)
+                    + '&body=' + encodeURIComponent(body);
+
+                // Đánh dấu đã xử lý/phản hồi trong DB
+                $.post('@Url.Action("MarkAsRead", "Contacts", new { area = "Admin" })', { id: id });
+
+                // Mở ứng dụng Email mặc định với sẵn người nhận, tiêu đề & nội dung
+                window.location.href = mailtoUrl;
+
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Đang mở trình gửi Email',
+                    html: 'Đã điền sẵn người nhận <strong>' + email + '</strong>.<br><span class="small text-muted">Nếu máy chưa cài ứng dụng Email mặc định, bạn có thể mở trực tiếp bằng Gmail Web bên dưới.</span>',
+                    showCancelButton: true,
+                    confirmButtonText: '<i class="bi bi-google me-1"></i> Mở bằng Gmail Web',
+                    cancelButtonText: 'Đóng & Cập nhật trạng thái',
+                    confirmButtonColor: '#0284c7'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        window.open(gmailUrl, '_blank');
+                    }
+                    location.reload();
+                });
+            });
+
+            $('.btn-mark-read').on('click', function () {
+                const id = $(this).data('id');
+                $.post('@Url.Action("MarkAsRead", "Contacts", new { area = "Admin" })', { id: id }, function (res) {
+                    if (res.success) location.reload();
+                });
+            });
+
+            $('.btn-delete-contact').on('click', function () {
+                const id = $(this).data('id');
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Xóa liên hệ này?',
+                    text: 'Thao tác này không thể hoàn tác.',
+                    showCancelButton: true,
+                    confirmButtonText: 'Xóa',
+                    cancelButtonText: 'Hủy',
+                    confirmButtonColor: '#dc2626'
+                }).then((r) => {
+                    if (r.isConfirmed) {
+                        $.post('@Url.Action("Delete", "Contacts", new { area = "Admin" })', { id: id }, function (res) {
+                            if (res.success) location.reload();
+                        });
+                    }
+                });
+            });
+        });
+    </script>
+}

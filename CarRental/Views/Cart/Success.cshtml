@@ -73,7 +73,7 @@
                             <div class="text-md-end">
                                 <span class="text-muted small d-block">Trạng thái thanh toán</span>
                                 <span class="badge bg-success rounded-pill px-3 py-1">
-                                    <i class="bi bi-shield-check me-1"></i> @(latestOrder.StatusId == 3 ? (remainAmt == 0 ? "Đã thanh toán 100% (VNPay)" : $"Đã thanh toán cọc {depositRate:0.#}% (VNPay)") : "Đã ghi nhận đơn đặt xe")
+                                    <i class="bi bi-shield-check me-1"></i> @(latestOrder.StatusId == 3 ? (remainAmt == 0 ? "Đã thanh toán 100% (ZaloPay / Ví ReCar)" : $"Đã thanh toán cọc {depositRate:0.#}% (ZaloPay / Ví ReCar)") : "Đã ghi nhận đơn đặt xe")
                                 </span>
                             </div>
                         </div>

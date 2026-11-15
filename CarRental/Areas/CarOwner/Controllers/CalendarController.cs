@@ -49,14 +49,6 @@ namespace CarRental.Areas.CarOwner.Controllers
                                      (accountId > 0 && a.CustomerId == accountId) ||
                                      (!string.IsNullOrEmpty(userEmail) && a.Email == userEmail && a.RoleId == 3));
 
-            if (customer == null)
-            {
-                customer = _context.Customers
-                    .Include(a => a.Role)
-                    .FirstOrDefault(a => a.CustomerId == 1022 && a.RoleId == 3)
-                    ?? _context.Customers.Include(a => a.Role).FirstOrDefault(a => a.RoleId == 3);
-            }
-
             return customer;
         }
 
@@ -110,6 +102,13 @@ namespace CarRental.Areas.CarOwner.Controllers
                 .OrderByDescending(o => o.OrderDate)
                 .ToList();
 
+            var sysSetting = _context.SystemSettings.FirstOrDefault();
+            int cfgCommPct = sysSetting?.CommissionPct ?? 10;
+            int cfgDepPct = sysSetting?.DepositPct ?? 30;
+            decimal defaultCommRate = cfgCommPct / 100m;
+            ViewBag.CommissionPct = cfgCommPct;
+            ViewBag.DepositPct = cfgDepPct;
+
             var calendarOrders = new List<CalendarOrderVm>();
             foreach (var ord in ordersRaw)
             {
@@ -126,7 +125,8 @@ namespace CarRental.Areas.CarOwner.Controllers
                     }
 
                     decimal total = WalletController.CalculateOrderTotal(ord);
-                    decimal ownerNet = Math.Round(total * 0.90m, 0);
+                    decimal fee = ord.PlatformFee ?? Math.Round(total * defaultCommRate, 0);
+                    decimal ownerNet = Math.Max(0m, total - fee);
 
                     calendarOrders.Add(new CalendarOrderVm
                     {

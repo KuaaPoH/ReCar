@@ -27,14 +27,6 @@ namespace CarRental.Areas.CarOwner.Controllers
                                      (accountId > 0 && a.CustomerId == accountId) ||
                                      (!string.IsNullOrEmpty(userEmail) && a.Email == userEmail && a.RoleId == 3));
 
-            if (customer == null)
-            {
-                customer = _context.Customers
-                    .Include(a => a.Role)
-                    .FirstOrDefault(a => a.CustomerId == 1022 && a.RoleId == 3)
-                    ?? _context.Customers.Include(a => a.Role).FirstOrDefault(a => a.RoleId == 3);
-            }
-
             return customer;
         }
 
@@ -151,6 +143,13 @@ namespace CarRental.Areas.CarOwner.Controllers
                 // Ignore if table not created yet
             }
 
+            var sysSetting = _context.SystemSettings.FirstOrDefault();
+            int cfgCommPct = sysSetting?.CommissionPct ?? 10;
+            int cfgDepPct = sysSetting?.DepositPct ?? 30;
+            decimal defaultCommRate = cfgCommPct / 100m;
+            ViewBag.CommissionPct = cfgCommPct;
+            ViewBag.DepositPct = cfgDepPct;
+
             var carRows = new List<CarPerformanceRowVm>();
             foreach (var c in filteredCars)
             {
@@ -174,6 +173,7 @@ namespace CarRental.Areas.CarOwner.Controllers
                 int tripsCount = 0;
                 int rentedDays = 0;
                 decimal grossRevenue = 0m;
+                decimal netRevenue = 0m;
 
                 foreach (var ord in ordersInRange)
                 {
@@ -195,7 +195,9 @@ namespace CarRental.Areas.CarOwner.Controllers
                             {
                                 tripsCount++;
                                 decimal orderTotal = WalletController.CalculateOrderTotal(ord);
+                                decimal orderFee = ord.PlatformFee ?? Math.Round(orderTotal * defaultCommRate, 0);
                                 grossRevenue += orderTotal;
+                                netRevenue += Math.Max(0m, orderTotal - orderFee);
                             }
                         }
                     }
@@ -203,7 +205,6 @@ namespace CarRental.Areas.CarOwner.Controllers
 
                 rentedDays = Math.Min(availableDays, rentedDays);
                 int occupancyPct = (int)Math.Round((rentedDays * 100.0) / availableDays);
-                decimal netRevenue = Math.Round(grossRevenue * 0.90m, 0);
 
                 var activeReviews = c.CarReviews.Where(r => r.IsActive != false && r.Star.HasValue).ToList();
                 double ratingAvg = activeReviews.Any()
@@ -261,6 +262,7 @@ namespace CarRental.Areas.CarOwner.Controllers
                 DateTime mStart = cursorMonth;
                 DateTime mEnd = new DateTime(cursorMonth.Year, cursorMonth.Month, DateTime.DaysInMonth(cursorMonth.Year, cursorMonth.Month));
                 decimal mGross = 0m;
+                decimal mNet = 0m;
 
                 foreach (var ord in ordersInRange.Where(o => o.StatusId == 5))
                 {
@@ -270,13 +272,16 @@ namespace CarRental.Areas.CarOwner.Controllers
                                   ?? today;
                     if (refDate >= mStart && refDate <= mEnd)
                     {
-                        mGross += WalletController.CalculateOrderTotal(ord);
+                        decimal oTotal = WalletController.CalculateOrderTotal(ord);
+                        decimal oFee = ord.PlatformFee ?? Math.Round(oTotal * defaultCommRate, 0);
+                        mGross += oTotal;
+                        mNet += Math.Max(0m, oTotal - oFee);
                     }
                 }
 
                 trendLabels.Add($"T{cursorMonth.Month}/{cursorMonth.Year % 100:D2}");
                 trendGross.Add(mGross);
-                trendNet.Add(Math.Round(mGross * 0.90m, 0));
+                trendNet.Add(mNet);
 
                 cursorMonth = cursorMonth.AddMonths(1);
             }

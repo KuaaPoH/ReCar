@@ -28,20 +28,12 @@ namespace CarRental.Areas.CarOwner.Controllers
                                      (accountId > 0 && a.CustomerId == accountId) ||
                                      (!string.IsNullOrEmpty(userEmail) && a.Email == userEmail && a.RoleId == 3));
 
-            if (customer == null)
-            {
-                customer = _context.Customers
-                    .Include(a => a.Role)
-                    .FirstOrDefault(a => a.CustomerId == 1022 && a.RoleId == 3)
-                    ?? _context.Customers.Include(a => a.Role).FirstOrDefault(a => a.RoleId == 3);
-            }
-
             return customer;
         }
 
         public static decimal CalculateOrderTotal(CarRentalOrder order)
         {
-            decimal total = order.Payment ?? 0m;
+            decimal total = (order.Deposit ?? 0m) + (order.Payment ?? 0m);
             if (total <= 0 && order.OrderDetails != null && order.OrderDetails.Any())
             {
                 foreach (var d in order.OrderDetails)
@@ -76,6 +68,12 @@ namespace CarRental.Areas.CarOwner.Controllers
             DateTime startDate = DateTime.TryParse(start, out var sDate) ? sDate.Date : new DateTime(DateTime.Today.Year, 1, 1);
             DateTime endDate = DateTime.TryParse(end, out var eDate) ? eDate.Date : DateTime.Today.AddMonths(1);
 
+            var sysSetting = _context.SystemSettings.FirstOrDefault();
+            int cfgDepositPct = sysSetting?.DepositPct ?? 30;
+            int cfgCommissionPct = sysSetting?.CommissionPct ?? 10;
+            decimal defaultDepRate = cfgDepositPct / 100m;
+            decimal defaultRemRate = (100 - cfgDepositPct) / 100m;
+
             var ownerCarIds = _context.Cars
                 .Where(c => c.OwnerId == owner.CustomerId)
                 .Select(c => c.CarId)
@@ -96,9 +94,9 @@ namespace CarRental.Areas.CarOwner.Controllers
                 .OrderByDescending(r => r.CreatedAt)
                 .FirstOrDefault(r => r.CustomerId == owner.CustomerId);
 
-            string bankName = registration?.BankName ?? owner.Bank ?? "Vietcombank";
-            string bankAccount = registration?.AccountNumber ?? owner.AccountNumber ?? "0071001234567";
-            string bankHolder = registration?.AccountHolder ?? (owner.FullName ?? owner.Name ?? "TRAN QUOC BAO").ToUpperInvariant();
+            string bankName = !string.IsNullOrWhiteSpace(registration?.BankName) ? registration.BankName : (!string.IsNullOrWhiteSpace(owner.Bank) ? owner.Bank : "Chưa liên kết ngân hàng");
+            string bankAccount = !string.IsNullOrWhiteSpace(registration?.AccountNumber) ? registration.AccountNumber : (!string.IsNullOrWhiteSpace(owner.AccountNumber) ? owner.AccountNumber : "Chưa cập nhật");
+            string bankHolder = !string.IsNullOrWhiteSpace(registration?.AccountHolder) ? registration.AccountHolder : (owner.FullName ?? owner.Name ?? "CHƯA CẬP NHẬT").ToUpperInvariant();
 
             // Xây dựng danh sách đơn đã hoàn thành (StatusId == 5) và đơn đang hoạt động (StatusId == 3, 4)
             var completedOrders = orders.Where(o => o.StatusId == 5).ToList();
@@ -126,6 +124,10 @@ namespace CarRental.Areas.CarOwner.Controllers
             .ThenByDescending(g => g.Key.Half)
             .ToList();
 
+            var ownerPaidPayouts = _context.PartnerPayouts
+                .Where(p => p.OwnerId == owner.CustomerId && p.Status == "paid")
+                .ToList();
+
             foreach (var grp in groupedByCycle)
             {
                 var cycleOrders = grp.ToList();
@@ -134,23 +136,31 @@ namespace CarRental.Areas.CarOwner.Controllers
                 DateTime periodEnd = new DateTime(grp.Key.Year, grp.Key.Month, grp.Key.Half == 1 ? 15 : daysInMonth);
 
                 string payoutId = $"PO-{grp.Key.Year}{grp.Key.Month:D2}-0{grp.Key.Half}";
+                string cycleKey = $"{grp.Key.Year}-{grp.Key.Month:D2}-0{grp.Key.Half}";
                 string periodLabel = $"{periodStart:dd/MM/yyyy} – {periodEnd:dd/MM/yyyy}";
 
-                // Xác định trạng thái kỳ đối soát:
-                // Nếu có đơn đang chạy (StatusId 3, 4) hoặc kỳ chưa kết thúc -> pending
-                // Nếu kỳ kết thúc trong vòng 3 ngày -> processing
-                // Nếu kỳ đã kết thúc hơn 3 ngày và tất cả đơn đã hoàn thành -> paid
+                // Kiểm tra trạng thái đối soát thật từ bảng partner_payouts (Admin đã xác nhận chuyển khoản)
+                var matchedDbPayout = ownerPaidPayouts.FirstOrDefault(p =>
+                    p.CycleKey == cycleKey ||
+                    p.SettlementCode == payoutId ||
+                    p.SettlementCode == $"{payoutId}-{owner.CustomerId}");
+
                 bool hasUnfinished = cycleOrders.Any(o => o.StatusId != 5);
                 double daysSinceEnd = (DateTime.Today - periodEnd).TotalDays;
 
-                string payoutStatus = "paid";
-                DateTime? paidAt = periodEnd.AddDays(2);
-                if (hasUnfinished || daysSinceEnd < 0)
+                string payoutStatus;
+                DateTime? paidAt;
+                if (matchedDbPayout != null)
+                {
+                    payoutStatus = "paid";
+                    paidAt = matchedDbPayout.PaidAt;
+                }
+                else if (hasUnfinished || daysSinceEnd < 0)
                 {
                     payoutStatus = "pending";
                     paidAt = null;
                 }
-                else if (daysSinceEnd <= 3)
+                else
                 {
                     payoutStatus = "processing";
                     paidAt = null;
@@ -164,9 +174,9 @@ namespace CarRental.Areas.CarOwner.Controllers
                 foreach (var ord in cycleOrders)
                 {
                     decimal total = CalculateOrderTotal(ord);
-                    decimal dep = ord.Deposit ?? Math.Round(total * 0.30m, 0);
-                    decimal rem = ord.Payment ?? Math.Round(total * 0.70m, 0);
-                    decimal feeRate = ord.PlatformFeeRate ?? 10.00m;
+                    decimal dep = ord.Deposit ?? Math.Round(total * defaultDepRate, 0);
+                    decimal rem = ord.Payment ?? Math.Round(total * defaultRemRate, 0);
+                    decimal feeRate = ord.PlatformFeeRate ?? cfgCommissionPct;
                     decimal fee = ord.PlatformFee ?? Math.Round(total * (feeRate / 100m), 0);
                     decimal ownerNet = total - fee;
                     decimal platformTransfer = dep - fee;
@@ -257,11 +267,11 @@ namespace CarRental.Areas.CarOwner.Controllers
             var earningTxsInPeriod = filteredTransactions.Where(t => t.Type == "earning").ToList();
 
             decimal grossInPeriod = earningTxsInPeriod.Sum(t => t.GrossAmount);
-            decimal depositInPeriod = Math.Round(grossInPeriod * 0.30m, 0);
-            decimal directInPeriod = Math.Round(grossInPeriod * 0.70m, 0);
-            decimal feeInPeriod = Math.Round(grossInPeriod * 0.10m, 0);
-            decimal netInPeriod = grossInPeriod - feeInPeriod;
-            decimal payoutFromPlatformInPeriod = depositInPeriod - feeInPeriod;
+            decimal depositInPeriod = earningTxsInPeriod.Sum(t => t.DepositAmount);
+            decimal directInPeriod = earningTxsInPeriod.Sum(t => t.DirectCollectAmount);
+            decimal feeInPeriod = earningTxsInPeriod.Sum(t => t.PlatformFee);
+            decimal netInPeriod = earningTxsInPeriod.Sum(t => t.NetAmount);
+            decimal payoutFromPlatformInPeriod = earningTxsInPeriod.Sum(t => t.PlatformPayoutAmount);
 
             decimal pendingBalance = payoutItems.Where(p => p.Status == "pending").Sum(p => p.Amount);
             decimal processingBalance = payoutItems.Where(p => p.Status == "processing").Sum(p => p.Amount);
@@ -285,6 +295,8 @@ namespace CarRental.Areas.CarOwner.Controllers
                 FeeInPeriod = feeInPeriod,
                 NetInPeriod = netInPeriod,
                 PayoutFromPlatformInPeriod = payoutFromPlatformInPeriod,
+                DepositPct = cfgDepositPct,
+                CommissionPct = cfgCommissionPct,
                 Transactions = filteredTransactions,
                 Payouts = filteredPayouts
             };
@@ -344,6 +356,8 @@ namespace CarRental.Areas.CarOwner.Controllers
         public decimal FeeInPeriod { get; set; }
         public decimal NetInPeriod { get; set; }
         public decimal PayoutFromPlatformInPeriod { get; set; }
+        public int DepositPct { get; set; } = 30;
+        public int CommissionPct { get; set; } = 10;
 
         public List<WalletTransactionVm> Transactions { get; set; } = new();
         public List<WalletPayoutVm> Payouts { get; set; } = new();

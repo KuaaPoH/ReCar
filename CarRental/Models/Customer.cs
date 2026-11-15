@@ -56,6 +56,8 @@ public partial class Customer
 
     public string? Bank { get; set; }
 
+    public decimal Balance { get; set; } = 0m;
+
     public string? CompanyName { get; set; }
 
     public string? Avartar { get; set; }
@@ -70,8 +72,6 @@ public partial class Customer
     public virtual Role? Role { get; set; }
 
     public virtual ICollection<CarRentalOrder> CarRentalOrders { get; set; } = new List<CarRentalOrder>();
-
-    public virtual ICollection<Contract> Contracts { get; set; } = new List<Contract>();
 
     public virtual ICollection<Car> Cars { get; set; } = new List<Car>();
 

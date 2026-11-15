@@ -5,67 +5,60 @@
     ViewData["Title"] = "Quản lý tài khoản cá nhân";
     Layout = "~/Views/Shared/_Layout.cshtml";
     List<CarRentalOrder> carRentalOrders = ViewBag.Order;
+    List<WalletTransaction> walletTransactions = ViewBag.WalletTransactions as List<WalletTransaction> ?? new List<WalletTransaction>();
     Customer existingCarOwnerAccount = ViewBag.ExistingCarOwnerAccount;
     CarOwnerRegistration existingCarOwnerReg = ViewBag.ExistingCarOwnerReg;
     var totalOrders = carRentalOrders?.Count ?? 0;
-    var totalSpent = carRentalOrders?.Where(o => o.StatusId == 3).Sum(o => o.Payment) ?? 0;
+    var totalSpent = carRentalOrders?.Where(o => o.StatusId == 3 || o.StatusId == 5).Sum(o => o.Payment) ?? 0;
     var pendingOrders = carRentalOrders?.Count(o => o.StatusId == 1) ?? 0;
+    bool isCarOwnerUser = Model.RoleId == 3 || existingCarOwnerAccount != null || Function.GetCarOwnerAccountId(Context.Session) > 0;
+    string displayFullName = !string.IsNullOrWhiteSpace(Model.FullName) ? Model.FullName : (!string.IsNullOrWhiteSpace(Model.Name) ? Model.Name : "Khách hàng");
+    var nameParts = displayFullName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+    string accountInitials = nameParts.Length >= 2 ? $"{nameParts[0][0]}{nameParts[^1][0]}".ToUpper() : displayFullName.Substring(0, Math.Min(2, displayFullName.Length)).ToUpper();
 }
 
-
-<!-- Header Breadcrumb -->
-<div class="recar-section bg-light py-4 border-bottom">
+<!-- Breadcrumb tối giản đồng bộ ReCar -->
+<div class="bg-white border-bottom py-3">
     <div class="container">
         <nav aria-label="breadcrumb">
-            <ol class="breadcrumb mb-2" style="font-size: 14px;">
+            <ol class="breadcrumb mb-0" style="font-size: 13.5px;">
                 <li class="breadcrumb-item"><a href="/" class="text-decoration-none text-muted">Trang chủ</a></li>
-                <li class="breadcrumb-item active text-primary fw-bold" aria-current="page">Trung tâm tài khoản</li>
+                <li class="breadcrumb-item active fw-semibold" style="color: #0284c7;" aria-current="page">Tài khoản của tôi</li>
             </ol>
         </nav>
-        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
-            <div>
-                <h2 class="fw-bold mb-1" style="color: var(--recar-dark);">Tài khoản khách hàng</h2>
-                <p class="text-muted mb-0">Quản lý lịch sử thuê xe, giấy tờ pháp lý và thiết lập thông tin cá nhân</p>
-            </div>
-            <div>
-                <span class="badge bg-primary-subtle text-primary px-3 py-2 rounded-pill fs-6">
-                    <i class="bi bi-person-check-fill me-1"></i> @Function.GetUserName(Context.Session)
-                </span>
-            </div>
-        </div>
     </div>
 </div>
 
-<div class="recar-section py-5">
+<div class="recar-section py-4 py-md-5" style="background-color: #f8fafc;">
     <div class="container">
         <div class="row g-4">
             <!-- Sidebar Navigation Tabs -->
             <div class="col-lg-3 col-md-4">
-                <div class="card border-0 shadow-sm rounded-4 p-3 bg-white sticky-top" style="top: 100px;">
+                <div class="card border shadow-sm rounded-4 p-3 bg-white sticky-top" style="top: 90px; border-color: #e2e8f0 !important;">
                     <div class="d-flex align-items-center gap-3 p-2 mb-3 border-bottom pb-3">
-                        <div class="position-relative">
+                        <div class="position-relative flex-shrink-0">
                             @if (!string.IsNullOrEmpty(Model.Avartar))
                             {
-                                <img id="sidebarAvatarImg" src="@Model.Avartar" alt="@Model.Name" class="rounded-circle object-fit-cover border border-2 border-primary shadow-sm" style="width: 56px; height: 56px;" />
+                                <img id="sidebarAvatarImg" src="@Model.Avartar" alt="@displayFullName" class="rounded-circle object-fit-cover border border-2 border-primary shadow-sm" style="width: 54px; height: 54px;" />
                             }
                             else
                             {
-                                <div id="sidebarAvatarPlaceholder" class="rounded-circle bg-primary text-white fs-4 d-flex align-items-center justify-content-center shadow-sm" style="width: 56px; height: 56px;">
-                                    <i class="bi bi-person-fill"></i>
+                                <div id="sidebarAvatarPlaceholder" class="rounded-circle text-white fw-bold d-flex align-items-center justify-content-center shadow-sm" style="width: 54px; height: 54px; background-color: #0f172a; font-size: 18px; letter-spacing: 0.5px;">
+                                    @accountInitials
                                 </div>
                             }
                             <button type="button" class="btn btn-primary btn-sm rounded-circle position-absolute bottom-0 end-0 p-0 d-flex align-items-center justify-content-center shadow-sm" 
-                                    style="width: 22px; height: 22px; transform: translate(15%, 15%);" 
+                                    style="width: 22px; height: 22px; transform: translate(15%, 15%); border: 2px solid #fff;" 
                                     onclick="$('#quickAvatarInput').click();" title="Đổi ảnh đại diện">
-                                <i class="bi bi-camera-fill" style="font-size: 11px;"></i>
+                                <i class="bi bi-camera-fill" style="font-size: 10px;"></i>
                             </button>
                             <input type="file" id="quickAvatarInput" accept="image/*" style="display:none;" />
                         </div>
                         <div class="overflow-hidden">
-                            <div class="fw-bold text-dark text-truncate">@Model.Name</div>
-                            <div class="text-muted small text-truncate">@Model.Email</div>
-                            <span class="badge bg-light text-primary border border-primary-subtle rounded-pill px-2 py-0.5 mt-1" style="font-size: 11px;">
-                                @(Model.RoleId == 3 ? "Chủ xe đối tác" : "Khách hàng ReCar")
+                            <div class="fw-bold text-dark text-truncate" style="font-size: 15px;">@displayFullName</div>
+                            <div class="text-muted small text-truncate" style="font-size: 12.5px;">@Model.Email</div>
+                            <span class="badge rounded-pill px-2 py-1 mt-1 fw-semibold" style="font-size: 11px; background-color: #e0f2fe; color: #0284c7;">
+                                @(isCarOwnerUser ? "Chủ xe đối tác" : "Khách hàng ReCar")
                             </span>
                         </div>
                     </div>
@@ -82,6 +75,11 @@
                                 <span class="badge bg-warning text-dark ms-auto rounded-pill">@pendingOrders</span>
                             }
                         </a>
+                        <a href="#wallet" class="nav-link" data-bs-toggle="tab">
+                            <i class="bi bi-wallet2"></i>
+                            <span>Số dư & Ví ReCar</span>
+                            <span class="badge bg-success-subtle text-success ms-auto rounded-pill" id="sidebarWalletBadge">@Model.Balance.ToString("N0") đ</span>
+                        </a>
                         <a href="#download" class="nav-link" data-bs-toggle="tab">
                             <i class="bi bi-person-vcard"></i>
                             <span>Giấy phép lái xe</span>
@@ -94,13 +92,16 @@
                             <span>Địa chỉ & Giao nhận</span>
                         </a>
                         <a href="#account-info" class="nav-link" data-bs-toggle="tab">
-                            <i class="bi bi-shield-lock"></i>
-                            <span>Bảo mật & Mật khẩu</span>
+                            <i class="bi bi-person-gear"></i>
+                            <span>Hồ sơ & Bảo mật</span>
                         </a>
-                        <a href="#car-owner-register" class="nav-link" data-bs-toggle="tab">
-                            <i class="bi bi-car-front-fill"></i>
-                            <span>Đăng ký làm Chủ xe</span>
-                        </a>
+                        @if (!isCarOwnerUser)
+                        {
+                            <a href="#car-owner-register" class="nav-link" data-bs-toggle="tab">
+                                <i class="bi bi-car-front-fill"></i>
+                                <span>Đăng ký làm Chủ xe</span>
+                            </a>
+                        }
                         <hr class="my-2">
                         <a asp-controller="Accounts" asp-action="Logout" class="nav-link text-danger">
                             <i class="bi bi-box-arrow-right text-danger"></i>
@@ -115,63 +116,81 @@
                 <div class="tab-content" id="myaccountContent">
                     <!-- 1. DASHBOARD TAB -->
                     <div class="tab-pane fade show active" id="dashboard" role="tabpanel">
-                        <!-- Hero Banner cá nhân -->
-                        <div class="card border-0 shadow-sm rounded-4 p-4 text-white mb-4" style="background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);">
-                            <h3 class="fw-bold mb-2">Xin chào, @(string.IsNullOrEmpty(Model.FullName) ? Model.Name : Model.FullName)! 👋</h3>
-                            <p class="mb-0 opacity-90">Chào mừng bạn quay trở lại với nền tảng ReCar. Quản lý hành trình di chuyển và đơn thuê xe ô tô của bạn dễ dàng và bảo mật.</p>
+                        <!-- Hero Banner cá nhân chuẩn Deep Navy ReCar -->
+                        <div class="card border-0 shadow-sm rounded-4 p-4 text-white mb-4" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);">
+                            <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+                                <div>
+                                    <span class="badge rounded-pill px-2.5 py-1 mb-2 fw-semibold" style="background: rgba(2, 132, 199, 0.25); color: #38bdf8; font-size: 11.5px;">
+                                        <i class="bi bi-shield-check me-1"></i>Tài khoản ReCar đã xác thực
+                                    </span>
+                                    <h3 class="fw-bold mb-1" style="font-size: 1.4rem;">Xin chào, @displayFullName</h3>
+                                    <p class="mb-0 text-white-50 small">Quản lý hồ sơ cá nhân, giấy phép lái xe và theo dõi các chuyến đi của bạn một cách bảo mật.</p>
+                                </div>
+                                <div class="d-flex gap-2 flex-shrink-0 flex-wrap">
+                                    <button type="button" class="btn btn-sm rounded-pill px-3 py-2 fw-semibold text-white" style="background: rgba(16,185,129,0.22); border: 1px solid rgba(52,211,153,0.4);" onclick="document.querySelector('.account-sidebar-menu a[href=&quot;#wallet&quot;]').click();">
+                                        <i class="bi bi-wallet2 me-1"></i>Ví: @Model.Balance.ToString("N0") đ
+                                    </button>
+                                    <button type="button" class="btn btn-sm rounded-pill px-3 py-2 fw-semibold text-white" style="background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2);" onclick="document.querySelector('.account-sidebar-menu a[href=&quot;#account-info&quot;]').click();">
+                                        <i class="bi bi-pencil-square me-1"></i>Sửa hồ sơ
+                                    </button>
+                                    <a href="/Product" class="btn btn-primary btn-sm rounded-pill px-3 py-2 fw-semibold">
+                                        <i class="bi bi-car-front me-1"></i>Thuê xe ngay
+                                    </a>
+                                </div>
+                            </div>
                         </div>
 
                         <!-- 4 Thẻ thống kê chỉ số -->
                         <div class="row g-3 mb-4">
                             <div class="col-sm-6 col-xl-3">
-                                <div class="stat-metric-card">
-                                    <div class="d-flex align-items-center justify-content-between mb-2">
-                                        <span class="text-muted small fw-semibold">Tổng chuyến đi</span>
-                                        <div class="stat-metric-icon bg-primary-subtle text-primary">
+                                <div class="stat-metric-card h-100">
+                                    <div class="d-flex align-items-center justify-content-between gap-2 mb-2">
+                                        <span class="text-muted fw-semibold text-nowrap" style="font-size: 13px;">Tổng chuyến đi</span>
+                                        <div class="stat-metric-icon bg-primary-subtle text-primary flex-shrink-0" style="width: 36px; height: 36px; font-size: 16px;">
                                             <i class="bi bi-calendar2-check"></i>
                                         </div>
                                     </div>
                                     <div class="fs-3 fw-bold text-dark">@totalOrders</div>
-                                    <div class="text-muted small mt-1">Lần thuê xe</div>
+                                    <div class="text-muted small mt-1">Đơn thuê xe</div>
                                 </div>
                             </div>
 
                             <div class="col-sm-6 col-xl-3">
-                                <div class="stat-metric-card">
-                                    <div class="d-flex align-items-center justify-content-between mb-2">
-                                        <span class="text-muted small fw-semibold">Đã hoàn thành</span>
-                                        <div class="stat-metric-icon bg-success-subtle text-success">
+                                <div class="stat-metric-card h-100">
+                                    <div class="d-flex align-items-center justify-content-between gap-2 mb-2">
+                                        <span class="text-muted fw-semibold text-nowrap" style="font-size: 13px;">Tổng chi tiêu</span>
+                                        <div class="stat-metric-icon bg-success-subtle text-success flex-shrink-0" style="width: 36px; height: 36px; font-size: 16px;">
                                             <i class="bi bi-cash-stack"></i>
                                         </div>
                                     </div>
-                                    <div class="fs-4 fw-bold text-success">@totalSpent.ToString("N0") <span class="fs-6">đ</span></div>
-                                    <div class="text-muted small mt-1">Tổng tiền thanh toán</div>
+                                    <div class="fs-4 fw-bold text-success text-nowrap">@totalSpent.ToString("N0") <span class="fs-6">đ</span></div>
+                                    <div class="text-muted small mt-1">Đã thanh toán</div>
                                 </div>
                             </div>
 
                             <div class="col-sm-6 col-xl-3">
-                                <div class="stat-metric-card">
-                                    <div class="d-flex align-items-center justify-content-between mb-2">
-                                        <span class="text-muted small fw-semibold">Đang xử lý</span>
-                                        <div class="stat-metric-icon bg-warning-subtle text-warning">
+                                <div class="stat-metric-card h-100">
+                                    <div class="d-flex align-items-center justify-content-between gap-2 mb-2">
+                                        <span class="text-muted fw-semibold text-nowrap" style="font-size: 13px;">Đang xử lý</span>
+                                        <div class="stat-metric-icon bg-warning-subtle text-warning flex-shrink-0" style="width: 36px; height: 36px; font-size: 16px;">
                                             <i class="bi bi-hourglass-split"></i>
                                         </div>
                                     </div>
                                     <div class="fs-3 fw-bold text-warning">@pendingOrders</div>
-                                    <div class="text-muted small mt-1">Đơn đang chờ duyệt</div>
+                                    <div class="text-muted small mt-1">Đơn chờ duyệt</div>
                                 </div>
                             </div>
 
                             <div class="col-sm-6 col-xl-3">
-                                <div class="stat-metric-card">
-                                    <div class="d-flex align-items-center justify-content-between mb-2">
-                                        <span class="text-muted small fw-semibold">Vai trò</span>
-                                        <div class="stat-metric-icon bg-info-subtle text-info">
+                                <div class="stat-metric-card h-100">
+                                    <div class="d-flex align-items-center justify-content-between gap-2 mb-2">
+                                        <span class="text-muted fw-semibold text-nowrap" style="font-size: 13px;">Vai trò</span>
+                                        <div class="stat-metric-icon bg-info-subtle text-info flex-shrink-0" style="width: 36px; height: 36px; font-size: 16px;">
                                             <i class="bi bi-shield-check"></i>
                                         </div>
                                     </div>
-                                    <div class="fs-5 fw-bold text-dark">@(existingCarOwnerAccount != null ? "Chủ xe" : "Khách hàng")</div>
-                                    <div class="text-muted small mt-1">Phân quyền tài khoản</div>
+                                    <div class="fs-5 fw-bold text-dark">@(isCarOwnerUser ? "Chủ xe" : "Khách hàng")</div>
+                                    <div class="text-muted small mt-1">Phân quyền</div>
                                 </div>
                             </div>
                         </div>
@@ -545,6 +564,98 @@
                         </div>
                     </div>
 
+                    <!-- 2B. WALLET & BALANCE TAB -->
+                    <div class="tab-pane fade" id="wallet" role="tabpanel">
+                        <div class="card border-0 shadow-sm rounded-4 p-4 mb-4" style="background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%); color: #fff;">
+                            <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+                                <div>
+                                    <div class="text-white-50 small fw-semibold mb-1">
+                                        <i class="bi bi-shield-lock me-1"></i>Số dư Ví ReCar khả dụng
+                                    </div>
+                                    <h2 class="fw-bold mb-1" id="walletBalanceDisplay">@Model.Balance.ToString("N0") đ</h2>
+                                    <p class="mb-0 text-white-50 small">Tiền hoàn cọc khi hủy đơn được cộng vào đây. Bạn có thể dùng để thanh toán thuê xe hoặc rút về tài khoản ngân hàng.</p>
+                                </div>
+                                <div class="d-flex gap-2 flex-shrink-0">
+                                    <button type="button" class="btn btn-light text-primary fw-bold rounded-pill px-4 py-2 shadow-sm" data-bs-toggle="modal" data-bs-target="#withdrawModal">
+                                        <i class="bi bi-bank me-1"></i> Rút tiền về ngân hàng
+                                    </button>
+                                    <a href="/Product" class="btn btn-outline-light fw-semibold rounded-pill px-3 py-2">
+                                        <i class="bi bi-car-front me-1"></i> Thuê xe ngay
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card border-0 shadow-sm rounded-4 p-4">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h5 class="fw-bold mb-0"><i class="bi bi-clock-history text-primary me-2"></i>Lịch sử giao dịch Ví</h5>
+                                <span class="badge bg-light text-secondary border rounded-pill px-3 py-2">@walletTransactions.Count giao dịch gần nhất</span>
+                            </div>
+
+                            @if (walletTransactions.Any())
+                            {
+                                <div class="table-responsive">
+                                    <table class="table table-hover align-middle mb-0" style="font-size: 14px;">
+                                        <thead class="table-light text-secondary">
+                                            <tr>
+                                                <th>Thời gian</th>
+                                                <th>Loại giao dịch</th>
+                                                <th>Nội dung</th>
+                                                <th class="text-end">Số tiền</th>
+                                                <th class="text-center">Trạng thái</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var tx in walletTransactions)
+                                            {
+                                                bool isIncome = tx.Type == "refund" || tx.Type == "deposit";
+                                                string typeLabel = tx.Type switch
+                                                {
+                                                    "refund" => "Hoàn tiền cọc",
+                                                    "payment" => "Thanh toán thuê xe",
+                                                    "withdraw" => "Rút về ngân hàng",
+                                                    _ => "Giao dịch ví"
+                                                };
+                                                string statusBadge = tx.Status switch
+                                                {
+                                                    "completed" => "bg-success-subtle text-success",
+                                                    "pending" => "bg-warning-subtle text-warning-emphasis",
+                                                    "rejected" => "bg-danger-subtle text-danger",
+                                                    _ => "bg-secondary-subtle text-secondary"
+                                                };
+                                                string statusText = tx.Status switch
+                                                {
+                                                    "completed" => "Hoàn tất",
+                                                    "pending" => "Chờ duyệt chuyển",
+                                                    "rejected" => "Đã từ chối",
+                                                    _ => tx.Status
+                                                };
+                                                <tr>
+                                                    <td class="text-muted text-nowrap">@tx.CreatedAt.ToString("dd/MM/yyyy HH:mm")</td>
+                                                    <td class="fw-semibold text-dark text-nowrap">@typeLabel</td>
+                                                    <td class="text-secondary">@tx.Description</td>
+                                                    <td class="text-end fw-bold text-nowrap @(isIncome ? "text-success" : "text-danger")">
+                                                        @(isIncome ? "+" : "-")@tx.Amount.ToString("N0") đ
+                                                    </td>
+                                                    <td class="text-center">
+                                                        <span class="badge @statusBadge rounded-pill px-2.5 py-1">@statusText</span>
+                                                    </td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="text-center py-5 text-muted">
+                                    <i class="bi bi-wallet2 fs-1 d-block mb-2 opacity-50"></i>
+                                    <p class="mb-0">Chưa có giao dịch ví nào. Khi có đơn hủy được hoàn cọc hoặc thanh toán bằng số dư, lịch sử sẽ hiển thị tại đây.</p>
+                                </div>
+                            }
+                        </div>
+                    </div>
+
                     <!-- 6. CAR OWNER REGISTER TAB -->
                     <div class="tab-pane fade" id="car-owner-register" role="tabpanel">
                         <div class="card border-0 shadow-sm rounded-4 p-4">
@@ -629,6 +740,46 @@
                         </div>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Rút tiền từ Ví ReCar -->
+<div class="modal fade" id="withdrawModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header border-bottom px-4 py-3">
+                <h5 class="modal-title fw-bold mb-0"><i class="bi bi-bank text-primary me-2"></i>Rút tiền về tài khoản ngân hàng</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+            </div>
+            <div class="modal-body p-4">
+                @Html.AntiForgeryToken()
+                <div class="alert alert-info border-0 small mb-3 rounded-3">
+                    Số dư khả dụng hiện tại: <strong id="modalAvailableBalance">@Model.Balance.ToString("N0") đ</strong>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold">Số tiền muốn rút (VNĐ) <span class="text-danger">*</span></label>
+                    <input type="number" id="wdAmount" class="form-control rounded-3" min="10000" step="1000" max="@((long)Model.Balance)" value="@((long)Model.Balance)" placeholder="Tối thiểu 10.000 đ" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold">Tên ngân hàng <span class="text-danger">*</span></label>
+                    <input type="text" id="wdBankName" class="form-control rounded-3" value="@(Model.Bank ?? "")" placeholder="VD: Vietcombank, MB Bank, Techcombank..." />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold">Số tài khoản nhận tiền <span class="text-danger">*</span></label>
+                    <input type="text" id="wdBankAccount" class="form-control rounded-3" value="@(Model.AccountNumber ?? "")" placeholder="Nhập số tài khoản ngân hàng" />
+                </div>
+                <div class="mb-1">
+                    <label class="form-label small fw-semibold">Tên chủ tài khoản</label>
+                    <input type="text" id="wdAccountHolder" class="form-control rounded-3" value="@displayFullName" placeholder="Họ tên chủ tài khoản" />
+                </div>
+            </div>
+            <div class="modal-footer border-top px-4 py-3">
+                <button type="button" class="btn btn-light border rounded-pill px-3" data-bs-dismiss="modal">Đóng</button>
+                <button type="button" class="btn btn-primary rounded-pill px-4 fw-bold" id="btnSubmitWithdraw" onclick="submitWithdrawRequest()">
+                    Gửi yêu cầu rút tiền
+                </button>
             </div>
         </div>
     </div>
@@ -933,6 +1084,56 @@
                 icon.classList.remove('bi-eye-slash');
                 icon.classList.add('bi-eye');
             }
+        }
+    }
+
+    async function submitWithdrawRequest() {
+        const amount = parseFloat(document.getElementById('wdAmount').value || '0');
+        const bankName = (document.getElementById('wdBankName').value || '').trim();
+        const accountNumber = (document.getElementById('wdBankAccount').value || '').trim();
+        const accountHolder = (document.getElementById('wdAccountHolder').value || '').trim();
+        const token = document.querySelector('#withdrawModal input[name="__RequestVerificationToken"]')?.value || '';
+
+        if (!amount || amount < 10000) {
+            Swal.fire('Lưu ý', 'Số tiền rút tối thiểu là 10.000 đ.', 'warning');
+            return;
+        }
+        if (!bankName || !accountNumber) {
+            Swal.fire('Lưu ý', 'Vui lòng nhập đầy đủ tên ngân hàng và số tài khoản.', 'warning');
+            return;
+        }
+
+        const btn = document.getElementById('btnSubmitWithdraw');
+        btn.disabled = true;
+        btn.textContent = 'Đang gửi...';
+
+        try {
+            const body = new URLSearchParams();
+            body.append('amount', amount);
+            body.append('bankName', bankName);
+            body.append('accountNumber', accountNumber);
+            body.append('accountHolder', accountHolder);
+            if (token) body.append('__RequestVerificationToken', token);
+
+            const res = await fetch('/Accounts/RequestWithdraw', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: body.toString()
+            });
+            const data = await res.json();
+            if (data.success) {
+                Swal.fire('Thành công', data.message, 'success').then(() => {
+                    window.location.href = '/Accounts/Index?tab=wallet';
+                });
+            } else {
+                Swal.fire('Không thể rút tiền', data.message || 'Có lỗi xảy ra.', 'error');
+                btn.disabled = false;
+                btn.textContent = 'Gửi yêu cầu rút tiền';
+            }
+        } catch (e) {
+            Swal.fire('Lỗi', 'Không thể kết nối máy chủ.', 'error');
+            btn.disabled = false;
+            btn.textContent = 'Gửi yêu cầu rút tiền';
         }
     }
     </script>

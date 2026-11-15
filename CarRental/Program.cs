@@ -31,7 +31,7 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.AccessDeniedPath = "/AccessDenied";
     });
 
-builder.Services.AddSingleton<IVnpayServices,VnPayService>();
+builder.Services.AddHttpClient<IZaloPayService, ZaloPayService>();
 builder.Services.AddScoped<CarRental.Services.INotificationService, CarRental.Services.NotificationService>();
 builder.Services.AddSignalR();
 var app = builder.Build();
@@ -173,50 +173,6 @@ static void EnsureAllTablesExist(DbRenalCarContext context, ILogger logger)
                 CONSTRAINT `FK_CarReviews_Cars` FOREIGN KEY (`CarID`) REFERENCES `Cars` (`CarID`) ON DELETE RESTRICT ON UPDATE RESTRICT
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;" },
             
-            { "ContractDetails", @"CREATE TABLE IF NOT EXISTS `ContractDetails` (
-                `ContractDetailID` INT NOT NULL AUTO_INCREMENT,
-                `ContractID` INT NOT NULL,
-                `CarTypeID` INT NOT NULL,
-                `Quantity` INT NULL,
-                `Price` DECIMAL(18, 2) NULL,
-                `ReceiveDate` DATE NULL,
-                `ReturnDate` DATE NULL,
-                `Notes` LONGTEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL,
-                PRIMARY KEY (`ContractDetailID`),
-                INDEX `FK_ContractDetails_Contract` (`ContractID`),
-                INDEX `FK_ContractDetails_CarType` (`CarTypeID`),
-                CONSTRAINT `FK_ContractDetails_Contract` FOREIGN KEY (`ContractID`) REFERENCES `Contract` (`ContractID`) ON DELETE RESTRICT ON UPDATE RESTRICT,
-                CONSTRAINT `FK_ContractDetails_CarType` FOREIGN KEY (`CarTypeID`) REFERENCES `CarTypes` (`TypeID`) ON DELETE RESTRICT ON UPDATE RESTRICT
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;" },
-            
-            { "ContractSettlements", @"CREATE TABLE IF NOT EXISTS `ContractSettlements` (
-                `SettlementID` INT NOT NULL AUTO_INCREMENT,
-                `ContractID` INT NOT NULL,
-                `Date` DATE NULL,
-                `PaymentMethod` VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL,
-                `TotalCarsRented` INT NULL,
-                `AdvancePayment` DECIMAL(18, 2) NULL,
-                `TotalPayment` DECIMAL(18, 2) NULL,
-                `PaidAmount` DECIMAL(18, 2) NULL,
-                `Notes` LONGTEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL,
-                PRIMARY KEY (`SettlementID`),
-                INDEX `FK_ContractSettlements_Contract` (`ContractID`),
-                CONSTRAINT `FK_ContractSettlements_Contract` FOREIGN KEY (`ContractID`) REFERENCES `Contract` (`ContractID`) ON DELETE RESTRICT ON UPDATE RESTRICT
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;" },
-            
-            { "ContractSettlementDetails", @"CREATE TABLE IF NOT EXISTS `ContractSettlementDetails` (
-                `SettlementDetailID` INT NOT NULL AUTO_INCREMENT,
-                `SettlementID` INT NOT NULL,
-                `CarID` INT NOT NULL,
-                `ReceiveDate` DATE NULL,
-                `ReturnDate` DATE NULL,
-                `Price` DECIMAL(18, 2) NULL,
-                `Total` DECIMAL(18, 2) NULL,
-                PRIMARY KEY (`SettlementDetailID`),
-                INDEX `FK_ContractSettlementDetails_Settlement` (`SettlementID`),
-                CONSTRAINT `FK_ContractSettlementDetails_Settlement` FOREIGN KEY (`SettlementID`) REFERENCES `ContractSettlements` (`SettlementID`) ON DELETE RESTRICT ON UPDATE RESTRICT
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;" },
-            
             { "OrderDetails", @"CREATE TABLE IF NOT EXISTS `OrderDetails` (
                 `OrderDetailID` INT NOT NULL AUTO_INCREMENT,
                 `OrderID` INT NOT NULL,
@@ -229,14 +185,6 @@ static void EnsureAllTablesExist(DbRenalCarContext context, ILogger logger)
                 PRIMARY KEY (`OrderDetailID`),
                 INDEX `FK_OrderDetails_Order` (`OrderID`),
                 CONSTRAINT `FK_OrderDetails_Order` FOREIGN KEY (`OrderID`) REFERENCES `CarRentalOrders` (`OrderID`) ON DELETE RESTRICT ON UPDATE RESTRICT
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;" },
-            
-            { "Users", @"CREATE TABLE IF NOT EXISTS `Users` (
-                `UserID` INT NOT NULL AUTO_INCREMENT,
-                `UserName` VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL,
-                `Email` VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL,
-                `Password` VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL,
-                PRIMARY KEY (`UserID`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;" },
             
             { "carowner_registrations", @"CREATE TABLE IF NOT EXISTS `carowner_registrations` (
@@ -601,6 +549,151 @@ static void EnsureAllTablesExist(DbRenalCarContext context, ILogger logger)
         catch (Exception newsEx)
         {
             logger.LogWarning("Kiểm tra/cập nhật schema news: {msg}", newsEx.Message);
+        }
+
+        // Tự động bổ sung cột Latitude, Longitude cho bảng cars và đồng bộ 34 tỉnh/thành mới của Việt Nam
+        try
+        {
+            var carConn = context.Database.GetDbConnection();
+            bool carNeedClose = carConn.State != System.Data.ConnectionState.Open;
+            if (carNeedClose) carConn.Open();
+            try
+            {
+                var carCols = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                using (var cmd = carConn.CreateCommand())
+                {
+                    cmd.CommandText = "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'cars' AND COLUMN_NAME IN ('Latitude', 'Longitude');";
+                    using var reader = cmd.ExecuteReader();
+                    while (reader.Read()) carCols.Add(reader.GetString(0));
+                }
+
+                if (!carCols.Contains("Latitude"))
+                {
+                    using var alterCmd = carConn.CreateCommand();
+                    alterCmd.CommandText = "ALTER TABLE `cars` ADD COLUMN `Latitude` DOUBLE NULL;";
+                    alterCmd.ExecuteNonQuery();
+                }
+
+                if (!carCols.Contains("Longitude"))
+                {
+                    using var alterCmd = carConn.CreateCommand();
+                    alterCmd.CommandText = "ALTER TABLE `cars` ADD COLUMN `Longitude` DOUBLE NULL;";
+                    alterCmd.ExecuteNonQuery();
+                }
+            }
+            finally
+            {
+                if (carNeedClose && carConn.State == System.Data.ConnectionState.Open) carConn.Close();
+            }
+
+            // Cập nhật địa điểm cũ sang đơn vị hành chính mới của Việt Nam (34 tỉnh/thành phố từ 07/2025)
+            var existingLocs = context.Locations.ToList();
+            var renameMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["Vũng Tàu (Bà Rịa)"] = "Vũng Tàu (TP. Hồ Chí Minh)",
+                ["Huế (Thừa Thiên Huế)"] = "Thành phố Huế",
+                ["Quy Nhơn (Bình Định)"] = "Quy Nhơn (Gia Lai)",
+                ["Phan Thiết (Bình Thuận)"] = "Phan Thiết (Lâm Đồng)",
+                ["Phú Quốc (Kiên Giang)"] = "Phú Quốc (An Giang)"
+            };
+            bool locChanged = false;
+            foreach (var loc in existingLocs)
+            {
+                if (!string.IsNullOrEmpty(loc.CityName) && renameMap.TryGetValue(loc.CityName.Trim(), out var newName))
+                {
+                    loc.CityName = newName;
+                    locChanged = true;
+                }
+            }
+
+            int nextOrder = existingLocs.Any() ? existingLocs.Max(l => l.DisplayOrder) + 1 : 1;
+            foreach (var prov in CarRental.Utilities.VietnamLocations.Provinces)
+            {
+                bool exists = existingLocs.Any(l =>
+                    l.CityName.Equals(prov.Name, StringComparison.OrdinalIgnoreCase) ||
+                    l.CityName.Contains(prov.Name, StringComparison.OrdinalIgnoreCase));
+                if (!exists)
+                {
+                    context.Locations.Add(new CarRental.Models.Location
+                    {
+                        CityName = prov.Name,
+                        Region = prov.Region,
+                        IsPopular = prov.IsPopular,
+                        DisplayOrder = nextOrder++,
+                        IsActive = prov.IsPopular
+                    });
+                    locChanged = true;
+                }
+            }
+            if (locChanged) context.SaveChanges();
+        }
+        catch (Exception carLocEx)
+        {
+            logger.LogWarning("Kiểm tra/cập nhật tọa độ xe & địa điểm VN mới: {msg}", carLocEx.Message);
+        }
+
+        // Tự động tạo bảng partner_payouts để liên kết đối soát giữa Admin và Ví Chủ xe
+        try
+        {
+            context.Database.ExecuteSqlRaw(@"
+                CREATE TABLE IF NOT EXISTS `partner_payouts` (
+                    `PayoutId` INT NOT NULL AUTO_INCREMENT,
+                    `SettlementCode` VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+                    `OwnerId` INT NOT NULL,
+                    `CycleKey` VARCHAR(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL,
+                    `Period` VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL,
+                    `Amount` DECIMAL(18, 2) NOT NULL DEFAULT 0.00,
+                    `Status` VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'paid',
+                    `PaidAt` DATETIME NOT NULL,
+                    `ConfirmedBy` VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL,
+                    PRIMARY KEY (`PayoutId`),
+                    UNIQUE INDEX `UX_partner_payouts_code` (`SettlementCode`),
+                    INDEX `IX_partner_payouts_owner` (`OwnerId`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;");
+        }
+        catch (Exception payoutEx)
+        {
+            logger.LogWarning("Kiểm tra/tạo bảng partner_payouts: {msg}", payoutEx.Message);
+        }
+
+        // Tự động bổ sung cột Balance cho customers và tạo bảng wallet_transactions cho Ví người dùng
+        try
+        {
+            var connWallet = context.Database.GetDbConnection();
+            if (connWallet.State != System.Data.ConnectionState.Open) connWallet.Open();
+            using (var cmd = connWallet.CreateCommand())
+            {
+                cmd.CommandText = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'customers' AND COLUMN_NAME = 'Balance';";
+                var colCount = Convert.ToInt32(cmd.ExecuteScalar());
+                if (colCount == 0)
+                {
+                    context.Database.ExecuteSqlRaw("ALTER TABLE `customers` ADD COLUMN `Balance` DECIMAL(18, 2) NOT NULL DEFAULT 0.00;");
+                }
+            }
+
+            context.Database.ExecuteSqlRaw(@"
+                CREATE TABLE IF NOT EXISTS `wallet_transactions` (
+                    `TransactionId` INT NOT NULL AUTO_INCREMENT,
+                    `CustomerId` INT NOT NULL,
+                    `OrderId` INT NULL,
+                    `Type` VARCHAR(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+                    `Amount` DECIMAL(18, 2) NOT NULL DEFAULT 0.00,
+                    `BalanceAfter` DECIMAL(18, 2) NOT NULL DEFAULT 0.00,
+                    `Description` VARCHAR(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '',
+                    `BankName` VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL,
+                    `BankAccount` VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL,
+                    `AccountHolder` VARCHAR(150) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL,
+                    `Status` VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'completed',
+                    `CreatedAt` DATETIME NOT NULL,
+                    `ProcessedAt` DATETIME NULL,
+                    PRIMARY KEY (`TransactionId`),
+                    INDEX `IX_wallet_transactions_customer` (`CustomerId`),
+                    INDEX `IX_wallet_transactions_order` (`OrderId`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;");
+        }
+        catch (Exception walletEx)
+        {
+            logger.LogWarning("Kiểm tra/tạo bảng wallet_transactions: {msg}", walletEx.Message);
         }
 
         // Tự động Seed cấu hình hệ thống mặc định nếu bảng system_settings chưa có dữ liệu

@@ -7,8 +7,13 @@
     var recentCars = ViewBag.RecentCars as List<Car> ?? new List<Car>();
     var recentOrders = ViewBag.RecentOrders as List<OrderDetail> ?? new List<OrderDetail>();
     decimal totalRevenue = ViewBag.TotalRevenue ?? 0;
-    decimal netRevenue = ViewBag.NetRevenue ?? (totalRevenue * 0.9m);
-    decimal heldDeposits = ViewBag.HeldDeposits ?? (totalRevenue * 0.3m);
+    decimal netRevenue = ViewBag.NetRevenue ?? 0;
+    decimal heldDeposits = ViewBag.HeldDeposits ?? 0;
+
+    decimal monthGross = ViewBag.MonthGross ?? 0;
+    decimal monthNet = ViewBag.MonthNet ?? 0;
+    decimal monthHeldDeposits = ViewBag.MonthHeldDeposits ?? 0;
+    double? growthPercent = ViewBag.GrowthPercent as double?;
 
     int totalCars = ViewBag.TotalCars ?? 0;
     int activeCars = ViewBag.ActiveCars ?? 0;
@@ -18,19 +23,27 @@
     int totalOrders = ViewBag.TotalOrders ?? 0;
     int completedOrders = ViewBag.CompletedOrders ?? 0;
     int processingOrders = ViewBag.ProcessingOrders ?? 0;
-    int completionRate = (completedOrders + processingOrders) > 0 ? (int)Math.Round((double)completedOrders / (completedOrders + processingOrders) * 100) : 89;
+    int completionRate = (completedOrders + processingOrders) > 0 ? (int)Math.Round((double)completedOrders / (completedOrders + processingOrders) * 100) : 0;
+
+    int reviewCount = ViewBag.ReviewCount ?? 0;
+    double avgRating = ViewBag.AvgRating ?? 0.0;
+    int positiveRate = ViewBag.PositiveRate ?? 0;
+
+    string chartLabelsJson = ViewBag.ChartLabelsJson as string ?? "[]";
+    string chartGrossJson = ViewBag.ChartGrossJson as string ?? "[]";
+    string chartNetJson = ViewBag.ChartNetJson as string ?? "[]";
 }
 
 <!-- CDN Chart.js cho biểu đồ doanh thu mượt mà -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-<!-- Header Chào mừng (Loại bỏ nút Thêm mới xe theo yêu cầu) -->
+<!-- Header Chào mừng -->
 <div class="mb-4">
-    <h1 class="h4 fw-bold text-dark tracking-tight mb-1" style="font-size: 1.35rem;">Chào mừng trở lại 👋</h1>
+    <h1 class="h4 fw-bold text-dark tracking-tight mb-1" style="font-size: 1.35rem;">Chào mừng trở lại</h1>
     <p class="text-muted small mb-0" style="font-size: 0.8125rem;">Tình hình kinh doanh đội xe của bạn tính đến ngày @DateTime.Now.ToString("dd/MM/yyyy").</p>
 </div>
 
-<!-- 4 Thẻ KPI thống kê chuẩn ReCar Host Pro Khớp 100% Ảnh 3 -->
+<!-- 4 Thẻ KPI thống kê (Dữ liệu thật 100% từ CSDL) -->
 <div class="row g-4 mb-4">
     <!-- KPI 1: Thu nhập thực nhận -->
     <div class="col-12 col-sm-6 col-xl-3">
@@ -41,26 +54,37 @@
                         <i data-lucide="wallet" style="width: 20px; height: 20px; stroke-width: 1.8;"></i>
                     </span>
                     <div class="bg-light p-1 rounded-2 d-inline-flex" style="font-size: 0.72rem; background-color: #f1f5f9 !important;">
-                        <button type="button" class="btn btn-sm bg-white px-2 py-0.5 rounded shadow-sm fw-bold text-dark border-0" style="font-size: 11.5px;">Tháng này</button>
-                        <button type="button" class="btn btn-sm text-muted px-2 py-0.5 border-0" style="font-size: 11.5px;">Toàn bộ</button>
+                        <button type="button" id="btnRevMonth" onclick="switchRevenueScope('month')" class="btn btn-sm bg-white px-2 py-0.5 rounded shadow-sm fw-bold text-dark border-0" style="font-size: 11.5px;">Tháng này</button>
+                        <button type="button" id="btnRevAll" onclick="switchRevenueScope('all')" class="btn btn-sm text-muted px-2 py-0.5 border-0" style="font-size: 11.5px;">Toàn bộ</button>
                     </div>
                 </div>
                 <div class="text-muted small" style="font-size: 13.5px; margin-bottom: 2px;">Thu nhập thực nhận</div>
-                <div class="fw-bold text-dark mb-1" style="font-size: 26px; letter-spacing: -0.5px; line-height: 1.2;">
-                    @(netRevenue > 0 ? netRevenue.ToString("N0") : "1.863.000") đ
+                <div id="kpiNetRevenue" class="fw-bold text-dark mb-1" style="font-size: 26px; letter-spacing: -0.5px; line-height: 1.2;">
+                    @monthNet.ToString("N0") đ
                 </div>
-                <div class="text-danger fw-semibold d-flex align-items-center gap-1" style="font-size: 12px; margin-top: 4px;">
-                    <i data-lucide="arrow-down-right" style="width: 14px; height: 14px; stroke-width: 2.5;"></i> 70.6% so với tháng trước
-                </div>
+                @if (growthPercent.HasValue)
+                {
+                    bool isUp = growthPercent.Value >= 0;
+                    <div id="kpiGrowthBadge" class="@(isUp ? "text-success" : "text-danger") fw-semibold d-flex align-items-center gap-1" style="font-size: 12px; margin-top: 4px;">
+                        <i data-lucide="@(isUp ? "arrow-up-right" : "arrow-down-right")" style="width: 14px; height: 14px; stroke-width: 2.5;"></i>
+                        @(isUp ? "+" : "")@growthPercent.Value.ToString("0.#")% so với tháng trước
+                    </div>
+                }
+                else
+                {
+                    <div id="kpiGrowthBadge" class="text-muted fw-medium d-flex align-items-center gap-1" style="font-size: 12px; margin-top: 4px;">
+                        Chưa có dữ liệu tháng trước
+                    </div>
+                }
             </div>
             <div class="border-top pt-2.5 mt-3 text-muted" style="font-size: 12.5px; border-color: #f1f5f9 !important;">
                 <div class="d-flex justify-content-between py-1">
                     <span>Doanh thu giao dịch</span>
-                    <span class="fw-semibold text-dark font-monospace">@(totalRevenue > 0 ? totalRevenue.ToString("N0") : "2.070.000") đ</span>
+                    <span id="kpiGrossRevenue" class="fw-semibold text-dark font-monospace">@monthGross.ToString("N0") đ</span>
                 </div>
                 <div class="d-flex justify-content-between py-1">
                     <span>Cọc sàn đang giữ</span>
-                    <span class="fw-semibold text-dark font-monospace">@(heldDeposits > 0 ? heldDeposits.ToString("N0") : "2.736.000") đ</span>
+                    <span id="kpiHeldDeposits" class="fw-semibold text-dark font-monospace">@monthHeldDeposits.ToString("N0") đ</span>
                 </div>
                 <div class="text-muted" style="font-size: 11px; margin-top: 1px;">(không tính vào thu nhập)</div>
             </div>
@@ -78,21 +102,21 @@
                 </div>
                 <div class="text-muted small" style="font-size: 13.5px; margin-bottom: 2px;">Xe đang quản lý</div>
                 <div class="fw-bold text-dark mb-1" style="font-size: 28px; letter-spacing: -0.5px; line-height: 1.2;">
-                    @(totalCars > 0 ? totalCars : 5)
+                    @totalCars
                 </div>
             </div>
             <div class="border-top pt-2.5 mt-3 text-muted" style="font-size: 12.5px; border-color: #f1f5f9 !important;">
                 <div class="d-flex justify-content-between py-1">
                     <span>Sẵn sàng</span>
-                    <span class="fw-semibold text-dark">@(activeCars > 0 ? activeCars : 2)</span>
+                    <span class="fw-semibold text-dark">@activeCars</span>
                 </div>
                 <div class="d-flex justify-content-between py-1">
                     <span>Đang được thuê</span>
-                    <span class="fw-semibold text-dark">@(busyCars > 0 ? busyCars : 1)</span>
+                    <span class="fw-semibold text-dark">@busyCars</span>
                 </div>
                 <div class="d-flex justify-content-between py-1">
                     <span>Chờ duyệt / Tạm ngừng</span>
-                    <span class="fw-semibold text-dark">@(otherCars > 0 ? otherCars : 1)</span>
+                    <span class="fw-semibold text-dark">@otherCars</span>
                 </div>
             </div>
         </div>
@@ -109,13 +133,13 @@
                 </div>
                 <div class="text-muted small" style="font-size: 13.5px; margin-bottom: 2px;">Chuyến hoàn thành</div>
                 <div class="fw-bold text-dark mb-1" style="font-size: 28px; letter-spacing: -0.5px; line-height: 1.2;">
-                    @(completedOrders > 0 ? completedOrders : 8)
+                    @completedOrders
                 </div>
             </div>
             <div class="border-top pt-2.5 mt-3 text-muted" style="font-size: 12.5px; border-color: #f1f5f9 !important;">
                 <div class="d-flex justify-content-between py-1">
                     <span>Đơn đang xử lý</span>
-                    <span class="fw-semibold text-dark">@(processingOrders > 0 ? processingOrders : 3)</span>
+                    <span class="fw-semibold text-dark">@processingOrders</span>
                 </div>
                 <div class="d-flex justify-content-between py-1">
                     <span>Tỷ lệ hoàn tất</span>
@@ -136,17 +160,17 @@
                 </div>
                 <div class="text-muted small" style="font-size: 13.5px; margin-bottom: 2px;">Đánh giá trung bình</div>
                 <div class="fw-bold text-dark mb-1" style="font-size: 28px; letter-spacing: -0.5px; line-height: 1.2;">
-                    4.6 / 5
+                    @(reviewCount > 0 ? $"{avgRating:0.0} / 5" : "Chưa có")
                 </div>
             </div>
             <div class="border-top pt-2.5 mt-3 text-muted" style="font-size: 12.5px; border-color: #f1f5f9 !important;">
                 <div class="d-flex justify-content-between py-1">
                     <span>Lượt đánh giá</span>
-                    <span class="fw-semibold text-dark">5</span>
+                    <span class="fw-semibold text-dark">@reviewCount</span>
                 </div>
                 <div class="d-flex justify-content-between py-1">
                     <span>Hài lòng (≥ 4 sao)</span>
-                    <span class="fw-semibold text-dark">100%</span>
+                    <span class="fw-semibold text-dark">@(reviewCount > 0 ? $"{positiveRate}%" : "0%")</span>
                 </div>
             </div>
         </div>
@@ -160,7 +184,7 @@
         <div class="card-surface p-4 h-100">
             <div class="mb-3">
                 <h2 class="h5 fw-bold text-dark mb-1" style="font-size: 1.05rem;">Thu nhập 6 tháng gần nhất</h2>
-                <p class="text-muted mb-0" style="font-size: 0.78rem;">Thu nhập thực nhận = tổng tiền thuê của đơn hoàn tất – phí dịch vụ sàn 10%.</p>
+                <p class="text-muted mb-0" style="font-size: 0.78rem;">Thu nhập thực nhận = tổng tiền thuê của đơn hoàn tất – phí dịch vụ sàn @(ViewBag.CommissionPct ?? 10)%.</p>
             </div>
             <div style="height: 290px; position: relative;">
                 <canvas id="revenueChart"></canvas>
@@ -324,12 +348,43 @@
 </div>
 
 <script>
+    const revDataScope = {
+        month: {
+            net: '@monthNet.ToString("N0") đ',
+            gross: '@monthGross.ToString("N0") đ',
+            held: '@monthHeldDeposits.ToString("N0") đ'
+        },
+        all: {
+            net: '@netRevenue.ToString("N0") đ',
+            gross: '@totalRevenue.ToString("N0") đ',
+            held: '@heldDeposits.ToString("N0") đ'
+        }
+    };
+
+    function switchRevenueScope(scope) {
+        const d = revDataScope[scope];
+        if (!d) return;
+        document.getElementById('kpiNetRevenue').innerText = d.net;
+        document.getElementById('kpiGrossRevenue').innerText = d.gross;
+        document.getElementById('kpiHeldDeposits').innerText = d.held;
+
+        const btnM = document.getElementById('btnRevMonth');
+        const btnA = document.getElementById('btnRevAll');
+        if (scope === 'month') {
+            btnM.className = 'btn btn-sm bg-white px-2 py-0.5 rounded shadow-sm fw-bold text-dark border-0';
+            btnA.className = 'btn btn-sm text-muted px-2 py-0.5 border-0';
+        } else {
+            btnA.className = 'btn btn-sm bg-white px-2 py-0.5 rounded shadow-sm fw-bold text-dark border-0';
+            btnM.className = 'btn btn-sm text-muted px-2 py-0.5 border-0';
+        }
+    }
+
     document.addEventListener("DOMContentLoaded", function () {
         if (typeof lucide !== 'undefined') {
             lucide.createIcons();
         }
 
-        // Biểu đồ 6 tháng theo tông màu chuẩn ReCar cyan & dark blue
+        // Biểu đồ 6 tháng từ dữ liệu thật CSDL
         const ctx = document.getElementById('revenueChart');
         if (ctx) {
             const chartCtx = ctx.getContext('2d');
@@ -340,11 +395,11 @@
             new Chart(chartCtx, {
                 type: 'line',
                 data: {
-                    labels: ['T5', 'T6', 'T7', 'T8', 'T9', 'T10'],
+                    labels: @Html.Raw(chartLabelsJson),
                     datasets: [
                         {
                             label: 'Doanh thu giao dịch',
-                            data: [1.2, 2.5, 3.8, 4.2, 5.8, 6.4],
+                            data: @Html.Raw(chartGrossJson),
                             borderColor: '#38bdf8',
                             borderWidth: 2,
                             borderDash: [5, 4],
@@ -357,7 +412,7 @@
                         },
                         {
                             label: 'Thu nhập thực nhận',
-                            data: [1.0, 2.2, 3.4, 3.7, 5.1, 5.8],
+                            data: @Html.Raw(chartNetJson),
                             borderColor: '#0284c7',
                             borderWidth: 2.5,
                             backgroundColor: gradientNet,

@@ -57,6 +57,13 @@ namespace CarRental.Controllers
                 .OrderByDescending(r => r.CreatedAt)
                 .FirstOrDefault(r => r.CustomerId == customerId || r.Email == customer.Email);
             ViewBag.ExistingCarOwnerReg = existingCarOwnerReg;
+
+            ViewBag.WalletTransactions = _context.WalletTransactions
+                .Where(t => t.CustomerId == customerId)
+                .OrderByDescending(t => t.CreatedAt)
+                .ThenByDescending(t => t.TransactionId)
+                .Take(30)
+                .ToList();
             
             // Lưu returnUrl vào ViewBag nếu có
             if (!string.IsNullOrEmpty(returnUrl))
@@ -642,8 +649,39 @@ namespace CarRental.Controllers
                 return Json(new { success = false, message = "Đơn hàng đã được hủy." });
             }
 
+            if (order.StatusId == 4 || order.StatusId == 5)
+            {
+                return Json(new { success = false, message = "Không thể hủy đơn hàng khi xe đang bàn giao hoặc chuyến đi đã hoàn tất." });
+            }
+
+            int previousStatus = order.StatusId ?? 1;
+            decimal refundAmount = (previousStatus == 3 && (order.Deposit ?? 0m) > 0m) ? (order.Deposit ?? 0m) : 0m;
+
             // Cập nhật trạng thái đơn hàng thành "Đã hủy" (StatusId = 2)
             order.StatusId = 2;
+            if (refundAmount > 0)
+            {
+                string refundMsg = $"[Khách hủy đơn lúc {Function.NowVn:dd/MM/yyyy HH:mm} | Hoàn {refundAmount:N0} đ tiền cọc vào Ví ReCar]";
+                order.Notes = string.IsNullOrEmpty(order.Notes) ? refundMsg : $"{order.Notes} | {refundMsg}";
+
+                var customer = _context.Customers.FirstOrDefault(c => c.CustomerId == customerId);
+                if (customer != null)
+                {
+                    customer.Balance += refundAmount;
+                    _context.WalletTransactions.Add(new WalletTransaction
+                    {
+                        CustomerId = customer.CustomerId,
+                        OrderId = order.OrderId,
+                        Type = "refund",
+                        Amount = refundAmount,
+                        BalanceAfter = customer.Balance,
+                        Description = $"Hoàn tiền cọc khi hủy đơn #{order.OrderId}",
+                        Status = "completed",
+                        CreatedAt = Function.NowVn,
+                        ProcessedAt = Function.NowVn
+                    });
+                }
+            }
             _context.CarRentalOrders.Update(order);
 
             // Cập nhật trạng thái IsActive = true cho tất cả các xe trong đơn hàng để có thể thuê tiếp
@@ -660,8 +698,78 @@ namespace CarRental.Controllers
             // Lưu thay đổi vào cơ sở dữ liệu
             _context.SaveChanges();
 
+            string resMsg = refundAmount > 0
+                ? $"Đơn hàng đã được hủy và hoàn {refundAmount:N0} đ tiền cọc vào Số dư Ví ReCar của bạn."
+                : "Đơn hàng đã được hủy. Các xe đã được cập nhật về trạng thái có thể thuê.";
+
             // Trả về phản hồi thành công
-            return Json(new { success = true, message = "Đơn hàng đã được hủy. Các xe đã được cập nhật về trạng thái có thể thuê." });
+            return Json(new { success = true, message = resMsg });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult RequestWithdraw(decimal amount, string bankName, string accountNumber, string? accountHolder)
+        {
+            if (!Function.IsLogin(HttpContext.Session))
+            {
+                return Json(new { success = false, message = "Vui lòng đăng nhập để thực hiện rút tiền." });
+            }
+
+            var customerId = Function.GetAccountId(HttpContext.Session);
+            var customer = _context.Customers.FirstOrDefault(c => c.CustomerId == customerId);
+            if (customer == null)
+            {
+                return Json(new { success = false, message = "Không tìm thấy thông tin tài khoản." });
+            }
+
+            if (amount < 10000)
+            {
+                return Json(new { success = false, message = "Số tiền rút tối thiểu là 10.000 đ." });
+            }
+
+            if (amount > customer.Balance)
+            {
+                return Json(new { success = false, message = $"Số dư khả dụng không đủ ({customer.Balance:N0} đ)." });
+            }
+
+            if (string.IsNullOrWhiteSpace(bankName) || string.IsNullOrWhiteSpace(accountNumber))
+            {
+                return Json(new { success = false, message = "Vui lòng nhập đầy đủ Tên ngân hàng và Số tài khoản nhận tiền." });
+            }
+
+            string cleanBank = bankName.Trim();
+            string cleanAcc = accountNumber.Trim();
+            string cleanHolder = string.IsNullOrWhiteSpace(accountHolder)
+                ? (customer.FullName ?? customer.Name ?? "Khách hàng ReCar")
+                : accountHolder.Trim();
+
+            customer.Balance -= amount;
+            if (string.IsNullOrWhiteSpace(customer.Bank)) customer.Bank = cleanBank;
+            if (string.IsNullOrWhiteSpace(customer.AccountNumber)) customer.AccountNumber = cleanAcc;
+
+            var tx = new WalletTransaction
+            {
+                CustomerId = customer.CustomerId,
+                Type = "withdraw",
+                Amount = amount,
+                BalanceAfter = customer.Balance,
+                Description = $"Yêu cầu rút {amount:N0} đ về {cleanBank} - STK {cleanAcc} ({cleanHolder})",
+                BankName = cleanBank,
+                BankAccount = cleanAcc,
+                AccountHolder = cleanHolder,
+                Status = "pending",
+                CreatedAt = Function.NowVn
+            };
+
+            _context.WalletTransactions.Add(tx);
+            _context.SaveChanges();
+
+            return Json(new
+            {
+                success = true,
+                newBalance = customer.Balance,
+                message = $"Đã gửi yêu cầu rút {amount:N0} đ về {cleanBank} ({cleanAcc}). Admin sẽ xác nhận chuyển khoản trong thời gian sớm nhất."
+            });
         }
 
         [HttpPost]

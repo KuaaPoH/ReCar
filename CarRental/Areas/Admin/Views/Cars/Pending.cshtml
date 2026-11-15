@@ -168,6 +168,8 @@
                     phone = ownerPhone,
                     handover = handover,
                     city = !string.IsNullOrEmpty(car.Location) && car.Location.Contains(",") ? car.Location.Split(',').Last().Trim() : (car.Location ?? "TP. Hồ Chí Minh"),
+                    lat = car.Latitude,
+                    lng = car.Longitude,
                     dateStr = dateStr,
                     gallery = gallery.Take(4).ToList(),
                     docReg = car.RegistrationImage ?? "",
@@ -359,6 +361,8 @@
                                 phone = ownerPhone,
                                 handover = handover,
                                 city = !string.IsNullOrEmpty(car.Location) && car.Location.Contains(",") ? car.Location.Split(',').Last().Trim() : (car.Location ?? "TP. Hồ Chí Minh"),
+                                lat = car.Latitude,
+                                lng = car.Longitude,
                                 dateStr = dateStr,
                                 gallery = gallery.Take(4).ToList(),
                                 docReg = car.RegistrationImage ?? "",
@@ -596,6 +600,18 @@
             </div>
         </dl>
 
+        <!-- Bản đồ vị trí xe đã ghim -->
+        <div class="mb-3" id="sheetMapSection">
+            <div class="d-flex justify-content-between align-items-center mb-1.5">
+                <p class="mb-0 text-dark" style="font-size: 0.85rem; font-weight: 600;">
+                    <i class="bi bi-geo-alt-fill text-danger me-1"></i> Vị trí xe trên bản đồ
+                </p>
+                <span id="sheetMapCoordBadge" class="badge bg-light text-secondary border" style="font-size: 0.72rem;">Chưa ghim</span>
+            </div>
+            <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+            <div id="adminPendingCarMap" style="height: 185px; width: 100%; border-radius: 10px; border: 1px solid #e2e8f0; z-index: 1;"></div>
+        </div>
+
         <!-- Khối Tiện ích trang bị của xe -->
         <div class="mb-3" id="sheetAmenitiesSection">
             <p class="mb-1.5 text-dark" style="font-size: 0.85rem; font-weight: 600;">
@@ -778,6 +794,8 @@
         document.getElementById('sheetParamPhone').innerText = data.phone;
         document.getElementById('sheetParamHandover').innerText = data.handover;
         document.getElementById('sheetParamCity').innerText = data.city;
+
+        renderPendingCarMap(data);
 
         // Render mô tả bổ sung (làm sạch toàn bộ thẻ tag hệ thống & Base64 nếu có)
         function cleanDescJs(text) {
@@ -1095,4 +1113,47 @@
             Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Không thể kết nối máy chủ.' });
         });
     }
+</script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    let adminPendingMap = null;
+    let adminPendingMarker = null;
+
+    function renderPendingCarMap(data) {
+        const badge = document.getElementById('sheetMapCoordBadge');
+        const hasCoords = data.lat != null && data.lng != null && !isNaN(Number(data.lat)) && !isNaN(Number(data.lng));
+        const lat = hasCoords ? Number(data.lat) : 21.0285;
+        const lng = hasCoords ? Number(data.lng) : 105.8542;
+
+        if (badge) {
+            if (hasCoords) {
+                badge.className = 'badge bg-success-subtle text-success border border-success-subtle';
+                badge.innerHTML = `<i class="bi bi-check-circle-fill me-1"></i>Đã ghim: ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+            } else {
+                badge.className = 'badge bg-warning-subtle text-warning-emphasis border border-warning-subtle';
+                badge.innerText = 'Chưa ghim tọa độ cụ thể';
+            }
+        }
+
+        setTimeout(function() {
+            const mapEl = document.getElementById('adminPendingCarMap');
+            if (!mapEl || typeof L === 'undefined') return;
+
+            if (!adminPendingMap) {
+                adminPendingMap = L.map('adminPendingCarMap', { center: [lat, lng], zoom: hasCoords ? 15 : 6, zoomControl: true });
+                L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', { attribution: '&copy; Google Maps', maxZoom: 20 }).addTo(adminPendingMap);
+            } else {
+                adminPendingMap.setView([lat, lng], hasCoords ? 15 : 6);
+                adminPendingMap.invalidateSize();
+            }
+
+            if (adminPendingMarker) {
+                adminPendingMarker.setLatLng([lat, lng]);
+            } else {
+                adminPendingMarker = L.marker([lat, lng]).addTo(adminPendingMap);
+            }
+            adminPendingMarker.bindPopup(`<strong>${data.name || 'Xe'}</strong><br/><span style="font-size:11px;">${data.handover || ''}</span>`).openPopup();
+        }, 250);
+    }
+</script>
 </script>

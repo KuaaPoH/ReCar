@@ -67,6 +67,12 @@ namespace CarRental.ViewModels
         [Display(Name = "Địa chỉ nhận xe")]
         public string Location { get; set; } = string.Empty;
 
+        [Display(Name = "Vĩ độ (Latitude)")]
+        public double? Latitude { get; set; }
+
+        [Display(Name = "Kinh độ (Longitude)")]
+        public double? Longitude { get; set; }
+
         [Display(Name = "Hỗ trợ giao xe tận nơi")]
         public bool DeliverySupported { get; set; } = true;
 

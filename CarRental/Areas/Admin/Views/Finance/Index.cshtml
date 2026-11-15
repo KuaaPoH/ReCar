@@ -14,11 +14,11 @@
     <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4">
         <div>
             <h1 class="h3 fw-bold mb-1 text-dark tracking-tight">Tài chính & Đối soát hoa hồng</h1>
-            <p class="text-muted small mb-0">Theo dõi dòng tiền cọc giữ hộ, doanh thu hoa hồng sàn ReCar (10%) và lệnh quyết toán trả cho Chủ xe đối tác.</p>
+            <p class="text-muted small mb-0">Theo dõi dòng tiền cọc giữ hộ, doanh thu hoa hồng sàn ReCar (@curCommissionPct%) và lệnh quyết toán trả cho Chủ xe đối tác.</p>
         </div>
         <div class="d-flex align-items-center gap-2">
             <span class="badge bg-white text-secondary border px-3 py-2 rounded-pill small shadow-sm">
-                <i class="bi bi-calendar-check me-1 text-success"></i> Kỳ đối soát: <strong>Tháng 10/2026</strong>
+                <i class="bi bi-calendar-check me-1 text-success"></i> Kỳ đối soát: <strong>Tháng @CarRental.Utilities.Function.NowVn.ToString("MM/yyyy") (Kỳ @(CarRental.Utilities.Function.NowVn.Day <= 15 ? 1 : 2))</strong>
             </span>
         </div>
     </div>
@@ -95,7 +95,7 @@
         <div class="recar-panel-header">
             <div>
                 <h2 class="h6 fw-bold mb-0 text-dark">Bảng đối soát doanh thu chủ xe đối tác</h2>
-                <span class="text-muted small">Chi tiết số tiền sau khi trừ 10% phí sàn ReCar</span>
+                <span class="text-muted small">Chi tiết số tiền sau khi trừ @curCommissionPct% phí sàn ReCar</span>
             </div>
             <span class="badge bg-light text-dark border small">Kỳ quyết toán hiện tại</span>
         </div>
@@ -108,8 +108,8 @@
                         <th>Tài khoản nhận tiền</th>
                         <th class="text-center">Số chuyến</th>
                         <th>Doanh thu gộp</th>
-                        <th>Phí sàn (10%)</th>
-                        <th>Thực nhận (90%)</th>
+                        <th>Phí sàn (@curCommissionPct%)</th>
+                        <th>Sàn chuyển đối soát</th>
                         <th>Trạng thái</th>
                         <th class="text-end">Quyết toán</th>
                     </tr>
@@ -165,9 +165,98 @@
                                     else
                                     {
                                         <button class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-semibold" style="font-size: 0.75rem;" id="btn-settle-@item.OwnerId"
-                                                onclick="confirmPayout(@item.OwnerId, '@item.SettlementCode', '@item.OwnerName', '@(((decimal)item.NetPayout).ToString("N0")) đ')">
+                                                onclick="confirmPayout(@item.OwnerId, '@item.SettlementCode', '@item.OwnerName', '@(((decimal)item.NetPayout).ToString("N0")) đ', '@item.Period', @(((decimal)item.NetPayout).ToString(System.Globalization.CultureInfo.InvariantCulture)))">
                                             <i class="bi bi-send me-1"></i> Xác nhận chuyển
                                         </button>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Yêu cầu rút tiền từ Ví người dùng -->
+    @{
+        var withdrawRequests = ViewBag.WithdrawRequests as List<CarRental.Models.WalletTransaction> ?? new List<CarRental.Models.WalletTransaction>();
+    }
+    <div class="recar-card mt-4">
+        <div class="p-4 border-bottom d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div>
+                <h6 class="fw-bold text-dark mb-1"><i class="bi bi-wallet2 text-primary me-2"></i>Yêu cầu rút tiền từ Ví người dùng</h6>
+                <p class="text-muted small mb-0">Xác nhận chuyển khoản hoặc từ chối (tự động hoàn lại số dư ví cho khách hàng)</p>
+            </div>
+            <span class="badge bg-light text-secondary border rounded-pill px-3 py-2">@withdrawRequests.Count(w => w.Status == "pending") yêu cầu chờ duyệt</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Mã GD</th>
+                        <th>Khách hàng</th>
+                        <th>Ngân hàng & STK</th>
+                        <th>Ngày yêu cầu</th>
+                        <th>Số tiền rút</th>
+                        <th>Trạng thái</th>
+                        <th class="text-end">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!withdrawRequests.Any())
+                    {
+                        <tr>
+                            <td colspan="7" class="text-center text-muted py-4">Chưa có yêu cầu rút tiền nào từ người dùng.</td>
+                        </tr>
+                    }
+                    else
+                    {
+                        foreach (var w in withdrawRequests)
+                        {
+                            <tr>
+                                <td class="fw-semibold text-primary">#WD-@w.TransactionId</td>
+                                <td>
+                                    <div class="fw-semibold text-dark">@(w.Customer?.FullName ?? w.Customer?.Name ?? "Khách hàng")</div>
+                                    <div class="text-muted small">@(w.Customer?.PhoneNumber ?? w.Customer?.Email)</div>
+                                </td>
+                                <td>
+                                    <div class="fw-semibold text-dark">@w.BankName</div>
+                                    <div class="text-muted small">STK: @w.BankAccount · @w.AccountHolder</div>
+                                </td>
+                                <td class="text-muted small">@w.CreatedAt.ToString("dd/MM/yyyy HH:mm")</td>
+                                <td class="fw-bold text-danger">@w.Amount.ToString("N0") đ</td>
+                                <td>
+                                    @if (w.Status == "completed")
+                                    {
+                                        <span class="status-badge badge-settled">Đã chuyển khoản</span>
+                                    }
+                                    else if (w.Status == "rejected")
+                                    {
+                                        <span class="badge bg-danger-subtle text-danger rounded-pill px-2.5 py-1">Đã từ chối</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="status-badge badge-processing">Chờ chuyển khoản</span>
+                                    }
+                                </td>
+                                <td class="text-end">
+                                    @if (w.Status == "pending")
+                                    {
+                                        <div class="d-inline-flex gap-1">
+                                            <button type="button" class="btn btn-outline-success btn-sm rounded-pill px-3 fw-semibold" style="font-size: 0.75rem;"
+                                                    onclick="processWithdraw(@w.TransactionId, 'approve', '@w.Amount.ToString("N0") đ')">
+                                                <i class="bi bi-check2 me-1"></i>Đã chuyển
+                                            </button>
+                                            <button type="button" class="btn btn-outline-danger btn-sm rounded-pill px-2.5 fw-semibold" style="font-size: 0.75rem;"
+                                                    onclick="processWithdraw(@w.TransactionId, 'reject', '@w.Amount.ToString("N0") đ')">
+                                                Từ chối
+                                            </button>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted small">@(w.ProcessedAt?.ToString("dd/MM/yyyy HH:mm") ?? "Đã xử lý")</span>
                                     }
                                 </td>
                             </tr>
@@ -181,10 +270,10 @@
 
 @section Scripts {
 <script>
-    function confirmPayout(ownerId, code, ownerName, amount) {
+    function confirmPayout(ownerId, code, ownerName, amountFormatted, period, rawAmount) {
         Swal.fire({
             title: 'Xác nhận quyết toán?',
-            html: `Xác nhận lệnh chuyển tiền đối soát <strong>${code}</strong> cho chủ xe <strong>${ownerName}</strong>?<br><br>Số tiền thực nhận: <strong class="text-success fs-5">${amount}</strong><br><span class="text-muted small">Hệ thống sẽ lưu lại dấu vết kiểm toán giao dịch của lệnh chuyển tiền này.</span>`,
+            html: `Xác nhận lệnh chuyển tiền đối soát <strong>${code}</strong> cho chủ xe <strong>${ownerName}</strong>?<br><br>Số tiền thực nhận: <strong class="text-success fs-5">${amountFormatted}</strong><br><span class="text-muted small">Hệ thống sẽ lưu lại dấu vết kiểm toán giao dịch và đồng bộ sang Ví chủ xe.</span>`,
             icon: 'info',
             showCancelButton: true,
             confirmButtonColor: '#0284c7',
@@ -197,7 +286,7 @@
                 $.ajax({
                     url: '/Admin/Finance/SettlePayout',
                     type: 'POST',
-                    data: { ownerId: ownerId, code: code },
+                    data: { ownerId: ownerId, code: code, period: period, amount: rawAmount },
                     success: function (res) {
                         if (res.success) {
                             Swal.fire({
@@ -216,6 +305,31 @@
                     },
                     error: function () {
                         Swal.fire('Lỗi', 'Không thể kết nối máy chủ.', 'error');
+                    }
+                });
+            }
+        });
+    }
+
+    function processWithdraw(txId, actionType, amountFormatted) {
+        const isApprove = actionType === 'approve';
+        Swal.fire({
+            title: isApprove ? 'Xác nhận đã chuyển khoản?' : 'Từ chối yêu cầu rút tiền?',
+            html: isApprove
+                ? `Xác nhận bạn đã chuyển <strong>${amountFormatted}</strong> cho khách hàng?`
+                : `Số tiền <strong>${amountFormatted}</strong> sẽ được hoàn lại vào Số dư Ví ReCar của khách hàng.`,
+            icon: isApprove ? 'question' : 'warning',
+            showCancelButton: true,
+            confirmButtonText: isApprove ? 'Đã chuyển khoản' : 'Xác nhận từ chối',
+            cancelButtonText: 'Đóng'
+        }).then((res) => {
+            if (res.isConfirmed) {
+                const url = isApprove ? '/Admin/Finance/ApproveWithdraw' : '/Admin/Finance/RejectWithdraw';
+                $.post(url, { transactionId: txId }, function (resp) {
+                    if (resp.success) {
+                        Swal.fire('Thành công', resp.message, 'success').then(() => location.reload());
+                    } else {
+                        Swal.fire('Lỗi', resp.message || 'Không thể xử lý.', 'error');
                     }
                 });
             }

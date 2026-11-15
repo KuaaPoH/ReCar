@@ -142,21 +142,19 @@
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h2 class="fs-4 fw-bold m-0" style="color: var(--recar-navy);">Danh mục dòng xe</h2>
         </div>
-        <div class="row row-cols-2 row-cols-sm-3 row-cols-md-4 row-cols-lg-5 row-cols-xl-6 g-3 align-items-stretch">
+        <div class="recar-cat-grid">
             @if (carTypes != null && carTypes.Any())
             {
                 foreach (var ct in carTypes)
                 {
                     var img = string.IsNullOrEmpty(ct.Image) ? "/images/cars/hero.jpg" : ct.Image;
-                    <div class="col d-flex">
-                        <a href="/Product?TypeId=@ct.TypeId" class="recar-cat-card w-100">
-                            <img src="@img" alt="@ct.CarTypeName" class="recar-cat-img" loading="lazy" onerror="this.onerror=null; this.src='/images/cars/hero.jpg';" />
-                            <div class="recar-cat-body">
-                                <span class="recar-cat-title" title="@ct.CarTypeName">@ct.CarTypeName</span>
-                                <span class="recar-cat-arrow">Xem xe →</span>
-                            </div>
-                        </a>
-                    </div>
+                    <a href="/Product?TypeId=@ct.TypeId" class="recar-cat-card">
+                        <img src="@img" alt="@ct.CarTypeName" class="recar-cat-img" loading="lazy" onerror="this.onerror=null; this.src='/images/cars/hero.jpg';" />
+                        <div class="recar-cat-body">
+                            <span class="recar-cat-title" title="@ct.CarTypeName">@ct.CarTypeName</span>
+                            <span class="recar-cat-arrow">Xem xe →</span>
+                        </div>
+                    </a>
                 }
             }
         </div>
@@ -171,11 +169,21 @@
             </a>
         </div>
 
-        <div class="row g-4">
+        @{
+            int featuredPageSize = 4;
+            int totalFeatured = productFeatured?.Count ?? 0;
+            int totalFeaturedPages = (int)Math.Ceiling(totalFeatured / (double)featuredPageSize);
+        }
+        <div class="row g-4" id="featuredCarsGrid">
             @if (productFeatured != null && productFeatured.Any())
             {
-                foreach (var car in productFeatured.Take(4))
+                int idx = 0;
+                foreach (var car in productFeatured)
                 {
+                    int pageNum = (idx / featuredPageSize) + 1;
+                    string hiddenClass = pageNum > 1 ? "d-none" : "";
+                    idx++;
+
                     string detailUrl = $"/product/{car.Alias}-{car.CarId}.html";
 
                     // Tag & Ưu đãi
@@ -215,7 +223,7 @@
                     bool isMaintenance = carStatus == "Bảo trì";
                     string statusCardClass = isBusy ? "is-busy" : (isMaintenance ? "is-maintenance" : "");
 
-                    <div class="col-12 col-sm-6 col-lg-3">
+                    <div class="col-12 col-sm-6 col-lg-3 featured-car-col @hiddenClass" data-featured-page="@pageNum">
                         <article class="recar-car-card @statusCardClass">
                             <div class="recar-car-media">
                                 <img src="@car.Image" alt="@car.CarName" class="recar-car-img" loading="lazy">
@@ -275,7 +283,39 @@
                     </div>
                 }
             }
+            else
+            {
+                <div class="col-12">
+                    <div class="text-center text-muted py-4 bg-white rounded-3 border">
+                        Hiện chưa có xe nổi bật hoặc đang ưu đãi.
+                    </div>
+                </div>
+            }
         </div>
+
+        @if (totalFeaturedPages > 1)
+        {
+            <nav aria-label="Phân trang xe nổi bật và ưu đãi" class="mt-4 d-flex justify-content-center">
+                <ul class="pagination pagination-sm mb-0 gap-1" id="featuredPagination" data-total-pages="@totalFeaturedPages">
+                    <li class="page-item disabled" id="featuredPrevBtn">
+                        <button type="button" class="page-link rounded-3" data-page="prev" aria-label="Trang trước">
+                            <i class="bi bi-chevron-left"></i>
+                        </button>
+                    </li>
+                    @for (int p = 1; p <= totalFeaturedPages; p++)
+                    {
+                        <li class="page-item @(p == 1 ? "active" : "")">
+                            <button type="button" class="page-link rounded-3" data-page="@p">@p</button>
+                        </li>
+                    }
+                    <li class="page-item" id="featuredNextBtn">
+                        <button type="button" class="page-link rounded-3" data-page="next" aria-label="Trang sau">
+                            <i class="bi bi-chevron-right"></i>
+                        </button>
+                    </li>
+                </ul>
+            </nav>
+        }
     </section>
 
     <!-- Thuê xe chỉ với 3 bước -->
@@ -410,6 +450,38 @@
                 $(this).addClass('active');
                 $('#driveModeInput').val('Có tài xế');
             });
+
+            // Phân trang phần Xe nổi bật và ưu đãi (4 xe / trang)
+            var $featuredPagination = $('#featuredPagination');
+            if ($featuredPagination.length) {
+                var currentFeaturedPage = 1;
+                var totalFeaturedPages = parseInt($featuredPagination.data('total-pages'), 10) || 1;
+
+                function showFeaturedPage(page) {
+                    if (page < 1 || page > totalFeaturedPages) return;
+                    currentFeaturedPage = page;
+
+                    $('.featured-car-col').addClass('d-none');
+                    $('.featured-car-col[data-featured-page="' + page + '"]').removeClass('d-none');
+
+                    $featuredPagination.find('.page-item').removeClass('active');
+                    $featuredPagination.find('button[data-page="' + page + '"]').closest('.page-item').addClass('active');
+
+                    $('#featuredPrevBtn').toggleClass('disabled', page === 1);
+                    $('#featuredNextBtn').toggleClass('disabled', page === totalFeaturedPages);
+                }
+
+                $featuredPagination.on('click', 'button[data-page]', function () {
+                    var target = $(this).data('page');
+                    if (target === 'prev') {
+                        showFeaturedPage(currentFeaturedPage - 1);
+                    } else if (target === 'next') {
+                        showFeaturedPage(currentFeaturedPage + 1);
+                    } else {
+                        showFeaturedPage(parseInt(target, 10));
+                    }
+                });
+            }
         });
     </script>
 }

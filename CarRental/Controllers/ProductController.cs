@@ -136,7 +136,9 @@ namespace CarRental.Controllers
 
             var result = cars.Select(car =>
             {
-                var coords = ResolveCoordinates(car.Location, car.CarId);
+                var coords = (car.Latitude.HasValue && car.Longitude.HasValue)
+                    ? (lat: car.Latitude.Value, lng: car.Longitude.Value)
+                    : CarRental.Utilities.VietnamLocations.ResolveCoordinates(car.Location, car.CarId);
                 double dist = CalculateHaversineDistance(centerLat, centerLng, coords.lat, coords.lng);
                 decimal price = (car.IsSale && car.SalePrice.HasValue && car.SalePrice > 0 && car.SalePrice < (car.Price ?? 0))
                     ? car.SalePrice.Value
@@ -181,36 +183,7 @@ namespace CarRental.Controllers
 
         private (double lat, double lng) ResolveCoordinates(string? location, int carId)
         {
-            if (string.IsNullOrWhiteSpace(location))
-            {
-                return (21.0333, 105.7833);
-            }
-
-            string loc = location.ToLower();
-
-            // Hà Nội
-            if (loc.Contains("cầu giấy") || loc.Contains("cau giay")) return (21.0333 + (carId % 5) * 0.003, 105.7833 + (carId % 3) * 0.003);
-            if (loc.Contains("đống đa") || loc.Contains("dong da")) return (21.0180 + (carId % 4) * 0.003, 105.8290 + (carId % 3) * 0.003);
-            if (loc.Contains("tây hồ") || loc.Contains("tay ho")) return (21.0667 + (carId % 3) * 0.003, 105.8167 + (carId % 2) * 0.003);
-            if (loc.Contains("hà nội") || loc.Contains("ha noi")) return (21.0285 + (carId % 5) * 0.004, 105.8542 + (carId % 4) * 0.004);
-
-            // Nghệ An - TP. Vinh
-            if (loc.Contains("lê mao") || loc.Contains("le mao")) return (18.6705 + (carId % 3) * 0.002, 105.6765 + (carId % 2) * 0.002);
-            if (loc.Contains("trường thi") || loc.Contains("truong thi")) return (18.6752 + (carId % 3) * 0.002, 105.6908 + (carId % 2) * 0.002);
-            if (loc.Contains("hưng dũng") || loc.Contains("hung dung")) return (18.6815 + (carId % 3) * 0.002, 105.7020 + (carId % 2) * 0.002);
-            if (loc.Contains("quảng trường") || loc.Contains("quang truong") || (loc.Contains("vinh") && (loc.Contains("hồ chí minh") || loc.Contains("ho chi minh")))) return (18.6737 + (carId % 3) * 0.002, 105.6813 + (carId % 2) * 0.002);
-            if (loc.Contains("vinh") || loc.Contains("nghệ an") || loc.Contains("nghe an")) return (18.6737 + (carId % 5) * 0.003, 105.6813 + (carId % 4) * 0.003);
-
-            // TP. Hồ Chí Minh
-            if (loc.Contains("quận 7") || loc.Contains("quan 7")) return (10.7327 + (carId % 3) * 0.003, 106.7167 + (carId % 4) * 0.003);
-            if (loc.Contains("quận 1") || loc.Contains("quan 1")) return (10.7769 + (carId % 4) * 0.003, 106.7009 + (carId % 3) * 0.003);
-            if (loc.Contains("tp.hcm") || loc.Contains("hồ chí minh") || loc.Contains("ho chi minh") || loc.Contains("sài gòn") || loc.Contains("sai gon")) return (10.7769 + (carId % 5) * 0.005, 106.7009 + (carId % 4) * 0.005);
-
-            // Đà Nẵng, Đà Lạt, Nha Trang
-            if (loc.Contains("đà nẵng") || loc.Contains("da nang") || loc.Contains("hải châu") || loc.Contains("hai chau")) return (16.0544 + (carId % 4) * 0.003, 108.2208 + (carId % 3) * 0.003);
-            if (loc.Contains("đà lạt") || loc.Contains("da lat")) return (11.9404 + (carId % 3) * 0.003, 108.4373 + (carId % 4) * 0.003);
-            if (loc.Contains("nha trang") || loc.Contains("lộc thọ") || loc.Contains("loc tho")) return (12.2388 + (carId % 3) * 0.003, 109.1967 + (carId % 4) * 0.003);
-            return (18.6737, 105.6813);
+            return CarRental.Utilities.VietnamLocations.ResolveCoordinates(location, carId);
         }
 
         private double CalculateHaversineDistance(double lat1, double lon1, double lat2, double lon2)

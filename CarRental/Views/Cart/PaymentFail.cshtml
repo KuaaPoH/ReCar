@@ -2,7 +2,7 @@
     ViewData["Title"] = "Thanh toán chưa hoàn tất – ReCar";
     Layout = "~/Views/Shared/_Layout.cshtml";
     string failReason = TempData["Message"] as string
-        ?? "Giao dịch thanh toán tiền đặt cọc 30% qua cổng VNPay chưa hoàn tất hoặc đã bị hủy bởi người dùng.";
+        ?? "Giao dịch thanh toán qua cổng ZaloPay chưa hoàn tất hoặc đã bị hủy bởi người dùng.";
 }
 
 <div class="py-5" style="background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%); min-height: 78vh;">
@@ -56,7 +56,7 @@
                     <ul class="small text-secondary mb-0 ps-3 d-flex flex-column gap-2">
                         <li>Bạn đã nhấn nút <strong>Hủy giao dịch</strong> hoặc quay lại trình duyệt trước khi nhập mã xác thực OTP.</li>
                         <li>Thẻ ATM nội địa / Tài khoản ngân hàng chưa kích hoạt tính năng <strong>Thanh toán trực tuyến (E-Commerce)</strong> hoặc vượt hạn mức ngày.</li>
-                        <li>Phiên giao dịch VNPay đã quá thời gian chờ (15 phút). Bạn có thể kiểm tra lại đơn thuê trong mục <strong>Đơn thuê của tôi</strong> hoặc chọn xe lại.</li>
+                        <li>Phiên giao dịch ZaloPay đã quá thời gian chờ (15 phút). Bạn có thể kiểm tra lại đơn thuê trong mục <strong>Đơn thuê của tôi</strong> hoặc chọn xe lại.</li>
                     </ul>
                 </div>
 

@@ -21,7 +21,8 @@ namespace CarRental.Controllers
         {
             
             ViewBag.productFeatured = _context.Cars
-                .Where(i => i.IsActive && i.CarStatus == "Sẵn sàng")
+                .Where(i => i.IsActive && i.CarStatus == "Sẵn sàng"
+                    && (i.Badge == "Nổi bật" || (i.IsSale && i.SalePrice.HasValue && i.SalePrice > 0 && i.SalePrice < i.Price)))
                 .OrderBy(i => i.CarId)
                 .ToList();
 

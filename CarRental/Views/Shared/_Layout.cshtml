@@ -197,11 +197,6 @@
                                 </a>
                             </li>
                             <li>
-                                <a class="dropdown-item py-2 rounded-2 small fw-medium" href="/Accounts?tab=account-info">
-                                    <i class="bi bi-shield-lock me-2"></i> Hồ sơ & Đổi mật khẩu
-                                </a>
-                            </li>
-                            <li>
                                 <a class="dropdown-item py-2 rounded-2 small fw-medium" href="/Accounts?tab=orders">
                                     <i class="bi bi-file-earmark-text me-2"></i> Đơn thuê xe
                                 </a>
@@ -284,20 +279,25 @@
                         <li><a href="/Contact" class="text-white text-decoration-none">Hỗ trợ khách hàng</a></li>
                     </ul>
                 </div>
+                @{
+                    var footerDb = Context.RequestServices.GetService(typeof(CarRental.Models.DbRenalCarContext)) as CarRental.Models.DbRenalCarContext;
+                    var footerSetting = footerDb?.SystemSettings.FirstOrDefault();
+                    string footerHotline = !string.IsNullOrWhiteSpace(footerSetting?.Hotline) ? footerSetting.Hotline : "1900 8888";
+                    string footerEmail = !string.IsNullOrWhiteSpace(footerSetting?.SupportEmail) ? footerSetting.SupportEmail : "hotro@recar.vn";
+                    string footerAddress = !string.IsNullOrWhiteSpace(footerSetting?.Address) ? footerSetting.Address : "Hà Nội & TP. Hồ Chí Minh";
+                }
                 <div class="col-lg-3 col-md-6">
-                    <h6 class="fw-bold mb-3 text-white">
-                        Liên hệ <span class="badge bg-warning text-dark ms-1 small" style="font-size: 10px;">Dữ liệu mẫu</span>
-                    </h6>
+                    <h6 class="fw-bold mb-3 text-white">Liên hệ</h6>
                     <div class="small opacity-75 d-flex flex-column gap-2">
-                        <div>Hotline: 1900 6868</div>
-                        <div>Email: hotro@recar.example</div>
-                        <div>Hà Nội & TP. Hồ Chí Minh</div>
+                        <div>Hotline: @footerHotline</div>
+                        <div>Email: @footerEmail</div>
+                        <div>@footerAddress</div>
                     </div>
                 </div>
             </div>
         </div>
         <div class="border-top border-secondary py-3 text-center small opacity-60" style="border-color: rgba(255,255,255,0.1) !important;">
-            © 2026 ReCar. Nền tảng cho thuê ô tô trực tuyến (Đồ án tốt nghiệp).
+            © 2026 ReCar. Nền tảng cho thuê ô tô trực tuyến.
         </div>
     </footer>
 

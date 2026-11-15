@@ -1,6 +1,14 @@
 @{
     ViewData["Title"] = "Liên hệ";
     Layout = "~/Views/Shared/_Layout.cshtml";
+    var settings = ViewBag.Settings as CarRental.Models.SystemSetting;
+    bool isLoggedIn = ViewBag.IsLoggedIn == true;
+    var customer = ViewBag.Customer as CarRental.Models.Customer;
+
+    string hotline = !string.IsNullOrWhiteSpace(settings?.Hotline) ? settings.Hotline : "1900 6868";
+    string supportEmail = !string.IsNullOrWhiteSpace(settings?.SupportEmail) ? settings.SupportEmail : "hotro@recar.vn";
+    string address = !string.IsNullOrWhiteSpace(settings?.Address) ? settings.Address : "Hà Nội & TP. Hồ Chí Minh";
+    string displayName = !string.IsNullOrWhiteSpace(customer?.FullName) ? customer.FullName : (customer?.Username ?? "Thành viên ReCar");
 }
 
 <!-- Page Banner -->
@@ -24,7 +32,7 @@
                     </div>
                     <div>
                         <p class="small text-muted m-0" style="font-size: 12px;">Hotline hỗ trợ 24/7</p>
-                        <h6 class="fw-bold m-0" style="color: var(--recar-navy);">1900 6868</h6>
+                        <h6 class="fw-bold m-0" style="color: var(--recar-navy);">@hotline</h6>
                     </div>
                 </div>
 
@@ -34,7 +42,7 @@
                     </div>
                     <div>
                         <p class="small text-muted m-0" style="font-size: 12px;">Email phản hồi</p>
-                        <h6 class="fw-bold m-0" style="color: var(--recar-navy);">hotro@recar.example</h6>
+                        <h6 class="fw-bold m-0" style="color: var(--recar-navy);">@supportEmail</h6>
                     </div>
                 </div>
 
@@ -44,12 +52,12 @@
                     </div>
                     <div>
                         <p class="small text-muted m-0" style="font-size: 12px;">Văn phòng chính</p>
-                        <h6 class="fw-bold m-0" style="color: var(--recar-navy);">Cầu Giấy, Hà Nội & Quận 1, TP. Hồ Chí Minh</h6>
+                        <h6 class="fw-bold m-0" style="color: var(--recar-navy);">@address</h6>
                     </div>
                 </div>
 
                 <div class="p-3 rounded-3 border bg-light text-muted small mt-2" style="font-size: 13px;">
-                    <i class="bi bi-info-circle text-primary me-1"></i> Đội ngũ chăm sóc khách hàng ReCar tiếp nhận và hỗ trợ xử lý mọi thắc mắc hoặc sự cố 24/7.
+                    <i class="bi bi-info-circle text-primary me-1"></i> Đội ngũ chăm sóc khách hàng ReCar tiếp nhận và phản hồi trực tiếp qua email tài khoản của bạn.
                 </div>
             </div>
         </div>
@@ -57,34 +65,68 @@
         <!-- Cột Form liên hệ -->
         <div class="col-lg-7">
             <div class="p-4 p-md-5 rounded-4 border bg-white shadow-sm">
-                <h4 class="fw-bold mb-3" style="color: var(--recar-navy);">Gửi tin nhắn cho ReCar</h4>
-                <p class="text-muted small mb-4">Hãy để lại thông tin, chúng tôi sẽ phản hồi trong vòng 15 phút.</p>
+                <h4 class="fw-bold mb-2" style="color: var(--recar-navy);">Gửi tin nhắn cho ReCar</h4>
 
-                <form id="contactForm">
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <label class="form-label small fw-semibold text-muted">Họ và tên *</label>
-                            <input type="text" class="form-control rounded-3 py-2" id="contactName" placeholder="Nguyễn Văn A" required />
+                @if (!isLoggedIn)
+                {
+                    <p class="text-muted small mb-4">Để đảm bảo xác thực thông tin và phản hồi chính xác qua Email, vui lòng đăng nhập tài khoản trước khi gửi liên hệ.</p>
+
+                    <div class="p-4 rounded-4 text-center border" style="background-color: #f8fafc;">
+                        <div class="mx-auto mb-3 rounded-circle d-flex align-items-center justify-content-center bg-primary bg-opacity-10 text-primary" style="width: 64px; height: 64px;">
+                            <i class="bi bi-shield-lock fs-3"></i>
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label small fw-semibold text-muted">Số điện thoại *</label>
-                            <input type="tel" class="form-control rounded-3 py-2" id="contactPhone" placeholder="0912 345 678" required />
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label small fw-semibold text-muted">Email *</label>
-                            <input type="email" class="form-control rounded-3 py-2" id="contactEmail" placeholder="example@gmail.com" required />
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label small fw-semibold text-muted">Nội dung liên hệ *</label>
-                            <textarea class="form-control rounded-3" id="contactMessage" rows="4" placeholder="Nhập câu hỏi hoặc nội dung bạn cần hỗ trợ..." required></textarea>
-                        </div>
-                        <div class="col-12 mt-4">
-                            <button type="submit" class="btn text-white px-5 py-2 fw-semibold rounded-3" style="background-color: var(--recar-primary);">
-                                Gửi liên hệ
-                            </button>
+                        <h6 class="fw-bold mb-2" style="color: var(--recar-navy);">Bạn chưa đăng nhập</h6>
+                        <p class="text-muted small mb-4">Đăng nhập ngay để hệ thống tự động điền thông tin liên hệ và gửi yêu cầu tới bộ phận CSKH.</p>
+                        <div class="d-flex justify-content-center gap-2 flex-wrap">
+                            <a href="/Login?returnUrl=/Contact" class="btn text-white px-4 py-2 fw-semibold rounded-3" style="background-color: var(--recar-primary);">
+                                <i class="bi bi-box-arrow-in-right me-1"></i> Đăng nhập ngay
+                            </a>
+                            <a href="/Register" class="btn btn-outline-secondary px-4 py-2 fw-semibold rounded-3">
+                                Đăng ký tài khoản
+                            </a>
                         </div>
                     </div>
-                </form>
+                }
+                else
+                {
+                    <p class="text-muted small mb-4">Hãy nhập nội dung cần hỗ trợ, đội ngũ ReCar sẽ phản hồi qua Email của bạn sớm nhất.</p>
+
+                    <!-- Thẻ thông tin tài khoản đã đăng nhập -->
+                    <div class="p-3 rounded-3 mb-4 d-flex align-items-center justify-content-between flex-wrap gap-2" style="background-color: #f0f9ff; border: 1px solid #bae6fd;">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center fw-bold" style="width: 42px; height: 42px; flex-shrink: 0;">
+                                @(displayName.Substring(0, 1).ToUpper())
+                            </div>
+                            <div>
+                                <div class="fw-bold text-dark small">@displayName</div>
+                                <div class="text-muted" style="font-size: 12.5px;">
+                                    <i class="bi bi-envelope me-1"></i>@(string.IsNullOrWhiteSpace(customer?.Email) ? "Chưa cập nhật email" : customer.Email)
+                                </div>
+                            </div>
+                        </div>
+                        <span class="badge bg-white text-primary border border-primary-subtle rounded-pill px-3 py-1">
+                            <i class="bi bi-patch-check-fill me-1"></i> Đã xác thực tài khoản
+                        </span>
+                    </div>
+
+                    <form id="contactForm">
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label class="form-label small fw-semibold text-muted">Số điện thoại liên hệ</label>
+                                <input type="tel" class="form-control rounded-3 py-2" id="contactPhone" value="@(customer?.PhoneNumber ?? "")" placeholder="Nhập số điện thoại để CSKH tiện liên hệ" />
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label small fw-semibold text-muted">Nội dung liên hệ *</label>
+                                <textarea class="form-control rounded-3" id="contactMessage" rows="5" placeholder="Nhập câu hỏi, góp ý hoặc vấn đề bạn cần ReCar hỗ trợ..." required></textarea>
+                            </div>
+                            <div class="col-12 mt-4">
+                                <button type="submit" id="btnSubmitContact" class="btn text-white px-5 py-2 fw-semibold rounded-3" style="background-color: var(--recar-primary);">
+                                    <i class="bi bi-send me-1"></i> Gửi liên hệ
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                }
             </div>
         </div>
     </div>
@@ -97,37 +139,47 @@
             $('#contactForm').on('submit', function (e) {
                 e.preventDefault();
 
-                const name = $('#contactName').val();
                 const phone = $('#contactPhone').val();
-                const email = $('#contactEmail').val();
                 const message = $('#contactMessage').val();
+                const $btn = $('#btnSubmitContact');
+                $btn.prop('disabled', true);
 
                 $.ajax({
                     url: '/Contact/Create',
                     type: 'POST',
                     data: {
-                        name: name,
                         phone: phone,
-                        email: email,
                         message: message
                     },
                     success: function (res) {
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'Gửi liên hệ thành công!',
-                            text: 'Cảm ơn bạn đã liên hệ ReCar. Chúng tôi sẽ phản hồi sớm nhất.',
-                            confirmButtonColor: '#0284c7'
-                        });
-                        $('#contactForm')[0].reset();
+                        if (res.status) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Gửi liên hệ thành công!',
+                                text: 'Cảm ơn bạn đã liên hệ ReCar. Chúng tôi sẽ phản hồi qua Email sớm nhất.',
+                                confirmButtonColor: '#0284c7'
+                            });
+                            $('#contactMessage').val('');
+                        } else if (res.requireLogin) {
+                            window.location.href = '/Login?returnUrl=/Contact';
+                        } else {
+                            Swal.fire({
+                                icon: 'warning',
+                                title: 'Không thể gửi',
+                                text: res.message || 'Vui lòng kiểm tra lại nội dung.',
+                                confirmButtonColor: '#0284c7'
+                            });
+                        }
                     },
                     error: function () {
                         Swal.fire({
-                            icon: 'success',
-                            title: 'Gửi liên hệ thành công!',
-                            text: 'Cảm ơn bạn đã liên hệ ReCar. Chúng tôi sẽ phản hồi sớm nhất.',
-                            confirmButtonColor: '#0284c7'
+                            icon: 'error',
+                            title: 'Lỗi kết nối',
+                            text: 'Không thể gửi tin nhắn lúc này. Vui lòng thử lại sau.'
                         });
-                        $('#contactForm')[0].reset();
+                    },
+                    complete: function () {
+                        $btn.prop('disabled', false);
                     }
                 });
             });

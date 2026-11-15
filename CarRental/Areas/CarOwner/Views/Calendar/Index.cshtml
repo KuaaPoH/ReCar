@@ -102,7 +102,7 @@
             <span class="rounded-circle d-inline-block" style="width: 10px; height: 10px; background: #10b981;"></span> Còn trống
         </span>
         <span class="d-inline-flex align-items-center gap-1.5">
-            <span class="rounded-circle d-inline-block" style="width: 10px; height: 10px; background: #0ea5e9;"></span> Đã đặt (Đã cọc 30%)
+            <span class="rounded-circle d-inline-block" style="width: 10px; height: 10px; background: #0ea5e9;"></span> Đã đặt (Đã cọc @(ViewBag.DepositPct ?? 30)%)
         </span>
         <span class="d-inline-flex align-items-center gap-1.5">
             <span class="rounded-circle d-inline-block" style="width: 10px; height: 10px; background: #f59e0b;"></span> Đang giao xe
@@ -163,7 +163,7 @@
                             {
                                 string itemCls = o.StatusId == 4 ? "order-handover" : (o.StatusId == 5 ? "order-completed" : "order-booked");
                                 <button type="button" class="host-cal-item @itemCls"
-                                        onclick="openOrderModal(@o.OrderId, '@o.Code', '@Html.Raw(o.CarName.Replace("'", "\\'"))', '@o.LicensePlate', '@Html.Raw(o.CustomerName.Replace("'", "\\'"))', '@o.CustomerPhone', '@o.PickupAt.ToString("dd/MM/yyyy HH:mm")', '@o.ReturnAt.ToString("dd/MM/yyyy HH:mm")', '@o.StatusLabel', '@FmtVnd(o.TotalAmount)', '@FmtVnd(o.OwnerNet)')">
+                                        onclick="openOrderModal(@o.OrderId, '@o.Code', '@Html.Raw(o.CarName.Replace("'", "\\'"))', '@o.LicensePlate', '@Html.Raw(o.CustomerName.Replace("'", "\\'"))', '@o.CustomerPhone', '@o.PickupAt.ToString("dd/MM/yyyy HH:mm")', '@o.ReturnAt.ToString("dd/MM/yyyy HH:mm")', '@o.StatusLabel', '@FmtVnd(o.TotalAmount)', '@FmtVnd(o.OwnerNet)', @o.StatusId)">
                                     @o.Code · @o.CarName
                                 </button>
                             }
@@ -232,7 +232,7 @@
                                             {
                                                 string itemCls = o.StatusId == 4 ? "order-handover" : (o.StatusId == 5 ? "order-completed" : "order-booked");
                                                 <button type="button" class="host-cal-item @itemCls"
-                                                        onclick="openOrderModal(@o.OrderId, '@o.Code', '@Html.Raw(o.CarName.Replace("'", "\\'"))', '@o.LicensePlate', '@Html.Raw(o.CustomerName.Replace("'", "\\'"))', '@o.CustomerPhone', '@o.PickupAt.ToString("dd/MM/yyyy HH:mm")', '@o.ReturnAt.ToString("dd/MM/yyyy HH:mm")', '@o.StatusLabel', '@FmtVnd(o.TotalAmount)', '@FmtVnd(o.OwnerNet)')">
+                                                        onclick="openOrderModal(@o.OrderId, '@o.Code', '@Html.Raw(o.CarName.Replace("'", "\\'"))', '@o.LicensePlate', '@Html.Raw(o.CustomerName.Replace("'", "\\'"))', '@o.CustomerPhone', '@o.PickupAt.ToString("dd/MM/yyyy HH:mm")', '@o.ReturnAt.ToString("dd/MM/yyyy HH:mm")', '@o.StatusLabel', '@FmtVnd(o.TotalAmount)', '@FmtVnd(o.OwnerNet)', @o.StatusId)">
                                                     @o.Code · @o.CustomerName
                                                 </button>
                                             }
@@ -425,14 +425,19 @@
                         <span class="fw-semibold text-primary" id="calOrderStatus"></span>
                     </div>
                     <div class="d-flex justify-content-between pt-2 border-top">
-                        <span class="text-secondary">Tổng đơn / Thực nhận (90%)</span>
+                        <span class="text-secondary">Tổng đơn / Thực nhận (@(100 - (int)(ViewBag.CommissionPct ?? 10))%)</span>
                         <span class="fw-bold text-success" id="calOrderMoney"></span>
                     </div>
                 </div>
             </div>
-            <div class="modal-footer border-top px-4 py-2.5">
-                <a href="#" id="calOrderDetailLink" class="host-btn-primary">Mở chi tiết đơn</a>
-                <button type="button" class="host-btn-outline" data-bs-dismiss="modal">Đóng</button>
+            <div class="modal-footer border-top px-4 py-2.5 d-flex justify-content-between align-items-center">
+                <button type="button" id="calOrderCancelBtn" class="btn btn-sm btn-outline-danger rounded-pill px-3 fw-semibold d-none" onclick="cancelOrderFromCalendar()">
+                    Hủy đơn & Hoàn cọc
+                </button>
+                <div class="d-flex gap-2 ms-auto">
+                    <a href="#" id="calOrderDetailLink" class="host-btn-primary">Mở chi tiết đơn</a>
+                    <button type="button" class="host-btn-outline" data-bs-dismiss="modal">Đóng</button>
+                </div>
             </div>
         </div>
     </div>
@@ -495,7 +500,10 @@
             modal.show();
         }
 
-        function openOrderModal(orderId, code, carName, plate, guestName, guestPhone, pickup, ret, statusLabel, total, net) {
+        let currentCalOrderId = 0;
+
+        function openOrderModal(orderId, code, carName, plate, guestName, guestPhone, pickup, ret, statusLabel, total, net, statusId) {
+            currentCalOrderId = orderId;
             document.getElementById('calOrderTitle').textContent = 'Đơn thuê ' + code;
             document.getElementById('calOrderCar').textContent = carName + ' · ' + plate;
             document.getElementById('calOrderGuest').textContent = guestName + (guestPhone ? ' · ' + guestPhone : '');
@@ -505,8 +513,46 @@
             document.getElementById('calOrderMoney').textContent = total + ' / ' + net;
             document.getElementById('calOrderDetailLink').href = '/CarOwner/Orders/Details/' + orderId;
 
+            const cancelBtn = document.getElementById('calOrderCancelBtn');
+            if (cancelBtn) {
+                if (statusId === 1 || statusId === 3) {
+                    cancelBtn.classList.remove('d-none');
+                } else {
+                    cancelBtn.classList.add('d-none');
+                }
+            }
+
             var modal = new bootstrap.Modal(document.getElementById('calOrderModal'));
             modal.show();
+        }
+
+        async function cancelOrderFromCalendar() {
+            if (!currentCalOrderId) return;
+            const reason = prompt('Nhập lý do hủy đơn (tiền cọc nếu có sẽ tự động hoàn về Ví ReCar của khách):', 'Thay đổi lịch trình xe');
+            if (reason === null) return;
+
+            const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+            const body = new URLSearchParams();
+            body.append('id', currentCalOrderId);
+            body.append('reason', reason);
+            if (token) body.append('__RequestVerificationToken', token);
+
+            try {
+                const res = await fetch('/CarOwner/Orders/CancelOrder', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: body.toString()
+                });
+                const data = await res.json();
+                if (data.success) {
+                    alert(data.message || 'Đã hủy đơn thành công.');
+                    window.location.reload();
+                } else {
+                    alert(data.message || 'Không thể hủy đơn.');
+                }
+            } catch (e) {
+                alert('Lỗi kết nối khi hủy đơn.');
+            }
         }
 
         function openBlockModal(blockId, carName, plate, kindLabel, startStr, endStr, note) {

@@ -5,6 +5,9 @@
     List<CarRentalOrder> carRentalOrders = ViewBag.Order;
     int depositPct = ViewBag.DepositPct ?? 30;
     int remainPct = 100 - depositPct;
+    decimal customerBalance = ViewBag.CustomerBalance != null ? (decimal)ViewBag.CustomerBalance : 0m;
+    bool canPayDepositWithWallet = customerBalance >= Model.Deposit;
+    bool canPayFullWithWallet = customerBalance >= Model.Total;
 }
 
 
@@ -87,50 +90,101 @@
                             Chọn gói thanh toán đơn thuê xe
                         </h5>
 
-                        <!-- Option 1: Đặt cọc 30% -->
-                        <label class="payment-option-card selected mb-3" for="pay-deposit">
+                        <!-- Option 1: Đặt cọc qua ZaloPay -->
+                        <label class="payment-option-card selected mb-3" for="pay-zalopay-deposit">
                             <div class="d-flex align-items-center gap-3">
-                                <input type="radio" id="pay-deposit" name="payment_choice" value="deposit_30" checked>
+                                <input type="radio" id="pay-zalopay-deposit" name="payment_choice" value="zalopay_deposit" checked>
                                 <div>
                                     <div class="fw-bold text-dark d-flex align-items-center gap-2 flex-wrap">
-                                        Thanh toán đặt cọc @depositPct% qua VNPay
+                                        Đặt cọc @depositPct% qua ZaloPay
                                         <span class="badge bg-primary text-white small" style="font-size: 11px;">Khuyên dùng</span>
                                     </div>
                                     <div class="text-muted small">
-                                        Thanh toán trước <strong class="text-primary">@Model.Deposit.ToString("N0") đ</strong> (@depositPct%) để giữ xe · Còn lại <strong>@Model.Payment.ToString("N0") đ</strong> (@remainPct%) thanh toán khi nhận xe
+                                        Thanh toán <strong class="text-primary">@Model.Deposit.ToString("N0") đ</strong> (@depositPct%) qua cổng ZaloPay (QR / ATM / Thẻ quốc tế) · Còn lại thanh toán khi nhận xe
                                     </div>
                                 </div>
                             </div>
-                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-2 rounded-pill fw-semibold text-nowrap">
-                                Cọc @depositPct%
+                            <span class="badge px-3 py-2 rounded-pill fw-semibold text-nowrap" style="background-color: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd;">
+                                ZaloPay
                             </span>
                         </label>
 
-                        <!-- Option 2: Thanh toán trọn gói 100% -->
-                        <label class="payment-option-card" for="pay-full">
+                        <!-- Option 2c: Trọn gói 100% qua ZaloPay -->
+                        <label class="payment-option-card mb-3" for="pay-zalopay-full">
                             <div class="d-flex align-items-center gap-3">
-                                <input type="radio" id="pay-full" name="payment_choice" value="full_100">
+                                <input type="radio" id="pay-zalopay-full" name="payment_choice" value="zalopay_full">
                                 <div>
                                     <div class="fw-bold text-dark d-flex align-items-center gap-2 flex-wrap">
-                                        Thanh toán toàn bộ 100% qua VNPay
+                                        Thanh toán toàn bộ 100% qua ZaloPay
                                         <span class="badge bg-success text-white small" style="font-size: 11px;">Trọn gói</span>
                                     </div>
                                     <div class="text-muted small">
-                                        Thanh toán trọn gói <strong class="text-success">@Model.Total.ToString("N0") đ</strong> (100%) một lần qua sàn · Không cần thanh toán thêm tiền thuê khi nhận xe
+                                        Thanh toán trọn gói <strong class="text-success">@Model.Total.ToString("N0") đ</strong> (100%) qua ZaloPay · Không cần trả thêm khi nhận xe
                                     </div>
                                 </div>
                             </div>
-                            <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 rounded-pill fw-semibold text-nowrap">
-                                Trọn gói 100%
+                            <span class="badge px-3 py-2 rounded-pill fw-semibold text-nowrap" style="background-color: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd;">
+                                ZaloPay 100%
+                            </span>
+                        </label>
+
+                        <!-- Option 3: Đặt cọc bằng Số dư Ví ReCar -->
+                        <label class="payment-option-card mb-3 @(!canPayDepositWithWallet ? "opacity-50" : "")" for="pay-wallet-deposit" style="@(!canPayDepositWithWallet ? "cursor: not-allowed;" : "")">
+                            <div class="d-flex align-items-center gap-3">
+                                <input type="radio" id="pay-wallet-deposit" name="payment_choice" value="wallet_deposit" @(!canPayDepositWithWallet ? "disabled" : "")>
+                                <div>
+                                    <div class="fw-bold text-dark d-flex align-items-center gap-2 flex-wrap">
+                                        Đặt cọc @depositPct% bằng Số dư Ví ReCar
+                                        <span class="badge small rounded-pill px-2 py-1" style="font-size: 11.5px; background-color: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd;">Số dư: @customerBalance.ToString("N0") đ</span>
+                                    </div>
+                                    <div class="text-muted small">
+                                        @if (canPayDepositWithWallet)
+                                        {
+                                            <span>Trừ trực tiếp <strong>@Model.Deposit.ToString("N0") đ</strong> từ Ví ReCar · Xác nhận đơn ngay lập tức</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-danger">Số dư chưa đủ để đặt cọc (@Model.Deposit.ToString("N0") đ)</span>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                            <span class="badge px-3 py-2 rounded-pill fw-semibold text-nowrap" style="background-color: #eef2ff; color: #3730a3; border: 1px solid #c7d2fe;">
+                                Ví ReCar
+                            </span>
+                        </label>
+
+                        <!-- Option 4: Trọn gói 100% bằng Số dư Ví ReCar -->
+                        <label class="payment-option-card @(!canPayFullWithWallet ? "opacity-50" : "")" for="pay-wallet-full" style="@(!canPayFullWithWallet ? "cursor: not-allowed;" : "")">
+                            <div class="d-flex align-items-center gap-3">
+                                <input type="radio" id="pay-wallet-full" name="payment_choice" value="wallet_full" @(!canPayFullWithWallet ? "disabled" : "")>
+                                <div>
+                                    <div class="fw-bold text-dark d-flex align-items-center gap-2 flex-wrap">
+                                        Thanh toán trọn gói 100% bằng Số dư Ví ReCar
+                                        <span class="badge small rounded-pill px-2 py-1" style="font-size: 11.5px; background-color: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd;">Số dư: @customerBalance.ToString("N0") đ</span>
+                                    </div>
+                                    <div class="text-muted small">
+                                        @if (canPayFullWithWallet)
+                                        {
+                                            <span>Trừ trực tiếp <strong>@Model.Total.ToString("N0") đ</strong> từ Ví ReCar · Không cần trả thêm khi nhận xe</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-danger">Số dư chưa đủ để thanh toán trọn gói (@Model.Total.ToString("N0") đ)</span>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                            <span class="badge px-3 py-2 rounded-pill fw-semibold text-nowrap" style="background-color: #ecfdf5; color: #047857; border: 1px solid #a7f3d0;">
+                                Ví 100%
                             </span>
                         </label>
 
                         <div class="mt-3 pt-3 border-top d-flex align-items-center justify-content-between flex-wrap gap-2 text-muted small">
                             <span class="d-flex align-items-center gap-2">
                                 <i class="bi bi-shield-check text-success fs-5"></i>
-                                Giao dịch được bảo lãnh an toàn qua Cổng thanh toán quốc gia VNPay (QR / ATM / Visa)
+                                Giao dịch được bảo lãnh an toàn qua Cổng thanh toán ZaloPay &amp; Ví ReCar
                             </span>
-                            <img src="~/assets/images/payment/1.png" alt="VNPay" style="height: 26px;" onerror="this.style.display='none'">
                         </div>
                     </div>
 
@@ -157,7 +211,7 @@
                         <div class="price-breakdown-row bg-light p-3 rounded-3 my-2 border-0">
                             <div>
                                 <span class="fw-bold text-primary d-block" id="labelNowPay">Tiền thanh toán ngay (@depositPct%)</span>
-                                <span class="small text-muted" id="sublabelNowPay">Thanh toán cọc trực tuyến qua VNPay</span>
+                                <span class="small text-muted" id="sublabelNowPay">Thanh toán cọc trực tuyến qua ZaloPay</span>
                             </div>
                             <span class="fw-bold fs-4 text-primary" id="amountNowPay">@Model.Deposit.ToString("N0") đ</span>
                         </div>
@@ -209,9 +263,15 @@
                 $('.payment-option-card').removeClass('selected');
                 $(this).closest('.payment-option-card').addClass('selected');
 
-                if ($(this).val() === 'full_100') {
+                var val = $(this).val();
+                var isFull = (val === 'full_100' || val === 'wallet_full' || val === 'zalopay_full');
+                var isWallet = (val === 'wallet_deposit' || val === 'wallet_full');
+                var isZaloPay = (val === 'zalopay_deposit' || val === 'zalopay_full');
+                var channelLabel = isWallet ? 'Ví ReCar' : (isZaloPay ? 'ZaloPay' : 'VNPay');
+
+                if (isFull) {
                     $('#labelNowPay').text('Tiền thanh toán ngay (100%)');
-                    $('#sublabelNowPay').text('Thanh toán trọn gói qua VNPay');
+                    $('#sublabelNowPay').text('Thanh toán trọn gói qua ' + channelLabel);
                     $('#amountNowPay').text(formatVND(totalAmt)).removeClass('text-primary').addClass('text-success');
 
                     $('#labelRemainPay').text('Còn lại khi nhận xe (0%)');
@@ -221,7 +281,7 @@
                     $('#btnSubmitCheckout').html('<i class="bi bi-shield-check me-2"></i> Xác nhận & Thanh toán trọn gói 100% (' + formatVND(totalAmt) + ')');
                 } else {
                     $('#labelNowPay').text('Tiền thanh toán ngay (@depositPct%)');
-                    $('#sublabelNowPay').text('Thanh toán cọc trực tuyến qua VNPay');
+                    $('#sublabelNowPay').text('Thanh toán cọc trực tuyến qua ' + channelLabel);
                     $('#amountNowPay').text(formatVND(depositAmt)).removeClass('text-success').addClass('text-primary');
 
                     $('#labelRemainPay').text('Còn lại khi nhận xe (@remainPct%)');

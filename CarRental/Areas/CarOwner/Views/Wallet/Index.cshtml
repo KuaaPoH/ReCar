@@ -4,6 +4,11 @@
     Layout = "~/Areas/CarOwner/Views/Shared/_Layout.cshtml";
 
     string FmtVnd(decimal v) => string.Format("{0:N0} ₫", v).Replace(",", ".");
+    int depPct = Model.DepositPct;
+    int remainPct = 100 - depPct;
+    int commPct = Model.CommissionPct;
+    int ownerPct = 100 - commPct;
+    int payoutPct = depPct - commPct;
 }
 
 <div class="d-flex flex-column gap-4">
@@ -11,7 +16,7 @@
     <div class="d-flex flex-wrap align-items-end justify-content-between gap-3">
         <div>
             <h1 class="host-page-title">Ví đối tác &amp; Đối soát</h1>
-            <p class="host-page-subtitle">Theo dõi dòng tiền cọc 30%, phí nền tảng 10% và lịch sử quyết toán tự động về ngân hàng</p>
+            <p class="host-page-subtitle">Theo dõi dòng tiền cọc @depPct%, phí nền tảng @commPct% và lịch sử quyết toán tự động về ngân hàng</p>
         </div>
         <form method="get" action="/CarOwner/Wallet/Index" class="d-flex flex-wrap align-items-end gap-2">
             <input type="hidden" name="tab" value="@Model.ActiveTab" id="walletTabInput" />
@@ -47,7 +52,7 @@
             <div class="host-stat-card">
                 <div class="host-stat-label">
                     <span>Số dư chờ đối soát</span>
-                    <button type="button" class="host-info-btn" data-bs-toggle="tooltip" data-bs-placement="top" title="Khoản 20% tiền cọc còn lại (sau khi trừ 10% phí nền tảng từ 30% cọc VNPay) sàn đang giữ và sẽ chuyển khoản cho chủ xe vào kỳ đối soát tiếp theo.">i</button>
+                    <button type="button" class="host-info-btn" data-bs-toggle="tooltip" data-bs-placement="top" title="Khoản @payoutPct% tiền cọc còn lại (sau khi trừ @commPct% phí nền tảng từ @depPct% cọc qua sàn) sàn đang giữ và sẽ chuyển khoản cho chủ xe vào kỳ đối soát tiếp theo.">i</button>
                 </div>
                 <div class="host-stat-value text-warning">@FmtVnd(Model.PendingBalance + Model.ProcessingBalance)</div>
                 <div class="host-stat-sub">Chờ thanh toán: @FmtVnd(Model.PendingBalance) · Đang xử lý: @FmtVnd(Model.ProcessingBalance)</div>
@@ -57,7 +62,7 @@
             <div class="host-stat-card">
                 <div class="host-stat-label">
                     <span>Sàn đã chuyển kỳ này</span>
-                    <button type="button" class="host-info-btn" data-bs-toggle="tooltip" data-bs-placement="top" title="Tổng số tiền đối soát (20% giá trị đơn) mà ReCar đã giải ngân thành công vào tài khoản ngân hàng thụ hưởng của bạn trong kỳ lọc.">i</button>
+                    <button type="button" class="host-info-btn" data-bs-toggle="tooltip" data-bs-placement="top" title="Tổng số tiền đối soát (@payoutPct% giá trị đơn) mà ReCar đã giải ngân thành công vào tài khoản ngân hàng thụ hưởng của bạn trong kỳ lọc.">i</button>
                 </div>
                 <div class="host-stat-value text-success">@FmtVnd(Model.PaidTotal)</div>
                 <div class="host-stat-sub">Đã thanh toán vào tài khoản ngân hàng</div>
@@ -66,18 +71,18 @@
         <div class="col-12 col-sm-6 col-xl-3">
             <div class="host-stat-card">
                 <div class="host-stat-label">
-                    <span>Thực nhận chủ xe (90%)</span>
-                    <button type="button" class="host-info-btn" data-bs-toggle="tooltip" data-bs-placement="top" title="Tổng thu nhập ròng 90% của chủ xe từ các chuyến hoàn thành trong kỳ: bao gồm 70% khách trả trực tiếp khi nhận xe + 20% sàn chuyển đối soát.">i</button>
+                    <span>Thực nhận chủ xe (@ownerPct%)</span>
+                    <button type="button" class="host-info-btn" data-bs-toggle="tooltip" data-bs-placement="top" title="Tổng thu nhập ròng @ownerPct% của chủ xe từ các chuyến hoàn thành trong kỳ: bao gồm @remainPct% khách trả trực tiếp khi nhận xe + @payoutPct% sàn chuyển đối soát.">i</button>
                 </div>
                 <div class="host-stat-value" style="color: #0284c7;">@FmtVnd(Model.NetInPeriod)</div>
-                <div class="host-stat-sub">70% thu trực tiếp + 20% sàn đối soát</div>
+                <div class="host-stat-sub">@remainPct% thu trực tiếp + @payoutPct% sàn đối soát</div>
             </div>
         </div>
         <div class="col-12 col-sm-6 col-xl-3">
             <div class="host-stat-card">
                 <div class="host-stat-label">
-                    <span>Phí sàn 10%</span>
-                    <button type="button" class="host-info-btn" data-bs-toggle="tooltip" data-bs-placement="top" title="Phí vận hành & bảo hiểm nền tảng 10% tính trên tổng giá trị đơn hoàn thành. Khoản này được khấu trừ trực tiếp từ 30% tiền cọc khách đóng qua sàn.">i</button>
+                    <span>Phí sàn @commPct%</span>
+                    <button type="button" class="host-info-btn" data-bs-toggle="tooltip" data-bs-placement="top" title="Phí vận hành & bảo hiểm nền tảng @commPct% tính trên tổng giá trị đơn. Khoản này được khấu trừ trực tiếp từ @depPct% tiền cọc khách đóng qua sàn.">i</button>
                 </div>
                 <div class="host-stat-value text-danger">@FmtVnd(Model.FeeInPeriod)</div>
                 <div class="host-stat-sub">Trên tổng giá trị đơn @FmtVnd(Model.GrossInPeriod)</div>
@@ -88,7 +93,7 @@
     <!-- Notice Banner -->
     <div class="host-notice">
         <i class="bi bi-info-circle-fill me-1"></i>
-        Khách đặt cọc <strong>30%</strong> qua VNPay, thanh toán <strong>70%</strong> trực tiếp khi nhận xe. Phí nền tảng <strong>10%</strong> chỉ khấu trừ một lần trên khoản cọc 30%; sàn hoàn trả <strong>20%</strong> còn lại cho chủ xe theo kỳ đối soát.
+        Khách đặt cọc <strong>@depPct%</strong> qua sàn, thanh toán <strong>@remainPct%</strong> trực tiếp khi nhận xe. Phí nền tảng <strong>@commPct%</strong> khấu trừ một lần trên khoản cọc @depPct%; sàn hoàn trả <strong>@payoutPct%</strong> còn lại cho chủ xe theo kỳ đối soát.
     </div>
 
     <!-- Dòng tiền trong kỳ + Tài khoản nhận tiền -->
@@ -110,11 +115,11 @@
                                     <span class="fw-bold text-dark">@FmtVnd(Model.GrossInPeriod)</span>
                                 </div>
                                 <div class="d-flex justify-content-between py-1 small mb-2">
-                                    <span class="text-secondary">Khách cọc qua sàn (30%)</span>
+                                    <span class="text-secondary">Khách cọc qua sàn (@depPct%)</span>
                                     <span class="fw-semibold text-primary">@FmtVnd(Model.DepositInPeriod)</span>
                                 </div>
                                 <div class="d-flex justify-content-between py-1 small">
-                                    <span class="text-secondary">Khách trả trực tiếp khi nhận xe (70%)</span>
+                                    <span class="text-secondary">Khách trả trực tiếp khi nhận xe (@remainPct%)</span>
                                     <span class="fw-semibold text-dark">@FmtVnd(Model.DirectInPeriod)</span>
                                 </div>
                             </div>
@@ -122,15 +127,15 @@
                         <div class="col-12 col-md-6">
                             <div class="rounded-3 border p-3 h-100" style="background: rgba(236, 253, 245, 0.5); border-color: #a7f3d0 !important;">
                                 <div class="d-flex justify-content-between py-1.5 border-bottom pb-2 mb-2 small">
-                                    <span class="text-secondary">Phí dịch vụ nền tảng (-10%)</span>
+                                    <span class="text-secondary">Phí dịch vụ nền tảng (-@commPct%)</span>
                                     <span class="fw-semibold text-danger">-@FmtVnd(Model.FeeInPeriod)</span>
                                 </div>
                                 <div class="d-flex justify-content-between py-1 small mb-2">
-                                    <span class="text-secondary">Thực nhận của chủ xe (90%)</span>
+                                    <span class="text-secondary">Thực nhận của chủ xe (@ownerPct%)</span>
                                     <span class="fw-bold text-success">@FmtVnd(Model.NetInPeriod)</span>
                                 </div>
                                 <div class="d-flex justify-content-between py-1 small">
-                                    <span class="text-secondary">Sàn chuyển sau khấu trừ phí (20%)</span>
+                                    <span class="text-secondary">Sàn chuyển sau khấu trừ phí (@payoutPct%)</span>
                                     <span class="fw-bold" style="color: #0284c7;">@FmtVnd(Model.PayoutFromPlatformInPeriod)</span>
                                 </div>
                             </div>
@@ -204,9 +209,9 @@
                         <th>Loại giao dịch</th>
                         <th>Mô tả</th>
                         <th class="text-end">Tổng đơn</th>
-                        <th class="text-end">Phí sàn (10%)</th>
-                        <th class="text-end">Chủ xe nhận (90%)</th>
-                        <th class="text-end">Sàn đối soát (20%)</th>
+                        <th class="text-end">Phí sàn (@commPct%)</th>
+                        <th class="text-end">Chủ xe nhận (@ownerPct%)</th>
+                        <th class="text-end">Sàn đối soát (@payoutPct%)</th>
                         <th>Trạng thái</th>
                         <th class="text-end">Thao tác</th>
                     </tr>
@@ -279,7 +284,7 @@
         <div class="host-section-header">
             <div>
                 <h3 class="host-section-title">Lịch sử quyết toán</h3>
-                <p class="host-section-sub">Các đợt đối soát tiền cọc 30% sau khi trừ 10% phí nền tảng</p>
+                <p class="host-section-sub">Các đợt đối soát tiền cọc @depPct% sau khi trừ @commPct% phí nền tảng</p>
             </div>
         </div>
         <div class="table-responsive">
@@ -289,9 +294,9 @@
                         <th>Mã kỳ</th>
                         <th>Kỳ đối soát</th>
                         <th class="text-end">Số đơn</th>
-                        <th class="text-end">Cọc sàn giữ (30%)</th>
-                        <th class="text-end">Phí sàn (10%)</th>
-                        <th class="text-end">Số tiền chuyển (20%)</th>
+                        <th class="text-end">Cọc sàn giữ (@depPct%)</th>
+                        <th class="text-end">Phí sàn (@commPct%)</th>
+                        <th class="text-end">Số tiền chuyển (@payoutPct%)</th>
                         <th>Trạng thái</th>
                         <th>Ngày chuyển</th>
                         <th class="text-end">Thao tác</th>
@@ -369,23 +374,23 @@
                         <span class="fw-bold text-dark" id="txModalGross"></span>
                     </div>
                     <div class="d-flex justify-content-between mb-2">
-                        <span class="text-secondary">Khách cọc qua VNPay (30%)</span>
+                        <span class="text-secondary">Khách cọc qua sàn (@depPct%)</span>
                         <span class="fw-semibold text-primary" id="txModalDeposit"></span>
                     </div>
                     <div class="d-flex justify-content-between mb-2" id="txRowDirect">
-                        <span class="text-secondary">Khách trả trực tiếp chủ xe (70%)</span>
+                        <span class="text-secondary">Khách trả trực tiếp chủ xe (@remainPct%)</span>
                         <span class="fw-semibold text-dark" id="txModalDirect"></span>
                     </div>
                     <div class="d-flex justify-content-between mb-2" id="txRowFee">
-                        <span class="text-secondary">Phí nền tảng (10%)</span>
+                        <span class="text-secondary">Phí nền tảng (@commPct%)</span>
                         <span class="fw-semibold text-danger" id="txModalFee"></span>
                     </div>
                     <div class="d-flex justify-content-between pt-2 border-top mb-1" id="txRowNet">
-                        <span class="fw-semibold text-dark">Thực nhận chủ xe (90%)</span>
+                        <span class="fw-semibold text-dark">Thực nhận chủ xe (@ownerPct%)</span>
                         <span class="fw-bold text-success" id="txModalNet"></span>
                     </div>
                     <div class="d-flex justify-content-between">
-                        <span class="fw-semibold text-dark">Sàn chuyển đối soát (20%)</span>
+                        <span class="fw-semibold text-dark">Sàn chuyển đối soát (@payoutPct%)</span>
                         <span class="fw-bold" style="color: #0284c7;" id="txModalPayout"></span>
                     </div>
                 </div>
@@ -420,15 +425,15 @@
                         <span class="fw-semibold text-dark" id="poModalHolder"></span>
                     </div>
                     <div class="d-flex justify-content-between mb-2">
-                        <span class="text-secondary">Tổng cọc sàn giữ (30%)</span>
+                        <span class="text-secondary">Tổng cọc sàn giữ (@depPct%)</span>
                         <span class="fw-semibold text-dark" id="poModalDeposit"></span>
                     </div>
                     <div class="d-flex justify-content-between mb-2">
-                        <span class="text-secondary">Tổng phí sàn khấu trừ (10%)</span>
+                        <span class="text-secondary">Tổng phí sàn khấu trừ (@commPct%)</span>
                         <span class="fw-semibold text-danger" id="poModalFee"></span>
                     </div>
                     <div class="d-flex justify-content-between pt-2 border-top">
-                        <span class="fw-bold text-dark">Số tiền sàn chuyển (20%)</span>
+                        <span class="fw-bold text-dark">Số tiền sàn chuyển (@payoutPct%)</span>
                         <span class="fw-bold text-success" id="poModalAmount"></span>
                     </div>
                 </div>

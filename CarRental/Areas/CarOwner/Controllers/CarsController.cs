@@ -204,6 +204,8 @@ namespace CarRental.Areas.CarOwner.Controllers
  SalePrice = (model.SalePrice.HasValue && model.SalePrice.Value > 0) ? model.SalePrice : null,
  IsSale = (model.SalePrice.HasValue && model.SalePrice.Value > 0 && model.SalePrice < model.Price),
  Location = model.Location.Trim(),
+ Latitude = model.Latitude,
+ Longitude = model.Longitude,
  Image = avatarPath,
  RegistrationImage = regDocPath,
  InspectionImage = inspDocPath,
@@ -392,6 +394,11 @@ namespace CarRental.Areas.CarOwner.Controllers
  Selected = c.TypeId == car.TypeId
  }).ToList();
 
+ ViewBag.Locations = _context.Locations
+ .Where(l => l.IsActive)
+ .OrderBy(l => l.DisplayOrder)
+ .ToList();
+
  var allAmenities = _context.Amenities
  .Where(a => a.IsActive)
  .OrderBy(a => a.DisplayOrder)
@@ -447,6 +454,8 @@ namespace CarRental.Areas.CarOwner.Controllers
  Price = car.Price ?? 0,
  SalePrice = car.SalePrice,
  Location = car.Location ?? string.Empty,
+ Latitude = car.Latitude,
+ Longitude = car.Longitude,
  ExistingImage = car.Image,
  Details = policy.ExtraDescription ?? "",
  Features = featuresList,
@@ -549,6 +558,8 @@ namespace CarRental.Areas.CarOwner.Controllers
  {
  existingCar.LicensePlate = model.LicensePlate.Trim().ToUpper();
  existingCar.Location = model.Location.Trim();
+ existingCar.Latitude = model.Latitude;
+ existingCar.Longitude = model.Longitude;
  existingCar.Price = model.Price;
  }
  

@@ -30,33 +30,20 @@ namespace CarRental.Controllers
 
  {
 
- private readonly DbRenalCarContext _context;
+        private readonly DbRenalCarContext _context;
+        private readonly IConfiguration _config;
+        private readonly IHubContext<ReCarHub> _hubContext;
+        private readonly INotificationService _notificationService;
+        private readonly IZaloPayService _zaloPayService;
 
- private readonly IVnpayServices _vnpayServices;
-
- private readonly IConfiguration _config;
-
- private readonly IHubContext<ReCarHub> _hubContext;
-
- private readonly INotificationService _notificationService;
-
-
-
- public CartController(DbRenalCarContext context, IVnpayServices vnpayServices, IConfiguration config, IHubContext<ReCarHub> hubContext, INotificationService notificationService)
-
- {
-
- _context = context;
-
- _vnpayServices = vnpayServices;
-
- _config = config;
-
- _hubContext = hubContext;
-
- _notificationService = notificationService;
-
- }
+        public CartController(DbRenalCarContext context, IConfiguration config, IHubContext<ReCarHub> hubContext, INotificationService notificationService, IZaloPayService zaloPayService)
+        {
+            _context = context;
+            _config = config;
+            _hubContext = hubContext;
+            _notificationService = notificationService;
+            _zaloPayService = zaloPayService;
+        }
 
  string CART_KEY = "MYCART";
 
@@ -249,7 +236,11 @@ namespace CarRental.Controllers
 
  ViewBag.DepositPct = sysSetting?.DepositPct ?? 30;
 
- decimal payment = total - deposit; // S? ti?n c?n l?i khi nh?n xe
+            decimal payment = total - deposit; // Số tiền còn lại khi nhận xe
+
+            var accId = Function.GetAccountId(HttpContext.Session);
+            var currentCustomer = _context.Customers.FirstOrDefault(c => c.CustomerId == accId);
+            ViewBag.CustomerBalance = currentCustomer?.Balance ?? 0m;
 
 
 
@@ -401,7 +392,11 @@ namespace CarRental.Controllers
 
  ViewBag.DepositPct = sysSetting?.DepositPct ?? 30;
 
- decimal payment = total - deposit; // S? ti?n c?n l?i khi nh?n xe
+            decimal payment = total - deposit; // Số tiền còn lại khi nhận xe
+
+            var accId = Function.GetAccountId(HttpContext.Session);
+            var currentCustomer = _context.Customers.FirstOrDefault(c => c.CustomerId == accId);
+            ViewBag.CustomerBalance = currentCustomer?.Balance ?? 0m;
 
 
 
@@ -599,35 +594,40 @@ namespace CarRental.Controllers
 
 
 
- decimal price = cart.Sum(p => p.PriceTotal);
+            decimal price = cart.Sum(p => p.PriceTotal);
 
- bool isFullPayment = model.paymentmethod == "full_100" || 
+            bool isWallet = model.paymentmethod == "wallet_deposit" || model.paymentmethod == "wallet_full";
+            bool isZaloPay = model.paymentmethod == "zalopay_deposit" || model.paymentmethod == "zalopay_full";
+            bool isFullPayment = model.paymentmethod == "full_100" ||
+                model.paymentmethod == "wallet_full" ||
+                model.paymentmethod == "zalopay_full" ||
+                model.paymentmethod == "Thanh toán 100%" ||
+                model.paymentmethod == "Thanh toán toàn bộ 100%";
 
- model.paymentmethod == "Thanh ton 100%" ||
+            var sysSetting = _context.SystemSettings.FirstOrDefault();
+            int currentCommissionPct = sysSetting?.CommissionPct ?? 10;
+            int currentDepositPct = sysSetting?.DepositPct ?? 30;
 
- model.paymentmethod == "Thanh ton ton b? 100%";
+            decimal deposit = isFullPayment ? price : Math.Round((price * (decimal)currentDepositPct) / 100m, 0);
+            decimal payments = isFullPayment ? 0 : (price - deposit);
+            decimal platformFee = Math.Round((price * (decimal)currentCommissionPct) / 100m, 0);
 
+            var payingCustomer = isWallet ? _context.Customers.FirstOrDefault(c => c.CustomerId == customerID) : null;
+            if (isWallet)
+            {
+                if (payingCustomer == null || payingCustomer.Balance < deposit)
+                {
+                    return Json(new
+                    {
+                        success = false,
+                        message = $"Số dư Ví ReCar không đủ ({(payingCustomer?.Balance ?? 0m):N0} đ) để thanh toán khoản {deposit:N0} đ. Vui lòng chọn thanh toán qua ZaloPay."
+                    });
+                }
+            }
 
-
- var sysSetting = _context.SystemSettings.FirstOrDefault();
-
- int currentCommissionPct = sysSetting?.CommissionPct ?? 10;
-
- int currentDepositPct = sysSetting?.DepositPct ?? 30;
-
-
-
- decimal deposit = isFullPayment ? price : Math.Round((price * (decimal)currentDepositPct) / 100m, 0);
-
- decimal payments = isFullPayment ? 0 : (price - deposit);
-
- decimal platformFee = Math.Round((price * (decimal)currentCommissionPct) / 100m, 0);
-
-
-
- var driveModeSummary = string.Join("; ", cart.Select(c => $"H?nh th?c: {c.DriveMode}" + (c.DriverFee > 0 ? $" (Ph? ph ti x?: {c.DriverFee:N0})" : "")));
-
- string paymentPlanText = isFullPayment ? "Gi thanh ton: Tr?n gi 100% qua VNPay" : $"Gi thanh ton: ?t c?c {currentDepositPct}% qua VNPay";
+            var driveModeSummary = string.Join("; ", cart.Select(c => $"Hình thức: {c.DriveMode}" + (c.DriverFee > 0 ? $" (Phụ phí tài xế: {c.DriverFee:N0})" : "")));
+            string paymentChannel = isWallet ? "Ví ReCar" : (isZaloPay ? "ZaloPay" : "COD");
+            string paymentPlanText = isFullPayment ? $"Gói thanh toán: Trọn gói 100% qua {paymentChannel}" : $"Gói thanh toán: Đặt cọc {currentDepositPct}% qua {paymentChannel}";
 
  string nowVnTime = Function.NowVn.ToString("dd/MM/yyyy HH:mm");
 
@@ -729,101 +729,74 @@ namespace CarRental.Controllers
 
  }
 
- _context.SaveChanges(); // Lu thay ?i
+                        if (isWallet && payingCustomer != null)
+                        {
+                            payingCustomer.Balance -= deposit;
+                            order.StatusId = 3;
+                            string walletLog = isFullPayment
+                                ? $"[Thanh toán {Function.NowVn:dd/MM/yyyy HH:mm}] | Đã thanh toán trọn gói 100% ({deposit:N0} đ) bằng Số dư Ví ReCar"
+                                : $"[Thanh toán {Function.NowVn:dd/MM/yyyy HH:mm}] | Đã thanh toán đặt cọc {currentDepositPct}% ({deposit:N0} đ) bằng Số dư Ví ReCar";
+                            order.Notes = (order.Notes ?? "") + " | " + walletLog;
 
- HttpContext.Session.Set<List<CartItemsVM>>(CART_KEY, new List<CartItemsVM>());
+                            _context.WalletTransactions.Add(new WalletTransaction
+                            {
+                                CustomerId = payingCustomer.CustomerId,
+                                OrderId = order.OrderId,
+                                Type = "payment",
+                                Amount = deposit,
+                                BalanceAfter = payingCustomer.Balance,
+                                Description = isFullPayment
+                                    ? $"Thanh toán trọn gói 100% đơn #{order.OrderId} bằng Ví ReCar"
+                                    : $"Thanh toán đặt cọc {currentDepositPct}% đơn #{order.OrderId} bằng Ví ReCar",
+                                Status = "completed",
+                                CreatedAt = Function.NowVn,
+                                ProcessedAt = Function.NowVn
+                            });
+                        }
 
- transaction.Commit();
+                        _context.SaveChanges(); // Lưu thay đổi
 
- bool isVnPay = model.paymentmethod != "cod" && model.paymentmethod != "Thanh ton COD";
+                        HttpContext.Session.Set<List<CartItemsVM>>(CART_KEY, new List<CartItemsVM>());
 
- if (isVnPay)
+                        transaction.Commit();
 
- {
+                        if (isWallet)
+                        {
+                            await SendOrderNotificationAsync(order.OrderId);
+                            var ordersUrlWallet = Url.Action("Index", "Accounts") + "?tab=orders";
+                            return Json(new
+                            {
+                                success = true,
+                                redirectUrl = ordersUrlWallet,
+                                isVnpay = false,
+                                title = isFullPayment ? "Thanh toán trọn gói 100% thành công!" : $"Đặt cọc {currentDepositPct}% bằng Ví ReCar thành công!",
+                                message = isFullPayment
+                                    ? $"Đã trừ {deposit:N0} đ từ Số dư Ví ReCar để thanh toán trọn gói 100%. Đơn hàng đã được xác nhận!"
+                                    : $"Đã trừ {deposit:N0} đ tiền cọc từ Số dư Ví ReCar. Phần còn lại {payments:N0} đ thanh toán khi nhận xe."
+                            });
+                        }
 
- bool isBypass = _config.GetValue<bool>("VnPay:BypassPayment", false);
+                        bool isZaloPayOrder = model.paymentmethod == "zalopay_deposit" || model.paymentmethod == "zalopay_full";
+                        if (isZaloPayOrder)
+                        {
+                            var zpUser = Function.GetUserName(HttpContext.Session);
+                            var zpDesc = isFullPayment
+                                ? $"ReCar - Thanh toan tron goi 100% don #{order.OrderId}"
+                                : $"ReCar - Dat coc {currentDepositPct}% don #{order.OrderId}";
+                            var zpResult = await _zaloPayService.CreateOrderAsync(HttpContext, order.OrderId, (long)deposit, zpUser, zpDesc);
+                            if (zpResult.Success && !string.IsNullOrEmpty(zpResult.OrderUrl))
+                            {
+                                return Json(new { success = true, redirectUrl = zpResult.OrderUrl, isVnpay = true });
+                            }
 
- if (isBypass)
+                            order.StatusId = 2;
+                            order.Notes = (order.Notes ?? "") + $" | [ZaloPay Error] {zpResult.ErrorMessage}";
+                            _context.SaveChanges();
+                            return Json(new { success = false, message = $"Không thể tạo giao dịch ZaloPay: {zpResult.ErrorMessage}" });
+                        }
 
- {
-
- // Ch? ? gi? l?p test: Xc nh?n thanh ton thnh cng ngay l?p t?c
-
- order.StatusId = 3; // ? thanh ton / c?c thnh cng
-
- string testLog = isFullPayment
-
- ? $"[Thanh ton {Function.NowVn:dd/MM/yyyy HH:mm}] | [VNPay Test] ? thanh ton tr?n gi 100% qua VNPay thnh cng"
-
- : $"[Thanh ton {Function.NowVn:dd/MM/yyyy HH:mm}] | [VNPay Test] ? thanh ton ?t c?c 30% qua VNPay thnh cng";
-
- order.Notes = (order.Notes ?? "") + " | " + testLog;
-
- _context.SaveChanges();
-
-
-
- // B?n thng bo th?i gian th?c t?i Admin v Ch? xe
-
- await SendOrderNotificationAsync(order.OrderId);
-
-
-
- var ordersUrlMock = Url.Action("Index", "Accounts") + "?tab=orders";
-
- return Json(new 
-
- { 
-
- success = true, 
-
- redirectUrl = ordersUrlMock, 
-
- isVnpay = false,
-
- title = isFullPayment ? "Thanh ton tr?n gi 100% thnh cng!" : "?t c?c 30% qua VNPay thnh cng!",
-
- message = isFullPayment
-
- ? $"B?n ? thanh ton tr?n gi 100% ({price:N0}) thnh cng qua VNPay (Ch? ? gi? l?p). Khng c?n thanh ton thm ti?n thu khi nh?n xe!"
-
- : $"B?n ? ?t c?c 30% ({deposit:N0}) thnh cng qua VNPay (Ch? ? gi? l?p). n hng ? chuy?n sang tr?ng thi ? thanh ton!"
-
- });
-
- }
-
-
-
- var vnPayModel = new VnPaymentRequestModel
-
- {
-
- Amount = (double)deposit,
-
- CreatedDate = Function.NowVn,
-
- Description = $"{Function.GetUserName(HttpContext.Session)} {Function.GetPhone(HttpContext.Session)}",
-
- FullName = Function.GetUserName(HttpContext.Session),
-
- OrderId = order.OrderId
-
- };
-
- var paymentUrl = _vnpayServices.CreatePaymentUrl(HttpContext, vnPayModel);
-
-
-
- return Json(new { success = true, redirectUrl = paymentUrl, isVnpay = true });
-
- }
-
-
-
- // B?n thng bo th?i gian th?c t?i Admin v Ch? xe
-
- await SendOrderNotificationAsync(order.OrderId);
+                        // Bắn thông báo thời gian thực tới Admin và Chủ xe
+                        await SendOrderNotificationAsync(order.OrderId);
 
 
 
@@ -1019,83 +992,73 @@ namespace CarRental.Controllers
 
 
 
- public IActionResult PaymentFail()
+        public IActionResult PaymentFail()
+        {
+            return View();
+        }
 
- {
+        [HttpGet]
+        public async Task<IActionResult> ZaloPayCallBack()
+        {
+            var appTransId = Request.Query["apptransid"].ToString();
+            var statusParam = Request.Query["status"].ToString();
 
- return View();
+            int orderId = 0;
+            if (!string.IsNullOrEmpty(appTransId))
+            {
+                var parts = appTransId.Split('_');
+                if (parts.Length >= 2)
+                {
+                    int.TryParse(parts[1], out orderId);
+                }
+            }
 
- }
+            var queryRes = await _zaloPayService.QueryOrderStatusAsync(appTransId);
+            bool isSuccess = statusParam == "1" || queryRes.IsPaid;
 
+            if (!isSuccess)
+            {
+                if (orderId > 0)
+                {
+                    var failOrder = _context.CarRentalOrders.FirstOrDefault(o => o.OrderId == orderId);
+                    if (failOrder != null && failOrder.StatusId == 1)
+                    {
+                        failOrder.StatusId = 2;
+                        failOrder.Notes = (failOrder.Notes ?? "") + $" | [ZaloPay {Function.NowVn:dd/MM/yyyy HH:mm}] Giao dịch chưa hoàn tất hoặc đã hủy (Mã: {appTransId})";
+                        _context.SaveChanges();
+                    }
+                }
+                TempData["Message"] = $"Giao dịch ZaloPay chưa hoàn tất hoặc bạn đã hủy giao dịch (Mã GD: {appTransId}).";
+                return RedirectToAction("PaymentFail");
+            }
 
+            bool isFullPaid = false;
+            if (orderId > 0)
+            {
+                var order = _context.CarRentalOrders.FirstOrDefault(o => o.OrderId == orderId);
+                if (order != null)
+                {
+                    isFullPaid = (order.Payment ?? 0) == 0;
+                    if (order.StatusId != 3)
+                    {
+                        order.StatusId = 3;
+                        string nowPayStr = Function.NowVn.ToString("dd/MM/yyyy HH:mm");
+                        string noteSuffix = isFullPaid
+                            ? $" | [Thanh toán {nowPayStr}] | Đã thanh toán trọn gói 100% qua ZaloPay (Mã GD: {appTransId})"
+                            : $" | [Thanh toán {nowPayStr}] | Đã thanh toán cọc qua ZaloPay (Mã GD: {appTransId})";
+                        order.Notes = (order.Notes ?? "") + noteSuffix;
+                        _context.SaveChanges();
 
- public async Task<IActionResult> PaymentCallBack()
+                        await SendOrderNotificationAsync(orderId);
+                    }
+                }
+            }
 
- {
-
- var response = _vnpayServices.PaymentExecute(Request.Query);
-
-
-
- if (response == null || !response.Success || response.VnPayResponseCode != "00")
-
- {
-
- var errCode = response?.VnPayResponseCode ?? "99";
-
- TempData["Message"] = $"Giao d?ch VNPay khng thnh cng ho?c b?n ? h?y giao d?ch (M? ph?n h?i: {errCode}).";
-
- return RedirectToAction("PaymentFail");
-
- }
-
-
-
- // C?p nh?t tr?ng thi n hng ? c?c qua VNPay
-
- if (!string.IsNullOrEmpty(response.OrderId) && int.TryParse(response.OrderId, out int orderId))
-
- {
-
- var order = _context.CarRentalOrders.FirstOrDefault(o => o.OrderId == orderId);
-
- if (order != null)
-
- {
-
- order.StatusId = 3; // Tr?ng thi: ? thanh ton / c?c thnh cng
-
- bool isFull = (order.Payment ?? 0) == 0;
-
- string nowPayStr = Function.NowVn.ToString("dd/MM/yyyy HH:mm");
-
- string noteSuffix = isFull
-
- ? $" | [Thanh ton {nowPayStr}] | ? thanh ton tr?n gi 100% qua VNPay (M? GD: {response.TransactionId})"
-
- : $" | [Thanh ton {nowPayStr}] | ? thanh ton c?c 30% qua VNPay (M? GD: {response.TransactionId})";
-
- order.Notes = (order.Notes ?? "") + noteSuffix;
-
- _context.SaveChanges();
-
-
-
- // B?n thng bo Realtime
-
- await SendOrderNotificationAsync(orderId);
-
- }
-
- }
-
-
-
- TempData["Message"] = "Thanh ton ?t c?c qua VNPay thnh cng!";
-
- return RedirectToAction("Success", "Cart");
-
- }
+            TempData["Message"] = isFullPaid
+                ? "Thanh toán trọn gói 100% qua ZaloPay thành công!"
+                : "Thanh toán đặt cọc qua ZaloPay thành công!";
+            return RedirectToAction("Success", "Cart");
+        }
 
 
 

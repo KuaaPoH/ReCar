@@ -33,19 +33,9 @@ public virtual DbSet<Blog> Blogs { get; set; }
 
     public virtual DbSet<Contact> Contacts { get; set; }
 
-    public virtual DbSet<Contract> Contracts { get; set; }
-
-    public virtual DbSet<ContractDetail> ContractDetails { get; set; }
-
-    public virtual DbSet<ContractSettlement> ContractSettlements { get; set; }
-
-    public virtual DbSet<ContractSettlementDetail> ContractSettlementDetails { get; set; }
-
     public virtual DbSet<Customer> Customers { get; set; }
 
     public virtual DbSet<Menu> Menus { get; set; }
-
-    public virtual DbSet<Message> Messages { get; set; }
 
     public virtual DbSet<News> News { get; set; }
 
@@ -60,6 +50,10 @@ public virtual DbSet<Blog> Blogs { get; set; }
     public virtual DbSet<User> Users { get; set; }
 
     public virtual DbSet<Location> Locations { get; set; }
+
+    public virtual DbSet<PartnerPayout> PartnerPayouts { get; set; }
+
+    public virtual DbSet<WalletTransaction> WalletTransactions { get; set; }
 
     public virtual DbSet<CarOwnerRegistration> CarOwnerRegistrations { get; set; }
 
@@ -221,75 +215,6 @@ modelBuilder.Entity<Blog>(entity =>
             entity.Property(e => e.Phone).HasMaxLength(50);
         });
 
-        modelBuilder.Entity<Contract>(entity =>
-        {
-            entity.HasKey(e => e.ContractId).HasName("PK__Contract__C90D3409E955298D");
-
-            entity.ToTable("Contract");
-
-            entity.Property(e => e.ContractId).HasColumnName("ContractID");
-            entity.Property(e => e.AdvancePayment).HasColumnType("decimal(18, 2)");
-            entity.Property(e => e.CustomerId).HasColumnName("CustomerID");
-
-            entity.HasOne(d => d.Customer).WithMany(p => p.Contracts)
-                .HasForeignKey(d => d.CustomerId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__Contracts__Custo__30F848ED");
-        });
-
-        modelBuilder.Entity<ContractDetail>(entity =>
-        {
-            entity.HasKey(e => e.ContractDetailId).HasName("PK__Contract__CCA7AF02CDE85DA8");
-
-            entity.Property(e => e.ContractDetailId).HasColumnName("ContractDetailID");
-            entity.Property(e => e.CarTypeId).HasColumnName("CarTypeID");
-            entity.Property(e => e.ContractId).HasColumnName("ContractID");
-            entity.Property(e => e.Price).HasColumnType("decimal(18, 2)");
-
-            entity.HasOne(d => d.CarType).WithMany(p => p.ContractDetails)
-                .HasForeignKey(d => d.CarTypeId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__ContractD__CarTy__38996AB5");
-
-            entity.HasOne(d => d.Contract).WithMany(p => p.ContractDetails)
-                .HasForeignKey(d => d.ContractId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__ContractD__Contr__37A5467C");
-        });
-
-        modelBuilder.Entity<ContractSettlement>(entity =>
-        {
-            entity.HasKey(e => e.SettlementId).HasName("PK__Contract__771254BA0D921783");
-
-            entity.Property(e => e.SettlementId).HasColumnName("SettlementID");
-            entity.Property(e => e.AdvancePayment).HasColumnType("decimal(18, 2)");
-            entity.Property(e => e.ContractId).HasColumnName("ContractID");
-            entity.Property(e => e.PaidAmount).HasColumnType("decimal(18, 2)");
-            entity.Property(e => e.PaymentMethod).HasMaxLength(50);
-            entity.Property(e => e.TotalPayment).HasColumnType("decimal(18, 2)");
-
-            entity.HasOne(d => d.Contract).WithMany(p => p.ContractSettlements)
-                .HasForeignKey(d => d.ContractId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__ContractS__Contr__3B75D760");
-        });
-
-        modelBuilder.Entity<ContractSettlementDetail>(entity =>
-        {
-            entity.HasKey(e => e.SettlementDetailId).HasName("PK__Contract__6BEA900069DBAA63");
-
-            entity.Property(e => e.SettlementDetailId).HasColumnName("SettlementDetailID");
-            entity.Property(e => e.CarId).HasColumnName("CarID");
-            entity.Property(e => e.Price).HasColumnType("decimal(18, 2)");
-            entity.Property(e => e.SettlementId).HasColumnName("SettlementID");
-            entity.Property(e => e.Total).HasColumnType("decimal(18, 2)");
-
-            entity.HasOne(d => d.Settlement).WithMany(p => p.ContractSettlementDetails)
-                .HasForeignKey(d => d.SettlementId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__ContractS__Settl__3E52440B");
-        });
-
         modelBuilder.Entity<Customer>(entity =>
         {
             entity.HasKey(e => e.CustomerId).HasName("PK__Customer__A4AE64B8D5A7BBA1");
@@ -330,24 +255,6 @@ modelBuilder.Entity<Blog>(entity =>
             entity.Property(e => e.Icon).HasMaxLength(100);
             entity.Property(e => e.Subsystem).HasMaxLength(50).HasDefaultValue("Customer");
             entity.Property(e => e.Url).HasMaxLength(255);
-        });
-
-        modelBuilder.Entity<Message>(entity =>
-        {
-            entity.HasKey(e => e.MessageId).HasName("PK__Messages__C87C037CA928974D");
-
-            entity.Property(e => e.MessageId).HasColumnName("MessageID");
-            entity.Property(e => e.AccountId).HasColumnName("AccountID");
-            entity.Property(e => e.MessageType)
-                .HasMaxLength(20)
-                .HasDefaultValue("text");
-            entity.Property(e => e.SentAt)
-                .HasDefaultValueSql("(getdate())")
-                .HasColumnType("datetime");
-
-            entity.HasOne(d => d.Account).WithMany(p => p.Messages)
-                .HasForeignKey(d => d.AccountId)
-                .HasConstraintName("FK__Messages__Accoun__084B3915");
         });
 
         modelBuilder.Entity<News>(entity =>

@@ -4,6 +4,11 @@
     Layout = "~/Areas/CarOwner/Views/Shared/_Layout.cshtml";
 
     string FmtVnd(decimal v) => string.Format("{0:N0} ₫", v).Replace(",", ".");
+    int commPct = ViewBag.CommissionPct ?? 10;
+    int depPct = ViewBag.DepositPct ?? 30;
+    int ownerPct = 100 - commPct;
+    int remainPct = 100 - depPct;
+    int payoutPct = depPct - commPct;
 }
 
 <div class="d-flex flex-column gap-4">
@@ -101,7 +106,7 @@
             <div class="host-stat-card">
                 <div class="host-stat-label">
                     <span>Tổng doanh thu</span>
-                    <button type="button" class="host-info-btn" data-bs-toggle="tooltip" title="Tổng giá trị 100% các đơn thuê hoàn thành trước khi khấu trừ phí dịch vụ nền tảng 10%.">i</button>
+                    <button type="button" class="host-info-btn" data-bs-toggle="tooltip" title="Tổng giá trị 100% các đơn thuê hoàn thành trước khi khấu trừ phí dịch vụ nền tảng @commPct%.">i</button>
                 </div>
                 <div class="host-stat-value text-dark">@FmtVnd(Model.TotalGross)</div>
                 <div class="host-stat-sub">Từ các đơn hoàn thành trong kỳ</div>
@@ -110,11 +115,11 @@
         <div class="col-12 col-sm-6 col-xl">
             <div class="host-stat-card">
                 <div class="host-stat-label">
-                    <span>Doanh thu ròng (90%)</span>
-                    <button type="button" class="host-info-btn" data-bs-toggle="tooltip" title="Thu nhập thực nhận của chủ xe = 90% tổng giá trị đơn (gồm 70% khách trả khi nhận xe + 20% sàn đối soát).">i</button>
+                    <span>Doanh thu ròng (@ownerPct%)</span>
+                    <button type="button" class="host-info-btn" data-bs-toggle="tooltip" title="Thu nhập thực nhận của chủ xe = @ownerPct% tổng giá trị đơn (gồm @remainPct% khách trả khi nhận xe + @payoutPct% sàn đối soát).">i</button>
                 </div>
                 <div class="host-stat-value text-success">@FmtVnd(Model.TotalNet)</div>
-                <div class="host-stat-sub">Sau phí nền tảng 10%</div>
+                <div class="host-stat-sub">Sau phí nền tảng @commPct%</div>
             </div>
         </div>
         <div class="col-12 col-sm-6 col-xl">
@@ -147,7 +152,7 @@
                 <div class="host-section-header">
                     <div>
                         <h3 class="host-section-title">Doanh thu theo thời gian</h3>
-                        <p class="host-section-sub">Theo dõi biến động tổng doanh thu (100%) và thực nhận chủ xe (90%) qua các tháng</p>
+                        <p class="host-section-sub">Theo dõi biến động tổng doanh thu (100%) và thực nhận chủ xe (@ownerPct%) qua các tháng</p>
                     </div>
                 </div>
                 <div class="host-section-body">
@@ -193,7 +198,7 @@
                         <th class="text-end">Ngày có khách / khả dụng</th>
                         <th>Tỷ lệ lấp đầy</th>
                         <th class="text-end">Tổng doanh thu</th>
-                        <th class="text-end">Thực nhận (90%)</th>
+                        <th class="text-end">Thực nhận (@ownerPct%)</th>
                         <th class="text-end">Đánh giá</th>
                     </tr>
                 </thead>
@@ -384,7 +389,7 @@
                         labels: trendLabels,
                         datasets: [
                             {
-                                label: 'Thực nhận chủ xe (90%)',
+                                label: 'Thực nhận chủ xe (@ownerPct%)',
                                 data: trendNet,
                                 borderColor: '#10b981',
                                 backgroundColor: 'rgba(16, 185, 129, 0.12)',

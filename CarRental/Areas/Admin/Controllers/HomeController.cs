@@ -25,23 +25,59 @@ namespace CarRental.Areas.Admin.Controllers
                 return RedirectToAction("Index", "Login", new { area = "Admin" });
             }
 
-            // 1. Thống kê KPI cơ bản
+            // 1. Thống kê KPI cơ bản (100% dữ liệu thật từ CSDL)
             var allCars = _context.Cars.Include(c => c.Type).ToList();
-            var allOrders = _context.CarRentalOrders.ToList();
+            var allOrders = _context.CarRentalOrders
+                .Include(o => o.OrderDetails)
+                    .ThenInclude(od => od.Car)
+                .ToList();
 
-            decimal actualGmv = allOrders.Sum(o => o.Payment ?? 0);
-            decimal gmv = actualGmv > 50000000 ? actualGmv : 312500000m; // GMV chuẩn mẫu nếu dữ liệu test ít
+            var validOrders = allOrders.Where(o => o.StatusId == 3 || o.StatusId == 4 || o.StatusId == 5).ToList();
+
+            decimal CalcOrderTotal(CarRentalOrder o)
+            {
+                decimal total = (o.Deposit ?? 0m) + (o.Payment ?? 0m);
+                if (total <= 0 && o.OrderDetails != null && o.OrderDetails.Any())
+                {
+                    foreach (var d in o.OrderDetails)
+                    {
+                        var pDate = d.PickupDate ?? (o.OrderDate.HasValue ? o.OrderDate.Value.ToDateTime(TimeOnly.MinValue) : DateTime.Today);
+                        var rDate = d.ReturnDate ?? (o.ReturnDate.HasValue ? o.ReturnDate.Value.ToDateTime(TimeOnly.MinValue) : pDate.AddDays(1));
+                        int days = Math.Max(1, (int)Math.Ceiling((rDate.Date - pDate.Date).TotalDays));
+                        total += (d.Price ?? d.Car?.Price ?? 0m) * days;
+                    }
+                }
+                if (total <= 0 && (o.Deposit ?? 0m) > 0)
+                {
+                    total = Math.Round((o.Deposit ?? 0m) / 0.3m, 0);
+                }
+                return total;
+            }
+
+            decimal gmv = validOrders.Sum(o => CalcOrderTotal(o));
             var sysSetting = _context.SystemSettings.FirstOrDefault();
             decimal commissionPct = sysSetting?.CommissionPct ?? 10m;
-            decimal netCommission = gmv * commissionPct / 100m;
+            decimal netCommission = validOrders.Sum(o => o.PlatformFee ?? Math.Round(CalcOrderTotal(o) * commissionPct / 100m, 0));
+
+            var nowVn = Function.NowVn;
+            var prevMonthDate = nowVn.AddMonths(-1);
+            decimal thisMonthGmv = validOrders
+                .Where(o => o.OrderDate.HasValue && o.OrderDate.Value.Year == nowVn.Year && o.OrderDate.Value.Month == nowVn.Month)
+                .Sum(o => CalcOrderTotal(o));
+            decimal prevMonthGmv = validOrders
+                .Where(o => o.OrderDate.HasValue && o.OrderDate.Value.Year == prevMonthDate.Year && o.OrderDate.Value.Month == prevMonthDate.Month)
+                .Sum(o => CalcOrderTotal(o));
+            double gmvDelta = prevMonthGmv > 0
+                ? Math.Round((double)((thisMonthGmv - prevMonthGmv) / prevMonthGmv * 100m), 1)
+                : (thisMonthGmv > 0 ? 100.0 : 0.0);
 
             var activeCars = allCars.Where(c => c.CarStatus == "Sẵn sàng" || c.CarStatus == "Đang bận" || (c.IsActive && c.CarStatus != "Chờ duyệt" && c.CarStatus != "Bảo trì")).ToList();
-            var rentedCars = allCars.Where(c => c.CarStatus == "Đang bận").ToList();
+            var rentedCars = allCars.Where(c => c.CarStatus == "Đang bận" || c.CarStatus == "Đang có khách").ToList();
             int occupancyRate = activeCars.Count > 0 ? (int)Math.Round((double)rentedCars.Count * 100 / activeCars.Count) : 0;
-            int pendingCount = allCars.Count(c => c.CarStatus == "Chờ duyệt");
+            int pendingCount = allCars.Count(c => c.CarStatus == "Chờ duyệt" || c.CarStatus == "Chờ cập nhật");
 
             ViewBag.GMV = gmv;
-            ViewBag.GmvDelta = 8.4; // +8.4% so với tháng trước
+            ViewBag.GmvDelta = gmvDelta;
             ViewBag.CommissionPct = commissionPct;
             ViewBag.NetCommission = netCommission;
             ViewBag.ActiveCarsCount = activeCars.Count;
@@ -52,13 +88,30 @@ namespace CarRental.Areas.Admin.Controllers
             ViewBag.ReadyCarsCount = allCars.Count(c => c.CarStatus == "Sẵn sàng");
             ViewBag.RentedCarsCount = rentedCars.Count;
             ViewBag.MaintenanceCarsCount = allCars.Count(c => c.CarStatus == "Bảo trì");
-            ViewBag.PendingAndSuspendedCount = allCars.Count(c => c.CarStatus == "Chờ duyệt" || c.CarStatus == "Từ chối" || !c.IsActive);
+            ViewBag.PendingAndSuspendedCount = allCars.Count(c => c.CarStatus == "Chờ duyệt" || c.CarStatus == "Chờ cập nhật" || c.CarStatus == "Từ chối" || !c.IsActive);
 
-            // 3. Biểu đồ 6 tháng gần nhất (Tháng 5 -> Tháng 10)
-            ViewBag.ChartMonths = new[] { "T5", "T6", "T7", "T8", "T9", "T10" };
-            ViewBag.ChartGMV = new[] { 185000000, 220000000, 280000000, 265000000, 290000000, 312500000 };
-            ViewBag.ChartCommission = new[] { 18500000, 22000000, 28000000, 26500000, 29000000, 31250000 };
-            ViewBag.ChartTrips = new[] { 210, 260, 340, 320, 290, 365 };
+            // 3. Biểu đồ 6 tháng gần nhất (tính đến tháng hiện tại từ dữ liệu thật CSDL)
+            var chartMonths = new List<string>();
+            var chartGmv = new List<decimal>();
+            var chartCommission = new List<decimal>();
+            var chartTrips = new List<int>();
+            for (int i = -5; i <= 0; i++)
+            {
+                var m = nowVn.AddMonths(i);
+                chartMonths.Add($"T{m.Month}");
+                var mOrders = validOrders
+                    .Where(o => o.OrderDate.HasValue && o.OrderDate.Value.Year == m.Year && o.OrderDate.Value.Month == m.Month)
+                    .ToList();
+                decimal mGmv = mOrders.Sum(o => CalcOrderTotal(o));
+                decimal mComm = mOrders.Sum(o => o.PlatformFee ?? Math.Round(CalcOrderTotal(o) * commissionPct / 100m, 0));
+                chartGmv.Add(mGmv);
+                chartCommission.Add(mComm);
+                chartTrips.Add(mOrders.Count);
+            }
+            ViewBag.ChartMonths = chartMonths.ToArray();
+            ViewBag.ChartGMV = chartGmv.ToArray();
+            ViewBag.ChartCommission = chartCommission.ToArray();
+            ViewBag.ChartTrips = chartTrips.ToArray();
 
             // 4. Danh sách đơn hàng gần đây (kèm thông tin xe & khách)
             var recentOrders = _context.CarRentalOrders
@@ -71,24 +124,32 @@ namespace CarRental.Areas.Admin.Controllers
                 .ToList();
             ViewBag.RecentOrders = recentOrders;
 
-            // 5. Danh sách Top 5 chủ xe có doanh thu cao (thống nhất bảng Customers)
+            // 5. Danh sách Top 5 chủ xe có doanh thu cao (tính thật từ đơn thuê & đánh giá CSDL)
             var ownersList = _context.Customers.Where(a => a.RoleId == 3).ToList();
+            var allReviews = _context.CarReviews.Where(r => r.IsActive != false && r.Star.HasValue).ToList();
+
             var topOwners = ownersList.Select(a => {
-                var ownerCars = allCars.Where(c => c.OwnerId == a.AccountId).ToList();
+                var ownerCars = allCars.Where(c => c.OwnerId == a.CustomerId).ToList();
+                var ownerCarIds = ownerCars.Select(c => c.CarId).ToHashSet();
+                var ownerOrders = validOrders.Where(o => o.OrderDetails.Any(od => ownerCarIds.Contains(od.CarId))).ToList();
+
                 int carCount = ownerCars.Count;
-                int trips = ownerCars.Sum(c => c.Trips ?? 0);
-                decimal revenue = trips > 0 ? (decimal)trips * 1250000m : 18500000m;
-                double rating = 4.8 + ((a.AccountId % 3) * 0.1);
+                int trips = ownerOrders.Count;
+                decimal revenue = ownerOrders.Sum(o => CalcOrderTotal(o));
+
+                var ownerReviews = allReviews.Where(r => r.CarId.HasValue && ownerCarIds.Contains(r.CarId.Value)).ToList();
+                double rating = ownerReviews.Any() ? Math.Round(ownerReviews.Average(r => r.Star!.Value), 1) : 5.0;
+
                 return new CarRental.ViewModels.TopOwnerVM {
-                    AccountId = a.AccountId,
-                    FullName = a.FullName ?? a.Username ?? "Chủ xe đối tác",
-                    Phone = a.Phone ?? "0912.345.678",
-                    CarCount = carCount > 0 ? carCount : 1,
-                    Trips = trips > 0 ? trips : 28,
+                    AccountId = a.CustomerId,
+                    FullName = a.FullName ?? a.Name ?? a.Username ?? "Chủ xe đối tác",
+                    Phone = a.PhoneNumber ?? "Chưa cập nhật",
+                    CarCount = carCount,
+                    Trips = trips,
                     Revenue = revenue,
-                    Rating = Math.Min(5.0, rating)
+                    Rating = rating
                 };
-            }).OrderByDescending(x => x.Revenue).Take(5).ToList();
+            }).OrderByDescending(x => x.Revenue).ThenByDescending(x => x.Trips).Take(5).ToList();
             ViewBag.TopOwners = topOwners;
 
             return View();

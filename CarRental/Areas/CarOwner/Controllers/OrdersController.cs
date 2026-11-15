@@ -1,5 +1,6 @@
 using CarRental.Hubs;
 using CarRental.Models;
+using CarRental.Services;
 using CarRental.Utilities;
 using CarRental.ViewModels;
 using Microsoft.AspNetCore.Mvc;
@@ -17,11 +18,13 @@ namespace CarRental.Areas.CarOwner.Controllers
     {
         private readonly DbRenalCarContext _context;
         private readonly IHubContext<ReCarHub> _hubContext;
+        private readonly INotificationService _notificationService;
 
-        public OrdersController(DbRenalCarContext context, IHubContext<ReCarHub> hubContext)
+        public OrdersController(DbRenalCarContext context, IHubContext<ReCarHub> hubContext, INotificationService notificationService)
         {
             _context = context;
             _hubContext = hubContext;
+            _notificationService = notificationService;
         }
 
         private Customer? GetCurrentCarOwner()
@@ -504,16 +507,48 @@ namespace CarRental.Areas.CarOwner.Controllers
                 return Json(new { success = false, message = "Không tìm thấy đơn hàng." });
             }
 
+            if (order.StatusId == 2)
+            {
+                return Json(new { success = false, message = "Đơn hàng này đã được hủy trước đó." });
+            }
+
             if (order.StatusId == 4 || order.StatusId == 5)
             {
                 return Json(new { success = false, message = "Không thể hủy đơn khi xe đang chạy hoặc chuyến đi đã hoàn tất." });
             }
 
+            int previousStatus = order.StatusId ?? 1;
             order.StatusId = 2; // Đã Huỷ
             string cancelNote = string.IsNullOrWhiteSpace(reason) ? "Theo thỏa thuận giữa hai bên" : reason.Trim();
-            order.Notes = string.IsNullOrEmpty(order.Notes) 
-                ? $"[Chủ xe hủy đơn lúc {Function.NowVn:dd/MM/yyyy HH:mm}: {cancelNote}]"
-                : $"{order.Notes} | [Chủ xe hủy đơn lúc {Function.NowVn:dd/MM/yyyy HH:mm}: {cancelNote}]";
+            decimal refundAmount = (previousStatus == 3 && (order.Deposit ?? 0m) > 0m) ? (order.Deposit ?? 0m) : 0m;
+            string refundNote = refundAmount > 0
+                ? $" | Đã hoàn {refundAmount:N0} đ tiền cọc vào Ví ReCar của khách"
+                : "";
+
+            order.Notes = string.IsNullOrEmpty(order.Notes)
+                ? $"[Chủ xe hủy đơn lúc {Function.NowVn:dd/MM/yyyy HH:mm}: {cancelNote}{refundNote}]"
+                : $"{order.Notes} | [Chủ xe hủy đơn lúc {Function.NowVn:dd/MM/yyyy HH:mm}: {cancelNote}{refundNote}]";
+
+            if (refundAmount > 0)
+            {
+                var renter = _context.Customers.FirstOrDefault(c => c.CustomerId == order.CustomerId);
+                if (renter != null)
+                {
+                    renter.Balance += refundAmount;
+                    _context.WalletTransactions.Add(new WalletTransaction
+                    {
+                        CustomerId = renter.CustomerId,
+                        OrderId = order.OrderId,
+                        Type = "refund",
+                        Amount = refundAmount,
+                        BalanceAfter = renter.Balance,
+                        Description = $"Hoàn tiền cọc đơn #{order.OrderId} (Chủ xe hủy: {cancelNote})",
+                        Status = "completed",
+                        CreatedAt = Function.NowVn,
+                        ProcessedAt = Function.NowVn
+                    });
+                }
+            }
 
             // Giải phóng xe về "Sẵn sàng"
             foreach (var detail in order.OrderDetails.Where(od => od.Car != null && od.Car.OwnerId == ownerId))
@@ -527,8 +562,26 @@ namespace CarRental.Areas.CarOwner.Controllers
 
             await _context.SaveChangesAsync();
 
-            Function.SetMessage(HttpContext.Session, $"Đã hủy đơn thuê xe #{order.OrderId}.");
-            return Json(new { success = true, message = "Đã hủy đơn thuê xe thành công.", redirectUrl = Url.Action("Details", new { id }) });
+            try
+            {
+                string msgNotif = refundAmount > 0
+                    ? $"Chủ xe đã hủy đơn #{order.OrderId} ({cancelNote}). Số tiền cọc {refundAmount:N0} đ đã được hoàn vào Số dư Ví ReCar của bạn."
+                    : $"Chủ xe đã hủy đơn #{order.OrderId} ({cancelNote}).";
+                await _notificationService.CreateNotificationAsync(
+                    order.CustomerId,
+                    "Customer",
+                    "Đơn thuê xe đã bị hủy",
+                    msgNotif,
+                    "Order",
+                    "/Accounts/Index?tab=wallet");
+            }
+            catch { }
+
+            string successMsg = refundAmount > 0
+                ? $"Đã hủy đơn thuê xe #{order.OrderId} và hoàn {refundAmount:N0} đ tiền cọc về Ví khách hàng."
+                : $"Đã hủy đơn thuê xe #{order.OrderId}.";
+            Function.SetMessage(HttpContext.Session, successMsg);
+            return Json(new { success = true, message = successMsg, redirectUrl = Url.Action("Details", new { id }) });
         }
 
         public IActionResult Edit(int? id)

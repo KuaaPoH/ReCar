@@ -13,7 +13,7 @@
     <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4">
         <div>
             <h1 class="h3 fw-bold mb-1 text-dark tracking-tight">Tổng quan hệ thống</h1>
-            <p class="text-muted small mb-0">Bảng điều khiển giám sát hoạt động giao dịch toàn sàn ReCar tháng 10/2026.</p>
+            <p class="text-muted small mb-0">Bảng điều khiển giám sát hoạt động giao dịch toàn sàn ReCar tháng @CarRental.Utilities.Function.NowVn.ToString("MM/yyyy").</p>
         </div>
         <div class="d-flex align-items-center gap-2">
             <span class="badge bg-white text-secondary border px-3 py-2 rounded-pill small shadow-sm">
@@ -44,8 +44,12 @@
                     @(gmv.ToString("N0")) đ
                 </div>
                 <div class="d-flex align-items-center gap-1 text-muted" style="font-size: 0.78rem;">
-                    <span class="text-success fw-bold d-flex align-items-center">
-                        <i class="bi bi-arrow-up-right me-0.5"></i> +@ViewBag.GmvDelta%
+                    @{
+                        double delta = ViewBag.GmvDelta != null ? Convert.ToDouble(ViewBag.GmvDelta) : 0.0;
+                        bool deltaUp = delta >= 0;
+                    }
+                    <span class="@(deltaUp ? "text-success" : "text-danger") fw-bold d-flex align-items-center">
+                        <i class="bi @(deltaUp ? "bi-arrow-up-right" : "bi-arrow-down-right") me-0.5"></i> @(deltaUp ? "+" : "")@delta%
                     </span>
                     <span>so với tháng trước</span>
                 </div>
@@ -121,7 +125,7 @@
                 <div class="recar-panel-header">
                     <div>
                         <h2 class="h6 fw-bold mb-0 text-dark">Doanh thu & Lượt thuê thành công (6 tháng gần nhất)</h2>
-                        <span class="text-muted small">Xu hướng tăng trưởng từ Tháng 5 đến Tháng 10/2026</span>
+                        <span class="text-muted small">Xu hướng tăng trưởng 6 tháng gần nhất</span>
                     </div>
                     <div class="btn-group btn-group-sm" role="group">
                         <button type="button" class="btn btn-primary active" id="btnChartGmv" onclick="switchChartMode('gmv')">Doanh thu</button>

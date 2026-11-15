@@ -200,7 +200,16 @@
                 </div>
 
                 <!-- Tools chọn vị trí & vùng quét -->
-                <div class="d-flex align-items-center gap-2 ms-auto me-3 flex-nowrap">
+                <div class="d-flex align-items-center gap-2 ms-auto me-3 flex-wrap">
+                    <select id="selectMapProvince" class="form-select form-select-sm rounded-pill fw-semibold text-nowrap" style="width: auto; max-width: 210px; padding: 6px 32px 6px 14px !important; font-size: 13px; cursor: pointer; border-color: #cbd5e1;" title="Chọn nhanh Tỉnh/Thành phố từ hệ thống">
+                        <option value="">-- Chọn Tỉnh / Thành phố --</option>
+                        @foreach (var loc in (ViewBag.Locations as List<CarRental.Models.Location> ?? new List<CarRental.Models.Location>()))
+                        {
+                            var coords = CarRental.Utilities.VietnamLocations.ResolveCoordinates(loc.CityName, 0);
+                            <option value="@loc.CityName" data-lat="@coords.lat.ToString(System.Globalization.CultureInfo.InvariantCulture)" data-lng="@coords.lng.ToString(System.Globalization.CultureInfo.InvariantCulture)">@loc.CityName</option>
+                        }
+                    </select>
+
                     <button type="button" class="btn btn-outline-primary btn-sm rounded-pill d-flex align-items-center gap-1.5 px-3 py-1.5 fw-semibold text-nowrap" id="btnGetLiveGps" title="Lấy vị trí GPS của bạn">
                         <i class="bi bi-crosshair"></i> <span>Vị trí hiện tại</span>
                     </button>
@@ -766,6 +775,18 @@
         $('#selectRadiusKm').on('change', function () {
             currentRadius = parseFloat($(this).val()) || 25;
             updateUserPosition(currentLat, currentLng, false);
+        });
+
+        // Chọn nhanh Tỉnh/Thành phố trên bản đồ
+        $('#selectMapProvince').on('change', function () {
+            var opt = this.options[this.selectedIndex];
+            if (!opt || !opt.value) return;
+            var lat = parseFloat(opt.getAttribute('data-lat'));
+            var lng = parseFloat(opt.getAttribute('data-lng'));
+            if (!isNaN(lat) && !isNaN(lng)) {
+                liveGpsCoords = { lat: lat, lng: lng };
+                updateUserPosition(lat, lng, true);
+            }
         });
 
         // Bấm nút lấy vị trí thực tế từ GPS thủ công

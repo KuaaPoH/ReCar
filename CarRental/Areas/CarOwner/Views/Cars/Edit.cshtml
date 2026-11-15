@@ -5,7 +5,12 @@
     Layout = "~/Areas/CarOwner/Views/Shared/_Layout.cshtml";
     var carTypes = ViewBag.CarTypes as List<SelectListItem> ?? new List<SelectListItem>();
     var carBrands = ViewBag.CarBrands as List<CarRental.Models.CarBrand> ?? new List<CarRental.Models.CarBrand>();
+    var locations = ViewBag.Locations as List<CarRental.Models.Location> ?? new List<CarRental.Models.Location>();
     var dbAmenities = ViewBag.Amenities as List<CarRental.Models.Amenity> ?? new List<CarRental.Models.Amenity>();
+    var fallbackCoords = CarRental.Utilities.VietnamLocations.ResolveCoordinates(Model.Location, Model.CarId);
+    double mapInitLat = Model.Latitude ?? fallbackCoords.lat;
+    double mapInitLng = Model.Longitude ?? fallbackCoords.lng;
+    bool hasPinnedCoords = Model.Latitude.HasValue && Model.Longitude.HasValue;
 
     string status = Model.CarStatus ?? "Sẵn sàng";
     bool isPending = status == "Chờ duyệt" || status == "pending";
@@ -18,6 +23,7 @@
     string submitButtonText = isRejected ? "Gửi lại hồ sơ" : (isPendingUpdate ? "Cập nhật hồ sơ" : "Lưu thay đổi");
 }
 
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <div class="container-fluid px-0 pb-5">
     <!-- Page Header -->
     <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-3 mb-4">
@@ -376,9 +382,73 @@
                                 }
                                 else
                                 {
-                                    <input asp-for="Location" class="form-control form-control-recar" id="inputLocation" placeholder="Quận 7, TP.HCM" required />
+                                    <input asp-for="Location" class="form-control form-control-recar" id="inputLocation" placeholder="Quận 7, TP. Hồ Chí Minh" required />
                                     <span asp-validation-for="Location" class="text-danger small"></span>
                                 }
+                                <input type="hidden" asp-for="Latitude" id="inputLatitude" />
+                                <input type="hidden" asp-for="Longitude" id="inputLongitude" />
+                            </div>
+
+                            <div class="col-12">
+                                <div class="rounded-4 border p-3 p-md-4" style="background-color: #f8fafc; border-color: #e2e8f0 !important;">
+                                    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-3">
+                                        <div>
+                                            <div class="fw-bold text-dark d-flex align-items-center gap-2" style="font-size: 0.95rem;">
+                                                <i data-lucide="map-pin" class="size-4 text-primary"></i>
+                                                <span>Vị trí xe trên bản đồ</span>
+                                            </div>
+                                            <div class="text-muted small">@(isBusy ? "Xe đang có khách thuê, vị trí bản đồ tạm khóa." : "Chọn tỉnh/thành mới của Việt Nam để lọc khu vực, sau đó bấm lên bản đồ để cập nhật ghim tọa độ.")</div>
+                                        </div>
+                                        @if (!isBusy)
+                                        {
+                                            <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-semibold flex-shrink-0" id="btnMapUseGps" onclick="useCurrentGpsForCar()">
+                                                <i class="bi bi-crosshair me-1"></i>Vị trí hiện tại
+                                            </button>
+                                        }
+                                    </div>
+
+                                    @if (!isBusy)
+                                    {
+                                        <div class="row g-2 mb-3">
+                                            <div class="col-12 col-md-5">
+                                                <select id="mapProvinceFilter" class="form-select form-select-recar" onchange="flyToSelectedProvince(this)">
+                                                    <option value="">-- Lọc nhanh Tỉnh / Thành phố (từ bảng Locations) --</option>
+                                                    @foreach (var loc in locations)
+                                                    {
+                                                        var coords = CarRental.Utilities.VietnamLocations.ResolveCoordinates(loc.CityName, 0);
+                                                        <option value="@loc.CityName" data-lat="@coords.lat.ToString(System.Globalization.CultureInfo.InvariantCulture)" data-lng="@coords.lng.ToString(System.Globalization.CultureInfo.InvariantCulture)">@loc.CityName (@loc.Region)</option>
+                                                    }
+                                                </select>
+                                            </div>
+                                            <div class="col-12 col-md-7">
+                                                <div class="input-group">
+                                                    <input type="text" id="mapAddressSearch" class="form-control form-control-recar" placeholder="Tìm đường, phường/xã, địa điểm cụ thể..." onkeydown="if(event.key==='Enter'){event.preventDefault(); searchAddressOnMap();}" />
+                                                    <button type="button" class="btn btn-primary px-3 fw-semibold" onclick="searchAddressOnMap()">
+                                                        <i class="bi bi-search me-1"></i>Tìm trên map
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
+
+                                    <div id="carOwnerMapPicker" style="height: 300px; width: 100%; border-radius: 12px; border: 1px solid #cbd5e1; z-index: 1;"></div>
+
+                                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-2 pt-1">
+                                        <div id="mapCoordStatus" class="small text-muted">
+                                            @if (hasPinnedCoords)
+                                            {
+                                                <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2 py-1"><i class="bi bi-geo-alt-fill me-1"></i>Đã ghim tọa độ: @Model.Latitude!.Value.ToString("F6", System.Globalization.CultureInfo.InvariantCulture), @Model.Longitude!.Value.ToString("F6", System.Globalization.CultureInfo.InvariantCulture)</span>
+                                            }
+                                            else
+                                            {
+                                                <span><i class="bi bi-info-circle me-1"></i>Xe chưa có tọa độ ghim chính xác (đang ước lượng theo tên địa điểm). Bấm lên bản đồ để ghim chính xác.</span>
+                                            }
+                                        </div>
+                                        <button type="button" class="btn btn-xs btn-light border rounded-pill px-2 py-1 small d-none" id="btnApplyMapAddress" onclick="applyDetectedAddress()">
+                                            <i class="bi bi-magic me-1 text-primary"></i>Điền địa chỉ gợi ý vào ô trên
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -841,6 +911,10 @@
 
         currentStep = stepIndex;
 
+        if (stepIndex === 0 && typeof ownerCarMap !== 'undefined' && ownerCarMap !== null) {
+            setTimeout(function() { ownerCarMap.invalidateSize(); }, 150);
+        }
+
         // Nút Prev
         const btnPrev = document.getElementById('btnPrevStep');
         if (btnPrev) {
@@ -1038,6 +1112,7 @@
             lucide.createIcons();
         }
         updatePricePreview();
+        initOwnerCarMap();
     });
 
     // Hàm submit an toàn không bị chặn bởi HTML5 hidden input validation
@@ -1146,4 +1221,154 @@
         return true;
     }
 
+</script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    let ownerCarMap = null;
+    let ownerCarMarker = null;
+    let detectedMapAddress = '';
+    const isCarBusy = @(isBusy ? "true" : "false");
+
+    function initOwnerCarMap() {
+        const container = document.getElementById('carOwnerMapPicker');
+        if (!container || typeof L === 'undefined') return;
+
+        const initLat = @mapInitLat.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        const initLng = @mapInitLng.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        const hasPinned = @(hasPinnedCoords ? "true" : "false");
+
+        ownerCarMap = L.map('carOwnerMapPicker', {
+            center: [initLat, initLng],
+            zoom: hasPinned ? 15 : 12,
+            zoomControl: true
+        });
+
+        L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+            attribution: '&copy; Google Maps',
+            maxZoom: 20
+        }).addTo(ownerCarMap);
+
+        if (hasPinned) {
+            setOwnerCarPin(initLat, initLng, false);
+        } else {
+            // Hiển thị marker tham khảo ở vị trí ước lượng
+            ownerCarMarker = L.marker([initLat, initLng], { draggable: !isCarBusy, opacity: 0.7 }).addTo(ownerCarMap);
+            if (!isCarBusy) {
+                ownerCarMarker.on('dragend', function(ev) {
+                    const pos = ev.target.getLatLng();
+                    setOwnerCarPin(pos.lat, pos.lng, true);
+                });
+            }
+        }
+
+        if (!isCarBusy) {
+            ownerCarMap.on('click', function(e) {
+                setOwnerCarPin(e.latlng.lat, e.latlng.lng, true);
+            });
+        }
+    }
+
+    function setOwnerCarPin(lat, lng, doReverse) {
+        const latFixed = Number(lat).toFixed(6);
+        const lngFixed = Number(lng).toFixed(6);
+
+        document.getElementById('inputLatitude').value = latFixed;
+        document.getElementById('inputLongitude').value = lngFixed;
+
+        if (!ownerCarMarker) {
+            ownerCarMarker = L.marker([lat, lng], { draggable: !isCarBusy }).addTo(ownerCarMap);
+            if (!isCarBusy) {
+                ownerCarMarker.on('dragend', function(ev) {
+                    const pos = ev.target.getLatLng();
+                    setOwnerCarPin(pos.lat, pos.lng, true);
+                });
+            }
+        } else {
+            ownerCarMarker.setLatLng([lat, lng]);
+            ownerCarMarker.setOpacity(1.0);
+        }
+
+        const statusEl = document.getElementById('mapCoordStatus');
+        if (statusEl) {
+            statusEl.innerHTML = `<span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2 py-1"><i class="bi bi-geo-alt-fill me-1"></i>Đã ghim tọa độ: ${latFixed}, ${lngFixed}</span>`;
+        }
+
+        if (doReverse) {
+            fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latFixed}&lon=${lngFixed}&accept-language=vi`)
+                .then(r => r.json())
+                .then(data => {
+                    if (data && data.display_name) {
+                        detectedMapAddress = data.display_name.replace(/, Việt Nam$/i, '').trim();
+                        const applyBtn = document.getElementById('btnApplyMapAddress');
+                        if (applyBtn) {
+                            applyBtn.classList.remove('d-none');
+                            applyBtn.title = detectedMapAddress;
+                        }
+                    }
+                })
+                .catch(() => {});
+        }
+    }
+
+    function applyDetectedAddress() {
+        if (detectedMapAddress) {
+            const locInput = document.getElementById('inputLocation');
+            if (locInput) locInput.value = detectedMapAddress;
+            document.getElementById('btnApplyMapAddress')?.classList.add('d-none');
+        }
+    }
+
+    function flyToSelectedProvince(selectEl) {
+        const opt = selectEl.options[selectEl.selectedIndex];
+        if (!opt || !opt.value) return;
+        const lat = parseFloat(opt.getAttribute('data-lat'));
+        const lng = parseFloat(opt.getAttribute('data-lng'));
+        if (!isNaN(lat) && !isNaN(lng) && ownerCarMap) {
+            ownerCarMap.flyTo([lat, lng], 12, { duration: 0.8 });
+        }
+    }
+
+    function searchAddressOnMap() {
+        const query = document.getElementById('mapAddressSearch')?.value?.trim();
+        const prov = document.getElementById('mapProvinceFilter')?.value?.trim();
+        const fullQuery = [query, prov, 'Việt Nam'].filter(Boolean).join(', ');
+        if (!query && !prov) return;
+
+        fetch(`https://nominatim.openstreetmap.org/search?format=json&countrycodes=vn&limit=1&accept-language=vi&q=${encodeURIComponent(fullQuery)}`)
+            .then(r => r.json())
+            .then(results => {
+                if (results && results.length > 0) {
+                    const item = results[0];
+                    const lat = parseFloat(item.lat);
+                    const lng = parseFloat(item.lon);
+                    ownerCarMap.flyTo([lat, lng], 15, { duration: 0.8 });
+                    setOwnerCarPin(lat, lng, true);
+                } else {
+                    Swal.fire({ icon: 'info', title: 'Không tìm thấy vị trí', text: 'Bạn hãy chọn Tỉnh/Thành phố hoặc bấm trực tiếp lên bản đồ để ghim vị trí xe.' });
+                }
+            })
+            .catch(() => {
+                Swal.fire({ icon: 'warning', title: 'Lỗi tìm kiếm', text: 'Không thể kết nối dịch vụ tìm kiếm bản đồ. Bạn có thể bấm trực tiếp lên bản đồ để ghim.' });
+            });
+    }
+
+    function useCurrentGpsForCar() {
+        if (!('geolocation' in navigator)) return;
+        const btn = document.getElementById('btnMapUseGps');
+        if (btn) btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Đang định vị...';
+        navigator.geolocation.getCurrentPosition(
+            pos => {
+                if (btn) btn.innerHTML = '<i class="bi bi-crosshair me-1"></i>Vị trí hiện tại';
+                const lat = pos.coords.latitude;
+                const lng = pos.coords.longitude;
+                ownerCarMap.flyTo([lat, lng], 16, { duration: 0.8 });
+                setOwnerCarPin(lat, lng, true);
+            },
+            () => {
+                if (btn) btn.innerHTML = '<i class="bi bi-crosshair me-1"></i>Vị trí hiện tại';
+                Swal.fire({ icon: 'warning', title: 'Không lấy được vị trí', text: 'Vui lòng cấp quyền vị trí hoặc bấm trực tiếp lên bản đồ.' });
+            },
+            { enableHighAccuracy: true, timeout: 10000 }
+        );
+    }
 </script>

@@ -792,6 +792,29 @@
 
 
 
+            @{
+                var carFallbackCoords = CarRental.Utilities.VietnamLocations.ResolveCoordinates(Model.Location, Model.CarId);
+                double carMapLat = Model.Latitude ?? carFallbackCoords.lat;
+                double carMapLng = Model.Longitude ?? carFallbackCoords.lng;
+                bool hasExactCarPin = Model.Latitude.HasValue && Model.Longitude.HasValue;
+                string carLatStr = carMapLat.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                string carLngStr = carMapLng.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            }
+            <!-- Vị trí giao nhận xe trên bản đồ -->
+            <div class="p-4 bg-white rounded-3 border mb-4 shadow-sm">
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                    <div>
+                        <h3 class="fs-5 fw-bold text-dark m-0"><i class="bi bi-geo-alt-fill text-danger me-2"></i>Vị trí giao nhận xe</h3>
+                        <div class="text-muted small mt-1">@(string.IsNullOrEmpty(Model.Location) ? "Toàn quốc" : Model.Location) @(hasExactCarPin ? "· Đã ghim chính xác trên bản đồ" : "· Vị trí khu vực tham khảo")</div>
+                    </div>
+                    <a href="https://www.google.com/maps/search/?api=1&query=@carLatStr,@carLngStr" target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-semibold">
+                        <i class="bi bi-sign-turn-right me-1"></i>Chỉ đường Google Maps
+                    </a>
+                </div>
+                <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+                <div id="productDetailCarMap" style="height: 260px; width: 100%; border-radius: 12px; border: 1px solid #e2e8f0; z-index: 1;"></div>
+            </div>
+
             <!-- Đánh giá nhận xét của khách hàng -->
 
             <div class="p-4 bg-white rounded-3 border mb-4 shadow-sm">
@@ -1516,7 +1539,21 @@
 
 
 @section scripts {
-
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var mapEl = document.getElementById('productDetailCarMap');
+            if (mapEl && typeof L !== 'undefined') {
+                var lat = @carLatStr;
+                var lng = @carLngStr;
+                var detailMap = L.map('productDetailCarMap', { center: [lat, lng], zoom: @(hasExactCarPin ? 15 : 13), scrollWheelZoom: false });
+                L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', { attribution: '&copy; Google Maps', maxZoom: 20 }).addTo(detailMap);
+                L.marker([lat, lng]).addTo(detailMap)
+                    .bindPopup('<strong>@Html.Raw(System.Text.Encodings.Web.JavaScriptEncoder.Default.Encode(Model.CarName ?? "Xe ReCar"))</strong><br/><span style="font-size:12px;">@Html.Raw(System.Text.Encodings.Web.JavaScriptEncoder.Default.Encode(Model.Location ?? ""))</span>')
+                    .openPopup();
+            }
+        });
+    </script>
     <script>
 
         window.carPhotoList = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(allPhotos));

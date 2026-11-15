@@ -63,35 +63,113 @@ namespace CarRental.Areas.CarOwner.Controllers
             _context.SaveChanges();
 
             var ownerId = customer.CustomerId;
+            var ownerCarIds = _context.Cars.Where(c => c.OwnerId == ownerId).Select(c => c.CarId).ToList();
+
             var totalCars = _context.Cars.Count(c => c.OwnerId == ownerId);
             var activeCars = _context.Cars.Count(c => c.OwnerId == ownerId && (c.CarStatus == "Sẵn sàng" || (c.CarStatus == null && c.IsActive)));
             var busyCars = _context.Cars.Count(c => c.OwnerId == ownerId && (c.CarStatus == "Đang bận" || c.CarStatus == "Đang có khách"));
             var otherCars = Math.Max(0, totalCars - activeCars - busyCars);
 
-            var totalOrders = _context.OrderDetails
+            // Lấy tất cả đơn thuê liên quan đến xe của chủ xe
+            var ownerOrders = _context.OrderDetails
                 .Include(od => od.Order)
-                .Count(od => od.Car != null && od.Car.OwnerId == ownerId);
+                .Where(od => od.Car != null && od.Car.OwnerId == ownerId && od.Order != null)
+                .ToList();
 
-            var completedOrders = _context.OrderDetails
-                .Include(od => od.Order)
-                .Count(od => od.Car != null && od.Car.OwnerId == ownerId && od.Order.StatusId == 5);
+            var totalOrders = ownerOrders.Count;
+            var completedOrders = ownerOrders.Count(od => od.Order!.StatusId == 5);
+            var processingOrders = ownerOrders.Count(od => od.Order!.StatusId == 3 || od.Order!.StatusId == 4);
 
-            var processingOrders = _context.OrderDetails
-                .Include(od => od.Order)
-                .Count(od => od.Car != null && od.Car.OwnerId == ownerId && (od.Order.StatusId == 3 || od.Order.StatusId == 4));
+            decimal CalcOrderDetailAmount(OrderDetail od)
+            {
+                decimal orderTotal = (od.Order?.Deposit ?? 0m) + (od.Order?.Payment ?? 0m);
+                if (orderTotal > 0)
+                    return orderTotal;
+                int days = od.Quantity ?? 1;
+                if (od.PickupDate.HasValue && od.ReturnDate.HasValue)
+                    days = Math.Max(1, (int)Math.Ceiling((od.ReturnDate.Value.Date - od.PickupDate.Value.Date).TotalDays));
+                return (od.Price ?? 0m) * days;
+            }
 
-            var totalGross = _context.OrderDetails
-                .Include(od => od.Order)
-                .Where(od => od.Car != null && od.Car.OwnerId == ownerId && (od.Order.StatusId == 3 || od.Order.StatusId == 4 || od.Order.StatusId == 5))
-                .Sum(od => (decimal?)(od.Price * od.Quantity)) ?? 0;
+            var sysSetting = _context.SystemSettings.FirstOrDefault();
+            int cfgCommissionPct = sysSetting?.CommissionPct ?? 10;
+            int cfgDepositPct = sysSetting?.DepositPct ?? 30;
+            decimal defaultCommRate = cfgCommissionPct / 100m;
+            decimal defaultDepRate = cfgDepositPct / 100m;
 
-            var totalNet = totalGross * 0.9m; // 90% thu nhập thực nhận sau trừ 10% phí sàn
-            var heldDeposits = _context.OrderDetails
-                .Include(od => od.Order)
-                .Where(od => od.Car != null && od.Car.OwnerId == ownerId && (od.Order.StatusId == 3 || od.Order.StatusId == 4))
-                .Sum(od => (decimal?)(od.Price * od.Quantity * 0.3m)) ?? 0;
+            decimal CalcOrderNetAmount(OrderDetail od)
+            {
+                decimal gross = CalcOrderDetailAmount(od);
+                decimal fee = od.Order?.PlatformFee ?? Math.Round(gross * defaultCommRate, 0);
+                return Math.Max(0m, gross - fee);
+            }
+
+            var validRevenueOrders = ownerOrders
+                .Where(od => od.Order!.StatusId == 3 || od.Order!.StatusId == 4 || od.Order!.StatusId == 5)
+                .ToList();
+
+            var totalGross = validRevenueOrders.Sum(od => CalcOrderDetailAmount(od));
+            var totalNet = validRevenueOrders.Sum(od => CalcOrderNetAmount(od));
+            var heldDeposits = validRevenueOrders
+                .Where(od => od.Order!.StatusId == 3 || od.Order!.StatusId == 4)
+                .Sum(od => od.Order!.Deposit ?? Math.Round(CalcOrderDetailAmount(od) * defaultDepRate, 0));
+
+            // Số liệu tháng hiện tại & tháng trước
+            var nowVn = Function.NowVn;
+            var thisMonthStart = new DateOnly(nowVn.Year, nowVn.Month, 1);
+            var prevMonthDate = nowVn.AddMonths(-1);
+            var prevMonthStart = new DateOnly(prevMonthDate.Year, prevMonthDate.Month, 1);
+
+            var thisMonthOrders = validRevenueOrders.Where(od =>
+                od.Order!.OrderDate.HasValue &&
+                od.Order.OrderDate.Value.Year == thisMonthStart.Year &&
+                od.Order.OrderDate.Value.Month == thisMonthStart.Month).ToList();
+
+            var prevMonthOrders = validRevenueOrders.Where(od =>
+                od.Order!.OrderDate.HasValue &&
+                od.Order.OrderDate.Value.Year == prevMonthStart.Year &&
+                od.Order.OrderDate.Value.Month == prevMonthStart.Month).ToList();
+
+            decimal monthGross = thisMonthOrders.Sum(od => CalcOrderDetailAmount(od));
+            decimal monthNet = thisMonthOrders.Sum(od => CalcOrderNetAmount(od));
+            decimal monthHeldDeposits = thisMonthOrders
+                .Where(od => od.Order!.StatusId == 3 || od.Order!.StatusId == 4)
+                .Sum(od => od.Order!.Deposit ?? Math.Round(CalcOrderDetailAmount(od) * defaultDepRate, 0));
+
+            decimal prevMonthNet = prevMonthOrders.Sum(od => CalcOrderNetAmount(od));
+            double? growthPercent = prevMonthNet > 0
+                ? Math.Round((double)((monthNet - prevMonthNet) / prevMonthNet * 100m), 1)
+                : (monthNet > 0 ? 100.0 : (double?)null);
+
+            // Đánh giá trung bình thật từ bảng CarReviews
+            var ownerReviews = _context.CarReviews
+                .Where(r => r.CarId.HasValue && ownerCarIds.Contains(r.CarId.Value) && r.IsActive != false && r.Star.HasValue)
+                .ToList();
+            int reviewCount = ownerReviews.Count;
+            double avgRating = reviewCount > 0 ? Math.Round(ownerReviews.Average(r => r.Star!.Value), 1) : 0.0;
+            int positiveRate = reviewCount > 0 ? (int)Math.Round(ownerReviews.Count(r => r.Star!.Value >= 4) * 100.0 / reviewCount) : 0;
+
+            // Biểu đồ 6 tháng gần nhất thật từ CSDL
+            var chartLabels = new List<string>();
+            var chartGrossData = new List<decimal>();
+            var chartNetData = new List<decimal>();
+            for (int i = -5; i <= 0; i++)
+            {
+                var mDate = nowVn.AddMonths(i);
+                chartLabels.Add($"T{mDate.Month}");
+                var mDetails = validRevenueOrders
+                    .Where(od => od.Order!.OrderDate.HasValue &&
+                                 od.Order.OrderDate.Value.Year == mDate.Year &&
+                                 od.Order.OrderDate.Value.Month == mDate.Month)
+                    .ToList();
+                decimal mGross = mDetails.Sum(od => CalcOrderDetailAmount(od));
+                decimal mNet = mDetails.Sum(od => CalcOrderNetAmount(od));
+                chartGrossData.Add(Math.Round(mGross / 1_000_000m, 2));
+                chartNetData.Add(Math.Round(mNet / 1_000_000m, 2));
+            }
 
             ViewBag.TotalCars = totalCars;
+            ViewBag.CommissionPct = cfgCommissionPct;
             ViewBag.ActiveCars = activeCars;
             ViewBag.BusyCars = busyCars;
             ViewBag.OtherCars = otherCars;
@@ -101,6 +179,16 @@ namespace CarRental.Areas.CarOwner.Controllers
             ViewBag.TotalRevenue = totalGross;
             ViewBag.NetRevenue = totalNet;
             ViewBag.HeldDeposits = heldDeposits;
+            ViewBag.MonthGross = monthGross;
+            ViewBag.MonthNet = monthNet;
+            ViewBag.MonthHeldDeposits = monthHeldDeposits;
+            ViewBag.GrowthPercent = growthPercent;
+            ViewBag.ReviewCount = reviewCount;
+            ViewBag.AvgRating = avgRating;
+            ViewBag.PositiveRate = positiveRate;
+            ViewBag.ChartLabelsJson = System.Text.Json.JsonSerializer.Serialize(chartLabels);
+            ViewBag.ChartGrossJson = System.Text.Json.JsonSerializer.Serialize(chartGrossData);
+            ViewBag.ChartNetJson = System.Text.Json.JsonSerializer.Serialize(chartNetData);
 
             // Lấy danh sách xe gần đây
             var recentCars = _context.Cars

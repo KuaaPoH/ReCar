@@ -14,158 +14,259 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Đăng nhập Quản trị viên — ReCar Admin Portal</title>
-    
-    <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
-    
-    <!-- Bootstrap 5 & Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="~/assets/css/vendor/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    
     <style>
-        :root {
-            --recar-navy: #0f172a;
-            --recar-navy-dark: #020617;
-            --recar-primary: #0284c7;
-            --recar-primary-hover: #0369a1;
-        }
+        * { box-sizing: border-box; }
         body {
+            margin: 0;
             font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-            background: radial-gradient(circle at 50% 20%, #1e293b 0%, #0f172a 60%, #020617 100%);
+            background: #ffffff;
+            color: #0f172a;
+        }
+        .admin-split-wrap {
+            display: flex;
             min-height: 100vh;
+            width: 100%;
+        }
+        .admin-left-form {
+            width: 50%;
+            min-height: 100vh;
+            background: #ffffff;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: #f8fafc;
-            margin: 0;
-            padding: 1.5rem;
+            padding: 2.5rem 3rem;
         }
-        .admin-auth-card {
-            background: rgba(15, 23, 42, 0.85);
-            backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 1.25rem;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 40px rgba(2, 132, 199, 0.15);
+        .admin-form-box {
             width: 100%;
-            max-width: 440px;
+            max-width: 420px;
+        }
+        .admin-right-visual {
+            width: 50%;
+            min-height: 100vh;
+            position: relative;
+            background-image: url('/assets/images/banner/carbanner3.jpg');
+            background-size: cover;
+            background-position: center;
             overflow: hidden;
         }
-        .admin-brand-icon {
-            width: 52px;
-            height: 52px;
-            border-radius: 14px;
-            background: linear-gradient(135deg, #0284c7, #38bdf8);
+        .admin-visual-overlay {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(155deg, rgba(2, 6, 23, 0.90) 0%, rgba(15, 23, 42, 0.80) 55%, rgba(2, 132, 199, 0.55) 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 3rem 3.25rem;
+            color: #ffffff;
+        }
+        .admin-brand-mark {
+            width: 42px;
+            height: 42px;
+            border-radius: 11px;
+            background: linear-gradient(135deg, #0f172a, #0284c7);
+            color: #ffffff;
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            color: white;
-            font-size: 1.5rem;
-            box-shadow: 0 8px 16px rgba(2, 132, 199, 0.35);
+            font-size: 1.25rem;
+            box-shadow: 0 8px 18px rgba(2, 132, 199, 0.28);
         }
-        .form-control-recar {
-            background-color: rgba(30, 41, 59, 0.7);
-            border: 1px solid rgba(255, 255, 255, 0.12);
-            color: #ffffff;
-            border-radius: 0.75rem;
-            padding: 0.75rem 1rem 0.75rem 2.75rem;
-            font-size: 0.92rem;
-            transition: all 0.2s ease;
-        }
-        .form-control-recar:focus {
-            background-color: rgba(30, 41, 59, 0.95);
-            border-color: #38bdf8;
-            box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2);
-            color: #ffffff;
-        }
-        .form-control-recar::placeholder {
-            color: #64748b;
-        }
-        .input-icon {
+        .admin-input-wrap { position: relative; }
+        .admin-input-icon {
             position: absolute;
-            left: 1rem;
+            left: 14px;
             top: 50%;
             transform: translateY(-50%);
-            color: #64748b;
-            font-size: 1.05rem;
+            color: #94a3b8;
+            font-size: 1rem;
             pointer-events: none;
             transition: color 0.2s;
         }
-        .input-wrapper:focus-within .input-icon {
-            color: #38bdf8;
+        .admin-input {
+            width: 100%;
+            height: 48px;
+            padding: 0 42px 0 42px;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 0.94rem;
+            color: #0f172a;
+            background: #f8fafc;
+            transition: all 0.2s ease;
         }
-        .btn-admin-submit {
-            background: linear-gradient(135deg, #0284c7, #0369a1);
-            color: white;
-            font-weight: 700;
+        .admin-input:focus {
+            outline: none;
+            background: #ffffff;
+            border-color: #0284c7;
+            box-shadow: 0 0 0 4px rgba(2, 132, 199, 0.12);
+        }
+        .admin-input-wrap:focus-within .admin-input-icon {
+            color: #0284c7;
+        }
+        .btn-toggle-pass {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
             border: none;
-            border-radius: 0.75rem;
-            padding: 0.8rem;
-            font-size: 0.95rem;
-            box-shadow: 0 4px 14px rgba(2, 132, 199, 0.4);
-            transition: all 0.2s;
+            background: transparent;
+            color: #94a3b8;
+            padding: 4px 6px;
+            cursor: pointer;
         }
-        .btn-admin-submit:hover {
-            background: linear-gradient(135deg, #0369a1, #075985);
-            box-shadow: 0 6px 20px rgba(2, 132, 199, 0.55);
+        .btn-toggle-pass:hover { color: #0f172a; }
+        .btn-admin-primary {
+            width: 100%;
+            height: 48px;
+            border: none;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #0f172a, #1e293b);
+            color: #ffffff;
+            font-weight: 700;
+            font-size: 0.96rem;
+            box-shadow: 0 8px 20px rgba(15, 23, 42, 0.22);
+            transition: all 0.2s ease;
+        }
+        .btn-admin-primary:hover {
+            background: linear-gradient(135deg, #0284c7, #0369a1);
+            box-shadow: 0 10px 24px rgba(2, 132, 199, 0.32);
             transform: translateY(-1px);
-            color: white;
+            color: #ffffff;
+        }
+        .admin-feature-pill {
+            background: rgba(255, 255, 255, 0.10);
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            backdrop-filter: blur(8px);
+            border-radius: 14px;
+            padding: 1rem 1.25rem;
+        }
+        @@media (max-width: 991.98px) {
+            .admin-right-visual { display: none; }
+            .admin-left-form {
+                width: 100%;
+                padding: 2rem 1.25rem;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="admin-auth-card p-4 p-sm-5">
-        <!-- Logo & Header -->
-        <div class="text-center mb-4">
-            <div class="admin-brand-icon mb-3">
-                <i class="bi bi-shield-check"></i>
+    <div class="admin-split-wrap">
+        <!-- BÊN TRÁI: FORM ĐĂNG NHẬP ADMIN -->
+        <div class="admin-left-form">
+            <div class="admin-form-box">
+                <div class="d-flex align-items-center justify-content-between mb-4">
+                    <div class="d-flex align-items-center gap-2.5">
+                        <span class="admin-brand-mark"><i class="bi bi-shield-check"></i></span>
+                        <div>
+                            <div class="fw-bold fs-5 lh-1 text-dark">ReCar</div>
+                            <span class="badge bg-primary-subtle text-primary mt-1" style="font-size: 0.68rem; letter-spacing: 0.06em;">ADMIN PORTAL</span>
+                        </div>
+                    </div>
+                    <a href="/" class="text-decoration-none text-muted small fw-semibold">
+                        <i class="bi bi-arrow-left me-1"></i>Về sàn ReCar
+                    </a>
+                </div>
+
+                <div class="mb-4">
+                    <h2 class="fw-bold mb-1" style="font-size: 1.65rem;">Đăng nhập Quản trị</h2>
+                    <p class="text-muted small mb-0">Trung tâm điều hành, kiểm duyệt xe và đối soát tài chính ReCar</p>
+                </div>
+
+                @if (!string.IsNullOrEmpty(errorMessage))
+                {
+                    <div class="alert alert-danger border-0 rounded-3 d-flex align-items-center gap-2 py-2.5 px-3 mb-3 small">
+                        <i class="bi bi-exclamation-circle-fill text-danger"></i>
+                        <div>@errorMessage</div>
+                    </div>
+                }
+
+                <form asp-area="Admin" asp-controller="Login" asp-action="Index" method="post">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold text-secondary">Tài khoản / Email quản trị</label>
+                        <div class="admin-input-wrap">
+                            <i class="bi bi-person admin-input-icon"></i>
+                            <input type="text" asp-for="Email" id="adminInputUser" class="admin-input" placeholder="Tên đăng nhập hoặc email admin" required autocomplete="username" />
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label small fw-semibold text-secondary">Mật khẩu bảo mật</label>
+                        <div class="admin-input-wrap">
+                            <i class="bi bi-shield-lock admin-input-icon"></i>
+                            <input type="password" asp-for="Password" id="adminInputPass" class="admin-input" placeholder="Nhập mật khẩu" required autocomplete="current-password" />
+                            <button type="button" class="btn-toggle-pass" onclick="toggleAdminPass()" aria-label="Hiện mật khẩu">
+                                <i class="bi bi-eye" id="adminPassIcon"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-admin-primary mb-3">
+                        <i class="bi bi-box-arrow-in-right me-1"></i> Truy cập Bảng điều khiển
+                    </button>
+
+                    <div class="text-center pt-3 border-top small text-muted">
+                        Cổng dành riêng cho Quản trị viên hệ thống ReCar Platform.
+                    </div>
+                </form>
             </div>
-            <div class="d-flex align-items-center justify-content-center gap-2 mb-1">
-                <span class="fs-4 fw-bold tracking-tight text-white">ReCar</span>
-                <span class="badge" style="background-color: rgba(56, 189, 248, 0.2); color: #38bdf8; font-size: 0.7rem; letter-spacing: 0.08em;">ADMIN PORTAL</span>
-            </div>
-            <p class="text-muted small mb-0">Hệ thống quản trị điều hành sàn chia sẻ xe ReCar</p>
         </div>
 
-        @if (!string.IsNullOrEmpty(errorMessage))
-        {
-            <div class="alert alert-danger border-0 rounded-3 d-flex align-items-center gap-2 py-2.5 px-3 mb-4" style="background-color: rgba(239, 68, 68, 0.15); color: #fca5a5; font-size: 0.85rem;">
-                <i class="bi bi-exclamation-circle-fill fs-6 text-danger"></i>
-                <div>@errorMessage</div>
-            </div>
-        }
+        <!-- BÊN PHẢI: HÌNH ẢNH & GIỚI THIỆU HỆ THỐNG ADMIN -->
+        <div class="admin-right-visual">
+            <div class="admin-visual-overlay">
+                <div>
+                    <span class="badge rounded-pill px-3 py-2 fw-semibold" style="background: rgba(56, 189, 248, 0.22); color: #7dd3fc; font-size: 0.78rem;">
+                        <i class="bi bi-cpu me-1"></i> ReCar Control Center
+                    </span>
+                </div>
 
-        <!-- Form Đăng nhập Admin -->
-        <form asp-area="Admin" asp-controller="Login" asp-action="Index" method="post">
-            <div class="mb-3">
-                <label class="form-label small fw-semibold text-slate-300" style="color: #cbd5e1;">Tài khoản / Email quản trị</label>
-                <div class="position-relative input-wrapper">
-                    <i class="bi bi-person input-icon"></i>
-                    <input type="text" asp-for="Email" id="adminInputUser" class="form-control form-control-recar" placeholder="Tên đăng nhập hoặc email admin" required autocomplete="username" />
+                <div class="my-auto">
+                    <h1 class="fw-bold mb-3" style="font-size: 2.15rem; line-height: 1.2;">
+                        Vận hành toàn sàn<br />trên một màn hình.
+                    </h1>
+                    <p class="text-white-50 mb-4" style="font-size: 0.96rem; line-height: 1.65;">
+                        Giám sát doanh thu GMV thời gian thực, phê duyệt đối tác chủ xe, đối soát hoa hồng và xử lý yêu cầu rút tiền minh bạch.
+                    </p>
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <div class="admin-feature-pill">
+                                <div class="fw-bold text-white mb-1"><i class="bi bi-graph-up-arrow text-info me-1"></i> Tài chính</div>
+                                <div class="small text-white-50">Đối soát &amp; hoa hồng tự động</div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="admin-feature-pill">
+                                <div class="fw-bold text-white mb-1"><i class="bi bi-car-front text-info me-1"></i> Kiểm duyệt</div>
+                                <div class="small text-white-50">Quản lý xe &amp; đối tác chủ xe</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="small text-white-50">
+                    © 2026 ReCar Platform · Hệ thống quản trị nội bộ
                 </div>
             </div>
-
-            <div class="mb-4">
-                <div class="d-flex justify-content-between align-items-center mb-1">
-                    <label class="form-label small fw-semibold mb-0" style="color: #cbd5e1;">Mật khẩu bảo mật</label>
-                </div>
-                <div class="position-relative input-wrapper">
-                    <i class="bi bi-shield-lock input-icon"></i>
-                    <input type="password" asp-for="Password" id="adminInputPass" class="form-control form-control-recar" placeholder="••••••••" required autocomplete="current-password" />
-                </div>
-            </div>
-
-            <button type="submit" class="btn btn-admin-submit w-100 mb-4">
-                <i class="bi bi-box-arrow-in-right me-1.5"></i> Đăng nhập Quản trị
-            </button>
-
-            <div class="text-center pt-3 border-top" style="border-color: rgba(255, 255, 255, 0.08) !important;">
-                <a href="/" class="text-muted text-decoration-none small" style="font-size: 0.8rem;">
-                    <i class="bi bi-arrow-left me-1"></i> Quay về Sàn ReCar
-                </a>
-            </div>
-        </form>
+        </div>
     </div>
+
+    <script>
+        function toggleAdminPass() {
+            const input = document.getElementById('adminInputPass');
+            const icon = document.getElementById('adminPassIcon');
+            if (!input) return;
+            if (input.type === 'password') {
+                input.type = 'text';
+                if (icon) { icon.classList.remove('bi-eye'); icon.classList.add('bi-eye-slash'); }
+            } else {
+                input.type = 'password';
+                if (icon) { icon.classList.remove('bi-eye-slash'); icon.classList.add('bi-eye'); }
+            }
+        }
+    </script>
 </body>
 </html>

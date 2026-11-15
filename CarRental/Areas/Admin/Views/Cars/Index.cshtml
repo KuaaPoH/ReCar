@@ -153,7 +153,15 @@
                                     }
                                 </td>
                                 <td class="small text-muted">
-                                    <i class="bi bi-geo-alt text-danger me-1"></i>@(car.Location ?? "Toàn quốc")
+                                    <div><i class="bi bi-geo-alt text-danger me-1"></i>@(car.Location ?? "Toàn quốc")</div>
+                                    @if (car.Latitude.HasValue && car.Longitude.HasValue)
+                                    {
+                                        string latStr = car.Latitude.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                                        string lngStr = car.Longitude.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                                        <a href="https://www.google.com/maps/search/?api=1&query=@latStr,@lngStr" target="_blank" rel="noopener" class="badge bg-success-subtle text-success border border-success-subtle text-decoration-none mt-1" style="font-size: 0.7rem;">
+                                            <i class="bi bi-pin-map-fill me-1"></i>Đã ghim map
+                                        </a>
+                                    }
                                 </td>
                                 <td>
                                     <span class="fw-bold text-primary small">@((car.Price ?? 0).ToString("N0")) đ</span>

@@ -165,6 +165,11 @@
                             <i data-lucide="camera" style="width: 18px; height: 18px;"></i>
                             <span>Bàn giao xe & Lập biên bản Check-in</span>
                         </button>
+                        <button type="button" class="btn btn-outline-danger rounded-xl px-3 py-2 fw-semibold d-inline-flex align-items-center gap-1.5"
+                                data-bs-toggle="modal" data-bs-target="#ownerCancelOrderModal">
+                            <i data-lucide="x-circle" style="width: 16px; height: 16px;"></i>
+                            <span>Hủy đơn</span>
+                        </button>
                     }
                     else if (Model.StatusId == 4)
                     {
@@ -1003,8 +1008,76 @@
     </div>
 </div>
 
+<!-- Modal Hủy đơn thuê (Chủ xe) -->
+<div class="modal fade" id="ownerCancelOrderModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 16px;">
+            <div class="modal-header border-bottom px-4 py-3">
+                <h5 class="modal-title fw-bold text-danger mb-0">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>Hủy đơn thuê #@Model.OrderId
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+            </div>
+            <div class="modal-body p-4">
+                @Html.AntiForgeryToken()
+                <div class="alert alert-warning border-0 small mb-3" style="border-radius: 10px;">
+                    @if (Model.StatusId == 3 && (Model.Deposit ?? 0) > 0)
+                    {
+                        <span>Khi hủy đơn, số tiền cọc <strong>@((Model.Deposit ?? 0).ToString("N0")) đ</strong> mà khách đã thanh toán sẽ được hoàn tự động vào <strong>Ví ReCar</strong> của khách hàng và xe sẽ mở lại lịch trống.</span>
+                    }
+                    else
+                    {
+                        <span>Đơn hàng sẽ chuyển sang trạng thái <strong>Đã hủy</strong> và xe sẽ được mở lại để nhận chuyến mới.</span>
+                    }
+                </div>
+                <label for="ownerCancelReason" class="form-label fw-semibold small text-secondary">Lý do hủy đơn</label>
+                <textarea id="ownerCancelReason" class="form-control" rows="3" placeholder="Ví dụ: Xe gặp sự cố kỹ thuật đột xuất, thỏa thuận đổi lịch với khách..."></textarea>
+            </div>
+            <div class="modal-footer border-top px-4 py-3">
+                <button type="button" class="btn btn-light border rounded-pill px-3 fw-semibold small" data-bs-dismiss="modal">Đóng</button>
+                <button type="button" class="btn btn-danger rounded-pill px-4 fw-bold small" id="btnConfirmOwnerCancel" onclick="submitOwnerCancelOrder(@Model.OrderId)">
+                    Xác nhận hủy đơn
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
     <script>
+        async function submitOwnerCancelOrder(orderId) {
+            const btn = document.getElementById('btnConfirmOwnerCancel');
+            const reason = document.getElementById('ownerCancelReason')?.value || '';
+            const token = document.querySelector('#ownerCancelOrderModal input[name="__RequestVerificationToken"]')?.value
+                       || document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+
+            btn.disabled = true;
+            btn.textContent = 'Đang xử lý...';
+            try {
+                const body = new URLSearchParams();
+                body.append('id', orderId);
+                body.append('reason', reason);
+                if (token) body.append('__RequestVerificationToken', token);
+
+                const res = await fetch('/CarOwner/Orders/CancelOrder', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: body.toString()
+                });
+                const data = await res.json();
+                if (data.success) {
+                    window.location.href = data.redirectUrl || window.location.href;
+                } else {
+                    alert(data.message || 'Không thể hủy đơn.');
+                    btn.disabled = false;
+                    btn.textContent = 'Xác nhận hủy đơn';
+                }
+            } catch (e) {
+                alert('Lỗi kết nối khi hủy đơn.');
+                btn.disabled = false;
+                btn.textContent = 'Xác nhận hủy đơn';
+            }
+        }
         const cccdFull = '@cccdFull';
         const cccdMasked = '@cccdMasked';
         const gplxFull = '@gplxFull';

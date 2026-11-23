@@ -291,6 +291,11 @@ namespace CarRental.Areas.CarOwner.Controllers
             ViewBag.Banks = await _context.Banks.Where(b => b.IsActive).OrderBy(b => b.DisplayOrder).ToListAsync();
             ViewBag.IsRejectedView = false;
 
+            // Nếu người dùng đã được duyệt thành Chủ xe chính thức (RoleId = 3) thì hiển thị giao diện Host Pro
+            // Ngược lại nếu đang chờ duyệt (Pending) hoặc từ chối (Rejected) thì hiển thị trên giao diện Khách hàng
+            bool isApprovedHost = (customer != null && customer.RoleId == 3 && registration.Status == "Approved");
+            ViewBag.IsHostLayout = isApprovedHost;
+
             return View(registration);
         }
 
@@ -315,8 +320,14 @@ namespace CarRental.Areas.CarOwner.Controllers
                 return RedirectToAction("Index");
             }
 
+            var customer = await _context.Customers
+                .FirstOrDefaultAsync(c => c.CustomerId == accountId || (!string.IsNullOrEmpty(userEmail) && c.Email == userEmail));
+
             ViewBag.Banks = await _context.Banks.Where(b => b.IsActive).OrderBy(b => b.DisplayOrder).ToListAsync();
             ViewBag.IsRejectedView = true;
+
+            bool isApprovedHost = (customer != null && customer.RoleId == 3 && registration.Status == "Approved");
+            ViewBag.IsHostLayout = isApprovedHost;
 
             return View("Pending", registration);
         }

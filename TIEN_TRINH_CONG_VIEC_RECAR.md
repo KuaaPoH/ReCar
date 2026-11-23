@@ -2313,3 +2313,24 @@ Nhằm giúp đồ án tạo được ấn tượng mạnh mẽ với hội đ�
 ### 60.2. Kiểm Thử Hệ Thống
 - Dự án biên dịch thành công: **`0 Error(s)`** (`dotnet build CarRental\CarRental.csproj --no-restore`).
 - Ứng dụng chạy ổn định tại **`http://localhost:5163`**, các endpoint chính (`/` , `/Cart/Success`, `/Cart/PaymentFail`, `/Cart/ZaloPayCallBack`) đều trả về **HTTP 200 OK**.
+
+---
+
+## 61. CẬP NHẬT GIAO DIỆN XÉT DUYỆT HỒ SƠ ĐỐI TÁC CHỦ XE & SỬA ĐƯỜNG DẪN ẢNH GIẤY TỜ (NGÀY 24/11/2026)
+
+### 61.1. Yêu Cầu & Vấn Đề Thực Tế
+- **Vấn đề 1:** Khách hàng bình thường sau khi điền form đăng ký làm chủ xe thì bị chuyển vào giao diện quản trị Chủ xe (`ReCar Host Pro`) với thanh menu Quản trị xe, Thêm xe, Lịch xe... dù hồ sơ vẫn đang ở trạng thái Chờ duyệt (`Pending`).
+- **Vấn đề 2:** Tại trang xem trạng thái hồ sơ, 4 ô hình ảnh giấy tờ (CCCD mặt trước, CCCD mặt sau, GPLX) bị lỗi vỡ ảnh không hiển thị được.
+
+### 61.2. Giải Pháp Triển Khai Hoàn Tất
+1. **Tách biệt hiển thị Layout theo quyền hạn và trạng thái hồ sơ:**
+   - Cập nhật [RegisterController.cs](file:///d:/CarRental_TTCN/CarRental/Areas/CarOwner/Controllers/RegisterController.cs): Kiểm tra điều kiện `isApprovedHost = (customer.RoleId == 3 && registration.Status == "Approved")`.
+   - Nếu là **Khách hàng đang chờ duyệt (`Pending`)** hoặc **Bị từ chối (`Rejected`)**: Trang hồ sơ được hiển thị trực tiếp trên giao diện Khách hàng (`~/Views/Shared/_Layout.cshtml`) kèm liên kết *"Quay lại tài khoản cá nhân"*, hoàn toàn không hiển thị thanh Sidebar Host Pro.
+   - Nếu là **Chủ xe đã duyệt chính thức (`RoleId == 3`)**: Hiển thị trên giao diện Host Pro (`~/Areas/CarOwner/Views/Shared/_Layout.cshtml`) phục vụ quản lý hồ sơ pháp lý và tài khoản ngân hàng.
+2. **Khắc phục triệt để lỗi hiển thị hình ảnh giấy tờ định danh (CCCD / GPLX):**
+   - Bổ sung hàm `ResolveDocUrl(...)` trong [Pending.cshtml](file:///d:/CarRental_TTCN/CarRental/Areas/CarOwner/Views/Register/Pending.cshtml) chuẩn hóa tên file ảnh thành đường dẫn hợp lệ trỏ tới `/files/KYC/` hoặc `/files/license/`.
+   - Cập nhật thẻ `<img>` và chức năng xem phóng to bằng modal SweetAlert2 cho cả 4 ô giấy tờ (Mặt trước CCCD, Mặt sau CCCD, GPLX mặt trước, Hồ sơ GPLX).
+
+### 61.3. Kiểm Thử Hệ Thống
+- Dự án biên dịch thành công: **`Build succeeded. 0 Error(s)`**.
+- Kiểm tra tự động với tài khoản khách hàng `trankenn04`: Trang trả về mã **HTTP 200 OK**, `HasHostSidebar: False`, `HasClientHeader: True`, các ảnh tài liệu tải chính xác với mã **HTTP 200 OK**.

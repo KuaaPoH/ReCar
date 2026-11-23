@@ -6,8 +6,12 @@
     bool isPending = status == "Pending";
     bool isRejected = status == "Rejected";
 
-    ViewData["Title"] = isRejected ? "Hồ sơ cần bổ sung — ReCar Host Pro" : "Hồ sơ pháp lý & Ngân hàng — ReCar Host Pro";
-    Layout = "~/Areas/CarOwner/Views/Shared/_Layout.cshtml";
+    bool isHostLayout = ViewBag.IsHostLayout ?? false;
+    Layout = isHostLayout ? "~/Areas/CarOwner/Views/Shared/_Layout.cshtml" : "~/Views/Shared/_Layout.cshtml";
+
+    ViewData["Title"] = isHostLayout 
+        ? (isRejected ? "Hồ sơ cần bổ sung — ReCar Host Pro" : "Hồ sơ pháp lý & Ngân hàng — ReCar Host Pro")
+        : (isRejected ? "Hồ sơ chưa được phê duyệt — ReCar" : "Hồ sơ đăng ký Chủ xe đang chờ duyệt — ReCar");
 
     var banks = ViewBag.Banks as List<CarRental.Models.Bank> ?? new List<CarRental.Models.Bank>();
 
@@ -20,248 +24,304 @@
     string rejectReason = !string.IsNullOrWhiteSpace(Model?.RejectReason) 
         ? Model.RejectReason 
         : "Ảnh CCCD mặt sau bị mờ/lóa sáng, chưa đọc rõ ngày cấp và nơi cấp. Vui lòng chụp lại ảnh rõ nét.";
+
+    // Helper chuẩn hóa đường dẫn ảnh tài liệu (CCCD, GPLX)
+    string ResolveDocUrl(string? rawPath)
+    {
+        if (string.IsNullOrWhiteSpace(rawPath)) return "";
+        string p = rawPath.Trim();
+        if (p.StartsWith("http://") || p.StartsWith("https://") || p.StartsWith("/")) 
+            return p;
+
+        string root = System.IO.Directory.GetCurrentDirectory();
+        if (System.IO.File.Exists(System.IO.Path.Combine(root, "CarRental", "wwwroot", "files", "KYC", p)) ||
+            System.IO.File.Exists(System.IO.Path.Combine(root, "wwwroot", "files", "KYC", p)))
+        {
+            return "/files/KYC/" + p;
+        }
+
+        if (System.IO.File.Exists(System.IO.Path.Combine(root, "CarRental", "wwwroot", "files", "license", p)) ||
+            System.IO.File.Exists(System.IO.Path.Combine(root, "wwwroot", "files", "license", p)))
+        {
+            return "/files/license/" + p;
+        }
+
+        return "/files/KYC/" + p;
+    }
+
+    string cccdFrontUrl = ResolveDocUrl(Model?.IdCardFrontImage);
+    string cccdBackUrl = ResolveDocUrl(Model?.IdCardBackImage);
+    string licenseUrl = ResolveDocUrl(Model?.LicenseImage);
 }
 
 @Html.AntiForgeryToken()
 
-<div class="space-y-6">
-    <!-- Header Page Header -->
-    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
-        <div>
-            <h1 class="h4 fw-bold text-dark mb-1">
-                @(isRejected ? "Hồ sơ cần bổ sung" : "Hồ sơ pháp lý & Ngân hàng")
-            </h1>
-            <p class="text-muted small mb-0">
-                @(isRejected ? "Cập nhật thông tin theo yêu cầu và gửi lại để xét duyệt." : "Thông tin xác minh đối tác và tài khoản quyết toán tiền cọc.")
-            </p>
-        </div>
-        <div>
-            @if (isRejected)
-            {
-                <a href="/CarOwner/Register/Pending" class="btn btn-sm btn-light border rounded-pill px-3 py-1.5 fw-semibold text-secondary small d-inline-flex align-items-center gap-1">
-                    <i data-lucide="arrow-left" style="width: 14px; height: 14px;"></i> Xem trạng thái chuẩn
-                </a>
-            }
-            else
-            {
-                <a href="/CarOwner/Register/Rejected" class="text-xs text-muted text-decoration-underline small" style="font-size: 0.78rem;">
-                    Xem mẫu trạng thái bị từ chối
-                </a>
-            }
-        </div>
-    </div>
+@if (!isHostLayout)
+{
+    <link rel="stylesheet" href="~/assets/css/recar-carowner.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    <script src="~/assets/js/vendor/lucide.min.js"></script>
+    <script>
+        if (typeof lucide === 'undefined') {
+            document.write('<script src="https://unpkg.com/lucide@latest"><\/script>');
+        }
+    </script>
+}
 
-    <!-- BANNER TRẠNG THÁI HỒ SƠ THEO MẪU PARTNER PROFILE -->
-    @if (isApproved)
-    {
-        <div class="d-flex align-items-center gap-3 rounded-xl bg-success-soft p-3.5 mb-4">
-            <i data-lucide="shield-check" class="flex-shrink-0" style="width: 22px; height: 22px;"></i>
-            <p class="small fw-semibold mb-0">
-                Hồ sơ đối tác đã được duyệt — bạn có thể sử dụng đầy đủ mọi chức năng quản lý xe và nhận đơn trên ReCar Host Pro.
-            </p>
-        </div>
-    }
-    else if (isPending)
-    {
-        <div class="d-flex align-items-start gap-3 rounded-xl bg-warning-soft p-3.5 mb-4">
-            <i data-lucide="clock" class="flex-shrink-0 mt-0.5" style="width: 20px; height: 20px;"></i>
-            <div class="small">
-                <p class="fw-bold mb-0.5">Hồ sơ đang được xét duyệt</p>
-                <p class="mb-0 text-muted">
-                    Gửi lúc @((Model?.CreatedAt ?? DateTime.Now).ToString("HH:mm dd/MM/yyyy")). Thông thường mất 1–2 ngày làm việc; bạn sẽ nhận thông báo khi có kết quả.
-                </p>
+<div class="@(!isHostLayout ? "py-5 bg-light min-vh-100" : "")">
+    <div class="@(!isHostLayout ? "container" : "")" style="@(!isHostLayout ? "max-width: 1050px;" : "")">
+        @if (!isHostLayout)
+        {
+            <div class="mb-3">
+                <a href="/Accounts#carowner" class="text-decoration-none text-muted small d-inline-flex align-items-center gap-1.5 fw-semibold hover-primary">
+                    <i class="bi bi-arrow-left"></i> Quay lại tài khoản cá nhân
+                </a>
             </div>
-        </div>
-    }
-    else if (isRejected)
-    {
-        <div class="d-flex align-items-start gap-3 rounded-xl bg-destructive-soft p-3.5 mb-4">
-            <i data-lucide="x-circle" class="flex-shrink-0 mt-0.5" style="width: 22px; height: 22px;"></i>
-            <div class="small">
-                <p class="fw-bold mb-1">Hồ sơ bị từ chối</p>
-                <p class="mb-2">@rejectReason</p>
-                <ul class="mb-0 ps-3">
-                    <li>Chụp lại ảnh CCCD mặt sau rõ nét, không bị lóa đèn flash.</li>
-                    <li>Kiểm tra số tài khoản ngân hàng trùng khớp với họ tên trên CCCD.</li>
-                </ul>
-            </div>
-        </div>
-    }
+        }
 
-    <!-- 2 CARD BỐ CỤC 2 CỘT CHUẨN MẪU PARTNERPROFILE.TSX -->
-    <div class="row g-4">
-        <!-- CỘT 1: HỒ SƠ ĐỊNH DANH (ID CARD) -->
-        <div class="col-12 col-lg-6">
-            <div class="card-surface p-4 h-100 d-flex flex-column justify-content-between">
+        <div class="space-y-6">
+            <!-- Header Page Header -->
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
                 <div>
-                    <h2 class="h6 fw-bold text-dark mb-4 d-flex align-items-center gap-2" style="font-size: 1.05rem;">
-                        <i data-lucide="id-card" style="width: 20px; height: 20px; color: #0284c7;"></i>
-                        <span>Hồ sơ định danh</span>
-                    </h2>
-
-                    <!-- Thông số cá nhân 2 cột -->
-                    <dl class="row g-3 small mb-4">
-                        <div class="col-6">
-                            <dt class="text-muted" style="font-size: 0.72rem;">Họ tên</dt>
-                            <dd class="fw-bold text-dark mb-0 fs-6">@(Model?.FullName ?? "Chủ xe đối tác")</dd>
-                        </div>
-                        <div class="col-6">
-                            <dt class="text-muted" style="font-size: 0.72rem;">Số CCCD</dt>
-                            <dd class="font-monospace fw-semibold text-dark mb-0 fs-6">@idMasked</dd>
-                        </div>
-                        <div class="col-6">
-                            <dt class="text-muted" style="font-size: 0.72rem;">Số GPLX</dt>
-                            <dd class="font-monospace fw-semibold text-dark mb-0 fs-6">@licMasked</dd>
-                        </div>
-                        <div class="col-6">
-                            <dt class="text-muted" style="font-size: 0.72rem;">Hạng GPLX</dt>
-                            <dd class="fw-bold text-dark mb-0 fs-6">@(Model?.LicenseClass ?? "B2")</dd>
-                        </div>
-                    </dl>
-
-                    <!-- Lưới 4 ô giấy tờ tài liệu -->
-                    <div class="row g-2.5 mb-3">
-                        <div class="col-6">
-                            <div class="doc-slot-box" onclick="previewDocImage('@(Model?.IdCardFrontImage)', 'CCCD mặt trước')">
-                                @if (!string.IsNullOrEmpty(Model?.IdCardFrontImage))
-                                {
-                                    <img src="@Model.IdCardFrontImage" alt="CCCD Trước" />
-                                    <span class="badge bg-dark bg-opacity-75 position-absolute bottom-0 start-0 m-1" style="font-size: 0.65rem;">CCCD mặt trước</span>
-                                }
-                                else
-                                {
-                                    <i data-lucide="file-check-2" class="text-primary mb-1" style="width: 22px; height: 22px;"></i>
-                                    <span class="fw-semibold text-dark" style="font-size: 0.76rem;">CCCD mặt trước</span>
-                                    <span class="text-muted" style="font-size: 0.68rem;">đã tải lên</span>
-                                }
-                            </div>
-                        </div>
-
-                        <div class="col-6">
-                            <div class="doc-slot-box" onclick="previewDocImage('@(Model?.IdCardBackImage)', 'CCCD mặt sau')">
-                                @if (!string.IsNullOrEmpty(Model?.IdCardBackImage))
-                                {
-                                    <img src="@Model.IdCardBackImage" alt="CCCD Sau" />
-                                    <span class="badge bg-dark bg-opacity-75 position-absolute bottom-0 start-0 m-1" style="font-size: 0.65rem;">CCCD mặt sau</span>
-                                }
-                                else
-                                {
-                                    <i data-lucide="file-check-2" class="text-primary mb-1" style="width: 22px; height: 22px;"></i>
-                                    <span class="fw-semibold text-dark" style="font-size: 0.76rem;">CCCD mặt sau</span>
-                                    <span class="text-muted" style="font-size: 0.68rem;">đã tải lên</span>
-                                }
-                            </div>
-                        </div>
-
-                        <div class="col-6">
-                            <div class="doc-slot-box" onclick="previewDocImage('@(Model?.LicenseImage)', 'GPLX mặt trước')">
-                                @if (!string.IsNullOrEmpty(Model?.LicenseImage))
-                                {
-                                    <img src="@Model.LicenseImage" alt="GPLX Trước" />
-                                    <span class="badge bg-dark bg-opacity-75 position-absolute bottom-0 start-0 m-1" style="font-size: 0.65rem;">GPLX mặt trước</span>
-                                }
-                                else
-                                {
-                                    <i data-lucide="file-check-2" class="text-primary mb-1" style="width: 22px; height: 22px;"></i>
-                                    <span class="fw-semibold text-dark" style="font-size: 0.76rem;">GPLX mặt trước</span>
-                                    <span class="text-muted" style="font-size: 0.68rem;">đã tải lên</span>
-                                }
-                            </div>
-                        </div>
-
-                        <div class="col-6">
-                            <div class="doc-slot-box" onclick="previewDocImage('@(Model?.LicenseImage)', 'GPLX mặt sau')">
-                                <i data-lucide="file-check-2" class="text-primary mb-1" style="width: 22px; height: 22px;"></i>
-                                <span class="fw-semibold text-dark" style="font-size: 0.76rem;">GPLX mặt sau</span>
-                                <span class="text-muted" style="font-size: 0.68rem;">đã tải lên</span>
-                            </div>
-                        </div>
-                    </div>
-
+                    <h1 class="h4 fw-bold text-dark mb-1">
+                        @(isRejected ? "Hồ sơ cần bổ sung" : (isHostLayout ? "Hồ sơ pháp lý & Ngân hàng" : "Hồ sơ Đăng ký Đối tác Chủ xe"))
+                    </h1>
+                    <p class="text-muted small mb-0">
+                        @(isRejected ? "Cập nhật thông tin theo yêu cầu và gửi lại để xét duyệt." : (isHostLayout ? "Thông tin xác minh đối tác và tài khoản quyết toán tiền cọc." : "Theo dõi trạng thái xét duyệt và quản lý tài khoản ngân hàng nhận tiền quyết toán."))
+                    </p>
+                </div>
+                <div>
                     @if (isRejected)
                     {
-                        <a href="/CarOwner/Register?edit=true" class="btn btn-outline-secondary rounded-xl px-3.5 py-2 fw-semibold small d-inline-flex align-items-center gap-1.5 mt-2">
-                            <i data-lucide="upload-cloud" style="width: 15px; height: 15px;"></i> Cập nhật / Tải lại giấy tờ
+                        <a href="/CarOwner/Register/Pending" class="btn btn-sm btn-light border rounded-pill px-3 py-1.5 fw-semibold text-secondary small d-inline-flex align-items-center gap-1">
+                            <i data-lucide="arrow-left" style="width: 14px; height: 14px;"></i> Xem trạng thái chuẩn
                         </a>
                     }
                 </div>
-
-                <p class="text-muted small mb-0 border-top pt-3 mt-3" style="font-size: 0.72rem;">
-                    <i data-lucide="lock" class="d-inline me-1" style="width: 12px; height: 12px;"></i>
-                    Ảnh giấy tờ được mã hóa và bảo vệ, chỉ bạn và Ban Quản trị ReCar có quyền xem khi xét duyệt.
-                </p>
             </div>
-        </div>
 
-        <!-- CỘT 2: TÀI KHOẢN NHẬN TIỀN (LANDMARK / BANK) -->
-        <div class="col-12 col-lg-6">
-            <div class="card-surface p-4 h-100 d-flex flex-column justify-content-between">
-                <div>
-                    <h2 class="h6 fw-bold text-dark mb-1 d-flex align-items-center gap-2" style="font-size: 1.05rem;">
-                        <i data-lucide="landmark" style="width: 20px; height: 20px; color: #0284c7;"></i>
-                        <span>Tài khoản nhận tiền</span>
-                    </h2>
-                    <p class="text-muted small mb-4" style="font-size: 0.78rem;">
-                        Dùng để quyết toán phần cọc sàn chuyển lại và thanh toán doanh thu định kỳ. Không hiển thị công khai.
+            <!-- BANNER TRẠNG THÁI HỒ SƠ THEO MẪU PARTNER PROFILE -->
+            @if (isApproved)
+            {
+                <div class="d-flex align-items-center gap-3 rounded-xl bg-success-soft p-3.5 mb-4">
+                    <i data-lucide="shield-check" class="flex-shrink-0" style="width: 22px; height: 22px;"></i>
+                    <p class="small fw-semibold mb-0">
+                        Hồ sơ đối tác đã được duyệt — bạn có thể sử dụng đầy đủ mọi chức năng quản lý xe và nhận đơn trên ReCar Host Pro.
                     </p>
+                </div>
+            }
+            else if (isPending)
+            {
+                <div class="d-flex align-items-start gap-3 rounded-xl bg-warning-soft p-3.5 mb-4">
+                    <i data-lucide="clock" class="flex-shrink-0 mt-0.5" style="width: 20px; height: 20px;"></i>
+                    <div class="small">
+                        <p class="fw-bold mb-0.5">Hồ sơ đang được xét duyệt</p>
+                        <p class="mb-0 text-muted">
+                            Gửi lúc @((Model?.CreatedAt ?? DateTime.Now).ToString("HH:mm dd/MM/yyyy")). Thông thường mất 1–2 ngày làm việc; bạn sẽ nhận thông báo khi có kết quả.
+                        </p>
+                    </div>
+                </div>
+            }
+            else if (isRejected)
+            {
+                <div class="d-flex align-items-start gap-3 rounded-xl bg-destructive-soft p-3.5 mb-4">
+                    <i data-lucide="x-circle" class="flex-shrink-0 mt-0.5" style="width: 22px; height: 22px;"></i>
+                    <div class="small">
+                        <p class="fw-bold mb-1">Hồ sơ bị từ chối</p>
+                        <p class="mb-2">@rejectReason</p>
+                        <ul class="mb-0 ps-3">
+                            <li>Chụp lại ảnh CCCD mặt sau rõ nét, không bị lóa đèn flash.</li>
+                            <li>Kiểm tra số tài khoản ngân hàng trùng khớp với họ tên trên CCCD.</li>
+                        </ul>
+                    </div>
+                </div>
+            }
 
-                    <form id="bankUpdateForm" onsubmit="handleBankSubmit(event)">
-                        <div class="space-y-4">
-                            <!-- 1. Tên ngân hàng -->
-                            <div>
-                                <label class="form-label fw-semibold text-dark small mb-1.5">Tên ngân hàng thụ hưởng</label>
-                                <div class="input-group">
-                                    <input type="text" class="form-control" name="bankName" id="bankNameInput" 
-                                           list="bankOptions" value="@(Model?.BankName ?? "Vietcombank")" 
-                                           placeholder="VD: Vietcombank, MB Bank, Techcombank..." required />
-                                    <datalist id="bankOptions">
-                                        @foreach (var b in banks)
+            <!-- 2 CARD BỐ CỤC 2 CỘT CHUẨN MẪU PARTNERPROFILE.TSX -->
+            <div class="row g-4">
+                <!-- CỘT 1: HỒ SƠ ĐỊNH DANH (ID CARD) -->
+                <div class="col-12 col-lg-6">
+                    <div class="card-surface p-4 h-100 d-flex flex-column justify-content-between">
+                        <div>
+                            <h2 class="h6 fw-bold text-dark mb-4 d-flex align-items-center gap-2" style="font-size: 1.05rem;">
+                                <i data-lucide="id-card" style="width: 20px; height: 20px; color: #0284c7;"></i>
+                                <span>Hồ sơ định danh</span>
+                            </h2>
+
+                            <!-- Thông số cá nhân 2 cột -->
+                            <dl class="row g-3 small mb-4">
+                                <div class="col-6">
+                                    <dt class="text-muted" style="font-size: 0.72rem;">Họ tên</dt>
+                                    <dd class="fw-bold text-dark mb-0 fs-6">@(Model?.FullName ?? "Chủ xe đối tác")</dd>
+                                </div>
+                                <div class="col-6">
+                                    <dt class="text-muted" style="font-size: 0.72rem;">Số CCCD</dt>
+                                    <dd class="font-monospace fw-semibold text-dark mb-0 fs-6">@idMasked</dd>
+                                </div>
+                                <div class="col-6">
+                                    <dt class="text-muted" style="font-size: 0.72rem;">Số GPLX</dt>
+                                    <dd class="font-monospace fw-semibold text-dark mb-0 fs-6">@licMasked</dd>
+                                </div>
+                                <div class="col-6">
+                                    <dt class="text-muted" style="font-size: 0.72rem;">Hạng GPLX</dt>
+                                    <dd class="fw-bold text-dark mb-0 fs-6">@(Model?.LicenseClass ?? "B2")</dd>
+                                </div>
+                            </dl>
+
+                            <!-- Lưới 4 ô giấy tờ tài liệu -->
+                            <div class="row g-2.5 mb-3">
+                                <div class="col-6">
+                                    <div class="doc-slot-box" onclick="previewDocImage('@cccdFrontUrl', 'CCCD mặt trước')">
+                                        @if (!string.IsNullOrEmpty(cccdFrontUrl))
                                         {
-                                            <option value="@b.ShortName">@b.BankName (@b.BankCode)</option>
+                                            <img src="@cccdFrontUrl" alt="CCCD Trước" onerror="this.onerror=null; this.src='/images/cars/hero.jpg';" />
+                                            <span class="badge bg-dark bg-opacity-75 position-absolute bottom-0 start-0 m-1" style="font-size: 0.65rem;">CCCD mặt trước</span>
                                         }
-                                    </datalist>
+                                        else
+                                        {
+                                            <i data-lucide="file-check-2" class="text-primary mb-1" style="width: 22px; height: 22px;"></i>
+                                            <span class="fw-semibold text-dark" style="font-size: 0.76rem;">CCCD mặt trước</span>
+                                            <span class="text-muted" style="font-size: 0.68rem;">chưa tải lên</span>
+                                        }
+                                    </div>
+                                </div>
+
+                                <div class="col-6">
+                                    <div class="doc-slot-box" onclick="previewDocImage('@cccdBackUrl', 'CCCD mặt sau')">
+                                        @if (!string.IsNullOrEmpty(cccdBackUrl))
+                                        {
+                                            <img src="@cccdBackUrl" alt="CCCD Sau" onerror="this.onerror=null; this.src='/images/cars/hero.jpg';" />
+                                            <span class="badge bg-dark bg-opacity-75 position-absolute bottom-0 start-0 m-1" style="font-size: 0.65rem;">CCCD mặt sau</span>
+                                        }
+                                        else
+                                        {
+                                            <i data-lucide="file-check-2" class="text-primary mb-1" style="width: 22px; height: 22px;"></i>
+                                            <span class="fw-semibold text-dark" style="font-size: 0.76rem;">CCCD mặt sau</span>
+                                            <span class="text-muted" style="font-size: 0.68rem;">chưa tải lên</span>
+                                        }
+                                    </div>
+                                </div>
+
+                                <div class="col-6">
+                                    <div class="doc-slot-box" onclick="previewDocImage('@licenseUrl', 'Giấy phép lái xe (GPLX)')">
+                                        @if (!string.IsNullOrEmpty(licenseUrl))
+                                        {
+                                            <img src="@licenseUrl" alt="GPLX" onerror="this.onerror=null; this.src='/images/cars/hero.jpg';" />
+                                            <span class="badge bg-dark bg-opacity-75 position-absolute bottom-0 start-0 m-1" style="font-size: 0.65rem;">GPLX mặt trước</span>
+                                        }
+                                        else
+                                        {
+                                            <i data-lucide="file-check-2" class="text-primary mb-1" style="width: 22px; height: 22px;"></i>
+                                            <span class="fw-semibold text-dark" style="font-size: 0.76rem;">GPLX</span>
+                                            <span class="text-muted" style="font-size: 0.68rem;">chưa tải lên</span>
+                                        }
+                                    </div>
+                                </div>
+
+                                <div class="col-6">
+                                    <div class="doc-slot-box" onclick="previewDocImage('@licenseUrl', 'Giấy phép lái xe (GPLX)')">
+                                        @if (!string.IsNullOrEmpty(licenseUrl))
+                                        {
+                                            <img src="@licenseUrl" alt="GPLX" onerror="this.onerror=null; this.src='/images/cars/hero.jpg';" />
+                                            <span class="badge bg-primary bg-opacity-75 position-absolute bottom-0 start-0 m-1" style="font-size: 0.65rem;"><i class="bi bi-shield-check me-1"></i>Hồ sơ GPLX</span>
+                                        }
+                                        else
+                                        {
+                                            <i data-lucide="file-check-2" class="text-primary mb-1" style="width: 22px; height: 22px;"></i>
+                                            <span class="fw-semibold text-dark" style="font-size: 0.76rem;">Hồ sơ GPLX</span>
+                                            <span class="text-muted" style="font-size: 0.68rem;">đã lưu trữ</span>
+                                        }
+                                    </div>
                                 </div>
                             </div>
 
-                            <!-- 2. Số tài khoản -->
-                            <div>
-                                <label class="form-label fw-semibold text-dark small mb-1.5">Số tài khoản ngân hàng</label>
-                                <input type="text" class="form-control font-monospace" name="accountNumber" id="accountNumberInput" 
-                                       value="@(Model?.AccountNumber ?? "9876543210")" 
-                                       placeholder="Chỉ nhập chữ số (6 - 19 số)" 
-                                       oninput="this.value = this.value.replace(/\D/g, '')" required />
-                            </div>
-
-                            <!-- 3. Chủ tài khoản -->
-                            <div>
-                                <label class="form-label fw-semibold text-dark small mb-1.5">Chủ tài khoản (IN HOA KHÔNG DẤU)</label>
-                                <input type="text" class="form-control font-monospace text-uppercase" name="accountHolder" id="accountHolderInput" 
-                                       value="@(Model?.AccountHolder ?? "NGUYEN VAN A")" 
-                                       placeholder="VD: NGUYEN VAN A" 
-                                       oninput="this.value = this.value.toUpperCase()" required />
-                            </div>
-
-                            <!-- Nút Submit -->
-                            <div class="pt-2">
-                                <button type="submit" class="btn btn-primary rounded-xl px-4 py-2.5 fw-bold d-inline-flex align-items-center gap-2" 
-                                        id="bankSubmitBtn" style="background-color: #0284c7; border-color: #0284c7;">
-                                    <i data-lucide="check" style="width: 16px; height: 16px;"></i>
-                                    <span>@(isRejected ? "Gửi lại hồ sơ" : "Lưu thông tin")</span>
-                                </button>
-                            </div>
+                            @if (isRejected || isPending)
+                            {
+                                <a href="/CarOwner/Register?edit=true" class="btn btn-outline-secondary rounded-xl px-3.5 py-2 fw-semibold small d-inline-flex align-items-center gap-1.5 mt-2">
+                                    <i data-lucide="upload-cloud" style="width: 15px; height: 15px;"></i> Cập nhật / Tải lại giấy tờ
+                                </a>
+                            }
                         </div>
-                    </form>
+
+                        <p class="text-muted small mb-0 border-top pt-3 mt-3" style="font-size: 0.72rem;">
+                            <i data-lucide="lock" class="d-inline me-1" style="width: 12px; height: 12px;"></i>
+                            Ảnh giấy tờ được mã hóa và bảo vệ, chỉ bạn và Ban Quản trị ReCar có quyền xem khi xét duyệt.
+                        </p>
+                    </div>
                 </div>
 
-                <p class="text-muted small mb-0 border-top pt-3 mt-4" style="font-size: 0.72rem;">
-                    Tiền quyết toán đơn hàng và hoàn cọc sẽ được chuyển tự động vào STK này sau mỗi chuyến đi hoàn tất.
-                </p>
+                <!-- CỘT 2: TÀI KHOẢN NHẬN TIỀN (LANDMARK / BANK) -->
+                <div class="col-12 col-lg-6">
+                    <div class="card-surface p-4 h-100 d-flex flex-column justify-content-between">
+                        <div>
+                            <h2 class="h6 fw-bold text-dark mb-1 d-flex align-items-center gap-2" style="font-size: 1.05rem;">
+                                <i data-lucide="landmark" style="width: 20px; height: 20px; color: #0284c7;"></i>
+                                <span>Tài khoản nhận tiền</span>
+                            </h2>
+                            <p class="text-muted small mb-4" style="font-size: 0.78rem;">
+                                Dùng để quyết toán phần cọc sàn chuyển lại và thanh toán doanh thu định kỳ. Không hiển thị công khai.
+                            </p>
+
+                            <form id="bankUpdateForm" onsubmit="handleBankSubmit(event)">
+                                <div class="space-y-4">
+                                    <!-- 1. Tên ngân hàng -->
+                                    <div>
+                                        <label class="form-label fw-semibold text-dark small mb-1.5">Tên ngân hàng thụ hưởng</label>
+                                        <div class="input-group">
+                                            <input type="text" class="form-control" name="bankName" id="bankNameInput" 
+                                                   list="bankOptions" value="@(Model?.BankName ?? "Vietcombank")" 
+                                                   placeholder="VD: Vietcombank, MB Bank, Techcombank..." required />
+                                            <datalist id="bankOptions">
+                                                @foreach (var b in banks)
+                                                {
+                                                    <option value="@b.ShortName">@b.BankName (@b.BankCode)</option>
+                                                }
+                                            </datalist>
+                                        </div>
+                                    </div>
+
+                                    <!-- 2. Số tài khoản -->
+                                    <div>
+                                        <label class="form-label fw-semibold text-dark small mb-1.5">Số tài khoản ngân hàng</label>
+                                        <input type="text" class="form-control font-monospace" name="accountNumber" id="accountNumberInput" 
+                                               value="@(Model?.AccountNumber ?? "9876543210")" 
+                                               placeholder="Chỉ nhập chữ số (6 - 19 số)" 
+                                               oninput="this.value = this.value.replace(/\D/g, '')" required />
+                                    </div>
+
+                                    <!-- 3. Chủ tài khoản -->
+                                    <div>
+                                        <label class="form-label fw-semibold text-dark small mb-1.5">Chủ tài khoản (IN HOA KHÔNG DẤU)</label>
+                                        <input type="text" class="form-control font-monospace text-uppercase" name="accountHolder" id="accountHolderInput" 
+                                               value="@(Model?.AccountHolder ?? "NGUYEN VAN A")" 
+                                               placeholder="VD: NGUYEN VAN A" 
+                                               oninput="this.value = this.value.toUpperCase()" required />
+                                    </div>
+
+                                    <!-- Nút Submit -->
+                                    <div class="pt-2">
+                                        <button type="submit" class="btn btn-primary rounded-xl px-4 py-2.5 fw-bold d-inline-flex align-items-center gap-2" 
+                                                id="bankSubmitBtn" style="background-color: #0284c7; border-color: #0284c7;">
+                                            <i data-lucide="check" style="width: 16px; height: 16px;"></i>
+                                            <span>@(isRejected ? "Gửi lại hồ sơ" : "Lưu thông tin")</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+
+                        <p class="text-muted small mb-0 border-top pt-3 mt-4" style="font-size: 0.72rem;">
+                            Tiền quyết toán đơn hàng và hoàn cọc sẽ được chuyển tự động vào STK này sau mỗi chuyến đi hoàn tất.
+                        </p>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
 @section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         function getCsrfToken() {
             var tokenInput = document.querySelector('input[name="__RequestVerificationToken"]');
@@ -326,17 +386,25 @@
 
         function previewDocImage(url, title) {
             if (!url) {
-                Swal.fire({ icon: 'info', title: title, text: 'Tài liệu đã được tải lên và lưu trữ an toàn trong hồ sơ kiểm định.' });
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({ icon: 'info', title: title, text: 'Tài liệu đã được tải lên và lưu trữ an toàn trong hồ sơ kiểm định.' });
+                } else {
+                    alert('Tài liệu đã được tải lên và lưu trữ an toàn.');
+                }
                 return;
             }
-            Swal.fire({
-                title: title,
-                imageUrl: url,
-                imageAlt: title,
-                width: 640,
-                showConfirmButton: false,
-                showCloseButton: true
-            });
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    title: title,
+                    imageUrl: url,
+                    imageAlt: title,
+                    width: 640,
+                    showConfirmButton: false,
+                    showCloseButton: true
+                });
+            } else {
+                window.open(url, '_blank');
+            }
         }
 
         document.addEventListener('DOMContentLoaded', function() {

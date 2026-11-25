@@ -61,7 +61,7 @@ namespace CarRental.Controllers
 
  [HttpPost]
 
- public IActionResult AddToCart(int id, DateTime pickupDate, DateTime returnDate, int quantity = 1, string type = "Normal", string driveMode = "T? li")
+ public IActionResult AddToCart(int id, DateTime pickupDate, DateTime returnDate, int quantity = 1, string type = "Normal", string driveMode = "Tự lái", string deliveryMode = "Nhận tại địa chỉ xe")
 
  {
 
@@ -115,10 +115,14 @@ namespace CarRental.Controllers
 
 
 
- bool withDriver = (driveMode == "C ti x?" || driveMode == "Km ti x?");
+ bool withDriver = (driveMode == "Có tài xế" || driveMode == "Kèm tài xế");
 
  var carPolicy = CarPolicy.Parse(product);
             decimal driverFeeTotal = withDriver ? (carPolicy.DriverFee * rentalDays) : 0m;
+            bool withDelivery = carPolicy.DeliverySupported && (deliveryMode == "Giao xe tận nơi");
+            decimal deliveryFeeTotal = withDelivery ? carPolicy.DeliveryFee : 0m;
+            string normalizedDriveMode = withDriver ? "Có tài xế" : "Tự lái";
+            string normalizedDeliveryMode = withDelivery ? "Giao xe tận nơi" : "Nhận tại địa chỉ xe";
 
 
 
@@ -150,9 +154,13 @@ namespace CarRental.Controllers
 
  Quantity = quantity,
 
- DriveMode = withDriver ? "C ti x?" : "T? li",
+ DriveMode = normalizedDriveMode,
 
- DriverFee = driverFeeTotal
+ DriverFee = driverFeeTotal,
+
+ DeliveryMode = normalizedDeliveryMode,
+
+ DeliveryFee = deliveryFeeTotal
 
  };
 
@@ -162,7 +170,7 @@ namespace CarRental.Controllers
 
  {
 
- // n?u ? c th? c?p nh?t l?i
+ // nếu đã có thì cập nhật lại
 
  CarItem.Quantity = quantity;
 
@@ -170,9 +178,13 @@ namespace CarRental.Controllers
 
  CarItem.returnDate = returnDate;
 
- CarItem.DriveMode = withDriver ? "C ti x?" : "T? li";
+ CarItem.DriveMode = normalizedDriveMode;
 
  CarItem.DriverFee = driverFeeTotal;
+
+ CarItem.DeliveryMode = normalizedDeliveryMode;
+
+ CarItem.DeliveryFee = deliveryFeeTotal;
 
  CarItem.Price = finalPrice * rentalDays * CarItem.Quantity;
 
@@ -350,6 +362,7 @@ namespace CarRental.Controllers
 
  [HttpGet]
 
+ [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
  public IActionResult Checkout()
 
  {
@@ -366,14 +379,24 @@ namespace CarRental.Controllers
 
  }
 
- var cart = CART; // L?y gi? hng t? Session
+ var cart = CART; // Lấy giỏ hàng từ Session
 
  if(cart == null || !cart.Any())
 
  {
+     Function.CancelExpiredPendingOrders(_context);
+     var pendingOrderId = HttpContext.Session.GetInt32("PendingZaloPayOrderId");
 
- return RedirectToAction("Index", "Cart"); // Chuy?n h?ng n?u gi? hng tr?ng
+     HttpContext.Session.Remove("PendingZaloPayOrderId");
+     HttpContext.Session.Remove("PendingZaloPayOrderUrl");
+     HttpContext.Session.Remove("PendingZaloPayCart");
 
+     if (pendingOrderId.HasValue && pendingOrderId.Value > 0)
+     {
+         return RedirectToAction("Index", "Accounts", new { tab = "orders" });
+     }
+
+     return RedirectToAction("Index", "Cart"); // Chuyển hướng nếu giỏ hàng trống
  }
 
  // Tnh t?ng ti?n thu xe
@@ -428,7 +451,7 @@ namespace CarRental.Controllers
 
  {
 
- return Json(new { success = false, message = "B?n c?n ng nh?p ? ti?p t?c." });
+ return Json(new { success = false, message = "Bạn cần đăng nhập để tiếp tục." });
 
  
 
@@ -448,6 +471,36 @@ namespace CarRental.Controllers
 
  var cart = CART;
 
+ if (cart == null || !cart.Any())
+ {
+     var pendingOrderId = HttpContext.Session.GetInt32("PendingZaloPayOrderId");
+     var pendingUrl = HttpContext.Session.GetString("PendingZaloPayOrderUrl");
+     if (pendingOrderId.HasValue && pendingOrderId.Value > 0 && !string.IsNullOrEmpty(pendingUrl))
+     {
+         var pendingOrder = _context.CarRentalOrders.FirstOrDefault(o => o.OrderId == pendingOrderId.Value && o.StatusId == 1);
+         if (pendingOrder != null)
+         {
+             return Json(new
+             {
+                 success = false,
+                 pendingZaloPay = true,
+                 orderId = pendingOrder.OrderId,
+                 paymentUrl = pendingUrl,
+                 ordersUrl = Url.Action("Index", "Accounts") + "?tab=orders",
+                 message = $"Đơn thuê xe #RC-{pendingOrder.OrderId} đã được tạo và đang chờ thanh toán ZaloPay."
+             });
+         }
+     }
+
+     return Json(new
+     {
+         success = false,
+         emptyCart = true,
+         message = "Giỏ xe hiện đang trống hoặc đơn hàng đã được tạo trước đó. Vui lòng kiểm tra trong mục Đơn thuê của tôi.",
+         redirectUrl = Url.Action("Index", "Accounts") + "?tab=orders"
+     });
+ }
+
  var customerID = Function.GetAccountId(HttpContext.Session);
 
  var userEmail = Function.GetEmail(HttpContext.Session);
@@ -464,7 +517,7 @@ namespace CarRental.Controllers
 
  {
 
- return Json(new { success = false, message = "Khng t?m th?y khch hng." });
+ return Json(new { success = false, message = "Không tìm thấy khách hàng." });
 
  }
 
@@ -498,7 +551,7 @@ namespace CarRental.Controllers
 
  success = false, 
 
- message = "Vui l?ng c?p nh?t ?a ch? nh?n xe.", 
+ message = "Vui lòng cập nhật địa chỉ nhận xe.", 
 
  needAddress = true,
 
@@ -534,7 +587,7 @@ namespace CarRental.Controllers
 
  success = false, 
 
- message = "Vui l?ng c?p nh?t thng tin Gi?y php li xe tr?c khi ?t xe.", 
+ message = "Vui lòng cập nhật thông tin Giấy phép lái xe trước khi đặt xe.", 
 
  needLicense = true,
 
@@ -574,7 +627,7 @@ namespace CarRental.Controllers
 
  success = false,
 
- message = $"Xe {item.CarName} ? ?c ch? xe kha l?ch ({blockedSlot.StartTime:dd/MM/yyyy}  {blockedSlot.EndTime:dd/MM/yyyy}). Vui l?ng ch?n khung gi? khc."
+ message = $"Xe {item.CarName} đã được chủ xe khóa lịch ({blockedSlot.StartTime:dd/MM/yyyy} – {blockedSlot.EndTime:dd/MM/yyyy}). Vui lòng chọn khung giờ khác."
 
  });
 
@@ -595,6 +648,17 @@ namespace CarRental.Controllers
 
 
             decimal price = cart.Sum(p => p.PriceTotal);
+
+            if (price <= 0)
+            {
+                return Json(new
+                {
+                    success = false,
+                    emptyCart = true,
+                    message = "Giá trị đơn thuê không hợp lệ hoặc giỏ xe trống.",
+                    redirectUrl = Url.Action("Index", "Cart")
+                });
+            }
 
             bool isWallet = model.paymentmethod == "wallet_deposit" || model.paymentmethod == "wallet_full";
             bool isZaloPay = model.paymentmethod == "zalopay_deposit" || model.paymentmethod == "zalopay_full";
@@ -625,13 +689,17 @@ namespace CarRental.Controllers
                 }
             }
 
-            var driveModeSummary = string.Join("; ", cart.Select(c => $"Hình thức: {c.DriveMode}" + (c.DriverFee > 0 ? $" (Phụ phí tài xế: {c.DriverFee:N0})" : "")));
+            var driveModeSummary = string.Join("; ", cart.Select(c =>
+                $"Hình thức: {c.DriveMode}" +
+                (c.DriverFee > 0 ? $" (Phụ phí tài xế: {c.DriverFee:N0}đ)" : "") +
+                $" | Nhận xe: {c.DeliveryMode}" +
+                (c.DeliveryMode == "Giao xe tận nơi" ? (c.DeliveryFee > 0 ? $" (Phí giao xe: {c.DeliveryFee:N0}đ)" : " (Miễn phí)") : "")));
             string paymentChannel = isWallet ? "Ví ReCar" : (isZaloPay ? "ZaloPay" : "COD");
             string paymentPlanText = isFullPayment ? $"Gói thanh toán: Trọn gói 100% qua {paymentChannel}" : $"Gói thanh toán: Đặt cọc {currentDepositPct}% qua {paymentChannel}";
 
  string nowVnTime = Function.NowVn.ToString("dd/MM/yyyy HH:mm");
 
- string combinedNotes = $"[T?o n {nowVnTime}] | " + driveModeSummary + $" | [{paymentPlanText}]" + (!string.IsNullOrWhiteSpace(model.Notes) ? $" | Ghi ch khch: {model.Notes}" : "");
+ string combinedNotes = $"[Tạo đơn {nowVnTime}] | " + driveModeSummary + $" | [{paymentPlanText}]" + (!string.IsNullOrWhiteSpace(model.Notes) ? $" | Ghi chú khách: {model.Notes}" : "");
 
 
 
@@ -786,11 +854,22 @@ namespace CarRental.Controllers
                             var zpResult = await _zaloPayService.CreateOrderAsync(HttpContext, order.OrderId, (long)deposit, zpUser, zpDesc);
                             if (zpResult.Success && !string.IsNullOrEmpty(zpResult.OrderUrl))
                             {
+                                var expireAt = Function.NowVn.AddMinutes(1);
+                                order.Notes = (order.Notes ?? "") + $" | [ZaloPayPending:{expireAt:yyyyMMddHHmmss}] | [ZaloPayUrl:{zpResult.OrderUrl}]";
+                                _context.SaveChanges();
+
+                                HttpContext.Session.SetInt32("PendingZaloPayOrderId", order.OrderId);
+                                HttpContext.Session.SetString("PendingZaloPayOrderUrl", zpResult.OrderUrl);
+                                HttpContext.Session.Set("PendingZaloPayCart", cart);
                                 return Json(new { success = true, redirectUrl = zpResult.OrderUrl, isVnpay = true });
                             }
 
                             order.StatusId = 2;
                             order.Notes = (order.Notes ?? "") + $" | [ZaloPay Error] {zpResult.ErrorMessage}";
+                            foreach (var car in carsToUpdate)
+                            {
+                                car.IsActive = true;
+                            }
                             _context.SaveChanges();
                             return Json(new { success = false, message = $"Không thể tạo giao dịch ZaloPay: {zpResult.ErrorMessage}" });
                         }
@@ -814,9 +893,9 @@ namespace CarRental.Controllers
 
  isVnpay = false,
 
- title = "?t xe thnh cng!",
+ title = "Đặt xe thành công!",
 
- message = "n thu xe c?a b?n ? ?c ghi nh?n. Ch? xe s? lin h? s?m nh?t."
+ message = "Đơn thuê xe của bạn đã được ghi nhận. Chủ xe sẽ liên hệ sớm nhất."
 
  });
 
@@ -828,7 +907,7 @@ namespace CarRental.Controllers
 
  transaction.Rollback();
 
- return Json(new { success = false, message = "? x?y ra l?i. Vui l?ng th? l?i.", error = ex.Message });
+ return Json(new { success = false, message = "Đã xảy ra lỗi. Vui lòng thử lại.", error = ex.Message });
 
  }
 
@@ -842,7 +921,7 @@ namespace CarRental.Controllers
 
 
 
- return Json(new { success = false, message = "D? li?u khng h?p l?." });
+ return Json(new { success = false, message = "Dữ liệu không hợp lệ." });
 
  }
 
@@ -871,6 +950,36 @@ namespace CarRental.Controllers
  {
 
  var cart = CART;
+
+ if (cart == null || !cart.Any())
+ {
+     var pendingOrderId = HttpContext.Session.GetInt32("PendingZaloPayOrderId");
+     var pendingUrl = HttpContext.Session.GetString("PendingZaloPayOrderUrl");
+     if (pendingOrderId.HasValue && pendingOrderId.Value > 0 && !string.IsNullOrEmpty(pendingUrl))
+     {
+         var pendingOrder = _context.CarRentalOrders.FirstOrDefault(o => o.OrderId == pendingOrderId.Value && o.StatusId == 1);
+         if (pendingOrder != null)
+         {
+             return Json(new
+             {
+                 success = false,
+                 pendingZaloPay = true,
+                 orderId = pendingOrder.OrderId,
+                 paymentUrl = pendingUrl,
+                 ordersUrl = Url.Action("Index", "Accounts") + "?tab=orders",
+                 message = $"Đơn thuê xe #RC-{pendingOrder.OrderId} đã được tạo và đang chờ thanh toán ZaloPay."
+             });
+         }
+     }
+
+     return Json(new
+     {
+         success = false,
+         emptyCart = true,
+         message = "Giỏ xe hiện đang trống hoặc đơn hàng đã được tạo trước đó. Vui lòng kiểm tra trong mục Đơn thuê của tôi.",
+         redirectUrl = Url.Action("Index", "Accounts") + "?tab=orders"
+     });
+ }
 
  var customerID = Function.GetAccountId(HttpContext.Session);
 
@@ -1000,6 +1109,10 @@ namespace CarRental.Controllers
         [HttpGet]
         public async Task<IActionResult> ZaloPayCallBack()
         {
+            HttpContext.Session.Remove("PendingZaloPayOrderId");
+            HttpContext.Session.Remove("PendingZaloPayOrderUrl");
+            HttpContext.Session.Remove("PendingZaloPayCart");
+
             var appTransId = Request.Query["apptransid"].ToString();
             var statusParam = Request.Query["status"].ToString();
 
@@ -1020,11 +1133,19 @@ namespace CarRental.Controllers
             {
                 if (orderId > 0)
                 {
-                    var failOrder = _context.CarRentalOrders.FirstOrDefault(o => o.OrderId == orderId);
+                    var failOrder = _context.CarRentalOrders
+                        .Include(o => o.OrderDetails)
+                        .FirstOrDefault(o => o.OrderId == orderId);
                     if (failOrder != null && failOrder.StatusId == 1)
                     {
                         failOrder.StatusId = 2;
                         failOrder.Notes = (failOrder.Notes ?? "") + $" | [ZaloPay {Function.NowVn:dd/MM/yyyy HH:mm}] Giao dịch chưa hoàn tất hoặc đã hủy (Mã: {appTransId})";
+                        var failCarIds = failOrder.OrderDetails.Select(d => d.CarId).ToList();
+                        var failCars = _context.Cars.Where(c => failCarIds.Contains(c.CarId)).ToList();
+                        foreach (var c in failCars)
+                        {
+                            c.IsActive = true;
+                        }
                         _context.SaveChanges();
                     }
                 }
@@ -1058,6 +1179,52 @@ namespace CarRental.Controllers
                 ? "Thanh toán trọn gói 100% qua ZaloPay thành công!"
                 : "Thanh toán đặt cọc qua ZaloPay thành công!";
             return RedirectToAction("Success", "Cart");
+        }
+
+        [HttpPost]
+        public IActionResult ExpirePendingOrder(int id, bool manual = false)
+        {
+            if (!Function.IsLogin(HttpContext.Session))
+            {
+                return Json(new { success = false, message = "Vui lòng đăng nhập." });
+            }
+
+            var customerId = Function.GetAccountId(HttpContext.Session);
+            var order = _context.CarRentalOrders
+                .Include(o => o.OrderDetails)
+                .FirstOrDefault(o => o.OrderId == id && o.CustomerId == customerId);
+
+            if (order == null)
+            {
+                return Json(new { success = false, message = "Không tìm thấy đơn hàng." });
+            }
+
+            if (order.StatusId != 1)
+            {
+                return Json(new { success = true, alreadyProcessed = true, statusId = order.StatusId });
+            }
+
+            var info = Function.ParseZaloPayPending(order.Notes);
+            if (!manual && info.IsPendingPayment && info.ExpireAt.HasValue && Function.NowVn < info.ExpireAt.Value)
+            {
+                return Json(new { success = false, notExpiredYet = true });
+            }
+
+            var nowVn = Function.NowVn;
+            order.StatusId = 2;
+            order.Notes = (order.Notes ?? "") + (manual
+                ? $" | [Khách hủy {nowVn:dd/MM/yyyy HH:mm}] Đã hủy đơn chưa thanh toán"
+                : $" | [Hệ thống {nowVn:dd/MM/yyyy HH:mm}] Tự động hủy do quá hạn thanh toán 1 phút");
+
+            var carIds = order.OrderDetails.Select(d => d.CarId).ToList();
+            var cars = _context.Cars.Where(c => carIds.Contains(c.CarId)).ToList();
+            foreach (var c in cars)
+            {
+                c.IsActive = true;
+            }
+            _context.SaveChanges();
+
+            return Json(new { success = true, statusId = 2 });
         }
 
 
@@ -1160,9 +1327,9 @@ namespace CarRental.Controllers
 
  "CarOwner",
 
- "B?n c n ?t xe m?i! ",
+ "Bạn có đơn đặt xe mới!",
 
- $"Khch hng {customerName} v?a ?t thu xe {carName}. M? n: #{order.OrderId}. Vui l?ng ki?m tra l?ch bn giao xe.",
+ $"Khách hàng {customerName} vừa đặt thuê xe {carName}. Mã đơn: #{order.OrderId}. Vui lòng kiểm tra lịch bàn giao xe.",
 
  "NewOrder",
 

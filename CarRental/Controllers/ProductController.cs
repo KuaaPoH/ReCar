@@ -29,7 +29,10 @@ namespace CarRental.Controllers
         [HttpGet]
         public IActionResult FilterProducts(decimal? minPrice, decimal? maxPrice, string? brands, int? TypeId, int? seats, string? fuel, string? sort, string? city)
         {
-            var query = _context.Cars.Include(c => c.Type).Where(c => c.IsActive && c.CarStatus == "Sẵn sàng");
+            var nowVn = Function.NowVn;
+            var query = _context.Cars.Include(c => c.Type)
+                .Where(c => c.IsActive && c.CarStatus == "Sẵn sàng"
+                    && !_context.CarCalendarBlocks.Any(b => b.CarId == c.CarId && b.StartTime <= nowVn && b.EndTime >= nowVn));
 
             if (!string.IsNullOrEmpty(city))
             {
@@ -128,10 +131,12 @@ namespace CarRental.Controllers
             double centerLng = userLng ?? 105.7833;
             double maxRadius = (radiusKm.HasValue && radiusKm.Value > 0) ? radiusKm.Value : 999999;
 
+            var nowVn = Function.NowVn;
             var cars = _context.Cars
                 .Include(c => c.Type)
                 .Include(c => c.Owner)
-                .Where(c => c.IsActive && c.CarStatus == "Sẵn sàng")
+                .Where(c => c.IsActive && c.CarStatus == "Sẵn sàng"
+                    && !_context.CarCalendarBlocks.Any(b => b.CarId == c.CarId && b.StartTime <= nowVn && b.EndTime >= nowVn))
                 .ToList();
 
             var result = cars.Select(car =>
@@ -228,7 +233,11 @@ namespace CarRental.Controllers
             int currentUserId = Function.GetAccountId(HttpContext.Session);
             bool isOwner = currentUserId > 0 && product.OwnerId == currentUserId;
 
-            if (!product.IsActive || product.CarStatus != "Sẵn sàng")
+            var nowVn = Function.NowVn;
+            bool isCurrentlyBlocked = await _context.CarCalendarBlocks
+                .AnyAsync(b => b.CarId == id && b.StartTime <= nowVn && b.EndTime >= nowVn);
+
+            if (!product.IsActive || product.CarStatus != "Sẵn sàng" || isCurrentlyBlocked)
             {
                 if (!isAdmin && !isOwner)
                 {
@@ -269,7 +278,10 @@ namespace CarRental.Controllers
 
 
             //ViewBag.productRelated = _context.Cars.Include(i=>i.Type).Where(i => i.TypeId == product.TypeId && i.CarId != id && i.IsActive && i.CarStatus == "Sẵn sàng").ToList();
-            ViewBag.productRelated = _context.Cars.Where(i => i.TypeId == product.TypeId && i.CarId != id && i.IsActive && i.CarStatus == "Sẵn sàng").ToList();
+            ViewBag.productRelated = _context.Cars
+                .Where(i => i.TypeId == product.TypeId && i.CarId != id && i.IsActive && i.CarStatus == "Sẵn sàng"
+                    && !_context.CarCalendarBlocks.Any(b => b.CarId == i.CarId && b.StartTime <= nowVn && b.EndTime >= nowVn))
+                .ToList();
             ViewBag.productRviews = _context.CarReviews.Where(r => r.CarId == product.CarId).OrderByDescending(r => r.CreatedDate ?? DateTime.MinValue).ThenByDescending(r => r.CarReviewId).ToList();
           
             // Láº¥y danh sĂ¡ch sáº£n pháº©m Ä‘Ă£ xem gáº§n Ä‘Ă¢y tá»« session

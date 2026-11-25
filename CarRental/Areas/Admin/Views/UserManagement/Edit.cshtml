@@ -1,109 +1,178 @@
 @model CarRental.Models.Customer
 @{
-    ViewData["Title"] = "Chỉnh sửa tài khoản";
+    ViewData["Title"] = $"Chỉnh sửa tài khoản: {Model.FullName ?? Model.Username}";
+    Layout = "~/Areas/Admin/Views/Shared/_Layout.cshtml";
 }
 
-<div class="container-fluid px-0">
-    <!-- Header -->
+<div class="container-fluid px-0" style="max-width: 1050px;">
+    <!-- Header chuẩn Admin ReCar -->
     <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4">
         <div>
             <div class="d-flex align-items-center gap-2">
-                <a asp-action="Index" class="btn btn-light btn-sm rounded-circle p-2 text-muted me-1">
+                <a asp-action="Index" class="btn btn-light btn-sm rounded-circle p-2 text-muted me-1 shadow-xs" title="Quay lại danh sách">
                     <i class="bi bi-arrow-left"></i>
                 </a>
-                <h1 class="h3 fw-bold mb-0 text-dark tracking-tight">Chỉnh sửa tài khoản: @(Model.FullName ?? Model.Username)</h1>
+                <h1 class="h3 fw-bold mb-0 text-dark tracking-tight">Chỉnh sửa tài khoản</h1>
+                <span class="badge bg-light text-muted border font-monospace">#ID-@Model.CustomerId</span>
             </div>
-            <p class="text-muted small mb-0 mt-1 ms-5">Cập nhật thông tin định danh, đổi mật khẩu hoặc điều chỉnh vai trò tài khoản.</p>
+            <p class="text-muted small mb-0 mt-1 ms-5">Cập nhật thông tin định danh, phân quyền vai trò và bảo mật tài khoản trên hệ thống ReCar.</p>
         </div>
-        <div>
-            <a asp-action="Index" class="btn btn-light btn-sm rounded-pill px-3 border">
-                <i class="bi bi-arrow-left me-1"></i> Quay lại danh sách
+        <div class="d-flex align-items-center gap-2">
+            <a asp-action="Details" asp-route-id="@Model.CustomerId" class="btn btn-outline-primary btn-sm rounded-pill px-3.5 py-1.5 fw-semibold">
+                <i class="bi bi-person-badge me-1"></i> Xem hồ sơ
+            </a>
+            <a asp-action="Index" class="btn btn-outline-secondary btn-sm rounded-pill px-3.5 py-1.5 fw-semibold">
+                <i class="bi bi-arrow-left me-1"></i> Quay lại
             </a>
         </div>
     </div>
 
-    <div class="row justify-content-center">
-        <div class="col-12 col-lg-8">
-            <div class="recar-panel mb-4">
-                <div class="recar-panel-header">
-                    <h2 class="h6 fw-bold mb-0 text-dark">
-                        <i class="bi bi-pencil-square text-primary me-2"></i> Cập nhật hồ sơ tài khoản #@Model.CustomerId
-                    </h2>
-                </div>
-                <div class="p-4">
-                    <form asp-action="Edit" method="post">
-                        @Html.AntiForgeryToken()
-                        <div asp-validation-summary="ModelOnly" class="alert alert-danger rounded-3 small"></div>
+    <form asp-action="Edit" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" asp-for="CustomerId" />
+        <input type="hidden" asp-for="AccountId" />
+        <input type="hidden" asp-for="Username" />
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger rounded-3 small mb-3"></div>
 
-                        <input type="hidden" asp-for="CustomerId" />
-                        <input type="hidden" asp-for="AccountId" />
+        <div class="row g-4">
+            <!-- Cột trái: Thông tin định danh & liên hệ -->
+            <div class="col-lg-7">
+                <div class="recar-panel p-4 mb-4 shadow-sm border rounded-4 bg-white">
+                    <div class="d-flex align-items-center justify-content-between pb-3 mb-3 border-bottom">
+                        <h5 class="fw-bold text-dark mb-0">
+                            <i class="bi bi-person-lines-fill text-primary me-2"></i> Thông tin cá nhân & Liên hệ
+                        </h5>
+                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-2.5 py-1 small">
+                            Hồ sơ #@Model.CustomerId
+                        </span>
+                    </div>
 
-                        <div class="row g-3">
-                            <div class="col-md-6">
-                                <label class="form-label fw-bold small text-dark">Họ và tên <span class="text-danger">*</span></label>
-                                <input type="text" asp-for="FullName" class="form-control rounded-3" required />
-                                <span asp-validation-for="FullName" class="text-danger small"></span>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label asp-for="FullName" class="form-label fw-semibold small text-dark">
+                                Họ và tên <span class="text-danger">*</span>
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light text-secondary border-end-0 rounded-start-3">
+                                    <i class="bi bi-person"></i>
+                                </span>
+                                <input type="text" asp-for="FullName" class="form-control border-start-0 rounded-end-3" placeholder="Nguyễn Văn A" required />
                             </div>
+                            <span asp-validation-for="FullName" class="text-danger small"></span>
+                        </div>
 
-                            <div class="col-md-6">
-                                <label class="form-label fw-bold small text-dark">Tên đăng nhập (Username) <span class="text-danger">*</span></label>
-                                <input type="text" asp-for="Username" class="form-control rounded-3 font-mono-plate" required />
-                                <span asp-validation-for="Username" class="text-danger small"></span>
+                        <div class="col-md-6">
+                            <label asp-for="Email" class="form-label fw-semibold small text-dark">
+                                Địa chỉ Email (Đăng nhập) <span class="text-danger">*</span>
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light text-secondary border-end-0 rounded-start-3">
+                                    <i class="bi bi-envelope"></i>
+                                </span>
+                                <input type="email" asp-for="Email" class="form-control border-start-0 rounded-end-3" placeholder="example@gmail.com" required />
                             </div>
+                            <span asp-validation-for="Email" class="text-danger small"></span>
+                        </div>
 
-                            <div class="col-md-6">
-                                <label class="form-label fw-bold small text-dark">Địa chỉ Email <span class="text-danger">*</span></label>
-                                <input type="email" asp-for="Email" class="form-control rounded-3" required />
-                                <span asp-validation-for="Email" class="text-danger small"></span>
+                        <div class="col-md-6">
+                            <label asp-for="PhoneNumber" class="form-label fw-semibold small text-dark">Số điện thoại</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light text-secondary border-end-0 rounded-start-3">
+                                    <i class="bi bi-telephone"></i>
+                                </span>
+                                <input type="tel" asp-for="PhoneNumber" class="form-control border-start-0 rounded-end-3" placeholder="09xx xxx xxx" />
                             </div>
+                            <span asp-validation-for="PhoneNumber" class="text-danger small"></span>
+                        </div>
 
-                            <div class="col-md-6">
-                                <label class="form-label fw-bold small text-dark">Số điện thoại</label>
-                                <input type="tel" asp-for="PhoneNumber" class="form-control rounded-3" />
-                                <span asp-validation-for="PhoneNumber" class="text-danger small"></span>
-                            </div>
-
-                            <div class="col-md-6">
-                                <label class="form-label fw-bold small text-dark">Vai trò phân quyền <span class="text-danger">*</span></label>
-                                <select asp-for="RoleId" class="form-select rounded-3" asp-items="ViewBag.RoleId"></select>
-                                <div class="text-muted" style="font-size: 0.72rem; margin-top: 4px;">Role 1: Admin · Role 2: Khách hàng · Role 3: Chủ xe</div>
-                            </div>
-
-                            <div class="col-md-6">
-                                <label class="form-label fw-bold small text-dark">Trạng thái hoạt động</label>
-                                <select asp-for="IsActive" class="form-select rounded-3">
-                                    <option value="true" selected="@(Model.IsActive)">Đang hoạt động (Khả dụng)</option>
-                                    <option value="false" selected="@(!Model.IsActive)">Khóa tài khoản (Tạm dừng)</option>
-                                </select>
-                            </div>
-
-                            <div class="col-md-6">
-                                <label class="form-label fw-bold small text-dark">Mật khẩu mới (Nếu cần đổi)</label>
-                                <input type="password" asp-for="Password" class="form-control rounded-3" placeholder="Để trống nếu không đổi mật khẩu" value="" />
-                                <span asp-validation-for="Password" class="text-danger small"></span>
-                                <div class="text-muted" style="font-size: 0.72rem; margin-top: 4px;">Chỉ nhập khi muốn đặt lại mật khẩu cho tài khoản này.</div>
-                            </div>
-
-                            <div class="col-md-6">
-                                <label class="form-label fw-bold small text-dark">Số CCCD / GPLX</label>
-                                <input type="text" asp-for="Idcard" class="form-control rounded-3" placeholder="Số CCCD" />
-                            </div>
-
-                            <div class="col-12">
-                                <label class="form-label fw-bold small text-dark">Địa chỉ thường trú</label>
-                                <input type="text" asp-for="Address" class="form-control rounded-3" />
+                        <div class="col-md-6">
+                            <label asp-for="Idcard" class="form-label fw-semibold small text-dark">Số CCCD / CMND</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light text-secondary border-end-0 rounded-start-3">
+                                    <i class="bi bi-person-vcard"></i>
+                                </span>
+                                <input type="text" asp-for="Idcard" class="form-control border-start-0 rounded-end-3 font-mono-plate" placeholder="12 số CCCD" />
                             </div>
                         </div>
 
-                        <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
-                            <a asp-action="Index" class="btn btn-light btn-sm rounded-pill px-3">Hủy bỏ</a>
-                            <button type="submit" class="btn btn-primary btn-sm rounded-pill px-4 fw-semibold shadow-sm" style="background-color: var(--recar-primary); border: none;">
-                                <i class="bi bi-check2 me-1"></i> Lưu thay đổi
+                        <div class="col-12">
+                            <label asp-for="Address" class="form-label fw-semibold small text-dark">Địa chỉ thường trú</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light text-secondary border-end-0 rounded-start-3">
+                                    <i class="bi bi-geo-alt"></i>
+                                </span>
+                                <input type="text" asp-for="Address" class="form-control border-start-0 rounded-end-3" placeholder="Tỉnh/Thành phố, Quận/Huyện..." />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cột phải: Phân quyền, Bảo mật & Hành động -->
+            <div class="col-lg-5">
+                <div class="recar-panel p-4 mb-4 shadow-sm border rounded-4 bg-white">
+                    <h5 class="fw-bold text-dark mb-3 pb-2 border-bottom">
+                        <i class="bi bi-shield-lock-fill text-primary me-2"></i> Phân quyền & Bảo mật
+                    </h5>
+
+                    <div class="mb-3">
+                        <label asp-for="RoleId" class="form-label fw-semibold small text-dark">
+                            Vai trò phân quyền <span class="text-danger">*</span>
+                        </label>
+                        <select asp-for="RoleId" class="form-select rounded-3" asp-items="ViewBag.RoleId"></select>
+                        <div class="form-text small text-muted mt-1">
+                            Chọn vai trò truy cập tương ứng trên hệ thống ReCar.
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="IsActive" class="form-label fw-semibold small text-dark">Trạng thái tài khoản</label>
+                        <select asp-for="IsActive" class="form-select rounded-3">
+                            <option value="true" selected="@(Model.IsActive)">Đang hoạt động (Khả dụng)</option>
+                            <option value="false" selected="@(!Model.IsActive)">Đã khóa (Tạm ngưng)</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-1">
+                        <label asp-for="Password" class="form-label fw-semibold small text-dark">Đặt lại mật khẩu mới</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light text-secondary border-end-0 rounded-start-3">
+                                <i class="bi bi-key"></i>
+                            </span>
+                            <input type="password" asp-for="Password" id="editUserPwd" class="form-control border-start-0 border-end-0" placeholder="Để trống nếu giữ mật khẩu cũ" value="" />
+                            <button type="button" class="btn btn-light border border-start-0 rounded-end-3 text-muted" onclick="togglePwd('editUserPwd', this)">
+                                <i class="bi bi-eye"></i>
                             </button>
                         </div>
-                    </form>
+                        <span asp-validation-for="Password" class="text-danger small"></span>
+                        <div class="form-text small text-muted">Chỉ nhập khi cần cấp lại mật khẩu mới cho người dùng.</div>
+                    </div>
+                </div>
+
+                <div class="recar-panel p-4 shadow-sm border rounded-4 bg-white">
+                    <button type="submit" class="btn btn-primary w-100 py-2.5 rounded-pill fw-bold shadow-sm mb-2" style="background-color: var(--recar-primary); border: none;">
+                        <i class="bi bi-check2-circle me-1"></i> Lưu thay đổi tài khoản
+                    </button>
+                    <a asp-action="Index" class="btn btn-light w-100 py-2 rounded-pill fw-semibold border text-secondary">
+                        Hủy bỏ & Quay lại
+                    </a>
                 </div>
             </div>
         </div>
-    </div>
+    </form>
 </div>
+
+<script>
+    function togglePwd(inputId, btn) {
+        const input = document.getElementById(inputId);
+        const icon = btn.querySelector('i');
+        if (!input) return;
+        if (input.type === 'password') {
+            input.type = 'text';
+            icon.className = 'bi bi-eye-slash';
+        } else {
+            input.type = 'password';
+            icon.className = 'bi bi-eye';
+        }
+    }
+</script>

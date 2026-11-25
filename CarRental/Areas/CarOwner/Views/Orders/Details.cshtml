@@ -41,11 +41,16 @@
         }
     }
 
-    string cccdFull = !string.IsNullOrEmpty(customer?.Idcard) ? customer.Idcard : "079201008921";
-    string cccdMasked = cccdFull.Length > 4 ? cccdFull.Substring(0, cccdFull.Length - 4) + "****" : cccdFull;
+    string cccdFull = customer?.Idcard?.Trim() ?? "";
+    string cccdMasked = string.IsNullOrEmpty(cccdFull)
+        ? "Chưa cập nhật"
+        : (cccdFull.Length > 4 ? cccdFull.Substring(0, cccdFull.Length - 4) + "****" : cccdFull);
 
-    string gplxFull = !string.IsNullOrEmpty(customer?.LicenseNumber) ? customer.LicenseNumber : "790158291042";
-    string gplxMasked = gplxFull.Length > 4 ? gplxFull.Substring(0, gplxFull.Length - 4) + "****" : gplxFull;
+    string gplxFull = customer?.LicenseNumber?.Trim() ?? "";
+    string gplxMasked = string.IsNullOrEmpty(gplxFull)
+        ? "Chưa cập nhật"
+        : (gplxFull.Length > 4 ? gplxFull.Substring(0, gplxFull.Length - 4) + "****" : gplxFull);
+    bool hasAnyIdentityNumber = !string.IsNullOrEmpty(cccdFull) || !string.IsNullOrEmpty(gplxFull);
 
     var handoverInspection = ViewBag.HandoverInspection as CarRental.Models.VehicleInspection;
     var returnInspection = ViewBag.ReturnInspection as CarRental.Models.VehicleInspection;
@@ -116,8 +121,9 @@
                         }
                         else
                         {
-                            <span class="status-badge-custom badge-status-other">
-                                <span class="dot"></span> @(Model.Status?.StatusDescription ?? "Đã đặt")
+                            var isUnpaidZp = Model.StatusId == 1 && CarRental.Utilities.Function.ParseZaloPayPending(Model.Notes).IsPendingPayment;
+                            <span class="status-badge-custom @(isUnpaidZp ? "badge-status-2" : "badge-status-other")">
+                                <span class="dot"></span> @(isUnpaidZp ? "Chưa thanh toán" : (Model.Status?.StatusDescription ?? "Đã đặt"))
                             </span>
                         }
                     </div>
@@ -128,8 +134,33 @@
                     </div>
 
                     <p class="text-muted small mb-3">
-                        @(car?.Seat ?? 5) chỗ · @(car?.Transmission ?? "Tự động") · @(car?.Fuel ?? "Xăng") · @(car?.Color ?? "Màu cơ bản")
+                        @{
+                            var orderDelivery = CarRental.Utilities.Function.ParseOrderDeliveryInfo(Model.Notes);
+                        }
+                        @(car?.Seat ?? 5) chỗ · @(car?.Transmission ?? "Tự động") · @(car?.Fuel ?? "Xăng") · @(car?.Color ?? "Màu cơ bản") · <strong>@orderDelivery.DriveMode</strong>
                     </p>
+
+                    <!-- Hình thức giao nhận xe -->
+                    <div class="d-inline-flex align-items-center gap-2 px-3 py-2 rounded-3 mb-3"
+                         style="background-color: @(orderDelivery.DeliveryMode == "Giao xe tận nơi" ? "#f0f9ff" : "#f8fafc"); border: 1px solid @(orderDelivery.DeliveryMode == "Giao xe tận nơi" ? "#bae6fd" : "#e2e8f0"); font-size: 0.82rem;">
+                        @if (orderDelivery.DeliveryMode == "Giao xe tận nơi")
+                        {
+                            <i class="bi bi-truck text-primary"></i>
+                            <span>
+                                <strong class="text-primary">Giao xe tận nơi</strong>
+                                @(orderDelivery.DeliveryFee > 0 ? $" (+{orderDelivery.DeliveryFee:N0} đ)" : " (Miễn phí)")
+                                — Địa chỉ khách: <strong class="text-dark">@(string.IsNullOrWhiteSpace(customer?.Address) ? "Xem trong ghi chú" : customer.Address)</strong>
+                            </span>
+                        }
+                        else
+                        {
+                            <i class="bi bi-shop text-secondary"></i>
+                            <span>
+                                <strong class="text-dark">Nhận tại địa chỉ xe</strong>
+                                — @(car?.Location ?? "Địa chỉ chủ xe")
+                            </span>
+                        }
+                    </div>
 
                     <!-- Khối Lịch trình nhận/trả xe 2 ô -->
                     <div class="row g-2 max-w-md pt-1 mb-4" style="max-width: 480px;">
@@ -216,13 +247,28 @@
                             <i data-lucide="phone" style="width: 16px; height: 16px;"></i>
                             <span>@(customer?.PhoneNumber ?? "0988.xxx.xxx")</span>
                         </a>
-                        <p class="text-muted d-flex align-items-center gap-2 mb-0" style="font-size: 0.875rem;">
-                            <i data-lucide="mail" style="width: 16px; height: 16px;"></i>
-                            <span>@(customer?.Email ?? "khachhang@recar.vn")</span>
+                        <p class="text-muted d-flex align-items-center gap-2 mb-2" style="font-size: 0.875rem;">
+                            <i data-lucide="mail" style="width: 16px; height: 16px; flex-shrink: 0;"></i>
+                            <span class="text-truncate">@(customer?.Email ?? "khachhang@recar.vn")</span>
+                        </p>
+                        <p class="text-muted d-flex align-items-start gap-2 mb-0" style="font-size: 0.85rem;">
+                            <i data-lucide="map-pin" style="width: 16px; height: 16px; flex-shrink: 0; margin-top: 2px;"></i>
+                            <span>@(string.IsNullOrWhiteSpace(customer?.Address) ? "Chưa cập nhật địa chỉ" : customer.Address)</span>
                         </p>
                     </div>
 
                     <!-- Khối CCCD & GPLX -->
+                    @{
+                        Func<string?, string> resolveLicenseUrl = (raw) =>
+                        {
+                            if (string.IsNullOrWhiteSpace(raw)) return "";
+                            var p = raw.Trim();
+                            if (p.StartsWith("http", StringComparison.OrdinalIgnoreCase) || p.StartsWith("/")) return p;
+                            return "/files/license/" + p;
+                        };
+                        string gplxFrontUrl = resolveLicenseUrl(customer?.LicenseImage);
+                        string gplxBackUrl = resolveLicenseUrl(customer?.LicenseBackImage);
+                    }
                     <div class="p-3 rounded-3" style="background-color: #f8fafc; border: 1px solid #e2e8f0; font-size: 0.84rem;">
                         <div class="d-flex justify-content-between align-items-center mb-1.5">
                             <span class="text-muted">CCCD:</span>
@@ -232,17 +278,58 @@
                             <span class="text-muted">GPLX:</span>
                             <span class="font-monospace fw-semibold text-dark" id="displayGplx">@gplxMasked</span>
                         </div>
-                        <button type="button" class="btn btn-link p-0 text-decoration-none d-inline-flex align-items-center gap-1" 
-                                style="color: #0284c7; font-size: 0.78rem;" onclick="toggleIdentityReveal()">
-                            <i data-lucide="eye" id="iconReveal" style="width: 14px; height: 14px;"></i>
-                            <span id="textReveal">Xem đầy đủ để đối chiếu khi bàn giao</span>
-                        </button>
+                        @if (hasAnyIdentityNumber)
+                        {
+                            <button type="button" class="btn btn-link p-0 text-decoration-none d-inline-flex align-items-center gap-1" 
+                                    style="color: #0284c7; font-size: 0.78rem;" onclick="toggleIdentityReveal()">
+                                <i data-lucide="eye" id="iconReveal" style="width: 14px; height: 14px;"></i>
+                                <span id="textReveal">Xem đầy đủ để đối chiếu khi bàn giao</span>
+                            </button>
+                        }
+
+                        <!-- Ảnh GPLX 2 mặt -->
+                        <div class="row g-2 mt-2 pt-2 border-top">
+                            <div class="col-6">
+                                <div class="text-muted mb-1" style="font-size: 0.72rem; font-weight: 600;">Mặt trước GPLX</div>
+                                @if (!string.IsNullOrEmpty(gplxFrontUrl))
+                                {
+                                    <div class="rounded-2 overflow-hidden border bg-white" style="height: 76px; cursor: pointer;"
+                                         onclick="previewLightbox('@gplxFrontUrl', 'Mặt trước GPLX — @Html.Raw(custName.Replace("'", "\\'"))')">
+                                        <img src="@gplxFrontUrl" alt="Mặt trước GPLX" class="w-100 h-100 object-fit-cover"
+                                             onerror="this.onerror=null; this.src='/files/KYC/@(customer?.LicenseImage)';" />
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="rounded-2 border bg-white d-flex align-items-center justify-content-center text-muted" style="height: 76px; font-size: 0.7rem;">
+                                        Chưa tải lên
+                                    </div>
+                                }
+                            </div>
+                            <div class="col-6">
+                                <div class="text-muted mb-1" style="font-size: 0.72rem; font-weight: 600;">Mặt sau GPLX</div>
+                                @if (!string.IsNullOrEmpty(gplxBackUrl))
+                                {
+                                    <div class="rounded-2 overflow-hidden border bg-white" style="height: 76px; cursor: pointer;"
+                                         onclick="previewLightbox('@gplxBackUrl', 'Mặt sau GPLX — @Html.Raw(custName.Replace("'", "\\'"))')">
+                                        <img src="@gplxBackUrl" alt="Mặt sau GPLX" class="w-100 h-100 object-fit-cover"
+                                             onerror="this.onerror=null; this.src='/files/KYC/@(customer?.LicenseBackImage)';" />
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="rounded-2 border bg-white d-flex align-items-center justify-content-center text-muted" style="height: 76px; font-size: 0.7rem;">
+                                        Chưa tải lên
+                                    </div>
+                                }
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Nút Chat trực tiếp với Khách thuê -->
                     <button type="button" class="btn btn-primary w-100 rounded-pill py-2 fw-semibold mt-3 d-flex align-items-center justify-content-center gap-2 shadow-xs" 
                             style="background: #0284c7; border-color: #0284c7; font-size: 0.85rem;"
-                            onclick="openChatBox('@custName', 'Chào bạn! Tôi là đối tác chủ xe ở đơn thuê xe #@Model.OrderId.', @(car?.CarId ?? 0), @(customer?.CustomerId ?? 0), '@(car?.CarName ?? "")')">
+                            onclick="openChatBox('@Html.Raw(custName.Replace("'", "\\'"))', 'Chào bạn! Tôi là đối tác chủ xe ở đơn thuê xe #@Model.OrderId.', @(car?.CarId ?? 0), @(customer?.CustomerId ?? 0), '@Html.Raw((car?.CarName ?? "").Replace("'", "\\'"))')">
                         <i class="bi bi-chat-dots-fill"></i>
                         <span>Chat với người thuê xe</span>
                     </button>
@@ -346,6 +433,13 @@
                             <span class="text-dark">Tổng tiền thuê (@days ngày)</span>
                             <span class="fw-bold text-dark">@totalRent.ToString("N0") đ</span>
                         </div>
+                        @if (orderDelivery.DeliveryFee > 0)
+                        {
+                            <div class="d-flex justify-content-between align-items-center mb-1.5">
+                                <span class="text-muted">Trong đó phí giao xe tận nơi</span>
+                                <span class="text-primary fw-semibold">+@orderDelivery.DeliveryFee.ToString("N0") đ</span>
+                            </div>
+                        }
                         <div class="d-flex justify-content-between align-items-center mb-1.5">
                             <span class="text-muted">@(isPaidFull ? "Đã thanh toán qua sàn (100%)" : $"Cọc {depositRate:0.#}% — sàn thu")</span>
                             <span class="text-dark fw-bold">@deposit.ToString("N0") đ</span>

@@ -260,22 +260,39 @@
                                             </div>
                                             <div>
                                                 @{
+                                                    var pendingZp = item.StatusId == 1 ? CarRental.Utilities.Function.ParseZaloPayPending(item.Notes) : (false, (DateTime?)null, (string?)null);
                                                     var badgeClass = "bg-warning-subtle text-warning";
-                                                    if (item.StatusId == 2) badgeClass = "bg-danger-subtle text-danger";
+                                                    var statusText = item.Status?.StatusDescription ?? "Đang xử lý";
+                                                    if (pendingZp.Item1)
+                                                    {
+                                                        badgeClass = "bg-danger-subtle text-danger";
+                                                        statusText = "Chưa thanh toán";
+                                                    }
+                                                    else if (item.StatusId == 2) badgeClass = "bg-danger-subtle text-danger";
                                                     else if (item.StatusId == 3) badgeClass = "bg-warning-subtle text-warning";
                                                     else if (item.StatusId == 4) badgeClass = "bg-primary-subtle text-primary";
                                                     else if (item.StatusId == 5) badgeClass = "bg-success-subtle text-success";
                                                     bool hasCheckIn = !string.IsNullOrEmpty(item.Notes) && item.Notes.Contains("[Check-in");
                                                 }
-                                                <div class="d-flex align-items-center gap-2">
+                                                <div class="d-flex align-items-center gap-2 flex-wrap">
+                                                    @if (pendingZp.Item1 && pendingZp.Item2.HasValue)
+                                                    {
+                                                        <span class="badge bg-warning-subtle text-dark border border-warning-subtle px-2 py-1 recar-pending-countdown"
+                                                              id="countdown-@item.OrderId"
+                                                              data-order-id="@item.OrderId"
+                                                              data-expire-ms="@(new DateTimeOffset(pendingZp.Item2.Value, TimeSpan.FromHours(7)).ToUnixTimeMilliseconds())"
+                                                              style="font-size: 11px;">
+                                                            <i class="bi bi-hourglass-split text-danger me-1"></i> Hết hạn sau: <strong class="countdown-clock">--:--</strong>
+                                                        </span>
+                                                    }
                                                     @if (hasCheckIn)
                                                     {
                                                         <span class="badge bg-light text-dark border px-2 py-1" style="font-size: 11px;" title="Đã có biên bản đối chiếu ODO">
                                                             <i class="bi bi-speedometer2 text-primary me-1"></i> Có ODO
                                                         </span>
                                                     }
-                                                    <span class="status-badge-custom @badgeClass">
-                                                        <i class="bi bi-dot fs-5"></i> @(item.Status?.StatusDescription ?? "Đang xử lý")
+                                                    <span class="status-badge-custom @badgeClass" id="status-badge-@item.OrderId">
+                                                        <i class="bi bi-dot fs-5"></i> @statusText
                                                     </span>
                                                 </div>
                                             </div>
@@ -294,7 +311,16 @@
                                                     </div>
                                                 </div>
                                             </div>
-                                            <div class="col-md-5 text-md-end">
+                                            <div class="col-md-5 text-md-end d-flex justify-content-md-end align-items-center gap-2 flex-wrap" id="actions-@item.OrderId">
+                                                @if (pendingZp.Item1 && !string.IsNullOrEmpty(pendingZp.Item3))
+                                                {
+                                                    <a href="@pendingZp.Item3" class="btn btn-warning text-dark rounded-3 px-3 py-2 fw-bold btn-sm shadow-sm btn-pay-now-@item.OrderId">
+                                                        <i class="bi bi-wallet2 me-1"></i> Thanh toán ngay
+                                                    </a>
+                                                    <button type="button" class="btn btn-outline-danger rounded-3 px-3 py-2 fw-semibold btn-sm btn-cancel-pending-@item.OrderId" onclick="cancelPendingOrder(@item.OrderId)">
+                                                        Hủy đơn
+                                                    </button>
+                                                }
                                                 <a asp-controller="Accounts" asp-action="OrderDetails" asp-route-id="@item.OrderId" class="btn btn-primary rounded-3 px-4 py-2 fw-semibold btn-sm shadow-sm">
                                                     <i class="bi bi-eye me-1"></i> Chi tiết & Hợp đồng
                                                 </a>
@@ -345,21 +371,48 @@
                                     <div class="form-text small text-muted">Dãy 12 số in trên GPLX chất liệu PET do Sở GTVT cấp</div>
                                 </div>
 
-                                <div class="p-3 bg-light rounded-3 border mb-4">
-                                    <label class="form-label fw-bold text-dark mb-2"><i class="bi bi-image me-1"></i> Tải lên ảnh chụp mặt trước GPLX</label>
-                                    <input type="file" id="imageInput" name="img" accept="image/*" class="form-control rounded-3 mb-3" />
-                                    <div id="display" class="text-center p-3 bg-white rounded border">
-                                        @if (!string.IsNullOrEmpty(Model.LicenseImage))
-                                        {
-                                            <img id="currentImage" src="~/files/license/@Model.LicenseImage" alt="Ảnh GPLX" class="img-fluid rounded-3" style="max-height: 250px;" />
-                                        }
-                                        else
-                                        {
-                                            <div id="noImageText" class="text-muted small py-3">
-                                                <i class="bi bi-card-image fs-2 d-block mb-1"></i>
-                                                Chưa có ảnh GPLX tải lên
+                                <div class="row g-3 mb-4">
+                                    <div class="col-md-6">
+                                        <div class="p-3 bg-light rounded-3 border h-100">
+                                            <label class="form-label fw-bold text-dark mb-2">
+                                                <i class="bi bi-card-heading text-primary me-1"></i> Ảnh chụp mặt trước GPLX <span class="text-danger">*</span>
+                                            </label>
+                                            <input type="file" id="imageInput" name="img" accept="image/*" class="form-control rounded-3 mb-3" />
+                                            <div id="display" class="text-center p-3 bg-white rounded border" style="min-height: 190px; display: flex; align-items: center; justify-content: center;">
+                                                @if (!string.IsNullOrEmpty(Model.LicenseImage))
+                                                {
+                                                    <img id="currentImage" src="~/files/license/@Model.LicenseImage" alt="Ảnh mặt trước GPLX" class="img-fluid rounded-3" style="max-height: 220px;" />
+                                                }
+                                                else
+                                                {
+                                                    <div id="noImageText" class="text-muted small py-3">
+                                                        <i class="bi bi-card-image fs-2 d-block mb-1"></i>
+                                                        Chưa có ảnh mặt trước GPLX
+                                                    </div>
+                                                }
                                             </div>
-                                        }
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="p-3 bg-light rounded-3 border h-100">
+                                            <label class="form-label fw-bold text-dark mb-2">
+                                                <i class="bi bi-card-text text-primary me-1"></i> Ảnh chụp mặt sau GPLX <span class="text-danger">*</span>
+                                            </label>
+                                            <input type="file" id="imageBackInput" name="imgBack" accept="image/*" class="form-control rounded-3 mb-3" />
+                                            <div id="displayBack" class="text-center p-3 bg-white rounded border" style="min-height: 190px; display: flex; align-items: center; justify-content: center;">
+                                                @if (!string.IsNullOrEmpty(Model.LicenseBackImage))
+                                                {
+                                                    <img id="currentBackImage" src="~/files/license/@Model.LicenseBackImage" alt="Ảnh mặt sau GPLX" class="img-fluid rounded-3" style="max-height: 220px;" />
+                                                }
+                                                else
+                                                {
+                                                    <div id="noBackImageText" class="text-muted small py-3">
+                                                        <i class="bi bi-card-image fs-2 d-block mb-1"></i>
+                                                        Chưa có ảnh mặt sau GPLX
+                                                    </div>
+                                                }
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -823,34 +876,50 @@
         setTimeout(checkAndActivateTabs, 150);
     });
 
-    // Image preview
-    document.getElementById('imageInput')?.addEventListener('change', function(e) {
-        const file = e.target.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const display = document.getElementById('display');
-                const noImageText = document.getElementById('noImageText');
-                if (noImageText) noImageText.remove();
-                
-                let img = document.getElementById('currentImage');
-                if (!img) {
-                    img = document.createElement('img');
-                    img.id = 'currentImage';
-                    img.className = 'img-fluid rounded-3';
-                    img.style.maxHeight = '250px';
-                    display.appendChild(img);
-                }
-                img.src = e.target.result;
-            };
-            reader.readAsDataURL(file);
-        }
-    });
+    // Image preview helper (mặt trước & mặt sau GPLX)
+    function setupLicensePreview(inputId, displayId, imgId, noTextId) {
+        document.getElementById(inputId)?.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(ev) {
+                    const display = document.getElementById(displayId);
+                    const noImageText = document.getElementById(noTextId);
+                    if (noImageText) noImageText.remove();
+
+                    let img = document.getElementById(imgId);
+                    if (!img) {
+                        img = document.createElement('img');
+                        img.id = imgId;
+                        img.className = 'img-fluid rounded-3';
+                        img.style.maxHeight = '220px';
+                        display.appendChild(img);
+                    }
+                    img.src = ev.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    }
+    setupLicensePreview('imageInput', 'display', 'currentImage', 'noImageText');
+    setupLicensePreview('imageBackInput', 'displayBack', 'currentBackImage', 'noBackImageText');
 
     // Submit form GPLX
     $(document).ready(function () {
         $("#licenseDetailsForm").submit(function (e) {
             e.preventDefault();
+
+            var hasFront = !!document.getElementById('currentImage') || (document.getElementById('imageInput')?.files?.length > 0);
+            var hasBack = !!document.getElementById('currentBackImage') || (document.getElementById('imageBackInput')?.files?.length > 0);
+            if (!hasFront) {
+                Swal.fire({ icon: 'warning', title: 'Thiếu ảnh mặt trước GPLX', text: 'Vui lòng tải lên ảnh chụp mặt trước Giấy phép lái xe.', confirmButtonColor: '#2563eb' });
+                return;
+            }
+            if (!hasBack) {
+                Swal.fire({ icon: 'warning', title: 'Thiếu ảnh mặt sau GPLX', text: 'Vui lòng tải lên ảnh chụp mặt sau Giấy phép lái xe.', confirmButtonColor: '#2563eb' });
+                return;
+            }
+
             var formData = new FormData(this);
             
             $.ajax({
@@ -1136,5 +1205,71 @@
             btn.textContent = 'Gửi yêu cầu rút tiền';
         }
     }
+
+    // Đếm ngược 1 phút thanh toán ZaloPay & tự động hủy khi hết hạn
+    (function () {
+        function markOrderCancelledUI(orderId, reasonText) {
+            const badge = document.getElementById('status-badge-' + orderId);
+            if (badge) {
+                badge.className = 'status-badge-custom bg-danger-subtle text-danger';
+                badge.innerHTML = '<i class="bi bi-dot fs-5"></i> ' + reasonText;
+            }
+            const cd = document.getElementById('countdown-' + orderId);
+            if (cd) cd.remove();
+            document.querySelectorAll('.btn-pay-now-' + orderId + ', .btn-cancel-pending-' + orderId).forEach(el => el.remove());
+        }
+
+        async function expireOrderOnServer(orderId, manual) {
+            try {
+                const res = await fetch('/Cart/ExpirePendingOrder/' + orderId + (manual ? '?manual=true' : ''), { method: 'POST' });
+                const data = await res.json();
+                if (data.success) {
+                    markOrderCancelledUI(orderId, manual ? 'Đã hủy' : 'Đã hủy (Quá hạn)');
+                }
+            } catch (e) { }
+        }
+
+        window.cancelPendingOrder = function (orderId) {
+            Swal.fire({
+                icon: 'question',
+                title: 'Hủy đơn chưa thanh toán?',
+                text: 'Đơn hàng sẽ được hủy và xe sẽ mở lại cho khách khác đặt.',
+                showCancelButton: true,
+                confirmButtonText: 'Đồng ý hủy',
+                cancelButtonText: 'Giữ lại',
+                confirmButtonColor: '#dc2626'
+            }).then(result => {
+                if (result.isConfirmed) {
+                    expireOrderOnServer(orderId, true);
+                }
+            });
+        };
+
+        const countdownEls = document.querySelectorAll('.recar-pending-countdown');
+        if (countdownEls.length > 0) {
+            const triggered = new Set();
+            const tick = () => {
+                const nowMs = Date.now();
+                countdownEls.forEach(el => {
+                    const orderId = el.getAttribute('data-order-id');
+                    const expireMs = parseInt(el.getAttribute('data-expire-ms') || '0', 10);
+                    const clockEl = el.querySelector('.countdown-clock');
+                    if (!orderId || !expireMs || !clockEl) return;
+
+                    const diffSec = Math.max(0, Math.floor((expireMs - nowMs) / 1000));
+                    const mm = String(Math.floor(diffSec / 60)).padStart(2, '0');
+                    const ss = String(diffSec % 60).padStart(2, '0');
+                    clockEl.textContent = mm + ':' + ss;
+
+                    if (diffSec <= 0 && !triggered.has(orderId)) {
+                        triggered.add(orderId);
+                        expireOrderOnServer(orderId, false);
+                    }
+                });
+            };
+            tick();
+            setInterval(tick, 1000);
+        }
+    })();
     </script>
 }

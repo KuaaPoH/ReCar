@@ -12,6 +12,8 @@ namespace CarRental.ViewModels
         public DateTime returnDate { get; set; }
         public string DriveMode { get; set; } = "Tự lái";
         public decimal DriverFee { get; set; } = 0;
-        public decimal PriceTotal => (Price * Quantity) + DriverFee;
+        public string DeliveryMode { get; set; } = "Nhận tại địa chỉ xe";
+        public decimal DeliveryFee { get; set; } = 0;
+        public decimal PriceTotal => (Price * Quantity) + DriverFee + DeliveryFee;
     }
 }

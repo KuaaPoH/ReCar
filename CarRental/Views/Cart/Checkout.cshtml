@@ -249,6 +249,12 @@
 @section scripts {
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
+        window.addEventListener('pageshow', function (event) {
+            if (event.persisted) {
+                window.location.reload();
+            }
+        });
+
         $(document).ready(function () {
             var totalAmt = @Model.Total;
             var depositAmt = @Model.Deposit;
@@ -360,6 +366,34 @@
                                     allowEscapeKey: false
                                 }).then((result) => {
                                     window.location.href = response.redirectUrl;
+                                });
+                            } else if (response.pendingZaloPay) {
+                                Swal.fire({
+                                    icon: 'info',
+                                    title: 'Đơn hàng đang chờ thanh toán',
+                                    text: response.message,
+                                    showCancelButton: true,
+                                    confirmButtonText: 'Tiếp tục thanh toán ZaloPay',
+                                    cancelButtonText: 'Xem đơn hàng của tôi',
+                                    confirmButtonColor: '#2563eb',
+                                    allowOutsideClick: false
+                                }).then((result) => {
+                                    if (result.isConfirmed && response.paymentUrl) {
+                                        window.location.href = response.paymentUrl;
+                                    } else {
+                                        window.location.href = response.ordersUrl || '/Accounts/Index?tab=orders';
+                                    }
+                                });
+                            } else if (response.emptyCart) {
+                                Swal.fire({
+                                    icon: 'warning',
+                                    title: 'Giỏ xe đã được xử lý',
+                                    text: response.message,
+                                    confirmButtonText: 'Kiểm tra đơn hàng',
+                                    confirmButtonColor: '#2563eb',
+                                    allowOutsideClick: false
+                                }).then(() => {
+                                    window.location.href = response.redirectUrl || '/Accounts/Index?tab=orders';
                                 });
                             } else {
                                 Swal.fire({

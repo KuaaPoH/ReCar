@@ -86,8 +86,9 @@
                             decimal feeRate = order.PlatformFeeRate ?? 10.00m;
                             decimal feeAmount = order.PlatformFee ?? Math.Round(total * (feeRate / 100m), 0);
 
-                            var statusName = order.Status?.StatusDescription ?? "Chờ xử lý";
-                            var badgeClass = order.StatusId switch
+                            var isUnpaidZp = order.StatusId == 1 && CarRental.Utilities.Function.ParseZaloPayPending(order.Notes).IsPendingPayment;
+                            var statusName = isUnpaidZp ? "Chưa thanh toán" : (order.Status?.StatusDescription ?? "Chờ xử lý");
+                            var badgeClass = isUnpaidZp ? "badge-danger" : order.StatusId switch
                             {
                                 1 => "badge-pending",
                                 2 => "badge-danger",
@@ -105,8 +106,25 @@
                                     <div class="d-flex align-items-center gap-2">
                                         <img src="@(car?.Image ?? "/images/cars/car-sedan.jpg")" alt="Car" class="rounded object-fit-cover" style="width: 44px; height: 32px;" />
                                         <div>
+                                            @{
+                                                var adminOrderDelivery = CarRental.Utilities.Function.ParseOrderDeliveryInfo(order.Notes);
+                                            }
                                             <div class="fw-bold small text-dark">@(car?.CarName ?? "Thuê xe ReCar")</div>
-                                            <div class="text-muted" style="font-size: 0.72rem;">@(car?.LicensePlate ?? "Đang cập nhật")</div>
+                                            <div class="text-muted" style="font-size: 0.72rem;">@(car?.LicensePlate ?? "Đang cập nhật") · @adminOrderDelivery.DriveMode</div>
+                                            <div class="mt-0.5">
+                                                @if (adminOrderDelivery.DeliveryMode == "Giao xe tận nơi")
+                                                {
+                                                    <span class="badge rounded-pill" style="background: #e0f2fe; color: #0369a1; font-size: 0.68rem;">
+                                                        <i class="bi bi-truck me-1"></i>Giao tận nơi@(adminOrderDelivery.DeliveryFee > 0 ? $" (+{adminOrderDelivery.DeliveryFee:N0} đ)" : "")
+                                                    </span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge rounded-pill" style="background: #f1f5f9; color: #475569; font-size: 0.68rem;">
+                                                        <i class="bi bi-shop me-1"></i>Tại địa chỉ xe
+                                                    </span>
+                                                }
+                                            </div>
                                         </div>
                                     </div>
                                 </td>

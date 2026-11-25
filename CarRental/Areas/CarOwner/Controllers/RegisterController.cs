@@ -51,7 +51,7 @@ namespace CarRental.Areas.CarOwner.Controllers
                 {
                     return RedirectToAction("Pending");
                 }
-                if (existingReg.Status == "Approved")
+                if (existingReg.Status == "Approved" && customer.RoleId == 3 && customer.IsActive)
                 {
                     return RedirectToAction("Index", "Home");
                 }
@@ -74,6 +74,7 @@ namespace CarRental.Areas.CarOwner.Controllers
                 IdCard = customer.Idcard ?? string.Empty,
                 LicenseNumber = customer.LicenseNumber ?? string.Empty,
                 ExistingLicenseImage = customer.LicenseImage,
+                ExistingLicenseBackImage = customer.LicenseBackImage,
                 BankName = customer.Bank ?? string.Empty,
                 AccountNumber = customer.AccountNumber ?? string.Empty,
                 AccountHolder = !string.IsNullOrEmpty(customer.CompanyName) ? customer.CompanyName : (!string.IsNullOrEmpty(customer.FullName) ? customer.FullName.ToUpper() : string.Empty)
@@ -99,6 +100,7 @@ namespace CarRental.Areas.CarOwner.Controllers
                 model.ExistingIdCardFrontImage = existingReg.IdCardFrontImage;
                 model.ExistingIdCardBackImage = existingReg.IdCardBackImage;
                 if (!string.IsNullOrEmpty(existingReg.LicenseImage)) model.ExistingLicenseImage = existingReg.LicenseImage;
+                if (!string.IsNullOrEmpty(existingReg.LicenseBackImage)) model.ExistingLicenseBackImage = existingReg.LicenseBackImage;
 
                 if (existingReg.Status == "Rejected")
                 {
@@ -150,7 +152,8 @@ namespace CarRental.Areas.CarOwner.Controllers
             // Xử lý upload ảnh (nếu có)
             string idCardFrontPath = model.ExistingIdCardFrontImage ?? string.Empty;
             string idCardBackPath = model.ExistingIdCardBackImage ?? string.Empty;
-            string licenseImagePath = model.ExistingLicenseImage ?? string.Empty;
+            string licenseImagePath = !string.IsNullOrEmpty(model.ExistingLicenseImage) ? model.ExistingLicenseImage : (customer.LicenseImage ?? string.Empty);
+            string licenseBackImagePath = !string.IsNullOrEmpty(model.ExistingLicenseBackImage) ? model.ExistingLicenseBackImage : (customer.LicenseBackImage ?? string.Empty);
 
             if (model.IdCardFrontFile != null && model.IdCardFrontFile.Length > 0)
             {
@@ -165,6 +168,32 @@ namespace CarRental.Areas.CarOwner.Controllers
             if (model.LicenseImageFile != null && model.LicenseImageFile.Length > 0)
             {
                 licenseImagePath = Function.UploadImage(model.LicenseImageFile, "KYC");
+            }
+
+            if (model.LicenseBackImageFile != null && model.LicenseBackImageFile.Length > 0)
+            {
+                licenseBackImagePath = Function.UploadImage(model.LicenseBackImageFile, "KYC");
+            }
+
+            // Bắt buộc đủ 2 mặt GPLX
+            if (string.IsNullOrWhiteSpace(licenseImagePath) || string.IsNullOrWhiteSpace(licenseBackImagePath))
+            {
+                if (string.IsNullOrWhiteSpace(licenseImagePath))
+                {
+                    ModelState.AddModelError("LicenseImageFile", "Vui lòng tải lên ảnh mặt trước Giấy phép lái xe.");
+                }
+                if (string.IsNullOrWhiteSpace(licenseBackImagePath))
+                {
+                    ModelState.AddModelError("LicenseBackImageFile", "Vui lòng tải lên ảnh mặt sau Giấy phép lái xe.");
+                }
+                model.ExistingLicenseImage = licenseImagePath;
+                model.ExistingLicenseBackImage = licenseBackImagePath;
+                ViewBag.Banks = await _context.Banks
+                    .Where(b => b.IsActive)
+                    .OrderBy(b => b.DisplayOrder)
+                    .ThenBy(b => b.ShortName)
+                    .ToListAsync();
+                return View(model);
             }
 
             // Kiểm tra xem đã có bản ghi cũ chưa để cập nhật hoặc tạo mới
@@ -196,6 +225,7 @@ namespace CarRental.Areas.CarOwner.Controllers
             registration.LicenseClass = model.LicenseClass?.Trim() ?? "B2";
             registration.LicenseExpiryDate = model.LicenseExpiryDate;
             registration.LicenseImage = licenseImagePath;
+            registration.LicenseBackImage = licenseBackImagePath;
             registration.BankName = model.BankName.Trim();
             registration.AccountNumber = model.AccountNumber.Trim();
             registration.AccountHolder = model.AccountHolder.Trim().ToUpper();
@@ -212,6 +242,10 @@ namespace CarRental.Areas.CarOwner.Controllers
             if (!string.IsNullOrEmpty(licenseImagePath))
             {
                 customer.LicenseImage = licenseImagePath;
+            }
+            if (!string.IsNullOrEmpty(licenseBackImagePath))
+            {
+                customer.LicenseBackImage = licenseBackImagePath;
             }
             customer.Bank = model.BankName.Trim();
             customer.AccountNumber = model.AccountNumber.Trim();

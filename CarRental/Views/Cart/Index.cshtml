@@ -63,11 +63,25 @@
                                                 {
                                                     <span class="badge bg-primary text-white"><i class="bi bi-car-front"></i> Tự lái</span>
                                                 }
+                                                @if (item.DeliveryMode == "Giao xe tận nơi")
+                                                {
+                                                    <span class="badge bg-info-subtle text-info border border-info-subtle"><i class="bi bi-truck"></i> Giao tận nơi</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-light text-secondary border"><i class="bi bi-shop"></i> Tại địa chỉ xe</span>
+                                                }
                                             </div>
                                             @if (item.DriverFee > 0)
                                             {
                                                 <div class="text-muted small mt-1" style="font-size: 0.78rem;">
                                                     Phí tài xế: <span class="fw-semibold text-primary">+@item.DriverFee.ToString("N0")đ</span> (@days ngày)
+                                                </div>
+                                            }
+                                            @if (item.DeliveryFee > 0)
+                                            {
+                                                <div class="text-muted small mt-1" style="font-size: 0.78rem;">
+                                                    Phí giao xe tận nơi: <span class="fw-semibold text-primary">+@item.DeliveryFee.ToString("N0")đ</span>
                                                 </div>
                                             }
                                         </td>
@@ -105,7 +119,7 @@
                     
                     <div class="d-flex justify-content-between py-2 border-bottom small">
                         <span class="text-muted">Tiền thuê xe:</span>
-                        <span class="fw-bold text-dark">@((total - Model.Sum(p => p.DriverFee)).ToString("N0"))đ</span>
+                        <span class="fw-bold text-dark">@((total - Model.Sum(p => p.DriverFee) - Model.Sum(p => p.DeliveryFee)).ToString("N0"))đ</span>
                     </div>
 
                     @if (Model.Any(p => p.DriverFee > 0))
@@ -113,6 +127,14 @@
                         <div class="d-flex justify-content-between py-2 border-bottom small">
                             <span class="text-muted">Phụ phí tài xế:</span>
                             <span class="fw-bold text-primary">+@Model.Sum(p => p.DriverFee).ToString("N0")đ</span>
+                        </div>
+                    }
+
+                    @if (Model.Any(p => p.DeliveryFee > 0))
+                    {
+                        <div class="d-flex justify-content-between py-2 border-bottom small">
+                            <span class="text-muted">Phí giao xe tận nơi:</span>
+                            <span class="fw-bold text-primary">+@Model.Sum(p => p.DeliveryFee).ToString("N0")đ</span>
                         </div>
                     }
 

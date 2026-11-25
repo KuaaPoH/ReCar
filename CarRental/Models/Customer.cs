@@ -40,6 +40,8 @@ public partial class Customer
 
     public string? LicenseImage { get; set; }
 
+    public string? LicenseBackImage { get; set; }
+
     public string? Idcard { get; set; }
 
     public string? PhoneNumber { get; set; }

@@ -52,6 +52,7 @@
     string cccdFrontUrl = ResolveDocUrl(Model?.IdCardFrontImage);
     string cccdBackUrl = ResolveDocUrl(Model?.IdCardBackImage);
     string licenseUrl = ResolveDocUrl(Model?.LicenseImage);
+    string licenseBackUrl = ResolveDocUrl(Model?.LicenseBackImage);
 }
 
 @Html.AntiForgeryToken()
@@ -219,17 +220,17 @@
                                 </div>
 
                                 <div class="col-6">
-                                    <div class="doc-slot-box" onclick="previewDocImage('@licenseUrl', 'Giấy phép lái xe (GPLX)')">
-                                        @if (!string.IsNullOrEmpty(licenseUrl))
+                                    <div class="doc-slot-box" onclick="previewDocImage('@licenseBackUrl', 'GPLX mặt sau')">
+                                        @if (!string.IsNullOrEmpty(licenseBackUrl))
                                         {
-                                            <img src="@licenseUrl" alt="GPLX" onerror="this.onerror=null; this.src='/images/cars/hero.jpg';" />
-                                            <span class="badge bg-primary bg-opacity-75 position-absolute bottom-0 start-0 m-1" style="font-size: 0.65rem;"><i class="bi bi-shield-check me-1"></i>Hồ sơ GPLX</span>
+                                            <img src="@licenseBackUrl" alt="GPLX mặt sau" onerror="this.onerror=null; this.src='/files/license/@(Model?.LicenseBackImage)';" />
+                                            <span class="badge bg-dark bg-opacity-75 position-absolute bottom-0 start-0 m-1" style="font-size: 0.65rem;">GPLX mặt sau</span>
                                         }
                                         else
                                         {
                                             <i data-lucide="file-check-2" class="text-primary mb-1" style="width: 22px; height: 22px;"></i>
-                                            <span class="fw-semibold text-dark" style="font-size: 0.76rem;">Hồ sơ GPLX</span>
-                                            <span class="text-muted" style="font-size: 0.68rem;">đã lưu trữ</span>
+                                            <span class="fw-semibold text-dark" style="font-size: 0.76rem;">GPLX mặt sau</span>
+                                            <span class="text-muted" style="font-size: 0.68rem;">chưa tải lên</span>
                                         }
                                     </div>
                                 </div>

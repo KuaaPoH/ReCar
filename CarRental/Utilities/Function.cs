@@ -1012,7 +1012,123 @@ namespace CarRental.Utilities
 
         }
 
+        /// <summary>
+        /// Trích xuất hình thức lái, hình thức giao nhận xe và phí giao xe từ ghi chú đơn hàng.
+        /// </summary>
+        public static (string DriveMode, string DeliveryMode, decimal DeliveryFee) ParseOrderDeliveryInfo(string? notes)
+        {
+            if (string.IsNullOrWhiteSpace(notes))
+                return ("Tự lái", "Nhận tại địa chỉ xe", 0m);
 
+            string driveMode = (notes.Contains("Có tài xế", StringComparison.OrdinalIgnoreCase) ||
+                                notes.Contains("Kèm tài xế", StringComparison.OrdinalIgnoreCase))
+                ? "Có tài xế"
+                : "Tự lái";
+
+            string deliveryMode = notes.Contains("Giao xe tận nơi", StringComparison.OrdinalIgnoreCase)
+                ? "Giao xe tận nơi"
+                : "Nhận tại địa chỉ xe";
+
+            decimal deliveryFee = 0m;
+            if (deliveryMode == "Giao xe tận nơi")
+            {
+                var m = System.Text.RegularExpressions.Regex.Match(
+                    notes,
+                    @"Phí giao xe:\s*([\d\.,]+)",
+                    System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                if (m.Success)
+                {
+                    var digits = m.Groups[1].Value.Replace(".", "").Replace(",", "");
+                    if (decimal.TryParse(digits, out var parsed))
+                    {
+                        deliveryFee = parsed;
+                    }
+                }
+            }
+
+            return (driveMode, deliveryMode, deliveryFee);
+        }
+
+        /// <summary>
+        /// Trích xuất thông tin đơn đang chờ thanh toán ZaloPay (hạn thanh toán & link thanh toán).
+        /// </summary>
+        public static (bool IsPendingPayment, DateTime? ExpireAt, string? PayUrl) ParseZaloPayPending(string? notes)
+        {
+            if (string.IsNullOrWhiteSpace(notes))
+                return (false, null, null);
+
+            var expMatch = System.Text.RegularExpressions.Regex.Match(
+                notes,
+                @"\[ZaloPayPending:(\d{14})\]",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+            if (!expMatch.Success)
+                return (false, null, null);
+
+            DateTime? expireAt = null;
+            if (DateTime.TryParseExact(expMatch.Groups[1].Value, "yyyyMMddHHmmss",
+                System.Globalization.CultureInfo.InvariantCulture,
+                System.Globalization.DateTimeStyles.None, out var parsedDt))
+            {
+                expireAt = parsedDt;
+            }
+
+            string? payUrl = null;
+            var urlMatch = System.Text.RegularExpressions.Regex.Match(
+                notes,
+                @"\[ZaloPayUrl:([^\]]+)\]",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            if (urlMatch.Success)
+            {
+                payUrl = urlMatch.Groups[1].Value.Trim();
+            }
+
+            return (true, expireAt, payUrl);
+        }
+
+        /// <summary>
+        /// Hủy các đơn hàng đang chờ thanh toán ZaloPay (StatusId == 1) đã quá hạn thanh toán và mở lại xe.
+        /// </summary>
+        public static int CancelExpiredPendingOrders(Models.DbRenalCarContext db)
+        {
+            var nowVn = NowVn;
+            var pendingOrders = db.CarRentalOrders
+                .Where(o => o.StatusId == 1 && o.Notes != null && o.Notes.Contains("[ZaloPayPending:"))
+                .ToList();
+
+            if (pendingOrders.Count == 0) return 0;
+
+            int cancelledCount = 0;
+            var carIdsToReactivate = new List<int>();
+
+            foreach (var ord in pendingOrders)
+            {
+                var info = ParseZaloPayPending(ord.Notes);
+                if (info.IsPendingPayment && info.ExpireAt.HasValue && nowVn >= info.ExpireAt.Value)
+                {
+                    ord.StatusId = 2;
+                    ord.Notes = (ord.Notes ?? "") + $" | [Hệ thống {nowVn:dd/MM/yyyy HH:mm}] Tự động hủy do quá hạn thanh toán 1 phút";
+                    var details = db.OrderDetails.Where(d => d.OrderId == ord.OrderId).Select(d => d.CarId).ToList();
+                    carIdsToReactivate.AddRange(details);
+                    cancelledCount++;
+                }
+            }
+
+            if (cancelledCount > 0)
+            {
+                if (carIdsToReactivate.Count > 0)
+                {
+                    var cars = db.Cars.Where(c => carIdsToReactivate.Contains(c.CarId)).ToList();
+                    foreach (var c in cars)
+                    {
+                        c.IsActive = true;
+                    }
+                }
+                db.SaveChanges();
+            }
+
+            return cancelledCount;
+        }
 
     }
 

@@ -61,9 +61,13 @@ namespace CarRental.ViewModels
         public DateTime? LicenseExpiryDate { get; set; }
 
         public string? ExistingLicenseImage { get; set; }
+        public string? ExistingLicenseBackImage { get; set; }
 
-        [Display(Name = "Ảnh chụp Giấy phép lái xe")]
+        [Display(Name = "Ảnh mặt trước Giấy phép lái xe")]
         public IFormFile? LicenseImageFile { get; set; }
+
+        [Display(Name = "Ảnh mặt sau Giấy phép lái xe")]
+        public IFormFile? LicenseBackImageFile { get; set; }
 
         // --- 2. Thông tin Tài khoản Ngân hàng (Payout Details) ---
         [Required(ErrorMessage = "Vui lòng chọn ngân hàng thụ hưởng")]

@@ -60,6 +60,7 @@
             <input type="hidden" asp-for="ExistingIdCardFrontImage" />
             <input type="hidden" asp-for="ExistingIdCardBackImage" />
             <input type="hidden" asp-for="ExistingLicenseImage" />
+            <input type="hidden" asp-for="ExistingLicenseBackImage" />
 
             <!-- Khối 1: Thông tin cá nhân & Liên hệ -->
             <div class="recar-reg-card">
@@ -166,16 +167,45 @@
                     </div>
                 </div>
 
+                @{
+                    Func<string?, string> resolveLicSrc = (raw) =>
+                    {
+                        if (string.IsNullOrWhiteSpace(raw)) return "";
+                        var p = raw.Trim();
+                        if (p.StartsWith("http", StringComparison.OrdinalIgnoreCase) || p.StartsWith("/")) return p;
+                        return "/files/license/" + p;
+                    };
+                    string licFrontSrc = resolveLicSrc(Model.ExistingLicenseImage);
+                    string licBackSrc = resolveLicSrc(Model.ExistingLicenseBackImage);
+                }
                 <div class="row g-3">
-                    <div class="col-12">
-                        <label class="recar-form-label">Ảnh chụp Giấy phép lái xe (mặt trước có ảnh & thông tin)</label>
-                        <div class="recar-upload-box" onclick="document.getElementById('inputLicense').click()">
+                    <div class="col-md-6">
+                        <label class="recar-form-label">Ảnh mặt trước GPLX *</label>
+                        <div class="recar-upload-box h-100" onclick="document.getElementById('inputLicense').click()">
                             <i class="bi bi-person-vcard fs-3 text-muted"></i>
-                            <div class="small fw-semibold text-primary mt-1">Bấm để tải ảnh Giấy phép lái xe</div>
-                            <div class="text-muted" style="font-size: 11px;">Rõ số hiệu, họ tên, hạng bằng và ngày hết hạn</div>
+                            <div class="small fw-semibold text-primary mt-1">Bấm để tải ảnh mặt trước GPLX</div>
+                            <div class="text-muted" style="font-size: 11px;">Rõ số hiệu, ảnh, họ tên, hạng bằng</div>
                             <input type="file" asp-for="LicenseImageFile" id="inputLicense" accept="image/*" class="d-none" onchange="previewImg(this, 'previewLicense')" />
-                            <img id="previewLicense" src="@(!string.IsNullOrEmpty(Model.ExistingLicenseImage) ? "/files/KYC/" + Model.ExistingLicenseImage : "")" class="recar-upload-preview @(string.IsNullOrEmpty(Model.ExistingLicenseImage) ? "d-none" : "")" alt="GPLX" />
+                            <img id="previewLicense"
+                                 src="@licFrontSrc"
+                                 onerror="if(this.src && !this.src.includes('/files/KYC/') && '@(Model.ExistingLicenseImage ?? "")') { this.src='/files/KYC/@(Model.ExistingLicenseImage)'; } else { this.classList.add('d-none'); }"
+                                 class="recar-upload-preview @(string.IsNullOrEmpty(licFrontSrc) ? "d-none" : "")" alt="Mặt trước GPLX" />
                         </div>
+                        <span asp-validation-for="LicenseImageFile" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="recar-form-label">Ảnh mặt sau GPLX *</label>
+                        <div class="recar-upload-box h-100" onclick="document.getElementById('inputLicenseBack').click()">
+                            <i class="bi bi-card-text fs-3 text-muted"></i>
+                            <div class="small fw-semibold text-primary mt-1">Bấm để tải ảnh mặt sau GPLX</div>
+                            <div class="text-muted" style="font-size: 11px;">Rõ các hạng xe được phép điều khiển & ngày cấp</div>
+                            <input type="file" asp-for="LicenseBackImageFile" id="inputLicenseBack" accept="image/*" class="d-none" onchange="previewImg(this, 'previewLicenseBack')" />
+                            <img id="previewLicenseBack"
+                                 src="@licBackSrc"
+                                 onerror="if(this.src && !this.src.includes('/files/KYC/') && '@(Model.ExistingLicenseBackImage ?? "")') { this.src='/files/KYC/@(Model.ExistingLicenseBackImage)'; } else { this.classList.add('d-none'); }"
+                                 class="recar-upload-preview @(string.IsNullOrEmpty(licBackSrc) ? "d-none" : "")" alt="Mặt sau GPLX" />
+                        </div>
+                        <span asp-validation-for="LicenseBackImageFile" class="text-danger small"></span>
                     </div>
                 </div>
             </div>
@@ -186,12 +216,7 @@
                     <i class="bi bi-bank2"></i>
                     <span>3. Thông tin Tài khoản Ngân hàng nhận Doanh thu (Payout)</span>
                 </div>
-                <div class="p-3 bg-light rounded-3 mb-3 border">
-                    <div class="d-flex align-items-center gap-2 text-dark small">
-                        <i class="bi bi-info-circle-fill text-primary"></i>
-                        <span>Sàn ReCar sẽ thực hiện đối soát và tự động chuyển <strong>90% tiền thuê xe</strong> trực tiếp vào số tài khoản này sau khi chuyến đi hoàn tất.</span>
-                    </div>
-                </div>
+               
 
                 <div class="row g-3">
                     <div class="col-md-4">
@@ -283,4 +308,13 @@
             reader.readAsDataURL(input.files[0]);
         }
     }
+
+    document.querySelector('form[method="post"]')?.addEventListener('submit', function(e) {
+        var hasFront = (document.getElementById('inputLicense')?.files?.length > 0) || !document.getElementById('previewLicense')?.classList.contains('d-none');
+        var hasBack = (document.getElementById('inputLicenseBack')?.files?.length > 0) || !document.getElementById('previewLicenseBack')?.classList.contains('d-none');
+        if (!hasFront || !hasBack) {
+            e.preventDefault();
+            alert(!hasFront ? 'Vui lòng tải lên ảnh mặt trước Giấy phép lái xe (GPLX).' : 'Vui lòng tải lên ảnh mặt sau Giấy phép lái xe (GPLX).');
+        }
+    });
 </script>

@@ -115,12 +115,21 @@
                             <td>
                                 <div class="fw-semibold font-monospace text-dark">@item.LicenseNumber</div>
                                 <span class="badge bg-info-subtle text-info border border-info-subtle" style="font-size: 11px;">Hạng: @item.LicenseClass</span>
-                                @if (!string.IsNullOrEmpty(item.LicenseImage))
+                                @if (!string.IsNullOrEmpty(item.LicenseImage) || !string.IsNullOrEmpty(item.LicenseBackImage))
                                 {
-                                    <div class="mt-1">
-                                        <button type="button" class="btn btn-outline-info btn-sm py-0 px-1.5" style="font-size: 11px;" onclick="viewImageModal('/files/KYC/@item.LicenseImage', 'Ảnh GPLX: @item.FullName')">
-                                            <i class="bi bi-person-vcard"></i> Xem ảnh GPLX
-                                        </button>
+                                    <div class="d-flex flex-wrap gap-1 mt-1">
+                                        @if (!string.IsNullOrEmpty(item.LicenseImage))
+                                        {
+                                            <button type="button" class="btn btn-outline-info btn-sm py-0 px-1.5" style="font-size: 11px;" onclick="viewImageModal('/files/KYC/@item.LicenseImage', 'Mặt trước GPLX: @item.FullName')">
+                                                <i class="bi bi-person-vcard"></i> GPLX trước
+                                            </button>
+                                        }
+                                        @if (!string.IsNullOrEmpty(item.LicenseBackImage))
+                                        {
+                                            <button type="button" class="btn btn-outline-info btn-sm py-0 px-1.5" style="font-size: 11px;" onclick="viewImageModal('/files/KYC/@item.LicenseBackImage', 'Mặt sau GPLX: @item.FullName')">
+                                                <i class="bi bi-card-text"></i> GPLX sau
+                                            </button>
+                                        }
                                     </div>
                                 }
                             </td>
@@ -228,7 +237,22 @@
     }
 
     function viewImageModal(src, title) {
-        document.getElementById('imageModalSrc').src = src;
+        const imgEl = document.getElementById('imageModalSrc');
+        imgEl.dataset.triedAlt = '';
+        imgEl.onerror = function () {
+            if (!this.dataset.triedAlt) {
+                this.dataset.triedAlt = '1';
+                if (this.src.includes('/files/KYC/')) {
+                    this.src = this.src.replace('/files/KYC/', '/files/license/');
+                    return;
+                } else if (this.src.includes('/files/license/')) {
+                    this.src = this.src.replace('/files/license/', '/files/KYC/');
+                    return;
+                }
+            }
+            this.onerror = null;
+        };
+        imgEl.src = src;
         document.getElementById('imageModalTitle').innerText = title;
         new bootstrap.Modal(document.getElementById('imageModal')).show();
     }

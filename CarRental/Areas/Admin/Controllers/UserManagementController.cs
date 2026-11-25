@@ -76,8 +76,27 @@ namespace CarRental.Areas.Admin.Controllers
                 return RedirectToAction("Index", "Login");
             }
 
-            ViewBag.RoleId = new SelectList(_context.Roles.ToList(), "RoleId", "RoleName", 2);
+            ViewBag.RoleId = BuildRoleSelectList(2);
             return View();
+        }
+
+        private SelectList BuildRoleSelectList(int? selectedRoleId)
+        {
+            var items = _context.Roles
+                .OrderBy(r => r.RoleId)
+                .ToList()
+                .Select(r => new
+                {
+                    r.RoleId,
+                    RoleName = r.RoleId switch
+                    {
+                        1 => "Quản trị viên (Admin)",
+                        2 => "Khách hàng (Người thuê xe)",
+                        3 => "Chủ xe đối tác (Host)",
+                        _ => r.RoleName
+                    }
+                });
+            return new SelectList(items, "RoleId", "RoleName", selectedRoleId);
         }
 
         // POST: Admin/UserManagement/Create
@@ -115,6 +134,7 @@ namespace CarRental.Areas.Admin.Controllers
                 customer.IsActive = true;
                 customer.Name = string.IsNullOrWhiteSpace(customer.Name) ? customer.FullName : customer.Name;
                 customer.FullName = string.IsNullOrWhiteSpace(customer.FullName) ? customer.Name : customer.FullName;
+                customer.Username = string.IsNullOrWhiteSpace(customer.Username) ? customer.Email : customer.Username;
                 customer.LastLogin = Function.NowVn.ToString("yyyy-MM-dd HH:mm:ss");
 
                 _context.Customers.Add(customer);
@@ -124,7 +144,7 @@ namespace CarRental.Areas.Admin.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
-            ViewBag.RoleId = new SelectList(_context.Roles.ToList(), "RoleId", "RoleName", customer.RoleId);
+            ViewBag.RoleId = BuildRoleSelectList(customer.RoleId);
             return View(customer);
         }
 
@@ -210,7 +230,7 @@ namespace CarRental.Areas.Admin.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
-            ViewBag.Roles = new SelectList(_context.Roles, "RoleId", "RoleName", customer.RoleId);
+            ViewBag.Roles = BuildRoleSelectList(customer.RoleId);
             ViewBag.RoleId = ViewBag.Roles;
             return View(customer);
         }
@@ -225,19 +245,38 @@ namespace CarRental.Areas.Admin.Controllers
                 return NotFound();
             }
 
-            // Không cho phép sửa Admin
-            if (customer.RoleId == 1)
-            {
-                TempData["ErrorMessage"] = "Không thể sửa tài khoản Admin.";
-                return RedirectToAction(nameof(Index));
-            }
-
             try
             {
                 var existingCustomer = await _context.Customers.FirstOrDefaultAsync(a => a.CustomerId == id);
                 if (existingCustomer == null)
                 {
                     return NotFound();
+                }
+
+                // Không cho phép sửa tài khoản Admin
+                if (existingCustomer.RoleId == 1)
+                {
+                    TempData["ErrorMessage"] = "Không thể sửa tài khoản Admin.";
+                    return RedirectToAction(nameof(Index));
+                }
+
+                // Kiểm tra trùng Email / Username với tài khoản khác
+                if (!string.IsNullOrWhiteSpace(customer.Email) &&
+                    await _context.Customers.AnyAsync(c => c.CustomerId != id && c.Email == customer.Email))
+                {
+                    ModelState.AddModelError("Email", "Email này đã được sử dụng bởi một tài khoản khác.");
+                    ViewBag.Roles = BuildRoleSelectList(customer.RoleId);
+                    ViewBag.RoleId = ViewBag.Roles;
+                    return View(customer);
+                }
+
+                if (!string.IsNullOrWhiteSpace(customer.Username) &&
+                    await _context.Customers.AnyAsync(c => c.CustomerId != id && c.Username == customer.Username))
+                {
+                    ModelState.AddModelError("Username", "Tên đăng nhập này đã tồn tại.");
+                    ViewBag.Roles = BuildRoleSelectList(customer.RoleId);
+                    ViewBag.RoleId = ViewBag.Roles;
+                    return View(customer);
                 }
 
                 // Nếu password mới được nhập và khác với password cũ thì mã hóa
@@ -247,13 +286,36 @@ namespace CarRental.Areas.Admin.Controllers
                 }
 
                 existingCustomer.FullName = customer.FullName;
-                existingCustomer.Username = customer.Username;
+                existingCustomer.Name = string.IsNullOrWhiteSpace(customer.FullName) ? existingCustomer.Name : customer.FullName;
+                if (!string.IsNullOrWhiteSpace(customer.Username))
+                {
+                    existingCustomer.Username = customer.Username;
+                }
                 existingCustomer.PhoneNumber = customer.PhoneNumber ?? customer.Phone;
                 existingCustomer.Email = customer.Email;
+                existingCustomer.Idcard = customer.Idcard;
+                existingCustomer.Address = customer.Address;
+                int oldRoleId = existingCustomer.RoleId;
                 existingCustomer.RoleId = customer.RoleId;
                 existingCustomer.IsActive = customer.IsActive;
 
+                // Nếu Admin hạ quyền từ Chủ xe (Role 3) xuống Khách hàng (Role != 3),
+                // cập nhật hồ sơ CarOwnerRegistration cũ để tránh xung đột/vòng lặp redirect khi đăng ký lại.
+                if (oldRoleId == 3 && customer.RoleId != 3)
+                {
+                    var approvedRegs = await _context.CarOwnerRegistrations
+                        .Where(r => (r.CustomerId == existingCustomer.CustomerId || (!string.IsNullOrEmpty(existingCustomer.Email) && r.Email == existingCustomer.Email))
+                                    && r.Status == "Approved")
+                        .ToListAsync();
+                    foreach (var reg in approvedRegs)
+                    {
+                        reg.Status = "Revoked";
+                        reg.RejectReason = "Quản trị viên đã điều chỉnh vai trò tài khoản về Khách hàng.";
+                    }
+                }
+
                 await _context.SaveChangesAsync();
+                TempData["SuccessMessage"] = $"Đã cập nhật tài khoản {existingCustomer.FullName ?? existingCustomer.Username} thành công!";
                 return RedirectToAction(nameof(Index));
             }
             catch (DbUpdateConcurrencyException)
@@ -268,7 +330,7 @@ namespace CarRental.Areas.Admin.Controllers
                 }
             }
 
-            ViewBag.Roles = new SelectList(_context.Roles, "RoleId", "RoleName", customer.RoleId);
+            ViewBag.Roles = BuildRoleSelectList(customer.RoleId);
             ViewBag.RoleId = ViewBag.Roles;
             return View(customer);
         }

@@ -33,6 +33,7 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
 
 builder.Services.AddHttpClient<IZaloPayService, ZaloPayService>();
 builder.Services.AddScoped<CarRental.Services.INotificationService, CarRental.Services.NotificationService>();
+builder.Services.AddHostedService<PendingOrderExpiryService>();
 builder.Services.AddSignalR();
 var app = builder.Build();
 
@@ -668,6 +669,20 @@ static void EnsureAllTablesExist(DbRenalCarContext context, ILogger logger)
                 if (colCount == 0)
                 {
                     context.Database.ExecuteSqlRaw("ALTER TABLE `customers` ADD COLUMN `Balance` DECIMAL(18, 2) NOT NULL DEFAULT 0.00;");
+                }
+
+                cmd.CommandText = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'customers' AND COLUMN_NAME = 'LicenseBackImage';";
+                var backColCount = Convert.ToInt32(cmd.ExecuteScalar());
+                if (backColCount == 0)
+                {
+                    context.Database.ExecuteSqlRaw("ALTER TABLE `customers` ADD COLUMN `LicenseBackImage` VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL;");
+                }
+
+                cmd.CommandText = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'carowner_registrations' AND COLUMN_NAME = 'LicenseBackImage';";
+                var regBackColCount = Convert.ToInt32(cmd.ExecuteScalar());
+                if (regBackColCount == 0)
+                {
+                    context.Database.ExecuteSqlRaw("ALTER TABLE `carowner_registrations` ADD COLUMN `LicenseBackImage` VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL;");
                 }
             }
 

@@ -19,15 +19,18 @@ namespace CarRental.Controllers
         
         public IActionResult Index()
         {
+            var nowVn = CarRental.Utilities.Function.NowVn;
             
             ViewBag.productFeatured = _context.Cars
                 .Where(i => i.IsActive && i.CarStatus == "Sẵn sàng"
+                    && !_context.CarCalendarBlocks.Any(b => b.CarId == i.CarId && b.StartTime <= nowVn && b.EndTime >= nowVn)
                     && (i.Badge == "Nổi bật" || (i.IsSale && i.SalePrice.HasValue && i.SalePrice > 0 && i.SalePrice < i.Price)))
                 .OrderBy(i => i.CarId)
                 .ToList();
 
             ViewBag.productDealofDay = _context.Cars
-                .Where(i => i.IsSale && i.IsActive && i.CarStatus == "Sẵn sàng")
+                .Where(i => i.IsSale && i.IsActive && i.CarStatus == "Sẵn sàng"
+                    && !_context.CarCalendarBlocks.Any(b => b.CarId == i.CarId && b.StartTime <= nowVn && b.EndTime >= nowVn))
                 .OrderByDescending(i => i.CarId)
                 .ToList();
             ViewBag.Blog = _context.Blogs.Where(i => i.IsActive == true).ToList();

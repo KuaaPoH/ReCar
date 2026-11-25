@@ -425,6 +425,7 @@ namespace CarRental.Areas.CarOwner.Controllers
                         detail.Car.CarStatus = "Sẵn sàng";
                         detail.Car.IsActive = true;
                         detail.Car.Trips = (detail.Car.Trips ?? 0) + 1;
+                        ReleaseCarCalendarBlocks(detail.Car.CarId, detail.PickupDate, detail.ReturnDate);
                     }
                 }
 
@@ -666,7 +667,11 @@ namespace CarRental.Areas.CarOwner.Controllers
                         {
                             car.CarStatus = "Sẵn sàng";
                             car.IsActive = true;
-                            if (o.StatusId == 5) car.Trips = (car.Trips ?? 0) + 1;
+                            if (o.StatusId == 5)
+                            {
+                                car.Trips = (car.Trips ?? 0) + 1;
+                                ReleaseCarCalendarBlocks(car.CarId, detail.PickupDate, detail.ReturnDate);
+                            }
                             _context.Cars.Update(car);
                         }
                     }
@@ -706,6 +711,21 @@ namespace CarRental.Areas.CarOwner.Controllers
             ViewBag.OrderStatus = Odstatus;
 
             return View(o);
+        }
+
+        private void ReleaseCarCalendarBlocks(int carId, DateTime? pickupDate, DateTime? returnDate)
+        {
+            var nowVn = Function.NowVn;
+            var blocksToRemove = _context.CarCalendarBlocks
+                .Where(b => b.CarId == carId &&
+                    ((b.StartTime <= nowVn && b.EndTime >= nowVn) ||
+                     (pickupDate.HasValue && returnDate.HasValue && b.StartTime < returnDate.Value && b.EndTime > pickupDate.Value)))
+                .ToList();
+
+            if (blocksToRemove.Count > 0)
+            {
+                _context.CarCalendarBlocks.RemoveRange(blocksToRemove);
+            }
         }
     }
 }

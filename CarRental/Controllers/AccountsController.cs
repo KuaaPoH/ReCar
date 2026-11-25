@@ -41,6 +41,9 @@ namespace CarRental.Controllers
             {
                 Function.SetAvatar(HttpContext.Session, customer.Avartar);
             }
+            // Tự động hủy các đơn chờ thanh toán ZaloPay đã quá hạn 1 phút
+            Function.CancelExpiredPendingOrders(_context);
+
             // Lấy danh sách đơn hàng, đơn mới nhất hiển thị trước
             ViewBag.Order = _context.CarRentalOrders
                 .Include(i => i.Status)
@@ -344,7 +347,7 @@ namespace CarRental.Controllers
         }
         [HttpPost]
         [IgnoreAntiforgeryToken] // Bỏ qua anti-forgery token vì dùng AJAX
-        public IActionResult licenseDetails(Customer c, IFormFile? img)
+        public IActionResult licenseDetails(Customer c, IFormFile? img, IFormFile? imgBack)
         {
             if (!Function.IsLogin(HttpContext.Session))
             {
@@ -375,19 +378,34 @@ namespace CarRental.Controllers
             customer.DateofBirth = c.DateofBirth;
             customer.LicenseNumber = c.LicenseNumber;
 
-            // Xử lý ảnh đại diện
+            if ((img == null || img.Length == 0) && string.IsNullOrWhiteSpace(customer.LicenseImage))
+            {
+                return Json(new { success = false, message = "Vui lòng tải lên ảnh chụp mặt trước GPLX." });
+            }
+
+            if ((imgBack == null || imgBack.Length == 0) && string.IsNullOrWhiteSpace(customer.LicenseBackImage))
+            {
+                return Json(new { success = false, message = "Vui lòng tải lên ảnh chụp mặt sau GPLX." });
+            }
+
+            // Xử lý ảnh mặt trước GPLX
             if (img != null && img.Length > 0)
             {
-                // Gọi hàm UploadImage để lưu ảnh và lấy tên file
-                var uploadedImagePath = Function.UploadImage(img, "license");
-                if (!string.IsNullOrEmpty(uploadedImagePath))
+                var uploadedFront = Function.UploadImage(img, "license");
+                if (!string.IsNullOrEmpty(uploadedFront))
                 {
-                    customer.LicenseImage = uploadedImagePath;
+                    customer.LicenseImage = uploadedFront;
                 }
             }
-            else
+
+            // Xử lý ảnh mặt sau GPLX
+            if (imgBack != null && imgBack.Length > 0)
             {
-                customer.LicenseImage = customer.LicenseImage;
+                var uploadedBack = Function.UploadImage(imgBack, "license");
+                if (!string.IsNullOrEmpty(uploadedBack))
+                {
+                    customer.LicenseBackImage = uploadedBack;
+                }
             }
 
             _context.SaveChanges();

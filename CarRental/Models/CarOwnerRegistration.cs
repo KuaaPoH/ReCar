@@ -57,6 +57,9 @@ namespace CarRental.Models
         [StringLength(255)]
         public string? LicenseImage { get; set; }
 
+        [StringLength(255)]
+        public string? LicenseBackImage { get; set; }
+
         // --- 2. Tài khoản Ngân hàng (Payout Details) ---
         [Required(ErrorMessage = "Vui lòng chọn ngân hàng thụ hưởng")]
         [StringLength(100)]

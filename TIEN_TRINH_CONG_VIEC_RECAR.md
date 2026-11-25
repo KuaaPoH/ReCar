@@ -2334,3 +2334,44 @@ Nhằm giúp đồ án tạo được ấn tượng mạnh mẽ với hội đ�
 ### 61.3. Kiểm Thử Hệ Thống
 - Dự án biên dịch thành công: **`Build succeeded. 0 Error(s)`**.
 - Kiểm tra tự động với tài khoản khách hàng `trankenn04`: Trang trả về mã **HTTP 200 OK**, `HasHostSidebar: False`, `HasClientHeader: True`, các ảnh tài liệu tải chính xác với mã **HTTP 200 OK**.
+
+---
+
+## 62. CẬP NHẬT TIẾN TRÌNH PHIÊN LÀM VIỆC (NGÀY 26/11/2026)
+
+### 62.1. Sửa Lỗi Font/Encoding Tiếng Việt Trong Luồng Thanh Toán (`CartController.cs`)
+- Khắc phục các chuỗi thông báo tiếng Việt bị lỗi dấu `?` trong [CartController.cs](file:///d:/CarRental_TTCN/CarRental/Controllers/CartController.cs) khi kiểm tra thiếu địa chỉ nhận xe (`"Vui lòng cập nhật địa chỉ nhận xe."`), thiếu GPLX, thông báo xe bị khóa lịch, kết quả đặt xe và thông báo đơn mới gửi chủ xe.
+
+### 62.2. Bổ Sung Tùy Chọn Giao Xe Tận Nơi Toàn Hệ Thống
+1. **Phân hệ Khách hàng ([Product/Details.cshtml](file:///d:/CarRental_TTCN/CarRental/Views/Product/Details.cshtml), [CartItemsVM.cs](file:///d:/CarRental_TTCN/CarRental/ViewModels/CartItemsVM.cs), [CartController.cs](file:///d:/CarRental_TTCN/CarRental/Controllers/CartController.cs), [Cart/Index.cshtml](file:///d:/CarRental_TTCN/CarRental/Views/Cart/Index.cshtml)):**
+   - Thêm lựa chọn **Hình thức nhận xe** (*Tại địa chỉ xe* / *Giao tận nơi*) ngay trong bảng đặt xe; tự động cộng `DeliveryFee` (theo `CarPolicy`) vào tổng tiền dự kiến, tiền đặt cọc và tiền còn lại theo thời gian thực.
+   - Đồng bộ lưu `DeliveryMode`, `DeliveryFee` vào giỏ hàng (`CartItemsVM`) và ghi nhận vào `Notes` của đơn hàng khi tạo đơn.
+   - Hiển thị badge hình thức nhận xe và phí giao xe trong Giỏ xe (`/Cart`).
+2. **Phân hệ Chủ xe & Admin ([Function.cs](file:///d:/CarRental_TTCN/CarRental/Utilities/Function.cs), [CarOwner/Orders/Index.cshtml](file:///d:/CarRental_TTCN/CarRental/Areas/CarOwner/Views/Orders/Index.cshtml), [CarOwner/Orders/Details.cshtml](file:///d:/CarRental_TTCN/CarRental/Areas/CarOwner/Views/Orders/Details.cshtml), [Admin/Orders/Index.cshtml](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Views/Orders/Index.cshtml), [Admin/Orders/Edit.cshtml](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Views/Orders/Edit.cshtml)):**
+   - Thêm helper `Function.ParseOrderDeliveryInfo(notes)` dùng chung để bóc tách `DriveMode`, `DeliveryMode`, `DeliveryFee`.
+   - Hiển thị rõ hình thức thuê, hình thức giao nhận xe (kèm địa chỉ khách hàng nếu giao tận nơi) và bóc tách phí giao xe trong danh sách và chi tiết đơn hàng ở cả Chủ xe và Admin.
+
+### 62.3. Chuẩn Hóa GPLX 2 Mặt (Khách Hàng, Đăng Ký Chủ Xe & Admin)
+1. **Cơ sở dữ liệu & Model ([Customer.cs](file:///d:/CarRental_TTCN/CarRental/Models/Customer.cs), [CarOwnerRegistration.cs](file:///d:/CarRental_TTCN/CarRental/Models/CarOwnerRegistration.cs), [Program.cs](file:///d:/CarRental_TTCN/CarRental/Program.cs)):**
+   - Bổ sung `LicenseBackImage` cho cả `Customer` và `CarOwnerRegistration` (tự động `ALTER TABLE` khi khởi động).
+2. **Tài khoản Khách hàng ([AccountsController.cs](file:///d:/CarRental_TTCN/CarRental/Controllers/AccountsController.cs), [Views/Accounts/Index.cshtml](file:///d:/CarRental_TTCN/CarRental/Views/Accounts/Index.cshtml)):**
+   - Yêu cầu tải đủ cả **ảnh mặt trước GPLX** và **ảnh mặt sau GPLX** kèm xem trước trực tiếp 2 mặt.
+3. **Đăng ký làm Chủ xe ([RegisterController.cs](file:///d:/CarRental_TTCN/CarRental/Areas/CarOwner/Controllers/RegisterController.cs), [Register/Index.cshtml](file:///d:/CarRental_TTCN/CarRental/Areas/CarOwner/Views/Register/Index.cshtml), [Register/Pending.cshtml](file:///d:/CarRental_TTCN/CarRental/Areas/CarOwner/Views/Register/Pending.cshtml)):**
+   - Chia giao diện 2 cột ngang cho ảnh mặt trước và mặt sau GPLX, tự động hiển thị sẵn ảnh đã lưu từ tài khoản khách hàng (có fallback `/files/license/` ↔ `/files/KYC/`).
+4. **Phía Admin & Chủ xe ([Admin/UserManagement/Details.cshtml](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Views/UserManagement/Details.cshtml), [Admin/CarOwners/Pending.cshtml](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Views/CarOwners/Pending.cshtml), [CarOwner/Orders/Details.cshtml](file:///d:/CarRental_TTCN/CarRental/Areas/CarOwner/Views/Orders/Details.cshtml)):**
+   - Hiển thị đầy đủ ảnh GPLX 2 mặt, hỗ trợ fallback đường dẫn xem ảnh không bị lỗi 404.
+   - Bổ sung **Địa chỉ**, **ảnh GPLX 2 mặt** (phóng to Lightbox) và nút **Chat với người thuê xe** trong chi tiết đơn của Chủ xe; đồng thời gỡ bỏ số CCCD/GPLX mẫu viết cứng, hiển thị trung thực `"Chưa cập nhật"` nếu khách chưa nhập.
+
+### 62.4. Tự Động Gỡ Chặn Lịch Khi Hoàn Thành Chuyến & Ẩn Xe Bị Chặn Trên Sàn
+- **[CarOwner/OrdersController.cs](file:///d:/CarRental_TTCN/CarRental/Areas/CarOwner/Controllers/OrdersController.cs):** Thêm `ReleaseCarCalendarBlocks(...)` tự động gỡ bỏ các bản ghi `CarCalendarBlocks` đang chặn hoặc trùng lịch chuyến khi xác nhận hoàn thành chuyến (`ConfirmReturn` / `Edit` sang `StatusId == 5`).
+- **[HomeController.cs](file:///d:/CarRental_TTCN/CarRental/Controllers/HomeController.cs), [ProductController.cs](file:///d:/CarRental_TTCN/CarRental/Controllers/ProductController.cs), [ProductViewComponent.cs](file:///d:/CarRental_TTCN/CarRental/ViewComponents/ProductViewComponent.cs):** Loại trừ xe đang trong thời gian chặn lịch (`StartTime <= NowVn && EndTime >= NowVn`) khỏi toàn bộ danh sách hiển thị công khai trên sàn.
+
+### 62.5. Xử Lý Trạng Thái "Chưa Thanh Toán" ZaloPay & Tự Động Hủy Quá Hạn 1 Phút
+- **[CartController.cs](file:///d:/CarRental_TTCN/CarRental/Controllers/CartController.cs), [Checkout.cshtml](file:///d:/CarRental_TTCN/CarRental/Views/Cart/Checkout.cshtml):** Khắc phục lỗi khi bấm Back từ ZaloPay quay lại trang thanh toán (`bfcache` + giỏ hàng rỗng gây `amount = 0`); lưu hạn thanh toán **1 phút** (`[ZaloPayPending:...]`) và link thanh toán (`[ZaloPayUrl:...]`).
+- **[PendingOrderExpiryService.cs](file:///d:/CarRental_TTCN/CarRental/Services/PendingOrderExpiryService.cs), [Function.cs](file:///d:/CarRental_TTCN/CarRental/Utilities/Function.cs), [AccountsController.cs](file:///d:/CarRental_TTCN/CarRental/Controllers/AccountsController.cs):** Tự động hủy các đơn chờ thanh toán ZaloPay quá hạn 1 phút sang `StatusId = 2` và mở lại `car.IsActive = true`.
+- **[Views/Accounts/Index.cshtml](file:///d:/CarRental_TTCN/CarRental/Views/Accounts/Index.cshtml), Chủ xe & Admin:** Hiển thị nhãn **Chưa thanh toán**, đồng hồ đếm ngược 1 phút thời gian thực, nút **Thanh toán ngay** và **Hủy đơn**.
+
+### 62.6. Đồng Bộ Giao Diện Quản Lý Người Dùng Admin & Sửa Lỗi Hạ Role Chủ Xe
+- **[UserManagement/Edit.cshtml](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Views/UserManagement/Edit.cshtml), [UserManagement/Create.cshtml](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Views/UserManagement/Create.cshtml):** Chuyển sang bố cục 2 cột chuẩn Admin ReCar, loại bỏ ô nhập `Username` thừa (vì người dùng đăng nhập bằng Email).
+- **[UserManagementController.cs](file:///d:/CarRental_TTCN/CarRental/Areas/Admin/Controllers/UserManagementController.cs), [RegisterController.cs](file:///d:/CarRental_TTCN/CarRental/Areas/CarOwner/Controllers/RegisterController.cs):** Hiển thị tên Role tiếng Việt (*Quản trị viên*, *Khách hàng*, *Chủ xe đối tác*), sửa lỗi logic đổi Role và khắc phục lỗi vòng lặp chuyển hướng (`ERR_TOO_MANY_REDIRECTS`) khi hạ Role Chủ xe về Khách hàng rồi bấm đăng ký lại.
+- **Kiểm tra biên dịch:** Toàn bộ dự án đạt **`Build succeeded. 0 Error(s)`**.

@@ -154,9 +154,26 @@
                                          class="rounded-3 border object-fit-cover shadow-xs flex-shrink-0" 
                                          style="width: 72px; height: 48px;" loading="lazy" />
                                     <div>
+                                        @{
+                                            var orderDelivery = CarRental.Utilities.Function.ParseOrderDeliveryInfo(order.Notes);
+                                        }
                                         <p class="fw-semibold text-dark mb-1" style="font-size: 0.875rem;">@(car?.CarName ?? "Phương tiện ReCar")</p>
                                         <span class="plate">@(car?.LicensePlate ?? "CHƯA CẤP")</span>
-                                        <p class="text-muted mb-0 mt-1" style="font-size: 0.72rem;">@(car?.Transmission ?? "Tự động")</p>
+                                        <p class="text-muted mb-0 mt-1" style="font-size: 0.72rem;">@(car?.Transmission ?? "Tự động") · @orderDelivery.DriveMode</p>
+                                        <div class="mt-1">
+                                            @if (orderDelivery.DeliveryMode == "Giao xe tận nơi")
+                                            {
+                                                <span class="badge rounded-pill" style="background: #e0f2fe; color: #0369a1; font-size: 0.68rem;">
+                                                    <i class="bi bi-truck me-1"></i>Giao tận nơi@(orderDelivery.DeliveryFee > 0 ? $" (+{orderDelivery.DeliveryFee:N0} đ)" : " (Miễn phí)")
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge rounded-pill" style="background: #f1f5f9; color: #475569; font-size: 0.68rem;">
+                                                    <i class="bi bi-shop me-1"></i>Tại địa chỉ xe
+                                                </span>
+                                            }
+                                        </div>
                                     </div>
                                 </div>
                             </td>
@@ -232,8 +249,9 @@
                                     }
                                     else
                                     {
-                                        <span class="status-badge-custom badge-status-other">
-                                            <span class="dot"></span> @(order.Status?.StatusDescription ?? "Đã đặt")
+                                        var isUnpaidZp = order.StatusId == 1 && CarRental.Utilities.Function.ParseZaloPayPending(order.Notes).IsPendingPayment;
+                                        <span class="status-badge-custom @(isUnpaidZp ? "badge-status-2" : "badge-status-other")">
+                                            <span class="dot"></span> @(isUnpaidZp ? "Chưa thanh toán" : (order.Status?.StatusDescription ?? "Đã đặt"))
                                         </span>
                                     }
                                 </div>

@@ -1,16 +1,20 @@
 using CarRental.Models;
+using CarRental.Services;
 using CarRental.Utilities;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Cryptography;
 
 namespace CarRental.Controllers
 {
     public class LoginController : Controller
     {
         private readonly DbRenalCarContext _context;
-        public LoginController (DbRenalCarContext context)
+        private readonly IEmailService _emailService;
+        public LoginController(DbRenalCarContext context, IEmailService emailService)
         {
             _context = context;
+            _emailService = emailService;
         }
         [HttpGet]
         public IActionResult Index(string? ReturnUrl = null)
@@ -41,7 +45,7 @@ namespace CarRental.Controllers
             if (string.IsNullOrWhiteSpace(c.Email) || string.IsNullOrWhiteSpace(c.Password))
             {
                 Function.SetMessage(HttpContext.Session, "Vui lòng nhập đầy đủ tài khoản và mật khẩu.");
-                return RedirectToAction("Index", "Login");
+                return RedirectToAction("Index", "Login", new { ReturnUrl });
             }
 
             if (ModelState.IsValid)
@@ -57,14 +61,14 @@ namespace CarRental.Controllers
                 if (check == null)
                 {
                     Function.SetMessage(HttpContext.Session, "Sai thông tin đăng nhập");
-                    return RedirectToAction("Index", "Login");
+                    return RedirectToAction("Index", "Login", new { ReturnUrl });
                 }
 
                 // Kiểm tra trạng thái khóa tài khoản
                 if (!check.IsActive)
                 {
                     Function.SetMessage(HttpContext.Session, "LOCKED");
-                    return RedirectToAction("Index", "Login");
+                    return RedirectToAction("Index", "Login", new { ReturnUrl });
                 }
 
                 // Cập nhật thời điểm đăng nhập mới nhất
@@ -100,6 +104,74 @@ namespace CarRental.Controllers
             }
 
             return View();
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> ForgotPassword(string? email)
+        {
+            var cleanEmail = email?.Trim() ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(cleanEmail) || !cleanEmail.Contains('@'))
+            {
+                return Json(new { success = false, message = "Vui lòng nhập địa chỉ Email hợp lệ." });
+            }
+
+            var customer = await _context.Customers
+                .FirstOrDefaultAsync(c => c.Email != null && c.Email.ToLower() == cleanEmail.ToLower());
+
+            if (customer == null)
+            {
+                return Json(new { success = false, message = "Không tìm thấy tài khoản nào ứng với địa chỉ Email này." });
+            }
+
+            if (!customer.IsActive)
+            {
+                return Json(new { success = false, message = "Tài khoản này hiện đang bị khóa. Vui lòng liên hệ quản trị viên." });
+            }
+
+            var newPassword = GenerateRandomPassword(8);
+            var fullName = !string.IsNullOrWhiteSpace(customer.FullName) ? customer.FullName : (customer.Name ?? "Quý khách");
+
+            var (mailOk, mailMsg) = await _emailService.SendResetPasswordAsync(customer.Email!, fullName, newPassword);
+            if (!mailOk)
+            {
+                return Json(new { success = false, message = mailMsg });
+            }
+
+            customer.Password = Function.MD5Password(newPassword);
+            await _context.SaveChangesAsync();
+
+            return Json(new
+            {
+                success = true,
+                email = customer.Email,
+                message = $"Mật khẩu mới đã được gửi về email {customer.Email}. Vui lòng kiểm tra hộp thư để đăng nhập!"
+            });
+        }
+
+        private static string GenerateRandomPassword(int length)
+        {
+            const string upper = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+            const string lower = "abcdefghijkmnopqrstuvwxyz";
+            const string digits = "23456789";
+            const string all = upper + lower + digits;
+
+            var chars = new char[length];
+            chars[0] = upper[RandomNumberGenerator.GetInt32(upper.Length)];
+            chars[1] = lower[RandomNumberGenerator.GetInt32(lower.Length)];
+            chars[2] = digits[RandomNumberGenerator.GetInt32(digits.Length)];
+
+            for (int i = 3; i < length; i++)
+            {
+                chars[i] = all[RandomNumberGenerator.GetInt32(all.Length)];
+            }
+
+            for (int i = length - 1; i > 0; i--)
+            {
+                int j = RandomNumberGenerator.GetInt32(i + 1);
+                (chars[i], chars[j]) = (chars[j], chars[i]);
+            }
+
+            return new string(chars);
         }
     }
 }

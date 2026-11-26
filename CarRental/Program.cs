@@ -33,6 +33,7 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
 
 builder.Services.AddHttpClient<IZaloPayService, ZaloPayService>();
 builder.Services.AddScoped<CarRental.Services.INotificationService, CarRental.Services.NotificationService>();
+builder.Services.AddScoped<CarRental.Services.IEmailService, CarRental.Services.EmailService>();
 builder.Services.AddHostedService<PendingOrderExpiryService>();
 builder.Services.AddSignalR();
 var app = builder.Build();

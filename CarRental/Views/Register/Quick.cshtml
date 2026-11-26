@@ -1,0 +1,406 @@
+@{
+    Layout = null;
+    string returnUrl = (ViewData["ReturnUrl"] as string) ?? "/Cart/Checkout";
+}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Thông tin khách thuê &amp; Tạo tài khoản nhanh — ReCar</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="~/assets/css/vendor/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        :root {
+            --recar-navy: #0f172a;
+            --recar-blue: #0284c7;
+            --recar-border: #e2e8f0;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+            background: linear-gradient(160deg, #f8fafc 0%, #eff6ff 100%);
+            color: #0f172a;
+            min-height: 100vh;
+            padding: 2rem 1rem;
+        }
+        .quick-shell {
+            max-width: 720px;
+            margin: 0 auto;
+        }
+        .quick-card {
+            background: #ffffff;
+            border: 1px solid var(--recar-border);
+            border-radius: 20px;
+            box-shadow: 0 20px 45px rgba(15, 23, 42, 0.08);
+            overflow: hidden;
+        }
+        .quick-header {
+            background: linear-gradient(135deg, #0f172a 0%, #0284c7 100%);
+            color: #ffffff;
+            padding: 1.75rem 2rem;
+        }
+        .recar-brand-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            color: #ffffff;
+            font-weight: 800;
+            font-size: 1.2rem;
+        }
+        .recar-logo-box {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.18);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .quick-body {
+            padding: 2rem;
+        }
+        .auth-input-wrap {
+            position: relative;
+        }
+        .auth-input-icon {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #94a3b8;
+            font-size: 1rem;
+            pointer-events: none;
+        }
+        .auth-input {
+            width: 100%;
+            height: 46px;
+            padding: 0 14px 0 42px;
+            border: 1.5px solid var(--recar-border);
+            border-radius: 12px;
+            font-size: 0.94rem;
+            color: #0f172a;
+            background: #f8fafc;
+            transition: all 0.2s ease;
+        }
+        .auth-input:focus {
+            outline: none;
+            background: #ffffff;
+            border-color: var(--recar-blue);
+            box-shadow: 0 0 0 4px rgba(2, 132, 199, 0.12);
+        }
+        .btn-auth-primary {
+            width: 100%;
+            height: 48px;
+            border: none;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #0284c7, #0369a1);
+            color: #ffffff;
+            font-weight: 700;
+            font-size: 0.98rem;
+            box-shadow: 0 8px 20px rgba(2, 132, 199, 0.28);
+            transition: all 0.2s ease;
+        }
+        .btn-auth-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 12px 24px rgba(2, 132, 199, 0.35);
+            color: #ffffff;
+        }
+        .upload-dropzone {
+            position: relative;
+            border: 1.5px dashed #cbd5e1;
+            border-radius: 14px;
+            background: #f8fafc;
+            min-height: 132px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            overflow: hidden;
+        }
+        .upload-dropzone:hover {
+            border-color: var(--recar-blue);
+            background: #f0f9ff;
+        }
+        .upload-dropzone.has-file {
+            border-style: solid;
+            border-color: #0284c7;
+            background: #ffffff;
+            padding: 0.4rem;
+        }
+        .upload-dropzone input[type="file"] {
+            display: none;
+        }
+        .upload-icon-circle {
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            background: #e0f2fe;
+            color: #0284c7;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.15rem;
+            margin-bottom: 0.45rem;
+        }
+        .upload-preview-img {
+            width: 100%;
+            height: 118px;
+            object-fit: cover;
+            border-radius: 10px;
+            display: none;
+        }
+        .upload-dropzone.has-file .upload-preview-img {
+            display: block;
+        }
+        .upload-dropzone.has-file .upload-placeholder {
+            display: none;
+        }
+        .upload-remove-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 26px;
+            height: 26px;
+            border-radius: 999px;
+            border: none;
+            background: rgba(15, 23, 42, 0.72);
+            color: #fff;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            cursor: pointer;
+        }
+        .upload-dropzone.has-file .upload-remove-btn {
+            display: inline-flex;
+        }
+    </style>
+</head>
+<body>
+    <div class="quick-shell">
+        <div class="d-flex align-items-center justify-content-between mb-3 px-1">
+            <a href="/Cart" class="text-decoration-none text-secondary small fw-semibold">
+                <i class="bi bi-arrow-left me-1"></i>Quay lại giỏ xe
+            </a>
+            <a href="/Login/Index?ReturnUrl=@Uri.EscapeDataString(returnUrl)" class="text-decoration-none fw-bold small" style="color: var(--recar-blue);">
+                Đã có tài khoản? Đăng nhập ngay <i class="bi bi-box-arrow-in-right ms-1"></i>
+            </a>
+        </div>
+
+        <div class="quick-card">
+            <div class="quick-header">
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+                    <a href="/" class="recar-brand-pill">
+                        <span class="recar-logo-box"><i class="bi bi-car-front-fill"></i></span>
+                        <span>ReCar</span>
+                    </a>
+                    <span class="badge rounded-pill px-3 py-2" style="background: rgba(255,255,255,0.16); font-weight: 600;">
+                        Bước 1/2: Thông tin khách thuê
+                    </span>
+                </div>
+                <h1 class="fw-bold mb-1" style="font-size: 1.45rem;">Nhập thông tin để tiếp tục đặt cọc xe</h1>
+                <p class="mb-0 small" style="opacity: 0.88;">
+                    Nếu bạn chưa có tài khoản, chỉ cần điền thông tin bên dưới — hệ thống sẽ tự tạo tài khoản và gửi mật khẩu về Email của bạn.
+                </p>
+            </div>
+
+            <div class="quick-body">
+                <div id="quickRegisterError" class="alert alert-danger py-2 px-3 small rounded-3 mb-3 d-none"></div>
+
+                <form id="quickRegisterForm" enctype="multipart/form-data">
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold text-secondary mb-1">Họ và tên <span class="text-danger">*</span></label>
+                            <div class="auth-input-wrap">
+                                <i class="bi bi-person auth-input-icon"></i>
+                                <input type="text" name="FullName" class="auth-input" placeholder="Ví dụ: Nguyễn Văn An" required />
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold text-secondary mb-1">Số điện thoại <span class="text-danger">*</span></label>
+                            <div class="auth-input-wrap">
+                                <i class="bi bi-telephone auth-input-icon"></i>
+                                <input type="tel" name="PhoneNumber" class="auth-input" placeholder="09xxxxxxxx" required />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold text-secondary mb-1">Email nhận mật khẩu <span class="text-danger">*</span></label>
+                            <div class="auth-input-wrap">
+                                <i class="bi bi-envelope auth-input-icon"></i>
+                                <input type="email" name="Email" class="auth-input" placeholder="name@example.com" required />
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold text-secondary mb-1">Số GPLX <span class="text-danger">*</span></label>
+                            <div class="auth-input-wrap">
+                                <i class="bi bi-card-heading auth-input-icon"></i>
+                                <input type="text" name="LicenseNumber" class="auth-input" placeholder="Nhập dãy 12 số GPLX" required />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold text-secondary mb-1">Địa chỉ nhận xe / liên hệ <span class="text-danger">*</span></label>
+                        <div class="auth-input-wrap">
+                            <i class="bi bi-geo-alt auth-input-icon"></i>
+                            <input type="text" name="Address" class="auth-input" placeholder="Số nhà, đường, quận/huyện, tỉnh/thành" required />
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold text-secondary mb-1.5">Ảnh GPLX mặt trước</label>
+                            <label class="upload-dropzone" id="dropzoneFront">
+                                <input type="file" name="LicenseFrontFile" id="inputFront" accept=".jpg,.jpeg,.png,.webp" />
+                                <div class="upload-placeholder">
+                                    <div class="upload-icon-circle"><i class="bi bi-cloud-arrow-up"></i></div>
+                                    <div class="small fw-semibold text-dark">Tải lên mặt trước</div>
+                                    <div class="text-muted" style="font-size: 0.74rem;">JPG, PNG, WEBP</div>
+                                </div>
+                                <img id="previewFront" class="upload-preview-img" alt="GPLX mặt trước" />
+                                <button type="button" class="upload-remove-btn" onclick="clearLicenseFile(event, 'inputFront', 'dropzoneFront', 'previewFront')" title="Xóa ảnh">
+                                    <i class="bi bi-x-lg"></i>
+                                </button>
+                            </label>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold text-secondary mb-1.5">Ảnh GPLX mặt sau</label>
+                            <label class="upload-dropzone" id="dropzoneBack">
+                                <input type="file" name="LicenseBackFile" id="inputBack" accept=".jpg,.jpeg,.png,.webp" />
+                                <div class="upload-placeholder">
+                                    <div class="upload-icon-circle"><i class="bi bi-cloud-arrow-up"></i></div>
+                                    <div class="small fw-semibold text-dark">Tải lên mặt sau</div>
+                                    <div class="text-muted" style="font-size: 0.74rem;">JPG, PNG, WEBP</div>
+                                </div>
+                                <img id="previewBack" class="upload-preview-img" alt="GPLX mặt sau" />
+                                <button type="button" class="upload-remove-btn" onclick="clearLicenseFile(event, 'inputBack', 'dropzoneBack', 'previewBack')" title="Xóa ảnh">
+                                    <i class="bi bi-x-lg"></i>
+                                </button>
+                            </label>
+                        </div>
+                    </div>
+
+                    <button type="submit" id="quickRegisterBtn" class="btn btn-auth-primary mb-3">
+                        Tạo tài khoản <i class="bi bi-arrow-right ms-1"></i>
+                    </button>
+
+                    <div class="text-center pt-2 border-top small text-muted">
+                        Bạn đã có tài khoản ReCar?
+                        <a href="/Login/Index?ReturnUrl=@Uri.EscapeDataString(returnUrl)" class="fw-bold text-decoration-none" style="color: var(--recar-blue);">
+                            Đăng nhập ngay để thanh toán
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function bindLicensePreview(inputId, dropzoneId, previewId) {
+            const input = document.getElementById(inputId);
+            const dropzone = document.getElementById(dropzoneId);
+            const preview = document.getElementById(previewId);
+            if (!input || !dropzone || !preview) return;
+
+            input.addEventListener('change', function () {
+                const file = this.files && this.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = function (ev) {
+                    preview.src = ev.target.result;
+                    dropzone.classList.add('has-file');
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function clearLicenseFile(e, inputId, dropzoneId, previewId) {
+            e.preventDefault();
+            e.stopPropagation();
+            const input = document.getElementById(inputId);
+            const dropzone = document.getElementById(dropzoneId);
+            const preview = document.getElementById(previewId);
+            if (input) input.value = '';
+            if (preview) preview.src = '';
+            if (dropzone) dropzone.classList.remove('has-file');
+        }
+
+        bindLicensePreview('inputFront', 'dropzoneFront', 'previewFront');
+        bindLicensePreview('inputBack', 'dropzoneBack', 'previewBack');
+
+        const returnUrl = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(returnUrl));
+        const quickForm = document.getElementById('quickRegisterForm');
+
+        quickForm.addEventListener('submit', async function (e) {
+            e.preventDefault();
+            const btn = document.getElementById('quickRegisterBtn');
+            const errBox = document.getElementById('quickRegisterError');
+            errBox.classList.add('d-none');
+            errBox.textContent = '';
+
+            const originalHtml = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Đang tạo tài khoản...';
+
+            try {
+                const formData = new FormData(quickForm);
+                const res = await fetch('/Register/QuickRegister', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    await Swal.fire({
+                        icon: 'success',
+                        title: 'Đã gửi tài khoản về Email!',
+                        html: `<p class="mb-0">${data.message}</p>`,
+                        confirmButtonText: 'Đến trang đăng nhập',
+                        confirmButtonColor: '#0284c7',
+                        allowOutsideClick: false
+                    });
+                    const loginUrl = `/Login/Index?ReturnUrl=${encodeURIComponent(returnUrl)}&email=${encodeURIComponent(data.email || '')}`;
+                    window.location.href = loginUrl;
+                } else if (data.emailExists) {
+                    const result = await Swal.fire({
+                        icon: 'info',
+                        title: 'Email đã tồn tại',
+                        text: data.message,
+                        showCancelButton: true,
+                        confirmButtonText: 'Đến trang đăng nhập',
+                        cancelButtonText: 'Dùng email khác',
+                        confirmButtonColor: '#0284c7'
+                    });
+                    if (result.isConfirmed) {
+                        const loginUrl = `/Login/Index?ReturnUrl=${encodeURIComponent(returnUrl)}&email=${encodeURIComponent(data.email || '')}`;
+                        window.location.href = loginUrl;
+                    }
+                } else {
+                    errBox.textContent = data.message || 'Không thể đăng ký, vui lòng thử lại.';
+                    errBox.classList.remove('d-none');
+                }
+            } catch (err) {
+                errBox.textContent = 'Lỗi kết nối máy chủ. Vui lòng thử lại.';
+                errBox.classList.remove('d-none');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalHtml;
+            }
+        });
+    </script>
+</body>
+</html>

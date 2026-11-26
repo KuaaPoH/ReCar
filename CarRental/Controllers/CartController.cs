@@ -370,13 +370,8 @@ namespace CarRental.Controllers
  //kiem tra trang thai dang nhap
 
  if (!Function.IsLogin(HttpContext.Session))
-
  {
-
-
-
- return RedirectToAction("Index", "Login", new { ReturnUrl = Url.Action("Checkout", "Cart") });
-
+     return RedirectToAction("Quick", "Register", new { ReturnUrl = Url.Action("Checkout", "Cart") });
  }
 
  var cart = CART; // Lấy giỏ hàng từ Session
